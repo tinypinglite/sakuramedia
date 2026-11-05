@@ -3,12 +3,12 @@
 ## 应用壳层
 
 - `AppDesktopShell`：`lib/widgets/shell/desktop/app_desktop_shell.dart`，桌面工作台容器。`AppShellLayout.immersive` 变体用于播放页等全出血场景：内容区去掉圆角与外边距，顶栏隐藏。
-- `AppSidebar`、`AppSidebarGroup`、`AppSidebarItem`：`app_sidebar.dart`，桌面导航分组和条目。侧栏收起时宽度归零并 `Offstage` 卸载内容（不是留一条窄栏），展开/悬停态由 `AppShellSidebarCollapsed` 驱动。
-- `SidebarAppearanceMenu`：`sidebar_appearance_menu.dart`，侧栏底部的明暗模式三态切换图标与主题色小浮窗（浮层由 `AppAnchoredPopover` 承载）；读写 `appearanceProvider`，沿用设置页持久化，选色后自动收起。
+- `AppSidebar`、`AppSidebarGroup`、`AppSidebarItem`：`app_sidebar.dart`，桌面导航分组和条目。侧栏收起时宽度归零并 `Offstage` 卸载内容（不是留一条窄栏），展开/悬停态由 `AppShellSidebarCollapsed` 驱动。底部账户卡承载产品名、登录状态、固定产品首字母 `S`、明暗/主题色入口、版本行和退出按钮。
+- `SidebarAppearanceMenu`：`sidebar_appearance_menu.dart`，账户卡内的明暗模式三态切换图标与主题色小浮窗（浮层由 `AppAnchoredPopover` 承载）；读写 `appearanceProvider`，沿用设置页持久化，选色后自动收起。
 - `AppSidebarToggleButton`：`app_sidebar_toggle_button.dart`，收起/展开按钮。窗口坐标位置由 `sidebarToggleButtonLeft` 计算：macOS 排在自绘红绿灯右侧，其它平台贴左缘。
 - `AppMacTrafficLights`：`lib/widgets/shell/window/app_mac_traffic_lights.dart`，macOS 自绘红绿灯（系统按钮由 `window_bootstrap_desktop.dart` 隐藏）。用于与自绘窗口标题栏对齐；非 macOS 平台不渲染。
 - `AppTopBar`：`app_top_bar.dart`，桌面页面顶栏和操作区；搜索入口在顶栏右侧（不再在侧栏），默认展开，点击图标可折叠为图标按钮，聚焦时 Esc 收起。
-- `SidebarVersionFooter`：`desktop/sidebar_version_footer.dart`，桌面侧栏底部版本行；有更新时 info 图标带小圆点，点开为上方版本浮层（客户端 / 服务端 / 发布页 / 插件更新，浮层由 `AppAnchoredPopover` 承载）。
+- `SidebarVersionFooter`：`desktop/sidebar_version_footer.dart`，桌面侧栏底部版本行；嵌入账户卡第二行，收紧外扩但保留 hover 底色的左右内缩。有更新时 info 图标带小圆点，点开为上方版本浮层（客户端 / 服务端 / 发布页 / 插件更新，浮层由 `AppAnchoredPopover` 承载）。
 - `AppVersionInfoCard`：`app_version_info_card.dart`，移动端抽屉里的版本卡片（完整信息内联展示）。
 - `AppVersionRow`、`AppVersionUpdateNotice`：`app_version_info_parts.dart`，上述两处的共用行与更新提示块。
 - 版本更新检查状态由 `appUpdateCheckProvider`（`lib/app/providers/app_update_check_provider.dart`）统一提供：每小时轮询、单项失败静默保留旧值；桌面页脚与移动卡片共用，不要再在组件内各写一份 Timer。

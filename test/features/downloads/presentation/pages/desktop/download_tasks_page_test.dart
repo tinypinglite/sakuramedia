@@ -395,8 +395,8 @@ void main() {
     expect(find.byKey(const Key('manual-download-modal')), findsOneWidget);
 
     await tester.enterText(
-      find.byKey(const Key('manual-download-magnet-field')),
-      'magnet:?xt=urn:btih:abc',
+      find.byKey(const Key('manual-download-link-field')),
+      'magnet:?xt=urn:btih:0000000000000000000000000000000000000000',
     );
     await tester.enterText(
       find.byKey(const Key('manual-download-movie-number-field')),
@@ -468,115 +468,116 @@ void main() {
     await tester.pump(const Duration(seconds: 3));
   });
 
-  testWidgets('manual submit falls back to all when search is a partial number', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1400, 900);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    final sessionStore = await _loggedInSessionStore();
-    final bundle = await createTestApiBundle(sessionStore);
-    addTearDown(bundle.dispose);
-    addTearDown(sessionStore.dispose);
-    _fallbackDownloadPage(bundle, tasks: const <Map<String, dynamic>>[]);
-    bundle.adapter.setFallbackJson(
-      method: 'GET',
-      path: '/download-clients',
-      body: const <Map<String, dynamic>>[
-        <String, dynamic>{'id': 1, 'name': 'qb-main', 'library_id': 1},
-      ],
-    );
-
-    await tester.pumpWidget(_desktopApp(bundle));
-    await tester.pumpAndSettle();
-
-    await tester.enterText(
-      find.byKey(const Key('download-filter-search')),
-      'ABC',
-    );
-    await tester.testTextInput.receiveAction(TextInputAction.search);
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.byKey(const Key('download-tasks-manual-add')));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.byKey(const Key('manual-download-magnet-field')),
-      'magnet:?xt=urn:btih:abc',
-    );
-    await tester.enterText(
-      find.byKey(const Key('manual-download-movie-number-field')),
-      'ABC-001',
-    );
-    bundle.adapter.enqueueJson(
-      method: 'POST',
-      path: '/movies/search/parse-number',
-      body: <String, dynamic>{
-        'query': 'ABC-001',
-        'parsed': true,
-        'movie_number': 'ABC-001',
-        'reason': null,
-      },
-    );
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/movies',
-      body: <String, dynamic>{
-        'items': <Map<String, dynamic>>[
-          <String, dynamic>{
-            'id': 1,
-            'movie_number': 'ABC-001',
-            'title': 'Movie',
-          },
+  testWidgets(
+    'manual submit falls back to all when search is a partial number',
+    (tester) async {
+      tester.view.physicalSize = const Size(1400, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final sessionStore = await _loggedInSessionStore();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      addTearDown(sessionStore.dispose);
+      _fallbackDownloadPage(bundle, tasks: const <Map<String, dynamic>>[]);
+      bundle.adapter.setFallbackJson(
+        method: 'GET',
+        path: '/download-clients',
+        body: const <Map<String, dynamic>>[
+          <String, dynamic>{'id': 1, 'name': 'qb-main', 'library_id': 1},
         ],
-        'page': 1,
-        'page_size': 50,
-        'total': 1,
-      },
-    );
-    await tester.pump();
-    await tester.tap(
-      find.byKey(const Key('manual-download-movie-number-query-button')),
-    );
-    await tester.pumpAndSettle();
-    bundle.adapter.enqueueJson(
-      method: 'POST',
-      path: '/download-requests/manual',
-      statusCode: 201,
-      body: <String, dynamic>{
-        'task': <String, dynamic>{
-          'id': 501,
-          'client_id': 1,
-          'movie_number': 'ABC-001',
-          'name': 'ABC-001',
-          'remote_id': 'remote-501',
-          'state': 'downloading',
-          'progress': 0.0,
-          'import_status': 'pending',
-          'created_at': '2026-08-10T12:00:00Z',
-          'updated_at': '2026-08-10T12:00:00Z',
-        },
-        'created': true,
-      },
-    );
-    await tester.tap(find.byKey(const Key('manual-download-submit-button')));
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 300));
-    await tester.pumpAndSettle();
+      );
 
-    final requests = bundle.adapter.requests
-        .where((request) => request.path == '/download-tasks')
-        .toList(growable: false);
-    // 后端按精确番号过滤；部分搜索词 'ABC' 不会命中 'ABC-001'，所以前端必须
-    // 切到「全部」而不是继续带着搜索词刷新。
-    expect(
-      requests.last.uri.queryParameters.containsKey('movie_number'),
-      isFalse,
-    );
-    expect(requests.last.uri.queryParameters.containsKey('state'), isFalse);
-    await tester.pump(const Duration(seconds: 3));
-  });
+      await tester.pumpWidget(_desktopApp(bundle));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('download-filter-search')),
+        'ABC',
+      );
+      await tester.testTextInput.receiveAction(TextInputAction.search);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('download-tasks-manual-add')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key('manual-download-link-field')),
+        'magnet:?xt=urn:btih:0000000000000000000000000000000000000000',
+      );
+      await tester.enterText(
+        find.byKey(const Key('manual-download-movie-number-field')),
+        'ABC-001',
+      );
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/movies/search/parse-number',
+        body: <String, dynamic>{
+          'query': 'ABC-001',
+          'parsed': true,
+          'movie_number': 'ABC-001',
+          'reason': null,
+        },
+      );
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies',
+        body: <String, dynamic>{
+          'items': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'id': 1,
+              'movie_number': 'ABC-001',
+              'title': 'Movie',
+            },
+          ],
+          'page': 1,
+          'page_size': 50,
+          'total': 1,
+        },
+      );
+      await tester.pump();
+      await tester.tap(
+        find.byKey(const Key('manual-download-movie-number-query-button')),
+      );
+      await tester.pumpAndSettle();
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/download-requests/manual',
+        statusCode: 201,
+        body: <String, dynamic>{
+          'task': <String, dynamic>{
+            'id': 501,
+            'client_id': 1,
+            'movie_number': 'ABC-001',
+            'name': 'ABC-001',
+            'remote_id': 'remote-501',
+            'state': 'downloading',
+            'progress': 0.0,
+            'import_status': 'pending',
+            'created_at': '2026-08-10T12:00:00Z',
+            'updated_at': '2026-08-10T12:00:00Z',
+          },
+          'created': true,
+        },
+      );
+      await tester.tap(find.byKey(const Key('manual-download-submit-button')));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      final requests = bundle.adapter.requests
+          .where((request) => request.path == '/download-tasks')
+          .toList(growable: false);
+      // 后端按精确番号过滤；部分搜索词 'ABC' 不会命中 'ABC-001'，所以前端必须
+      // 切到「全部」而不是继续带着搜索词刷新。
+      expect(
+        requests.last.uri.queryParameters.containsKey('movie_number'),
+        isFalse,
+      );
+      expect(requests.last.uri.queryParameters.containsKey('state'), isFalse);
+      await tester.pump(const Duration(seconds: 3));
+    },
+  );
 
   testWidgets('filtered empty state offers view all', (tester) async {
     tester.view.physicalSize = const Size(1400, 900);

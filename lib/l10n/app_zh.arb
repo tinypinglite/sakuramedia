@@ -2891,9 +2891,9 @@
   "downloadStateFilterLabel": "下载状态",
   "downloadClientFilterLabel": "下载客户端",
   "downloadFilterClientSpecified": "指定客户端",
-  "downloadMagnetRequired": "请粘贴磁力链接",
-  "downloadMagnetSingleOnly": "一次只能提交一条磁力链接",
-  "downloadMagnetInvalid": "仅支持 magnet: 开头的磁力链接",
+  "downloadSourceRequired": "请粘贴下载链接",
+  "downloadSourceSingleOnly": "一次只能提交一条链接",
+  "downloadLinkInvalid": "无法识别该链接，请检查磁力、eD2k 或 HTTP/HTTPS 地址",
   "downloadMovieNumberRequired": "请填写番号",
   "downloadMovieNumberResolving": "番号查询中，请稍候",
   "downloadMovieNumberQueryFirst": "请先点击「查询」并匹配影片",
@@ -2926,13 +2926,17 @@
   "downloadTorrentPickerOpenFailed": "打开文件选择器失败，请稍后再试",
   "downloadTorrentFileRequired": "请选择 .torrent 文件",
   "downloadCreateTaskFailed": "创建下载任务失败，请重试",
-  "downloadMagnetDialogTitle": "添加磁力下载",
-  "downloadMagnetPrefilledDescription": "磁力已从评论填入，确认下载器后提交。",
-  "downloadManualAddDescription": "粘贴磁力链接或上传 .torrent 文件，提交到下载器。",
+  "downloadLinkDialogTitle": "添加下载",
+  "downloadSourcePrefilledDescription": "链接已从评论填入，确认下载器后提交。",
+  "downloadManualAddDescription": "选择下载器后，粘贴链接或上传 .torrent 文件提交。",
   "downloadClose": "关闭",
   "downloadSubmit": "提交下载",
   "downloadSectionSource": "资源",
+  "downloadLinkModeLabel": "链接",
+  "downloadLinkHelper": "支持磁力、eD2k 和 HTTP/HTTPS 直链，类型会自动识别。",
   "downloadMagnetLabel": "磁力链接",
+  "downloadEd2kLabel": "eD2k 链接",
+  "downloadHttpLabel": "HTTP 直链",
   "downloadTorrentLabel": "种子文件",
   "downloadSectionSettings": "下载设置",
   "downloadMediaKindJav": "JAV 影片",
@@ -2942,8 +2946,8 @@
   "downloadQuery": "查询",
   "downloadDisplayNameLabel": "显示名称（可选）",
   "downloadDisplayNameHelper": "优先显示在下载任务列表；留空时使用影片标题或资源名称。",
-  "downloadMagnetCompactHelper": "从评论识别，提交前可修改。",
-  "downloadMagnetHelper": "只接受 magnet: 链接；HTTP 种子地址请下载 .torrent 后上传。",
+  "downloadSourceCompactHelper": "从评论识别，提交前可修改。",
+  "downloadSourceUnsupported": "当前下载器不支持该来源类型",
   "downloadLoadingClients": "正在加载下载器…",
   "downloadClientsLoadFailed": "下载器加载失败",
   "downloadClientsEmpty": "还没有可用的下载器",
@@ -4442,9 +4446,9 @@
   "movieWidgetAnonymousUser": "匿名用户",
   "movieWidgetNoReviewContent": "暂无评论内容",
   "movieWidgetSearchMovieNumber": "搜索番号",
-  "movieWidgetAddMagnetDownload": "添加磁力下载",
-  "movieWidgetAddMagnetIndexed": "添加磁力 {index}",
-  "@movieWidgetAddMagnetIndexed": {
+  "movieWidgetAddDownload": "添加下载",
+  "movieWidgetAddDownloadIndexed": "添加下载 {index}",
+  "@movieWidgetAddDownloadIndexed": {
     "placeholders": {
       "index": {
         "type": "int"
@@ -4840,7 +4844,7 @@
       }
     }
   },
-  "actorMovieCountLabel": "作品 · {count} 部",
+  "actorMovieCountLabel": "{count} 部",
   "@actorMovieCountLabel": {
     "placeholders": {
       "count": {
@@ -5552,6 +5556,7 @@
   "shellThemeModeSystem": "跟随系统 · 点击切换浅色",
   "shellThemeModeLight": "浅色 · 点击切换深色",
   "shellThemeModeDark": "深色 · 点击切换跟随系统",
+  "shellSignedIn": "已登录",
   "shellLogout": "退出登录",
   "shellRefreshFailed": "刷新失败",
   "shellNavOverview": "概览",

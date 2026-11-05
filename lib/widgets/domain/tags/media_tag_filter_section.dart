@@ -8,36 +8,34 @@ import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/domain/tags/app_tag_match_mode_toggle.dart';
 
-/// 影片列表的「媒体文件标签」筛选分节。
+/// 影片列表与女优详情作品区共用的「媒体文件标签」筛选分节。
 ///
-/// 选中状态完全由入参 [selectedTagIds] / [matchMode] 决定：调用方（桌面筛选
-/// 面板、移动筛选抽屉）持有筛选状态，组件不另存一份副本，避免两边分叉。
+/// 选中状态完全由入参 [filter] 决定：调用方（桌面筛选面板、移动筛选抽屉）
+/// 持有筛选状态，组件不另存一份副本，避免两边分叉。
 class MediaTagFilterSection extends ConsumerWidget {
   const MediaTagFilterSection({
     super.key,
-    required this.selectedTagIds,
-    required this.matchMode,
+    required this.filter,
     required this.onChanged,
   });
 
-  final List<int> selectedTagIds;
-  final TagMatchMode matchMode;
-  final void Function(List<int> tagIds, TagMatchMode matchMode) onChanged;
+  final MovieFilterState filter;
+  final ValueChanged<MovieFilterState> onChanged;
 
   void _toggleTag(int tagId) {
-    final next = List<int>.from(selectedTagIds);
+    final next = List<int>.of(filter.mediaTagIds);
     if (!next.remove(tagId)) {
       next.add(tagId);
     }
-    onChanged(next, matchMode);
+    onChanged(filter.copyWith(mediaTagIds: next));
   }
 
   void _changeMatchMode(TagMatchMode matchMode) {
-    onChanged(selectedTagIds, matchMode);
+    onChanged(filter.copyWith(mediaTagMatch: matchMode));
   }
 
   void _clear() {
-    onChanged(const <int>[], matchMode);
+    onChanged(filter.copyWith(mediaTagIds: const <int>[]));
   }
 
   @override
@@ -64,7 +62,7 @@ class MediaTagFilterSection extends ConsumerWidget {
                 ),
               ),
             ),
-            if (selectedTagIds.isNotEmpty)
+            if (filter.mediaTagIds.isNotEmpty)
               AppTextButton(
                 key: const Key('movie-media-tag-filter-clear'),
                 label: l10n.movieMediaTagFilterClear,
@@ -81,7 +79,7 @@ class MediaTagFilterSection extends ConsumerWidget {
             children: [
               Expanded(
                 child: Text(
-                    l10n.mediaTagsLoadFailedTitle,
+                  l10n.mediaTagsLoadFailedTitle,
                   style: resolveAppTextStyle(
                     context,
                     size: AppTextSize.s12,
@@ -116,17 +114,19 @@ class MediaTagFilterSection extends ConsumerWidget {
                   key: Key('movie-media-tag-filter-${tag.id}'),
                   label: tag.name,
                   size: AppTextButtonSize.xSmall,
-                  isSelected: selectedTagIds.contains(tag.id),
+                  isSelected: filter.mediaTagIds.contains(tag.id),
                   onPressed: () => _toggleTag(tag.id),
                 ),
             ],
           ),
-        if (selectedTagIds.length > 1) ...[
+        if (filter.mediaTagIds.length > 1) ...[
           SizedBox(height: spacing.md),
           Row(
             children: [
               Text(
-                l10n.movieMediaTagFilterSelectedCount(selectedTagIds.length),
+                l10n.movieMediaTagFilterSelectedCount(
+                  filter.mediaTagIds.length,
+                ),
                 style: resolveAppTextStyle(
                   context,
                   size: AppTextSize.s12,
@@ -135,7 +135,7 @@ class MediaTagFilterSection extends ConsumerWidget {
               ),
               const Spacer(),
               AppTagMatchModeToggle(
-                matchMode: matchMode,
+                matchMode: filter.mediaTagMatch,
                 buttonKeyPrefix: 'movie-media-tag-match',
                 onChanged: _changeMatchMode,
               ),

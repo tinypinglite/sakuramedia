@@ -20,10 +20,7 @@ Future<bool?> showDownloadTaskDeleteDialog(
   var deleteFiles = false;
   final l10n = AppLocalizations.of(context);
   final blacklistableTaskCount = tasks
-      .where(
-        (task) =>
-            task.importStatus == 'failed' || task.importStatus == 'skipped',
-      )
+      .where((task) => task.blacklistable)
       .length;
   final confirmed = await showAppConfirmDialog(
     context,

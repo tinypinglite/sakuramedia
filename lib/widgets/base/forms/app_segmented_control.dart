@@ -93,6 +93,13 @@ class _AppSegmentedItemButton<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = resolveAppPillColors(context, AppPillTone.selected);
     final spec = _AppSegmentedSizeSpec.resolve(context, size);
+    final inheritedFontFamily = DefaultTextStyle.of(context).style.fontFamily;
+    final baseTextStyle = resolveAppTextStyle(
+      context,
+      size: spec.textSize,
+      weight: AppTextWeight.regular,
+      tone: AppTextTone.primary,
+    );
     final foreground = selected
         ? colors.foreground
         : context.appTextPalette.secondary;
@@ -113,7 +120,9 @@ class _AppSegmentedItemButton<T> extends StatelessWidget {
           decoration: BoxDecoration(
             color: selected ? colors.background : Colors.transparent,
             borderRadius: context.appRadius.pillBorder,
-            border: selected ? Border.all(color: colors.border!) : null,
+            border: Border.all(
+              color: selected ? colors.border! : Colors.transparent,
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -128,14 +137,10 @@ class _AppSegmentedItemButton<T> extends StatelessWidget {
               AnimatedDefaultTextStyle(
                 duration: const Duration(milliseconds: 160),
                 curve: Curves.easeOutCubic,
-                style: resolveAppTextStyle(
-                  context,
-                  size: spec.textSize,
-                  weight: selected
-                      ? AppTextWeight.medium
-                      : AppTextWeight.regular,
-                  tone: AppTextTone.primary,
-                ).copyWith(color: foreground),
+                style: baseTextStyle.copyWith(
+                  color: foreground,
+                  fontFamily: baseTextStyle.fontFamily ?? inheritedFontFamily,
+                ),
                 child: Text(
                   item.label,
                   maxLines: 1,

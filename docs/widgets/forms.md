@@ -4,7 +4,7 @@
 
 路径：`lib/widgets/base/forms/app_text_field.dart`
 
-统一文本输入样式、标签、错误和辅助文案。页面负责 controller、校验和提交时机。
+统一文本输入样式、标签、错误和辅助文案。页面负责 controller、校验和提交时机；需要固定填充高度时用 `height` + `expands`，并同时把 `minLines` / `maxLines` 留空。
 
 ## `AppPasswordField`
 

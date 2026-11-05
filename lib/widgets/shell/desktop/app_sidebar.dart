@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/activity/presentation/providers/notificatio
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/shell/desktop/sidebar_appearance_menu.dart';
@@ -25,7 +26,6 @@ class AppSidebar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isCompact = ref.watch(appShellSidebarCollapsedProvider);
-    final l10n = appL10n(context);
     final sidebarTokens = context.appSidebarTokens;
     final appColors = context.appColors;
     final useDesktopSidebarGlass = _useDesktopSidebarGlass;
@@ -95,35 +95,10 @@ class AppSidebar extends ConsumerWidget {
               ),
               Padding(
                 padding: EdgeInsets.all(context.appSpacing.sm),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Divider(
-                      height: 1,
-                      color: _sidebarDividerColor(
-                        appColors,
-                        useDesktopSidebarGlass,
-                      ),
-                    ),
-                    SizedBox(height: context.appSpacing.sm),
-                    Row(
-                      children: [
-                        const Expanded(child: SidebarVersionFooter()),
-                        SizedBox(width: context.appSpacing.sm),
-                        const SidebarAppearanceMenu(),
-                      ],
-                    ),
-                    SizedBox(height: context.appSpacing.xs),
-                    AppSidebarItem(
-                      key: const Key('sidebar-logout-button'),
-                      icon: Icons.logout_rounded,
-                      label: l10n.shellLogout,
-                      selected: false,
-                      onTap: () {
-                        context.logOut();
-                      },
-                    ),
-                  ],
+                child: _SidebarAccountCard(
+                  onLogout: () {
+                    context.logOut();
+                  },
                 ),
               ),
             ],
@@ -150,6 +125,148 @@ class AppSidebar extends ConsumerWidget {
       );
     }
     return children;
+  }
+}
+
+class _SidebarAccountCard extends StatelessWidget {
+  const _SidebarAccountCard({required this.onLogout});
+
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = appL10n(context);
+    final colors = context.appColors;
+    final spacing = context.appSpacing;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final buttonFill = colors.surfaceCard.withValues(
+      alpha: isDark ? 0.06 : 0.34,
+    );
+    final buttonBorder = colors.borderSubtle.fadedBy(isDark ? 0.75 : 0.55);
+    final cardFill = colors.surfaceCard.withValues(
+      alpha: isDark ? 0.055 : 0.34,
+    );
+
+    return Container(
+      key: const Key('sidebar-account-card'),
+      width: double.infinity,
+      constraints: const BoxConstraints(minHeight: 88),
+      padding: EdgeInsets.all(spacing.sm),
+      decoration: BoxDecoration(
+        borderRadius: context.appRadius.lgBorder,
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            cardFill,
+            cardFill.withValues(alpha: cardFill.a * 0.55),
+          ],
+        ),
+        border: Border.all(
+          color: colors.borderSubtle.fadedBy(isDark ? 0.72 : 0.50),
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Container(
+                key: const Key('sidebar-account-avatar'),
+                width: 30,
+                height: 30,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: <Color>[
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.secondary,
+                    ],
+                  ),
+                ),
+                child: Text(
+                  'S',
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.medium,
+                  ).copyWith(color: Theme.of(context).colorScheme.onPrimary),
+                ),
+              ),
+              SizedBox(width: spacing.sm),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: <Widget>[
+                    Text(
+                      l10n.appTitle,
+                      key: const Key('sidebar-account-title'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s12,
+                        weight: AppTextWeight.medium,
+                      ),
+                    ),
+                    const SizedBox(height: 1),
+                    Row(
+                      children: <Widget>[
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: context.appTextPalette.success,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        SizedBox(width: spacing.xs),
+                        Flexible(
+                          child: Text(
+                            l10n.shellSignedIn,
+                            key: const Key('sidebar-account-status'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: resolveAppTextStyle(
+                              context,
+                              size: AppTextSize.s10,
+                              tone: AppTextTone.tertiary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: spacing.xs),
+              const SidebarAppearanceMenu(),
+            ],
+          ),
+          Row(
+            children: <Widget>[
+              const Expanded(child: SidebarVersionFooter()),
+              SizedBox(width: spacing.xs),
+              AppIconButton(
+                key: const Key('sidebar-logout-button'),
+                icon: const Icon(Icons.logout_rounded),
+                tooltip: l10n.shellLogout,
+                semanticLabel: l10n.shellLogout,
+                iconColor: context.appTextPalette.tertiary,
+                backgroundColor: buttonFill,
+                borderColor: buttonBorder,
+                borderRadius: context.appRadius.smBorder,
+                onPressed: onLogout,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -388,6 +505,12 @@ class _AppSidebarItemState extends State<AppSidebarItem> {
         : appColors.sidebarBackground;
 
     final foregroundColor = context.appTextPalette.primary;
+    final labelStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s14,
+      weight: widget.selected ? AppTextWeight.medium : AppTextWeight.regular,
+      tone: widget.selected ? AppTextTone.primary : AppTextTone.secondary,
+    );
 
     return Tooltip(
       message: widget.label,
@@ -414,9 +537,7 @@ class _AppSidebarItemState extends State<AppSidebarItem> {
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 120),
               height: sidebarTokens.itemHeight,
-              padding: EdgeInsets.symmetric(
-                horizontal: context.appSpacing.md,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: context.appSpacing.md),
               decoration: BoxDecoration(
                 color: backgroundColor,
                 borderRadius: context.appRadius.smBorder,
@@ -429,17 +550,7 @@ class _AppSidebarItemState extends State<AppSidebarItem> {
                     color: foregroundColor,
                   ),
                   SizedBox(width: context.appSpacing.md),
-                  Expanded(
-                    child: Text(
-                      widget.label,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s14,
-                        weight: AppTextWeight.regular,
-                        tone: AppTextTone.tertiary,
-                      ),
-                    ),
-                  ),
+                  Expanded(child: Text(widget.label, style: labelStyle)),
                   if (_hasBadge) ...[
                     SizedBox(width: context.appSpacing.sm),
                     AppBadge(
@@ -463,8 +574,3 @@ bool get _useDesktopSidebarGlass =>
     !kIsWeb &&
     (defaultTargetPlatform == TargetPlatform.macOS ||
         defaultTargetPlatform == TargetPlatform.windows);
-
-Color _sidebarDividerColor(AppColors appColors, bool useDesktopSidebarGlass) =>
-    useDesktopSidebarGlass
-    ? appColors.borderSubtle.fadedBy(0.68)
-    : appColors.borderSubtle;

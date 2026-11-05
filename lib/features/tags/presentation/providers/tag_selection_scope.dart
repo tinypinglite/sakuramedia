@@ -53,7 +53,7 @@ class TagSelectionScope {
   final TagMatchMode initialMatchMode;
 
   /// 构建时是否立即拉取全量标签。标签页依赖它保证面板打开即有数据；
-  /// 女优详情等"把标签当附加筛选"的页面传 `false`，等面板真正打开再加载。
+  /// 影片库等把目录标签作为附加筛选的页面传 `false`，等面板真正打开再加载。
   final bool preload;
 
   @override

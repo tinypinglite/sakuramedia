@@ -34,6 +34,14 @@
 
 批量取消订阅遇到已有媒体时，未处理清单提供“删除媒体并强制取消订阅”入口。确认后先读取媒体总数，再按顺序删除；弹窗进度条显示已删除数量和当前影片，全部删除后显示批量取消订阅阶段。删除失败会停止。反馈返回最终合并结果，多选状态仅保留未处理番号。
 
+## tags
+
+路径：`lib/widgets/domain/tags/`
+
+`MediaTagFilterSection` 是影片库与女优详情作品区共用的媒体文件标签筛选分节。组件直接接收调用方的 `MovieFilterState`，通过 `onChanged` 回写完整筛选状态，不维护选择副本；标签加载、失败重试和空态也由该分节统一呈现。
+
+女优详情私有的 `ActorTagFilterPanel` 复用 `TagSelectorPanel`，仅关闭搜索框和「热门标签 / 搜索结果」分组；标签数据仍来自女优作品标签接口，选择与匹配模式由 actors 域 Provider 持有。
+
 ## clips
 
 路径：`lib/widgets/domain/clips/`

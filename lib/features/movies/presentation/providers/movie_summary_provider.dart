@@ -142,6 +142,8 @@ class MovieSummary extends _$MovieSummary
         actorId: scope.resourceId!,
         tagIds: filter.tagIds,
         tagMatch: filter.tagMatch,
+        mediaTagIds: filter.movie.mediaTagIds,
+        mediaTagMatch: filter.movie.mediaTagMatch,
         page: page,
         pageSize: pageSize,
         status: filter.movie.status,

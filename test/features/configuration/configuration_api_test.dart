@@ -19,6 +19,7 @@ void main() {
           'name': 'client-a',
           'library_id': 7,
           'provider_config': {'endpoint': 'http://demo'},
+          'supported_source_kinds': ['magnet', 'torrent', 'ed2k', 'http'],
           'created_at': '2026-03-10T08:00:00Z',
           'updated_at': '2026-03-10T08:00:00Z',
         },
@@ -98,6 +99,12 @@ void main() {
     await bundle.downloadClientsApi.deleteClient(2);
 
     expect(list.single.providerConfig['endpoint'], 'http://demo');
+    expect(list.single.supportedSourceKinds, {
+      'magnet',
+      'torrent',
+      'ed2k',
+      'http',
+    });
     expect(created.libraryId, 8);
     expect(updated.name, 'client-c');
     expect(diagnostic.status, 'warning');
@@ -120,15 +127,15 @@ void main() {
   });
 
   test('download client DTO maps the library relation', () {
-    expect(
-      DownloadClientDto.fromJson(const <String, dynamic>{
-        'id': 1,
-        'name': 'client',
-        'library_id': 7,
-        'provider_config': <String, dynamic>{},
-      }).libraryId,
-      7,
-    );
+    final client = DownloadClientDto.fromJson(const <String, dynamic>{
+      'id': 1,
+      'name': 'client',
+      'library_id': 7,
+      'provider_config': <String, dynamic>{},
+    });
+
+    expect(client.libraryId, 7);
+    expect(client.supportedSourceKinds, {'magnet', 'torrent'});
   });
 }
 

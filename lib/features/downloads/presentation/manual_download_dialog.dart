@@ -10,6 +10,7 @@ import 'package:sakuramedia/features/configuration/presentation/providers/config
 import 'package:sakuramedia/features/configuration/presentation/providers/download_clients_provider.dart';
 import 'package:sakuramedia/features/downloads/data/download_request_dto.dart';
 import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
+import 'package:sakuramedia/features/downloads/data/download_source_link.dart';
 import 'package:sakuramedia/features/downloads/presentation/providers/downloads_api_provider.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/series_import/movie_search_stream_update.dart';
@@ -33,13 +34,12 @@ import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
-
-enum _ManualDownloadSource { magnet, torrent }
 
 /// 手动提交成功后的返回值；`clientName` 用于页面 toast。
 class ManualDownloadResult {
@@ -54,17 +54,19 @@ class ManualDownloadResult {
 
 /// 从评论等上下文打开手动下载时的预填信息。
 ///
-/// 传入后弹窗进入紧凑模式：磁力、影片和下载类型都视为已确定，只保留磁力
+/// 传入后弹窗进入紧凑模式：来源、影片和下载类型都视为已确定，只保留来源
 /// 输入、影片卡片和下载器选择，不再要求用户重新查询番号。
 class ManualDownloadPrefill {
   const ManualDownloadPrefill({
-    required this.magnetUri,
+    required this.sourceUri,
+    this.sourceKind = DownloadSourceKind.magnet,
     required this.movieNumber,
     this.movieTitle,
     this.movieCoverUrl,
   });
 
-  final String magnetUri;
+  final String sourceUri;
+  final DownloadSourceKind sourceKind;
   final String movieNumber;
   final String? movieTitle;
   final String? movieCoverUrl;
@@ -96,6 +98,14 @@ Future<ManualDownloadResult?> showManualDownloadDialog(
 enum _MovieResolutionPhase { idle, resolving, resolved, failed }
 
 enum _MovieResolutionSource { local, online, currentMovie }
+
+enum _ManualDownloadSourceMode { link, torrent }
+
+typedef _ResolvedDownloadSource = ({
+  _ManualDownloadSourceMode? mode,
+  DownloadSourceKind? kind,
+  bool supported,
+});
 
 /// 弹窗内展示影片时只需要这三个字段；预填场景不强行构造一个完整的
 /// [MovieListItemDto]。
@@ -195,11 +205,11 @@ class _ManualDownloadDialog extends ConsumerStatefulWidget {
 
 class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _magnetController = TextEditingController();
+  final TextEditingController _sourceController = TextEditingController();
   final TextEditingController _movieNumberController = TextEditingController();
   final TextEditingController _displayNameController = TextEditingController();
 
-  _ManualDownloadSource _source = _ManualDownloadSource.magnet;
+  _ManualDownloadSourceMode _sourceMode = _ManualDownloadSourceMode.link;
   ManualDownloadMediaKind _mediaKind = ManualDownloadMediaKind.jav;
   int? _clientId;
   int? _collectionId;
@@ -216,15 +226,24 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
 
   bool get _isCompact => widget.prefill != null;
 
+  DownloadSourceLink? get _detectedLink =>
+      parseDetectedDownloadSourceLink(_sourceController.text);
+
+  double get _sourceBlockHeight =>
+      context.appFormTokens.fieldVerticalPadding * 2 +
+      context.appTextScale.s14 * 3;
+
   @override
   void initState() {
     super.initState();
     final prefill = widget.prefill;
     if (prefill == null) return;
 
-    _magnetController.text = prefill.magnetUri;
+    _sourceController.text = prefill.sourceUri;
     _movieNumberController.text = prefill.movieNumber;
-    _source = _ManualDownloadSource.magnet;
+    _sourceMode = prefill.sourceKind == DownloadSourceKind.torrent
+        ? _ManualDownloadSourceMode.torrent
+        : _ManualDownloadSourceMode.link;
     _mediaKind = ManualDownloadMediaKind.jav;
     final coverUrl = prefill.movieCoverUrl?.trim() ?? '';
     _movieResolution = _MovieResolution.resolved(
@@ -247,30 +266,135 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
     if (active != null) {
       unawaited(active.cancel());
     }
-    _magnetController.dispose();
+    _sourceController.dispose();
     _movieNumberController.dispose();
     _displayNameController.dispose();
     super.dispose();
   }
 
-  DownloadClientDto? _selectedClient(List<DownloadClientDto> clients) {
+  DownloadClientDto? _findClient(
+    List<DownloadClientDto> clients,
+    int? clientId,
+  ) {
     for (final client in clients) {
-      if (client.id == _clientId) return client;
-    }
-    return clients.isEmpty ? null : clients.first;
-  }
-
-  String? _validateMagnet(String? value) {
-    final l10n = AppLocalizations.of(context);
-    final text = value?.trim() ?? '';
-    if (text.isEmpty) return l10n.downloadMagnetRequired;
-    if (text.contains('\n') || text.contains('\r')) {
-      return l10n.downloadMagnetSingleOnly;
-    }
-    if (!text.toLowerCase().startsWith('magnet:')) {
-      return l10n.downloadMagnetInvalid;
+      if (client.id == clientId) return client;
     }
     return null;
+  }
+
+  DownloadClientDto? _selectedClient(List<DownloadClientDto> clients) {
+    final selected = _findClient(clients, _clientId);
+    if (selected != null) return selected;
+    if (clients.isEmpty) return null;
+    if (_isCompact) {
+      final preferredKind = _detectedLink?.kind ?? widget.prefill?.sourceKind;
+      if (preferredKind != null) {
+        for (final client in clients) {
+          if (client.supportedSourceKinds.contains(preferredKind.apiValue)) {
+            return client;
+          }
+        }
+      }
+    }
+    return clients.first;
+  }
+
+  bool _supportsSourceKind(
+    DownloadClientDto? client,
+    DownloadSourceKind kind,
+  ) => client?.supportedSourceKinds.contains(kind.apiValue) ?? false;
+
+  Set<_ManualDownloadSourceMode> _availableSourceModes(
+    DownloadClientDto? client,
+  ) {
+    return <_ManualDownloadSourceMode>{
+      if (_supportsSourceKind(client, DownloadSourceKind.magnet) ||
+          _supportsSourceKind(client, DownloadSourceKind.ed2k) ||
+          _supportsSourceKind(client, DownloadSourceKind.http))
+        _ManualDownloadSourceMode.link,
+      if (_supportsSourceKind(client, DownloadSourceKind.torrent))
+        _ManualDownloadSourceMode.torrent,
+    };
+  }
+
+  _ManualDownloadSourceMode? _effectiveSourceMode(DownloadClientDto? client) {
+    final available = _availableSourceModes(client);
+    if (available.contains(_sourceMode)) return _sourceMode;
+    return available.isEmpty ? null : available.first;
+  }
+
+  DownloadSourceKind? _linkSourceKind() {
+    return _detectedLink?.kind ??
+        (_isCompact ? widget.prefill?.sourceKind : null);
+  }
+
+  _ResolvedDownloadSource _resolveSource(DownloadClientDto? client) {
+    final mode = _isCompact ? _sourceMode : _effectiveSourceMode(client);
+    final kind = switch (mode) {
+      null => null,
+      _ManualDownloadSourceMode.torrent => DownloadSourceKind.torrent,
+      _ManualDownloadSourceMode.link => _linkSourceKind(),
+    };
+    final supported =
+        client != null &&
+        mode != null &&
+        (kind == null || _supportsSourceKind(client, kind));
+    return (mode: mode, kind: kind, supported: supported);
+  }
+
+  String? _validateLink(String? value) {
+    final l10n = AppLocalizations.of(context);
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) return l10n.downloadSourceRequired;
+    if (text.contains('\n') || text.contains('\r')) {
+      return l10n.downloadSourceSingleOnly;
+    }
+    if (parseDetectedDownloadSourceLink(text) != null) return null;
+    return l10n.downloadLinkInvalid;
+  }
+
+  void _onLinkChanged(String _) {
+    setState(() {
+      _submitError = null;
+    });
+    if (_hasAttemptedSubmit) {
+      _formKey.currentState?.validate();
+    }
+  }
+
+  void _onSourceModeChanged(_ManualDownloadSourceMode value) {
+    if (value == _sourceMode) return;
+    setState(() {
+      _sourceMode = value;
+      _submitError = null;
+      _fileError = null;
+    });
+    if (_hasAttemptedSubmit) {
+      _formKey.currentState?.validate();
+    }
+  }
+
+  void _onClientChanged(int? clientId, List<DownloadClientDto> clients) {
+    final client = _findClient(clients, clientId);
+    final availableModes = _availableSourceModes(client);
+    final sourceMode = _isCompact || availableModes.contains(_sourceMode)
+        ? _sourceMode
+        : (availableModes.isEmpty ? _sourceMode : availableModes.first);
+    setState(() {
+      _clientId = clientId;
+      _sourceMode = sourceMode;
+      _submitError = null;
+      _fileError = null;
+    });
+  }
+
+  String _sourceKindLabel(AppLocalizations l10n, DownloadSourceKind kind) {
+    return switch (kind) {
+      DownloadSourceKind.magnet => l10n.downloadMagnetLabel,
+      DownloadSourceKind.ed2k => l10n.downloadEd2kLabel,
+      DownloadSourceKind.http => l10n.downloadHttpLabel,
+      DownloadSourceKind.torrent => l10n.downloadTorrentLabel,
+    };
   }
 
   String? _validateMovieNumber(String? value) {
@@ -609,11 +733,19 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
         ref.read(downloadClientsProvider).value ?? const <DownloadClientDto>[];
     final client = _selectedClient(clients);
     if (client == null) return;
+    final l10n = AppLocalizations.of(context);
+    final source = _resolveSource(client);
+    if (!source.supported) {
+      setState(() => _submitError = l10n.downloadSourceUnsupported);
+      return;
+    }
 
     _hasAttemptedSubmit = true;
     final formValid = _formKey.currentState?.validate() ?? false;
-    final l10n = AppLocalizations.of(context);
-    if (_source == _ManualDownloadSource.torrent) {
+    final link = source.mode == _ManualDownloadSourceMode.link
+        ? _detectedLink
+        : null;
+    if (source.mode == _ManualDownloadSourceMode.torrent) {
       final file = _torrentFile;
       if (file == null) {
         setState(() => _fileError = l10n.downloadTorrentFileRequired);
@@ -650,11 +782,12 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
 
     try {
       final api = ref.read(downloadsApiProvider);
-      final response = _source == _ManualDownloadSource.magnet
+      final response = source.mode == _ManualDownloadSourceMode.link
           ? await api.createManualDownloadRequest(
               clientId: client.id,
               mediaKind: _mediaKind,
-              sourceUri: _magnetController.text.trim(),
+              sourceUri: _sourceController.text.trim(),
+              sourceKind: link!.kind.apiValue,
               movieNumber: movieNumber,
               collectionId: collectionId,
               displayName: displayName,
@@ -694,10 +827,9 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
     final clients = clientsAsync.value ?? const <DownloadClientDto>[];
     final selectedClient = _selectedClient(clients);
     final l10n = AppLocalizations.of(context);
+    final source = _resolveSource(selectedClient);
     final canSubmit =
-        !_isSubmitting &&
-        !_movieResolution.isResolving &&
-        selectedClient != null;
+        !_isSubmitting && !_movieResolution.isResolving && source.supported;
 
     return PopScope(
       canPop: !_isSubmitting,
@@ -716,7 +848,7 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
                     children: [
                       Text(
                         _isCompact
-                            ? l10n.downloadMagnetDialogTitle
+                            ? l10n.downloadLinkDialogTitle
                             : l10n.downloadManualAddTitle,
                         style: resolveAppTextStyle(
                           context,
@@ -728,7 +860,7 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
                       SizedBox(height: spacing.xs),
                       Text(
                         _isCompact
-                            ? l10n.downloadMagnetPrefilledDescription
+                            ? l10n.downloadSourcePrefilledDescription
                             : l10n.downloadManualAddDescription,
                         style: resolveAppTextStyle(
                           context,
@@ -761,8 +893,13 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
                         ? _buildCompactFormChildren(
                             clientsAsync,
                             selectedClient,
+                            source,
                           )
-                        : _buildFullFormChildren(clientsAsync, selectedClient),
+                        : _buildFullFormChildren(
+                            clientsAsync,
+                            selectedClient,
+                            source,
+                          ),
                   ),
                 ),
               ),
@@ -797,35 +934,50 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
     );
   }
 
-  /// 完整表单：手动添加下载入口使用，允许选择磁力/种子、媒体类型和番号。
+  /// 完整表单：先选下载器，再展示该下载器支持的来源类型。
   List<Widget> _buildFullFormChildren(
     AsyncValue<List<DownloadClientDto>> clientsAsync,
     DownloadClientDto? selectedClient,
+    _ResolvedDownloadSource source,
   ) {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
+    final availableSourceModes = _availableSourceModes(selectedClient);
     return <Widget>[
-      _FormSectionLabel(l10n.downloadSectionSource),
-      SizedBox(height: spacing.sm),
-      _buildChoiceRow<_ManualDownloadSource>(
-        options: [
-          (_ManualDownloadSource.magnet, l10n.downloadMagnetLabel),
-          (_ManualDownloadSource.torrent, l10n.downloadTorrentLabel),
-        ],
-        selected: _source,
-        keyOf: (value) => Key('manual-download-source-${value.name}'),
-        onChanged: (value) => setState(() => _source = value),
-      ),
-      SizedBox(height: spacing.md),
-      if (_source == _ManualDownloadSource.magnet)
-        _buildMagnetField()
-      else
-        _buildTorrentField(context),
-      SizedBox(height: spacing.xl),
       _FormSectionLabel(l10n.downloadSectionSettings),
       SizedBox(height: spacing.sm),
       _buildClientField(clientsAsync, selectedClient),
-      SizedBox(height: spacing.md),
+      SizedBox(height: spacing.xl),
+      if (selectedClient != null) ...[
+        Row(
+          children: [
+            _FormSectionLabel(l10n.downloadSectionSource),
+            if (availableSourceModes.length > 1) ...[
+              const Spacer(),
+              _buildSourceModeControl(availableSourceModes, source.mode!),
+            ],
+          ],
+        ),
+        SizedBox(height: spacing.sm),
+        if (source.mode == null)
+          _buildSourceUnsupportedBanner(
+            key: const Key('manual-download-source-unsupported'),
+          )
+        else ...[
+          if (source.mode == _ManualDownloadSourceMode.torrent)
+            _buildTorrentField(context)
+          else
+            _buildLinkField(),
+          if (!source.supported)
+            Padding(
+              padding: EdgeInsets.only(top: spacing.sm),
+              child: _buildSourceUnsupportedBanner(
+                key: const Key('manual-download-source-selected-unsupported'),
+              ),
+            ),
+        ],
+        SizedBox(height: spacing.md),
+      ],
       _buildChoiceRow<ManualDownloadMediaKind>(
         options: [
           (ManualDownloadMediaKind.jav, l10n.downloadMediaKindJav),
@@ -895,57 +1047,118 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
       ),
       SizedBox(height: spacing.md),
       _buildDeleteSourceRow(context),
-      if (_submitError != null) ...[
-        SizedBox(height: spacing.md),
-        AppInlineErrorBanner(
-          key: const Key('manual-download-submit-error'),
-          message: _submitError!,
-          tone: AppInlineErrorTone.error,
-        ),
-      ],
+      _buildSubmitError(),
     ];
   }
 
-  /// 预填表单：磁力和影片已由调用方确定，只让用户确认下载器。
+  /// 预填表单：来源和影片已由调用方确定，只让用户确认下载器。
   ///
   /// 紧凑模式不再画「资源 / 下载设置」分组标题，下载器也不带字段名——
-  /// 这里只有磁力、影片和下载器三项，字段自身已经说明用途。
+  /// 这里只有来源、影片和下载器三项，字段自身已经说明用途。
   List<Widget> _buildCompactFormChildren(
     AsyncValue<List<DownloadClientDto>> clientsAsync,
     DownloadClientDto? selectedClient,
+    _ResolvedDownloadSource source,
   ) {
     final spacing = context.appSpacing;
     return <Widget>[
-      _buildMagnetField(compact: true),
-      _buildMovieResolutionStatus(context),
-      SizedBox(height: spacing.lg),
       _buildClientField(clientsAsync, selectedClient, showLabel: false),
-      if (_submitError != null) ...[
-        SizedBox(height: spacing.md),
-        AppInlineErrorBanner(
-          key: const Key('manual-download-submit-error'),
-          message: _submitError!,
-          tone: AppInlineErrorTone.error,
-        ),
-      ],
+      SizedBox(height: spacing.md),
+      if (selectedClient != null && !source.supported)
+        _buildSourceUnsupportedBanner(
+          key: const Key('manual-download-source-selected-unsupported'),
+        )
+      else if (selectedClient != null &&
+          source.mode == _ManualDownloadSourceMode.torrent)
+        _buildTorrentField(context)
+      else if (selectedClient != null)
+        _buildLinkField(compact: true),
+      _buildMovieResolutionStatus(context),
+      _buildSubmitError(),
     ];
   }
 
-  Widget _buildMagnetField({bool compact = false}) {
+  Widget _buildSourceUnsupportedBanner({required Key key}) {
+    return AppInlineErrorBanner(
+      key: key,
+      message: AppLocalizations.of(context).downloadSourceUnsupported,
+      tone: AppInlineErrorTone.error,
+    );
+  }
+
+  Widget _buildSubmitError() {
+    final error = _submitError;
+    if (error == null) return const SizedBox.shrink();
+    return Padding(
+      padding: EdgeInsets.only(top: context.appSpacing.md),
+      child: AppInlineErrorBanner(
+        key: const Key('manual-download-submit-error'),
+        message: error,
+        tone: AppInlineErrorTone.error,
+      ),
+    );
+  }
+
+  Widget _buildLinkField({bool compact = false}) {
     final l10n = AppLocalizations.of(context);
+    final detectedLink = _detectedLink;
     return AppTextField(
-      fieldKey: const Key('manual-download-magnet-field'),
-      controller: _magnetController,
-      label: l10n.downloadMagnetLabel,
-      hintText: 'magnet:?xt=urn:btih:...',
-      helperText: compact
-          ? l10n.downloadMagnetCompactHelper
-          : l10n.downloadMagnetHelper,
-      minLines: 2,
-      maxLines: 3,
+      fieldKey: const Key('manual-download-link-field'),
+      controller: _sourceController,
+      hintText: compact
+          ? l10n.downloadSourceCompactHelper
+          : l10n.downloadLinkHelper,
+      suffix: detectedLink == null
+          ? null
+          : Padding(
+              padding: EdgeInsets.only(right: context.appSpacing.md),
+              child: AppBadge(
+                key: const Key('manual-download-detected-source-kind'),
+                label: _sourceKindLabel(l10n, detectedLink.kind),
+                tone: AppBadgeTone.neutral,
+                size: AppBadgeSize.compact,
+              ),
+            ),
+      tightSuffix: true,
+      height: _sourceBlockHeight,
+      expands: true,
       keyboardType: TextInputType.url,
       enabled: !_isSubmitting,
-      validator: _validateMagnet,
+      onChanged: _onLinkChanged,
+      validator: _validateLink,
+    );
+  }
+
+  Widget _buildSourceModeControl(
+    Set<_ManualDownloadSourceMode> available,
+    _ManualDownloadSourceMode selected,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    return IgnorePointer(
+      ignoring: _isSubmitting,
+      child: Opacity(
+        opacity: _isSubmitting ? 0.5 : 1,
+        child: AppSegmentedControl<_ManualDownloadSourceMode>(
+          key: const Key('manual-download-source-mode'),
+          items: [
+            for (final mode in _ManualDownloadSourceMode.values)
+              if (available.contains(mode))
+                AppSegmentedItem<_ManualDownloadSourceMode>(
+                  key: Key('manual-download-source-mode-${mode.name}'),
+                  value: mode,
+                  label: switch (mode) {
+                    _ManualDownloadSourceMode.link =>
+                      l10n.downloadLinkModeLabel,
+                    _ManualDownloadSourceMode.torrent =>
+                      l10n.downloadTorrentLabel,
+                  },
+                ),
+          ],
+          selected: selected,
+          size: AppSegmentedSize.compact,
+          onChanged: _onSourceModeChanged,
+        ),
+      ),
     );
   }
 
@@ -1068,7 +1281,7 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
           .toList(growable: false),
       onChanged: _isSubmitting
           ? null
-          : (value) => setState(() => _clientId = value),
+          : (value) => _onClientChanged(value, clients),
     );
   }
 
@@ -1079,62 +1292,67 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.all(spacing.md),
-          decoration: BoxDecoration(
-            color: context.appColors.surfaceMuted,
-            borderRadius: context.appRadius.mdBorder,
-            border: Border.all(color: context.appColors.borderSubtle),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.description_outlined,
-                size: context.appComponentTokens.iconSizeMd,
-                color: context.appTextPalette.secondary,
-              ),
-              SizedBox(width: spacing.sm),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      file?.fileName ?? l10n.downloadTorrentNotSelected,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s14,
-                        tone: file == null
-                            ? AppTextTone.muted
-                            : AppTextTone.primary,
-                      ),
-                    ),
-                    SizedBox(height: spacing.xs),
-                    Text(
-                      file == null
-                          ? l10n.downloadTorrentSelectHint
-                          : formatFileSize(file.bytes.length),
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s12,
-                        tone: AppTextTone.muted,
-                      ),
-                    ),
-                  ],
+        SizedBox(
+          height: _sourceBlockHeight,
+          child: Container(
+            key: const Key('manual-download-torrent-dropzone'),
+            width: double.infinity,
+            padding: EdgeInsets.all(spacing.sm),
+            decoration: BoxDecoration(
+              color: context.appColors.surfaceMuted,
+              borderRadius: context.appRadius.mdBorder,
+              border: Border.all(color: context.appColors.borderSubtle),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.description_outlined,
+                  size: context.appComponentTokens.iconSizeMd,
+                  color: context.appTextPalette.secondary,
                 ),
-              ),
-              SizedBox(width: spacing.sm),
-              AppButton(
-                key: const Key('manual-download-pick-torrent-button'),
-                label: file == null
-                    ? l10n.downloadChooseFile
-                    : l10n.downloadChooseFileAgain,
-                size: AppButtonSize.xSmall,
-                onPressed: _isSubmitting ? null : _pickTorrentFile,
-              ),
-            ],
+                SizedBox(width: spacing.sm),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        file?.fileName ?? l10n.downloadTorrentNotSelected,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s14,
+                          tone: file == null
+                              ? AppTextTone.muted
+                              : AppTextTone.primary,
+                        ),
+                      ),
+                      SizedBox(height: spacing.xs / 2),
+                      Text(
+                        file == null
+                            ? l10n.downloadTorrentSelectHint
+                            : formatFileSize(file.bytes.length),
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s12,
+                          tone: AppTextTone.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: spacing.sm),
+                AppButton(
+                  key: const Key('manual-download-pick-torrent-button'),
+                  label: file == null
+                      ? l10n.downloadChooseFile
+                      : l10n.downloadChooseFileAgain,
+                  size: AppButtonSize.xSmall,
+                  onPressed: _isSubmitting ? null : _pickTorrentFile,
+                ),
+              ],
+            ),
           ),
         ),
         if (_fileError != null) ...[

@@ -53,11 +53,12 @@ class DownloadsApi {
     return DownloadRequestResponseDto.fromJson(response);
   }
 
-  /// 手动提交一条磁力链接。`movie_number` 仅 JAV 使用，`collection_id` 仅视频使用。
+  /// 手动提交一条链接。`movie_number` 仅 JAV 使用，`collection_id` 仅视频使用。
   Future<DownloadRequestResponseDto> createManualDownloadRequest({
     required int clientId,
     required ManualDownloadMediaKind mediaKind,
     required String sourceUri,
+    required String sourceKind,
     String? movieNumber,
     int? collectionId,
     String? displayName,
@@ -69,6 +70,7 @@ class DownloadsApi {
         'client_id': clientId,
         'media_kind': mediaKind.apiValue,
         'source_uri': sourceUri,
+        'source_kind': sourceKind,
         if (mediaKind == ManualDownloadMediaKind.jav &&
             movieNumber != null &&
             movieNumber.trim().isNotEmpty)

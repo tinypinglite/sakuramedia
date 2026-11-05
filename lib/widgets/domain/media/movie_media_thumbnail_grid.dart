@@ -732,7 +732,7 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     );
   }
 
-  /// 单 tile：装饰边框 + 切片端点 badge + 图片或占位 + 点击/菜单交互。
+  /// 单 tile：装饰边框 + 当前帧/切片端点 badge + 图片或占位 + 点击/菜单交互。
   /// [useAdaptiveFit]=true 走 uniform 分支的运行时测图选 fit；
   /// [useAdaptiveFit]=false（staggered 分支）按已知 [aspect] 切 tile，图片直接 `BoxFit.cover`。
   Widget _buildTile(
@@ -752,17 +752,17 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     final Color tileColor;
     final Color borderColor;
     final double borderWidth;
-    if (isClipEndpoint) {
+    if (isActive) {
+      tileColor = primary.withValues(alpha: 0.12);
+      borderColor = primary;
+      borderWidth = 3;
+    } else if (isClipEndpoint) {
       tileColor = primary.withValues(alpha: 0.18);
       borderColor = primary;
       borderWidth = 2.5;
     } else if (isInClipBand) {
       tileColor = primary.withValues(alpha: 0.10);
       borderColor = primary.withValues(alpha: 0.45);
-      borderWidth = 1.5;
-    } else if (isActive) {
-      tileColor = primary.withValues(alpha: 0.08);
-      borderColor = primary;
       borderWidth = 1.5;
     } else {
       tileColor = context.appColors.surfaceCard;
@@ -819,23 +819,50 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
     // 高亮边框必须叠在图片上层：tile 用 cover 铺满时，背景 DecoratedBox 的边框会被图片盖住，
     // 导致选中态在横图上不可见。前景层只画边框、不填充，避免遮住画面。
     if (isHighlighted) {
+      final highlightBorder = isActive
+          ? DecoratedBox(
+              key: Key('${widget.keyPrefix}-thumbnail-tile-$index-highlight'),
+              decoration: BoxDecoration(
+                borderRadius: context.appRadius.xsBorder,
+                border: Border.all(
+                  color: context.appTextPalette.onMedia,
+                  width: 1,
+                ),
+              ),
+              child: Padding(
+                padding: EdgeInsets.all(context.appSpacing.xs / 4),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    borderRadius: context.appRadius.xsBorder,
+                    border: Border.all(color: borderColor, width: 3),
+                  ),
+                ),
+              ),
+            )
+          : DecoratedBox(
+              key: Key('${widget.keyPrefix}-thumbnail-tile-$index-highlight'),
+              decoration: BoxDecoration(
+                borderRadius: context.appRadius.xsBorder,
+                border: Border.all(color: borderColor, width: borderWidth),
+              ),
+            );
       tileContent = Stack(
         fit: StackFit.expand,
         children: [
           tileContent,
-          Positioned.fill(
-            child: IgnorePointer(
-              child: DecoratedBox(
-                key: Key(
-                  '${widget.keyPrefix}-thumbnail-tile-$index-highlight',
-                ),
-                decoration: BoxDecoration(
-                  borderRadius: context.appRadius.xsBorder,
-                  border: Border.all(color: borderColor, width: borderWidth),
+          Positioned.fill(child: IgnorePointer(child: highlightBorder)),
+          if (isActive)
+            Positioned(
+              top: context.appSpacing.xs,
+              right: context.appSpacing.xs,
+              child: IgnorePointer(
+                child: _ActiveThumbnailBadge(
+                  key: Key(
+                    '${widget.keyPrefix}-thumbnail-tile-$index-current-badge',
+                  ),
                 ),
               ),
             ),
-          ),
         ],
       );
     }
@@ -871,6 +898,33 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
       onTap: () => widget.onThumbnailTap(index),
       onRequestMenu: (globalPosition) => menuHandler(index, globalPosition),
       child: child,
+    );
+  }
+}
+
+class _ActiveThumbnailBadge extends StatelessWidget {
+  const _ActiveThumbnailBadge({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final size =
+        context.appComponentTokens.iconSizeXs + context.appSpacing.xs * 2;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: colorScheme.primary,
+        border: Border.all(color: context.appTextPalette.onMedia),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.play_arrow_rounded,
+          size: context.appComponentTokens.iconSize2xs,
+          color: colorScheme.onPrimary,
+        ),
+      ),
     );
   }
 }

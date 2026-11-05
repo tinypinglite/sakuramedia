@@ -26,6 +26,7 @@ class AppTextField extends StatelessWidget {
     this.autovalidateMode,
     this.maxLines = 1,
     this.minLines,
+    this.expands = false,
     this.isDense = true,
     this.contentPadding,
     this.fillColor,
@@ -56,6 +57,7 @@ class AppTextField extends StatelessWidget {
   final AutovalidateMode? autovalidateMode;
   final int? maxLines;
   final int? minLines;
+  final bool expands;
   final bool isDense;
 
   /// 覆盖默认内容内边距；用于塞进固定高度顶栏等紧凑场景。
@@ -110,8 +112,9 @@ class AppTextField extends StatelessWidget {
           onFieldSubmitted: onFieldSubmitted,
           onChanged: onChanged,
           autovalidateMode: autovalidateMode,
-          maxLines: obscureText ? 1 : maxLines,
-          minLines: obscureText ? 1 : minLines,
+          maxLines: expands ? null : (obscureText ? 1 : maxLines),
+          minLines: expands ? null : (obscureText ? 1 : minLines),
+          expands: expands,
           textAlignVertical: height == null ? null : TextAlignVertical.center,
           style: style ?? resolveAppTextStyle(context, size: AppTextSize.s14),
           decoration: _buildDecoration(context),

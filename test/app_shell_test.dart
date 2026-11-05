@@ -25,7 +25,7 @@ void main() {
       await _pumpDesktopApp(tester, sessionStore: sessionStore, bundle: bundle);
       await tester.pumpAndSettle();
 
-      expect(find.text('SakuraMedia'), findsNothing);
+      expect(find.text('SakuraMedia'), findsOneWidget);
       expect(find.text('SA'), findsNothing);
       expect(find.text('概览'), findsWidgets);
       expect(find.text('影片'), findsWidgets);

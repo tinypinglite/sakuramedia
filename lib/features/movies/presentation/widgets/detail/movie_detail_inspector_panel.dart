@@ -8,7 +8,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
 import 'package:sakuramedia/features/clips/presentation/widgets/create_clip_dialog.dart';
-import 'package:sakuramedia/features/downloads/data/magnet_uri.dart';
+import 'package:sakuramedia/features/downloads/data/download_source_link.dart';
 import 'package:sakuramedia/features/downloads/presentation/manual_download_dialog.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
@@ -33,7 +33,6 @@ import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 import 'package:sakuramedia/widgets/domain/media/media_thumbnail_action_support.dart';
 import 'package:sakuramedia/widgets/domain/media/media_thumbnail_tab.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_preview_overlay.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_magnet_search_content.dart';
 
 /// 检查器承载的功能：评论 / 磁力搜索 / 缩略图。
@@ -62,7 +61,7 @@ class MovieDetailInspectorPanel extends ConsumerStatefulWidget {
 
   final String movieNumber;
 
-  /// 当前影片标题/封面；评论磁力快捷添加时用于预填下载弹窗。
+  /// 当前影片标题/封面；评论快捷下载时用于预填下载弹窗。
   final String? movieTitle;
   final String? movieCoverUrl;
   final MovieMediaItemDto? selectedMedia;
@@ -334,11 +333,12 @@ class _MovieDetailReviewTabState extends ConsumerState<_MovieDetailReviewTab> {
     unawaited(_controller.setSort(sort));
   }
 
-  Future<void> _addMagnetFromReview(String magnetUri) async {
+  Future<void> _addDownloadFromReview(DownloadSourceLink link) async {
     final result = await showManualDownloadDialog(
       context,
       prefill: ManualDownloadPrefill(
-        magnetUri: magnetUri,
+        sourceUri: link.uri,
+        sourceKind: link.kind,
         movieNumber: widget.movieNumber,
         movieTitle: widget.movieTitle,
         movieCoverUrl: widget.movieCoverUrl,
@@ -456,7 +456,7 @@ class _MovieDetailReviewTabState extends ConsumerState<_MovieDetailReviewTab> {
             if (index < state.items.length) {
               return _MovieDetailReviewCard(
                 review: state.items[index],
-                onAddMagnet: _addMagnetFromReview,
+                onAddDownload: _addDownloadFromReview,
                 onSearchSelection: widget.onSearchSelection,
               );
             }
@@ -474,14 +474,14 @@ class _MovieDetailReviewTabState extends ConsumerState<_MovieDetailReviewTab> {
 class _MovieDetailReviewCard extends StatelessWidget {
   const _MovieDetailReviewCard({
     required this.review,
-    this.onAddMagnet,
+    this.onAddDownload,
     this.onSearchSelection,
   });
 
   final MovieReviewDto review;
 
-  /// 为 null 时不展示磁力快捷入口（加载骨架等只读场景）。
-  final ValueChanged<String>? onAddMagnet;
+  /// 为 null 时不展示快捷下载入口（加载骨架等只读场景）。
+  final ValueChanged<DownloadSourceLink>? onAddDownload;
 
   /// 为 null 时不注册「搜索番号」选择菜单项。
   final ValueChanged<String>? onSearchSelection;
@@ -491,9 +491,9 @@ class _MovieDetailReviewCard extends StatelessWidget {
     final reviewDate = review.createdAt == null
         ? '--/--/--'
         : DateFormat('yy/MM/dd').format(review.createdAt!.toLocal());
-    final magnets = onAddMagnet == null
-        ? const <MagnetLink>[]
-        : extractMagnetLinks(review.content);
+    final links = onAddDownload == null
+        ? const <DownloadSourceLink>[]
+        : extractDownloadLinks(review.content);
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(context.appSpacing.md),
@@ -612,33 +612,27 @@ class _MovieDetailReviewCard extends StatelessWidget {
               );
             },
           ),
-          if (magnets.isNotEmpty) ...[
+          if (links.isNotEmpty) ...[
             SizedBox(height: context.appSpacing.sm),
             Wrap(
               spacing: context.appSpacing.xs,
               runSpacing: context.appSpacing.xs,
               children: [
-                for (
-                  var magnetIndex = 0;
-                  magnetIndex < magnets.length;
-                  magnetIndex++
-                )
+                for (var linkIndex = 0; linkIndex < links.length; linkIndex++)
                   AppTextButton(
                     key: Key(
-                      'movie-detail-review-add-magnet-'
-                      '${review.id}-$magnetIndex',
+                      'movie-detail-review-add-download-'
+                      '${review.id}-$linkIndex',
                     ),
-                    label: magnets.length == 1
-                        ? AppLocalizations.of(
-                            context,
-                          ).movieWidgetAddMagnetDownload
+                    label: links.length == 1
+                        ? AppLocalizations.of(context).movieWidgetAddDownload
                         : AppLocalizations.of(
                             context,
-                          ).movieWidgetAddMagnetIndexed(magnetIndex + 1),
+                          ).movieWidgetAddDownloadIndexed(linkIndex + 1),
                     icon: const Icon(Icons.download_rounded),
                     size: AppTextButtonSize.xSmall,
                     emphasis: AppTextButtonEmphasis.accent,
-                    onPressed: () => onAddMagnet!(magnets[magnetIndex].uri),
+                    onPressed: () => onAddDownload!(links[linkIndex]),
                   ),
               ],
             ),

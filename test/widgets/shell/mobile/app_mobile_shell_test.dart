@@ -209,12 +209,11 @@ void main() {
       initialLocation: '/mobile/overview',
       routes: [
         ShellRoute(
-          builder:
-              (context, state, child) => AppMobileShell(
-                currentPath: state.uri.path,
-                navGroups: navGroups,
-                child: child,
-              ),
+          builder: (context, state, child) => AppMobileShell(
+            currentPath: state.uri.path,
+            navGroups: navGroups,
+            child: child,
+          ),
           routes: [
             GoRoute(
               path: '/mobile/overview',
@@ -270,7 +269,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 40));
     final shrinking = tester.widget<Transform>(
       find
-          .descendant(of: find.byKey(pulseKey), matching: find.byType(Transform))
+          .descendant(
+            of: find.byKey(pulseKey),
+            matching: find.byType(Transform),
+          )
           .first,
     );
     expect(shrinking.transform.entry(0, 0), lessThan(1.0));
@@ -278,27 +280,34 @@ void main() {
     await tester.pumpAndSettle();
     final settled = tester.widget<Transform>(
       find
-          .descendant(of: find.byKey(pulseKey), matching: find.byType(Transform))
+          .descendant(
+            of: find.byKey(pulseKey),
+            matching: find.byType(Transform),
+          )
           .first,
     );
-    expect(settled.transform.entry(0, 0), moreOrLessEquals(1.0, epsilon: 0.001));
-  });
-
-  testWidgets('mobile shell skips the icon pulse when animations are disabled', (
-    tester,
-  ) async {
-    await tester.pumpWidget(
-      _ShellHarness(navGroups: navGroups, disableAnimations: true),
-    );
-    await tester.pumpAndSettle();
-
-    await tester.tap(find.text('影片'));
-    await tester.pump();
     expect(
-      find.byKey(const Key('mobile-nav-active-icon-pulse')),
-      findsNothing,
+      settled.transform.entry(0, 0),
+      moreOrLessEquals(1.0, epsilon: 0.001),
     );
   });
+
+  testWidgets(
+    'mobile shell skips the icon pulse when animations are disabled',
+    (tester) async {
+      await tester.pumpWidget(
+        _ShellHarness(navGroups: navGroups, disableAnimations: true),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('影片'));
+      await tester.pump();
+      expect(
+        find.byKey(const Key('mobile-nav-active-icon-pulse')),
+        findsNothing,
+      );
+    },
+  );
 
   testWidgets('mobile shell fires selection haptic only on tab change', (
     tester,
@@ -397,7 +406,10 @@ void main() {
 
 /// 用可变下标驱动 [AppMobileShell]，模拟真实路由切换 tab 的场景。
 class _ShellHarness extends StatefulWidget {
-  const _ShellHarness({required this.navGroups, this.disableAnimations = false});
+  const _ShellHarness({
+    required this.navGroups,
+    this.disableAnimations = false,
+  });
 
   final List<AppNavGroup> navGroups;
   final bool disableAnimations;

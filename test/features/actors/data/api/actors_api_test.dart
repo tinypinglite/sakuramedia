@@ -368,6 +368,25 @@ void main() {
     expect(adapter.requests.single.path, '/actors/1/years');
   });
 
+  test('getActorTags parses tag counts scoped to the actor', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors/1/tags',
+      statusCode: 200,
+      body: const <Map<String, dynamic>>[
+        <String, dynamic>{'tag_id': 3, 'name': '巨乳', 'movie_count': 12},
+        <String, dynamic>{'tag_id': 5, 'name': '单体作品', 'movie_count': 8},
+      ],
+    );
+
+    final tags = await actorsApi.getActorTags(actorId: 1);
+
+    expect(tags.map((item) => item.tagId), <int>[3, 5]);
+    expect(tags.map((item) => item.name), <String>['巨乳', '单体作品']);
+    expect(tags.map((item) => item.movieCount), <int>[12, 8]);
+    expect(adapter.requests.single.path, '/actors/1/tags');
+  });
+
   test(
     'searchOnlineActorsStream maps avatar download stages and results',
     () async {
@@ -422,10 +441,7 @@ void main() {
         .searchOnlineActorsStream(actorName: '三上悠亚')
         .toList();
 
-    expect(
-      updates.first.message,
-      'Searching external sources for actors...',
-    );
+    expect(updates.first.message, 'Searching external sources for actors...');
     expect(
       updates.any((update) => update.message == 'Downloading avatars 1/2'),
       isTrue,

@@ -111,7 +111,7 @@ void main() {
         expect(find.byKey(const Key('actor-profile-details')), findsNothing);
         expect(find.byKey(const Key('actor-profile-toggle')), findsNothing);
         expect(find.textContaining('暂无个人资料'), findsNothing);
-        expect(find.text('作品 · 24 部'), findsOneWidget);
+        expect(find.text('24 部'), findsOneWidget);
       });
     }
 

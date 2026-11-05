@@ -33,8 +33,8 @@ import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_filter_sections.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_sort_menu_button.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
+import 'package:sakuramedia/widgets/domain/tags/media_tag_filter_section.dart';
 import 'package:sakuramedia/widgets/domain/tags/tag_filter_section.dart';
-import 'package:sakuramedia/features/movies/presentation/widgets/media_tag_filter_section.dart';
 
 typedef MovieSummaryListBodyBuilder =
     Widget Function(
@@ -378,16 +378,7 @@ class _MovieSummaryListContentState
               ? null
               : TagFilterSection(scope: tagSelectionScope),
           mediaTagSection: widget.enableMediaTagFilter
-              ? MediaTagFilterSection(
-                  selectedTagIds: filter.mediaTagIds,
-                  matchMode: filter.mediaTagMatch,
-                  onChanged: (tagIds, matchMode) => _applyFilter(
-                    filter.copyWith(
-                      mediaTagIds: tagIds,
-                      mediaTagMatch: matchMode,
-                    ),
-                  ),
-                )
+              ? MediaTagFilterSection(filter: filter, onChanged: _applyFilter)
               : null,
         ),
         filterPanelFooter: AppFilterPanelFooter(

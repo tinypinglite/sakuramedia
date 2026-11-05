@@ -2891,9 +2891,9 @@
   "downloadStateFilterLabel": "Download status",
   "downloadClientFilterLabel": "Download client",
   "downloadFilterClientSpecified": "Selected client",
-  "downloadMagnetRequired": "Paste a magnet link",
-  "downloadMagnetSingleOnly": "Submit one magnet link at a time",
-  "downloadMagnetInvalid": "Only magnet: links are supported",
+  "downloadSourceRequired": "Paste a download link",
+  "downloadSourceSingleOnly": "Submit one link at a time",
+  "downloadLinkInvalid": "Could not recognize this link. Check the magnet, eD2k, or HTTP/HTTPS address.",
   "downloadMovieNumberRequired": "Enter a movie number",
   "downloadMovieNumberResolving": "Looking up the movie number. Please wait.",
   "downloadMovieNumberQueryFirst": "Click \"Search\" and match a movie first",
@@ -2926,13 +2926,17 @@
   "downloadTorrentPickerOpenFailed": "Failed to open the file picker. Please try again later.",
   "downloadTorrentFileRequired": "Select a .torrent file",
   "downloadCreateTaskFailed": "Failed to create the download task. Please try again.",
-  "downloadMagnetDialogTitle": "Add magnet download",
-  "downloadMagnetPrefilledDescription": "The magnet link was filled in from the comment. Confirm the download client and submit.",
-  "downloadManualAddDescription": "Paste a magnet link or upload a .torrent file to send it to a download client.",
+  "downloadLinkDialogTitle": "Add download",
+  "downloadSourcePrefilledDescription": "The link was filled in from the comment. Confirm the download client and submit.",
+  "downloadManualAddDescription": "Choose a download client, then paste a link or upload a .torrent file.",
   "downloadClose": "Close",
   "downloadSubmit": "Submit download",
   "downloadSectionSource": "Source",
+  "downloadLinkModeLabel": "Link",
+  "downloadLinkHelper": "Magnet, eD2k, and HTTP/HTTPS links are supported. The type is detected automatically.",
   "downloadMagnetLabel": "Magnet link",
+  "downloadEd2kLabel": "eD2k link",
+  "downloadHttpLabel": "HTTP direct link",
   "downloadTorrentLabel": "Torrent file",
   "downloadSectionSettings": "Download settings",
   "downloadMediaKindJav": "JAV movie",
@@ -2942,8 +2946,8 @@
   "downloadQuery": "Search",
   "downloadDisplayNameLabel": "Display name (optional)",
   "downloadDisplayNameHelper": "Shown first in the download task list; when empty, the movie title or resource name is used.",
-  "downloadMagnetCompactHelper": "Detected from the comment; you can edit it before submitting.",
-  "downloadMagnetHelper": "Only magnet: links are accepted; download HTTP torrent links and upload the .torrent file instead.",
+  "downloadSourceCompactHelper": "Detected from the comment; you can edit it before submitting.",
+  "downloadSourceUnsupported": "The selected download client does not support this source type",
   "downloadLoadingClients": "Loading download clients…",
   "downloadClientsLoadFailed": "Failed to load download clients",
   "downloadClientsEmpty": "No download clients available",
@@ -4289,9 +4293,9 @@
   "movieWidgetAnonymousUser": "Anonymous",
   "movieWidgetNoReviewContent": "No review content",
   "movieWidgetSearchMovieNumber": "Search by movie number",
-  "movieWidgetAddMagnetDownload": "Add magnet download",
-  "movieWidgetAddMagnetIndexed": "Add magnet {index}",
-  "@movieWidgetAddMagnetIndexed": {
+  "movieWidgetAddDownload": "Add download",
+  "movieWidgetAddDownloadIndexed": "Add download {index}",
+  "@movieWidgetAddDownloadIndexed": {
     "placeholders": {
       "index": {
         "type": "int"
@@ -4687,7 +4691,7 @@
       }
     }
   },
-  "actorMovieCountLabel": "Movies · {count}",
+  "actorMovieCountLabel": "{count} movies",
   "@actorMovieCountLabel": {
     "placeholders": {
       "count": {
@@ -5399,6 +5403,7 @@
   "shellThemeModeSystem": "System · click for light",
   "shellThemeModeLight": "Light · click for dark",
   "shellThemeModeDark": "Dark · click for system",
+  "shellSignedIn": "Signed in",
   "shellLogout": "Log out",
   "shellRefreshFailed": "Refresh failed",
   "shellNavOverview": "Overview",

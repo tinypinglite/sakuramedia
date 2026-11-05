@@ -4,7 +4,7 @@ outline: [2, 3]
 
 # Plugin Development
 
-SakuraMedia plugins are Python packages running inside the backend process. This article covers the backend's current **Host API 12**; the host accepts plugins declaring API **4–12**. A plugin's `manifest.json` and the `plugin_id` and `version` in the `register()` return value must match; for Host API declaration rules see [Version compatibility](#version-compatibility).
+SakuraMedia plugins are Python packages running inside the backend process. This article covers the backend's current **Host API 17**; the host accepts plugins declaring API **4–17**. A plugin's `manifest.json` and the `plugin_id` and `version` in the `register()` return value must match; for Host API declaration rules see [Version compatibility](#version-compatibility).
 
 Plugins are not a frontend extension mechanism. You cannot currently register pages, UI components, HTTP routes, event hooks, or middleware, and you should not access the host database directly. Use only the public contracts listed here; binding to internal implementations such as `src.model` or `src.service` will break your plugin when the host is refactored.
 
@@ -51,7 +51,7 @@ example_plugin/
     "en": "One sentence about what the plugin does, at most 200 characters."
   },
   "version": "1.0.0",
-  "host_api_version": 12,
+  "host_api_version": 17,
   "settings_model": "Settings",
   "requires_python": ">=3.10,<3.11",
   "dependencies": []
@@ -437,6 +437,8 @@ The storage implementation must cover the following capabilities:
 
 If you implement download components, you must also declare `config_fields`, implement configuration preparation and diagnostics (`prepare_client`, `test_client`, `build`), and remote job submission, listing, and deletion (`submit`, `list_tasks`, `delete_task`). Completed downloads can only be imported by the same provider.
 
+Download components declare accepted source kinds through `supported_source_kinds`: `magnet`, `torrent`, `ed2k`, and `http`. When omitted, the host assumes `magnet`/`torrent`. `DownloadSubmission` carries `source_kind`, `resource_key`, and `source_size_bytes`; providers must treat `resource_key` as opaque and must not assume it is always a BTIH. HTTP direct links are passed to cloud download providers; the host does not fetch their content.
+
 ### Optional storage capabilities
 
 The following capabilities are detected by method presence and are not required methods of the base storage implementation:
@@ -569,7 +571,7 @@ reporter.emit(
 
 ### Declarations and language selection
 
-New plugins should declare the manifest's `host_api_version` as `12` (the host's current version; `4`–`11` remain compatible), and keep using the `HOST_API_VERSION` constant in `register()`; do not change the plugin's own `version` because of multilingual support.
+New plugins should declare the manifest's `host_api_version` as `17` (the host's current version; `4`–`16` remain compatible), and keep using the `HOST_API_VERSION` constant in `register()`; do not change the plugin's own `version` because of multilingual support.
 
 On request paths, the host determines the current language from `Accept-Language`, then the user's `User.language` preference, and finally the default `zh-CN`; background jobs have no request context and read the single account's `User.language` when they run. Plugins do not need to parse request headers themselves.
 
@@ -577,13 +579,14 @@ Use `sakuramedia_javdb_ranking` as the sample: the manifest and `plugin.py` decl
 
 ## Version compatibility
 
-The current host constants are `HOST_API_VERSION = 12` and `MIN_SUPPORTED_HOST_API_VERSION = 4`. Loading rules:
+The current host constants are `HOST_API_VERSION = 17` and `MIN_SUPPORTED_HOST_API_VERSION = 4`. Loading rules:
 
-- The manifest's `host_api_version` must be within **4–12**.
-- `register()`'s `host_api_version` must equal the version declared in the manifest or the current host version `12`. For example, when the manifest is `4`, returning `4` or the `12` obtained by importing the host constant is fine, but returning `5` is incompatible.
+- The manifest's `host_api_version` must be within **4–17**.
+- `register()`'s `host_api_version` must equal the version declared in the manifest or the current host version `17`. For example, when the manifest is `4`, returning `4` or the `17` obtained by importing the host constant is fine, but returning `5` is incompatible.
 - `catalog.metadata_source` additionally requires the manifest to declare **6**; changing only `register()` to the host constant cannot bypass this limit.
 - `context.media` and `context.downloads` require Host API **7**; the fact that an old host can load an old declaration doesn't mean it can provide these two interfaces.
 - `context.imports`, `context.videos`, `context.collections.ensure_video_collection()`, and video collection membership require Host API **9**.
+- Download source-kind capability declarations and the `source_kind`/`resource_key` contract require Host API **17**.
 - Provider scan progress callbacks are only enabled for implementations registered under Host API **7**; older providers are still called with the old signature without the callback.
 
 Before upgrading, verify the actual host version, public types, and capabilities you use, then run the plugin check. A plugin's own `version` and the Host API version are two different concepts; the plugin `version` in the manifest and `register()` must still match exactly.

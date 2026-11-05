@@ -46,6 +46,7 @@ class DownloadTaskRowState {
         other.task.progress == task.progress &&
         other.task.importStatus == task.importStatus &&
         other.task.importStatusLabel == task.importStatusLabel &&
+        other.task.blacklistable == task.blacklistable &&
         other.task.createdAt == task.createdAt &&
         other.task.updatedAt == task.updatedAt &&
         other.task.movieTitle == task.movieTitle &&
@@ -60,6 +61,7 @@ class DownloadTaskRowState {
     task.state,
     task.progress,
     task.importStatus,
+    task.blacklistable,
     task.updatedAt,
   );
 }

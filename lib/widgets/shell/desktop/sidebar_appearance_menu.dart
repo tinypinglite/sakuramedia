@@ -41,6 +41,13 @@ class _SidebarAppearanceMenuState extends ConsumerState<SidebarAppearanceMenu> {
     final themeColor = appearance.themeColor
         .forBrightness(Theme.of(context).brightness)
         .primary;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final buttonFill = context.appColors.surfaceCard.withValues(
+      alpha: isDark ? 0.06 : 0.34,
+    );
+    final buttonBorder = context.appColors.borderSubtle.fadedBy(
+      isDark ? 0.75 : 0.55,
+    );
 
     return AppAnchoredPopover(
       controller: _popoverController,
@@ -59,6 +66,8 @@ class _SidebarAppearanceMenuState extends ConsumerState<SidebarAppearanceMenu> {
             tooltip: _modeTooltip(mode, l10n),
             semanticLabel: _modeTooltip(mode, l10n),
             iconColor: context.appTextPalette.primary,
+            backgroundColor: buttonFill,
+            borderColor: buttonBorder,
             onPressed: () =>
                 unawaited(controller.setThemeMode(_nextMode(mode))),
           ),
@@ -87,6 +96,8 @@ class _SidebarAppearanceMenuState extends ConsumerState<SidebarAppearanceMenu> {
             tooltip: l10n.shellThemeColor,
             semanticLabel: l10n.shellThemeColor,
             iconColor: context.appTextPalette.primary,
+            backgroundColor: buttonFill,
+            borderColor: buttonBorder,
             onPressed: toggle,
           ),
         ],

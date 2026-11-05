@@ -4,7 +4,7 @@ outline: [2, 3]
 
 # 插件开发
 
-SakuraMedia 插件是运行在后端进程内的 Python 包。本文对应当前后端的 **Host API 12**，宿主接受 API **4–12** 的插件。插件的 `manifest.json` 与 `register()` 返回值中的 `plugin_id`、插件 `version` 必须一致；Host API 的声明规则见[版本兼容](#版本兼容)。
+SakuraMedia 插件是运行在后端进程内的 Python 包。本文对应当前后端的 **Host API 17**，宿主接受 API **4–17** 的插件。插件的 `manifest.json` 与 `register()` 返回值中的 `plugin_id`、插件 `version` 必须一致；Host API 的声明规则见[版本兼容](#版本兼容)。
 
 插件不是前端扩展机制。当前不能注册页面、UI 组件、HTTP 路由、事件钩子或中间件，也不应直接访问宿主数据库。请只使用本文列出的公开契约；绑定 `src.model`、`src.service` 等内部实现会使插件随宿主重构失效。
 
@@ -51,7 +51,7 @@ example_plugin/
     "en": "One sentence about what the plugin does, at most 200 characters."
   },
   "version": "1.0.0",
-  "host_api_version": 12,
+  "host_api_version": 17,
   "settings_model": "Settings",
   "requires_python": ">=3.10,<3.11",
   "dependencies": []
@@ -437,6 +437,8 @@ bundle 必须声明：
 
 若实现下载组件，还需声明 `config_fields`，实现配置准备与诊断（`prepare_client`、`test_client`、`build`），以及远端任务的提交、列举和删除（`submit`、`list_tasks`、`delete_task`）。下载完成的来源只能交给同一个 Provider 导入。
 
+下载组件通过 `supported_source_kinds` 声明支持的来源类型：`magnet`、`torrent`、`ed2k`、`http`。未声明时宿主按 `magnet`/`torrent` 处理。`DownloadSubmission` 携带 `source_kind`、`resource_key` 和 `source_size_bytes`；Provider 应把 `resource_key` 当作不透明标识，不要自行假设它一定是 BTIH。HTTP 直链由云下载 Provider 接收，宿主不会为它抓取内容。
+
 ### 可选存储能力
 
 以下能力按方法是否存在进行检测，不是基础存储实现的必需方法：
@@ -567,7 +569,7 @@ reporter.emit(
 
 ### 声明与语言选择
 
-新插件把 manifest 的 `host_api_version` 声明为 `12`（宿主当前版本，`4`–`11` 仍兼容），`register()` 继续使用 `HOST_API_VERSION` 常量；不要因为多语言改动插件自身的 `version`。
+新插件把 manifest 的 `host_api_version` 声明为 `17`（宿主当前版本，`4`–`16` 仍兼容），`register()` 继续使用 `HOST_API_VERSION` 常量；不要因为多语言改动插件自身的 `version`。
 
 请求路径上，宿主按 `Accept-Language`、其次用户的 `User.language` 偏好、最后默认 `zh-CN` 决定当前语言；后台任务没有请求上下文，执行时读取单账号的 `User.language`。插件不需要自己解析请求头。
 
@@ -575,13 +577,14 @@ reporter.emit(
 
 ## 版本兼容
 
-当前宿主常量为 `HOST_API_VERSION = 12`、`MIN_SUPPORTED_HOST_API_VERSION = 4`，加载规则如下：
+当前宿主常量为 `HOST_API_VERSION = 17`、`MIN_SUPPORTED_HOST_API_VERSION = 4`，加载规则如下：
 
-- manifest 的 `host_api_version` 必须在 **4–12** 内。
-- `register()` 的 `host_api_version` 必须等于 manifest 声明的版本，或当前宿主版本 `12`。例如 manifest 为 `4` 时，注册返回 `4` 或导入宿主常量得到的 `12` 均可，返回 `5` 则不兼容。
+- manifest 的 `host_api_version` 必须在 **4–17** 内。
+- `register()` 的 `host_api_version` 必须等于 manifest 声明的版本，或当前宿主版本 `17`。例如 manifest 为 `4` 时，注册返回 `4` 或导入宿主常量得到的 `17` 均可，返回 `5` 则不兼容。
 - `catalog.metadata_source` 额外要求 manifest 声明 **6**；只把 `register()` 改为宿主常量不能绕过这一限制。
 - `context.media` 和 `context.downloads` 需要 Host API **7**；旧宿主能加载旧声明，不意味着旧宿主能提供这两个接口。
 - `context.imports`、`context.videos`、`context.collections.ensure_video_collection()` 与视频合集成员管理需要 Host API **9**。
+- 下载来源类型能力声明与 `source_kind`/`resource_key` 契约需要 Host API **17**。
 - Provider 的扫描进度回调只对按 Host API **7** 注册的实现启用；旧 Provider 仍按不带回调的旧签名调用。
 
 升级前应核对实际宿主版本、公开类型与所用能力，再运行插件检查。插件自身的 `version` 与 Host API 版本是两个概念，manifest 与 `register()` 的插件 `version` 仍须严格一致。

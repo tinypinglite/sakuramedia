@@ -14,10 +14,9 @@ import 'package:sakuramedia/widgets/domain/tags/app_tag_match_mode_toggle.dart';
 
 /// 标签多选区：已选标签 chips + 热门/搜索结果标签云（可选可收起搜索框）。
 ///
-/// 桌面端与移动端标签页共用同一套选择交互，仅外层布局/滚动各自处理；
-/// 标签页弹窗传 [scrollableTagCloud] 展示可滚动的全量标签；
-/// 女优详情把它作为筛选面板里的「标签」分节复用（传 [title]、[collapsibleSearch]
-/// 和更小的 [collapsedTagCount] 走精简形态）。
+/// 影片库筛选面板传 [collapsibleSearch] 和更小的 [collapsedTagCount]
+/// 走精简形态；女优标签面板传 `showSearch: false` / `showCloudHeader: false`
+/// 直接展示全部作品标签，不复用热门分组。
 class TagSelectorPanel extends StatefulWidget {
   const TagSelectorPanel({
     super.key,
@@ -25,11 +24,14 @@ class TagSelectorPanel extends StatefulWidget {
     required this.onToggleTag,
     required this.onRemoveTag,
     required this.onClear,
-    required this.onQueryChanged,
-    required this.onToggleExpanded,
     required this.onMatchModeChanged,
     required this.onRetry,
+    this.onQueryChanged,
+    this.onToggleExpanded,
     this.title,
+    this.keyPrefix = 'tags',
+    this.showSearch = true,
+    this.showCloudHeader = true,
     this.showMatchModeToggle = true,
     this.collapsibleSearch = false,
     this.collapsedTagCount = 24,
@@ -41,14 +43,22 @@ class TagSelectorPanel extends StatefulWidget {
   final ValueChanged<int> onToggleTag;
   final ValueChanged<int> onRemoveTag;
   final VoidCallback onClear;
-  final ValueChanged<String> onQueryChanged;
-  final VoidCallback onToggleExpanded;
+  final ValueChanged<String>? onQueryChanged;
+  final VoidCallback? onToggleExpanded;
   final ValueChanged<TagMatchMode> onMatchModeChanged;
   final VoidCallback onRetry;
 
-  /// 顶部标题：标签页是「选择标签」，作为筛选分节时报「标签」。
-  /// 为 `null` 时使用当前语言的默认文案。
+  /// 顶部标题；为 `null` 时使用当前语言的默认文案。
   final String? title;
+
+  /// 控件 Key 前缀，用于区分同一页面上的多个标签选择器。
+  final String keyPrefix;
+
+  /// 是否展示搜索框。女优详情的标签面板直接展示全部标签，传 `false`。
+  final bool showSearch;
+
+  /// 是否展示「热门标签 / 搜索结果」小标题和展开入口。女优详情不分组，传 `false`。
+  final bool showCloudHeader;
 
   /// 是否展示「任一/全部」匹配模式开关。视频域多标签固定为 OR（后端无 tag_match），
   /// 传 `false` 以隐藏该开关，避免出现无效控件。
@@ -85,8 +95,8 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
       text: widget.selection.searchQuery,
     );
     _searchFocusNode = FocusNode();
-    _searchExpanded = !widget.collapsibleSearch;
-    // 懒加载 scope（如女优详情的附加标签筛选）在面板打开时才拉取标签。
+    _searchExpanded = widget.showSearch && !widget.collapsibleSearch;
+    // 懒加载 scope 在面板打开时才拉取标签。
     if (!widget.selection.hasLoadedOnce &&
         !widget.selection.isLoading &&
         widget.selection.errorMessage == null) {
@@ -109,7 +119,7 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
     if (_searchExpanded) {
       // 收起搜索时清掉关键词，避免"搜索生效但输入框不可见"。
       _searchController.clear();
-      widget.onQueryChanged('');
+      widget.onQueryChanged?.call('');
       _searchFocusNode.unfocus();
     }
     setState(() => _searchExpanded = !_searchExpanded);
@@ -143,9 +153,9 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
               ),
             ),
             const Spacer(),
-            if (widget.collapsibleSearch)
+            if (widget.showSearch && widget.collapsibleSearch)
               AppIconButton(
-                key: const Key('tags-search-toggle'),
+                key: Key('${widget.keyPrefix}-search-toggle'),
                 icon: const Icon(Icons.search_rounded),
                 semanticLabel: l10n.widgetTagSearchHint,
                 size: AppIconButtonSize.mini,
@@ -153,7 +163,8 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
                     _searchExpanded || _searchController.text.isNotEmpty,
                 onPressed: _toggleSearch,
               ),
-            if (widget.collapsibleSearch &&
+            if (widget.showSearch &&
+                widget.collapsibleSearch &&
                 selection.hasSelection &&
                 widget.showMatchModeToggle)
               SizedBox(width: spacing.sm),
@@ -161,10 +172,10 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
               _buildMatchModeToggle(context),
           ],
         ),
-        if (_searchExpanded) ...[
+        if (widget.showSearch && _searchExpanded) ...[
           SizedBox(height: spacing.md),
           AppTextField(
-            fieldKey: const Key('tags-search-field'),
+            fieldKey: Key('${widget.keyPrefix}-search-field'),
             controller: _searchController,
             focusNode: _searchFocusNode,
             hintText: l10n.widgetTagSearchHint,
@@ -173,20 +184,19 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
               size: context.appComponentTokens.iconSizeSm,
               color: context.appTextPalette.secondary,
             ),
-            suffix:
-                _searchController.text.isEmpty
-                    ? null
-                    : IconButton(
-                      icon: Icon(
-                        Icons.close,
-                        size: context.appComponentTokens.iconSizeSm,
-                      ),
-                      splashRadius: 16,
-                      onPressed: () {
-                        _searchController.clear();
-                        widget.onQueryChanged('');
-                      },
+            suffix: _searchController.text.isEmpty
+                ? null
+                : IconButton(
+                    icon: Icon(
+                      Icons.close,
+                      size: context.appComponentTokens.iconSizeSm,
                     ),
+                    splashRadius: 16,
+                    onPressed: () {
+                      _searchController.clear();
+                      widget.onQueryChanged?.call('');
+                    },
+                  ),
             onChanged: widget.onQueryChanged,
           ),
         ],
@@ -234,8 +244,10 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
           _buildSelectedSection(context),
           SizedBox(height: spacing.md),
         ],
-        _buildCloudHeader(context),
-        SizedBox(height: spacing.sm),
+        if (widget.showCloudHeader) ...[
+          _buildCloudHeader(context),
+          SizedBox(height: spacing.sm),
+        ],
         _buildCloud(context),
       ],
     );
@@ -244,7 +256,7 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
   Widget _buildLoading(BuildContext context) {
     // loading 用占位标签渲染真实药丸，由 [AppSkeletonizer] 灰化。
     return AppSkeletonizer(
-      key: const Key('tags-selector-skeleton'),
+      key: Key('${widget.keyPrefix}-selector-skeleton'),
       enabled: true,
       child: _buildCloudWrap(context, tagListItemPlaceholders()),
     );
@@ -260,7 +272,7 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
       children: [
         for (final tag in selection.selectedTags)
           AppTextButton(
-            key: Key('tags-selected-${tag.tagId}'),
+            key: Key('${widget.keyPrefix}-selected-${tag.tagId}'),
             label: tag.name,
             size: AppTextButtonSize.xSmall,
             isSelected: true,
@@ -268,7 +280,7 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
             onPressed: () => widget.onRemoveTag(tag.tagId),
           ),
         AppTextButton(
-          key: const Key('tags-clear-all'),
+          key: Key('${widget.keyPrefix}-clear-all'),
           label: AppLocalizations.of(context).widgetTagClearAll,
           size: AppTextButtonSize.xSmall,
           onPressed: widget.onClear,
@@ -296,7 +308,7 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
         SizedBox(width: spacing.sm),
         AppTagMatchModeToggle(
           matchMode: selection.matchMode,
-          buttonKeyPrefix: 'tags-match',
+          buttonKeyPrefix: '${widget.keyPrefix}-match',
           onChanged: widget.onMatchModeChanged,
         ),
       ],
@@ -311,8 +323,8 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
               ? l10n.widgetTagSearchResultCount(selection.filteredTags.length)
               : l10n.widgetTagAllCount(selection.allTags.length))
         : (selection.isSearching
-            ? l10n.widgetTagSearchResult
-            : l10n.widgetTagPopular);
+              ? l10n.widgetTagSearchResult
+              : l10n.widgetTagPopular);
     return Row(
       children: [
         Text(
@@ -326,13 +338,13 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
         ),
         const Spacer(),
         if (!widget.scrollableTagCloud &&
+            widget.onToggleExpanded != null &&
             !selection.isSearching &&
             selection.filteredTags.length > widget.collapsedTagCount)
           AppTextButton(
-            label:
-                selection.expanded
-                    ? l10n.widgetTagCollapse
-                    : l10n.widgetTagExpandAll,
+            label: selection.expanded
+                ? l10n.widgetTagCollapse
+                : l10n.widgetTagExpandAll,
             size: AppTextButtonSize.xSmall,
             trailingIcon: Icon(
               selection.expanded ? Icons.expand_less : Icons.expand_more,
@@ -355,8 +367,10 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
           _buildSelectedSection(context),
           SizedBox(height: spacing.md),
         ],
-        _buildCloudHeader(context),
-        SizedBox(height: spacing.sm),
+        if (widget.showCloudHeader) ...[
+          _buildCloudHeader(context),
+          SizedBox(height: spacing.sm),
+        ],
         if (tags.isEmpty)
           _buildEmptyCloudMessage(context)
         else
@@ -384,7 +398,7 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
         ),
     ];
     return CustomScrollView(
-      key: const Key('tags-cloud-scroll'),
+      key: Key('${widget.keyPrefix}-cloud-scroll'),
       slivers: [
         SliverList.builder(
           itemCount: chunks.length,
@@ -424,11 +438,14 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
 
     // 收起态（非搜索）仅展示前 [TagSelectorPanel.collapsedTagCount] 个；
     // 展开或搜索时完整展示。按数量裁剪，确保「展开全部」只在确有隐藏项时出现。
-    final showAll = selection.isSearching || selection.expanded;
-    final visibleTags =
-        showAll || tags.length <= widget.collapsedTagCount
-            ? tags
-            : tags.sublist(0, widget.collapsedTagCount);
+    final showAll =
+        !widget.showCloudHeader ||
+        widget.onToggleExpanded == null ||
+        selection.isSearching ||
+        selection.expanded;
+    final visibleTags = showAll || tags.length <= widget.collapsedTagCount
+        ? tags
+        : tags.sublist(0, widget.collapsedTagCount);
     return _buildCloudWrap(context, visibleTags);
   }
 
@@ -441,7 +458,7 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
       children: [
         for (final tag in tags)
           AppTextButton(
-            key: Key('tags-option-${tag.tagId}'),
+            key: Key('${widget.keyPrefix}-option-${tag.tagId}'),
             label: widget.showTagCounts
                 ? '${tag.name} · ${tag.movieCount}'
                 : tag.name,

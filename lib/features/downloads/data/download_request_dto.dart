@@ -27,6 +27,7 @@ class DownloadTaskDto {
     this.movieCover,
     this.movieThinCover,
     this.displayName,
+    this.blacklistable = false,
   });
 
   final int id;
@@ -53,9 +54,13 @@ class DownloadTaskDto {
   /// 用户手动提交时填写的显示名称；旧后端不返回该字段时为 null。
   final String? displayName;
 
+  /// 删除失败/跳过任务时，后端是否会把对应 BT 资源加入黑名单。
+  final bool blacklistable;
+
   factory DownloadTaskDto.fromJson(Map<String, dynamic> json) {
     final coverRaw = json['movie_cover'];
     final thinCoverRaw = json['movie_thin_cover'];
+    final importStatus = json['import_status'] as String? ?? '';
     return DownloadTaskDto(
       id: json['id'] as int? ?? 0,
       clientId: json['client_id'] as int? ?? 0,
@@ -64,7 +69,7 @@ class DownloadTaskDto {
       remoteId: json['remote_id'] as String? ?? '',
       state: json['state'] as String? ?? '',
       progress: (json['progress'] as num?)?.toDouble() ?? 0,
-      importStatus: json['import_status'] as String? ?? '',
+      importStatus: importStatus,
       importStatusLabel: json['import_status_label'] as String? ?? '',
       createdAt: asDateTime(json['created_at']),
       updatedAt: asDateTime(json['updated_at']),
@@ -76,6 +81,9 @@ class DownloadTaskDto {
           ? MovieImageDto.fromJson(thinCoverRaw)
           : null,
       displayName: json['display_name'] as String?,
+      blacklistable:
+          json['blacklistable'] as bool? ??
+          (importStatus == 'failed' || importStatus == 'skipped'),
     );
   }
 

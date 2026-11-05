@@ -32,7 +32,7 @@ class MovieFilterSectionGroup extends StatelessWidget {
   final MovieFilterState filterState;
   final ValueChanged<MovieFilterState> onChanged;
 
-  /// 可选的「标签」分节（女优详情传入）。标签云占用空间大，放在面板最末，
+  /// 可选的目录「标签」分节。标签云占用空间大，放在面板最末，
   /// 不前置挤压其它筛选维度；为空时不渲染。
   final Widget? tagSection;
   final Widget? mediaTagSection;

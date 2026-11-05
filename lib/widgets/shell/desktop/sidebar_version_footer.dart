@@ -86,8 +86,8 @@ class _SidebarVersionFooterState extends ConsumerState<SidebarVersionFooter> {
             onTap: toggle,
             child: Padding(
               padding: EdgeInsets.symmetric(
-                horizontal: context.appSpacing.md,
-                vertical: context.appSpacing.xs,
+                horizontal: context.appSpacing.sm,
+                vertical: context.appSpacing.xs * 1.5,
               ),
               child: Row(
                 children: [

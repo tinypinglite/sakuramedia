@@ -30,7 +30,7 @@ void main() {
                 onPressed: () {
                   dialogResult = showDownloadTaskDeleteDialog(
                     context,
-                    tasks: [_task(importStatus)],
+                    tasks: [_task(importStatus, blacklistable: true)],
                   );
                 },
                 child: const Text('open'),
@@ -75,6 +75,28 @@ void main() {
           ),
         ),
       ),
+    );
+
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('会加入资源黑名单'), findsNothing);
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(await dialogResult, isNull);
+  });
+
+  testWidgets('hides blacklist warning for non-BT task sources', (
+    tester,
+  ) async {
+    late Future<bool?> dialogResult;
+    await tester.pumpWidget(
+      _dialogHost((context) {
+        return dialogResult = showDownloadTaskDeleteDialog(
+          context,
+          tasks: [_task('failed')],
+        );
+      }),
     );
 
     await tester.tap(find.text('open'));
@@ -252,16 +274,18 @@ Widget _dialogHost(Future<bool?> Function(BuildContext context) open) {
   );
 }
 
-DownloadTaskDto _task(String importStatus) => DownloadTaskDto(
-  id: 1,
-  clientId: 1,
-  movieNumber: 'TEST-001',
-  name: 'TEST-001',
-  remoteId: 'remote-1',
-  state: 'completed',
-  progress: 1,
-  importStatus: importStatus,
-  importStatusLabel: importStatus,
-  createdAt: DateTime(2026),
-  updatedAt: DateTime(2026),
-);
+DownloadTaskDto _task(String importStatus, {bool blacklistable = false}) =>
+    DownloadTaskDto(
+      id: 1,
+      clientId: 1,
+      movieNumber: 'TEST-001',
+      name: 'TEST-001',
+      remoteId: 'remote-1',
+      state: 'completed',
+      progress: 1,
+      importStatus: importStatus,
+      importStatusLabel: importStatus,
+      blacklistable: blacklistable,
+      createdAt: DateTime(2026),
+      updatedAt: DateTime(2026),
+    );

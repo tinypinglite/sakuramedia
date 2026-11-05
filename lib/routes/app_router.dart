@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sakuramedia/app/app_platform.dart';
+import 'package:sakuramedia/app/app_tooltip_navigator_observer.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/desktop_routes.dart' as desktop_routes;
@@ -47,6 +48,7 @@ GoRouter _buildRouter({
     navigatorKey: navigatorKey,
     initialLocation: '/',
     refreshListenable: sessionStore,
+    observers: <NavigatorObserver>[AppTooltipNavigatorObserver()],
     routes: routes,
     redirect: (context, state) {
       final path = state.uri.path;

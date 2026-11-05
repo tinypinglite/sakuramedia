@@ -11,7 +11,6 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/domain/media/movie_media_thumbnail_grid.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -76,18 +75,60 @@ void main() {
   ) async {
     await _pumpGrid(tester, thumbnails: _thumbnails(), activeIndex: 1);
 
-    final highlight = tester.widget<DecoratedBox>(
-      find.byKey(const Key('movie-media-thumbnail-tile-1-highlight')),
+    final highlightFinder = find.byKey(
+      const Key('movie-media-thumbnail-tile-1-highlight'),
     );
-    final decoration = highlight.decoration as BoxDecoration;
-    final border = decoration.border as Border;
+    final highlight = tester.widget<DecoratedBox>(highlightFinder);
+    final outerDecoration = highlight.decoration as BoxDecoration;
+    final outerBorder = outerDecoration.border as Border;
+    final activeBorder = tester.widget<DecoratedBox>(
+      find.descendant(of: highlightFinder, matching: find.byType(DecoratedBox)),
+    );
+    final activeDecoration = activeBorder.decoration as BoxDecoration;
+    final activeBorderSide = activeDecoration.border as Border;
 
-    expect(border.top.width, 1.5);
-    expect(
-      border.top.color,
-      sakuraThemeData.colorScheme.primary,
-    );
+    expect(outerBorder.top.width, 1);
+    expect(outerBorder.top.color, sakuraThemeData.appTextPalette.onMedia);
+    expect(activeBorderSide.top.width, 3);
+    expect(activeBorderSide.top.color, sakuraThemeData.colorScheme.primary);
   });
+
+  testWidgets('thumbnail grid badges only the active frame', (
+    WidgetTester tester,
+  ) async {
+    await _pumpGrid(tester, thumbnails: _thumbnails(), activeIndex: 1);
+
+    expect(
+      find.byKey(const Key('movie-media-thumbnail-tile-1-current-badge')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movie-media-thumbnail-tile-0-current-badge')),
+      findsNothing,
+    );
+    expect(find.byIcon(Icons.play_arrow_rounded), findsOneWidget);
+  });
+
+  testWidgets(
+    'thumbnail grid keeps active and clip badges separate at five columns',
+    (WidgetTester tester) async {
+      await _pumpGrid(
+        tester,
+        thumbnails: _thumbnails(),
+        columns: 5,
+        activeIndex: 1,
+        clipStartIndex: 1,
+      );
+
+      final activeBadgeRect = tester.getRect(
+        find.byKey(const Key('movie-media-thumbnail-tile-1-current-badge')),
+      );
+      final clipBadgeTextRect = tester.getRect(find.text('起'));
+
+      expect(clipBadgeTextRect.right, lessThan(activeBadgeRect.left));
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('thumbnail grid leaves non-active tiles without highlight layer', (
     WidgetTester tester,
@@ -942,6 +983,8 @@ Future<void> _pumpGrid(
   VoidCallback? onRetry,
   void Function(int index, Offset globalPosition)? onThumbnailMenuRequested,
   ThumbnailGridLayout layout = ThumbnailGridLayout.uniform16x9,
+  int? clipStartIndex,
+  int? clipEndIndex,
 }) async {
   final sessionStore = SessionStore.inMemory();
   await sessionStore.saveBaseUrl('https://api.example.com');
@@ -968,6 +1011,8 @@ Future<void> _pumpGrid(
               columns: columns,
               activeIndex: activeIndex,
               isScrollLocked: isScrollLocked,
+              clipStartIndex: clipStartIndex,
+              clipEndIndex: clipEndIndex,
               onThumbnailTap: (_) {},
               onRetry: onRetry ?? () {},
               onThumbnailMenuRequested: onThumbnailMenuRequested,

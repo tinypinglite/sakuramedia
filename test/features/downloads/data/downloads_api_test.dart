@@ -224,6 +224,7 @@ void main() {
                 'progress': 0.3,
                 'import_status': 'pending',
                 'import_status_label': '等待导入',
+                'blacklistable': true,
                 'display_name': '我的资源',
                 'movie_title': '中文标题',
                 'movie_cover': {'id': 5, 'origin': '/files/images/large.jpg'},
@@ -258,6 +259,7 @@ void main() {
         expect(result.items.single.remoteId, 'aa');
         expect(result.items.single.state, 'downloading');
         expect(result.items.single.importStatusLabel, '等待导入');
+        expect(result.items.single.blacklistable, isTrue);
         expect(result.items.single.displayName, '我的资源');
         // 后端 JOIN 出的标题/封面已进入 DTO，前端下载卡片可以直接展示，不再二次查。
         expect(result.items.single.movieTitle, '中文标题');
@@ -347,6 +349,7 @@ void main() {
         clientId: 2,
         mediaKind: ManualDownloadMediaKind.jav,
         sourceUri: 'magnet:?xt=urn:btih:abc',
+        sourceKind: 'magnet',
         movieNumber: ' ABC-001 ',
         collectionId: 9,
         displayName: ' ',
@@ -357,6 +360,7 @@ void main() {
         'client_id': 2,
         'media_kind': 'jav',
         'source_uri': 'magnet:?xt=urn:btih:abc',
+        'source_kind': 'magnet',
         'movie_number': 'ABC-001',
         'delete_source_after_import': true,
       });
@@ -381,6 +385,7 @@ void main() {
           clientId: 3,
           mediaKind: ManualDownloadMediaKind.video,
           sourceUri: 'magnet:?xt=urn:btih:def',
+          sourceKind: 'magnet',
           movieNumber: 'IGNORED',
           collectionId: 9,
           displayName: ' 我的视频 ',
@@ -390,6 +395,7 @@ void main() {
           'client_id': 3,
           'media_kind': 'video',
           'source_uri': 'magnet:?xt=urn:btih:def',
+          'source_kind': 'magnet',
           'collection_id': 9,
           'display_name': '我的视频',
           'delete_source_after_import': false,
@@ -461,6 +467,7 @@ void main() {
           clientId: 2,
           mediaKind: ManualDownloadMediaKind.jav,
           sourceUri: 'magnet:?xt=urn:btih:abc',
+          sourceKind: 'magnet',
           movieNumber: 'ABC-001',
         ),
         throwsA(
@@ -696,6 +703,25 @@ void main() {
         );
       },
     );
+
+    test('blacklistable falls back to import status for old responses', () {
+      DownloadTaskDto parse(String importStatus, {bool? blacklistable}) =>
+          DownloadTaskDto.fromJson(<String, dynamic>{
+            'id': 1,
+            'client_id': 1,
+            'name': 'task',
+            'remote_id': 'remote-1',
+            'state': 'completed',
+            'progress': 1,
+            'import_status': importStatus,
+            'blacklistable': blacklistable,
+          });
+
+      expect(parse('failed').blacklistable, isTrue);
+      expect(parse('skipped').blacklistable, isTrue);
+      expect(parse('completed').blacklistable, isFalse);
+      expect(parse('failed', blacklistable: false).blacklistable, isFalse);
+    });
   });
 }
 

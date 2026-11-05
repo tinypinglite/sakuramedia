@@ -192,7 +192,10 @@ class _ReleaseLink extends StatelessWidget {
           mouseCursor: SystemMouseCursors.click,
           hoverColor: context.appColors.surfaceCard,
           child: Padding(
-            padding: EdgeInsets.symmetric(vertical: spacing.xs),
+            padding: EdgeInsets.symmetric(
+              horizontal: spacing.sm,
+              vertical: spacing.xs,
+            ),
             child: Row(
               children: [
                 Flexible(

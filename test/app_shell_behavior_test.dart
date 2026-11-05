@@ -50,28 +50,55 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final expandedWidth =
-        tester.getSize(find.byKey(const Key('desktop-shell-sidebar'))).width;
+    final expandedWidth = tester
+        .getSize(find.byKey(const Key('desktop-shell-sidebar')))
+        .width;
     expect(expandedWidth, AppSidebarTokens.defaults().expandedWidth);
     expect(find.byKey(const Key('sidebar-toggle-button')), findsOneWidget);
     expect(find.byKey(const Key('mac-traffic-lights')), findsNothing);
-    expect(find.text('SakuraMedia'), findsNothing);
-    expect(find.text('SA'), findsNothing);
+    expect(find.text('SakuraMedia'), findsOneWidget);
+    expect(find.byKey(const Key('sidebar-account-card')), findsOneWidget);
+    expect(find.byKey(const Key('sidebar-account-avatar')), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('sidebar-account-avatar')),
+        matching: find.text('S'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('已登录'), findsOneWidget);
+    expect(
+      tester.getSize(find.byKey(const Key('sidebar-account-card'))).height,
+      88,
+    );
+    final selectedNavLabel = tester.widget<Text>(
+      find.descendant(
+        of: find.byKey(const Key('nav-group-overview')),
+        matching: find.text('概览'),
+      ),
+    );
+    expect(
+      selectedNavLabel.style?.color,
+      sakuraThemeData.appTextPalette.primary,
+    );
+    expect(
+      find.byKey(const Key('sidebar-appearance-mode-toggle')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('sidebar-theme-color-button')), findsOneWidget);
     expect(find.byKey(const Key('sidebar-version-info')), findsOneWidget);
     // 版本区收敛为单行页脚：双版本号常驻一行，完整信息收进弹窗。
     expect(find.text('0.2.3 · v0.2.0'), findsOneWidget);
-    expect(
-      find.byTooltip('客户端 0.2.3 · 服务端 v0.2.0'),
-      findsOneWidget,
-    );
+    expect(find.byTooltip('客户端 0.2.3 · 服务端 v0.2.0'), findsOneWidget);
     expect(find.text('系统版本'), findsNothing);
     expect(find.byKey(const Key('sidebar-version-popover')), findsNothing);
 
     await tester.tap(find.byKey(const Key('sidebar-toggle-button')));
     await tester.pumpAndSettle();
 
-    final collapsedWidth =
-        tester.getSize(find.byKey(const Key('desktop-shell-sidebar'))).width;
+    final collapsedWidth = tester
+        .getSize(find.byKey(const Key('desktop-shell-sidebar')))
+        .width;
     expect(collapsedWidth, AppSidebarTokens.defaults().collapsedWidth);
     // 收起 = 完全隐藏：导航内容与版本卡整体卸载；按钮固定在壳层，仍在。
     expect(find.byKey(const Key('sidebar-toggle-button')), findsOneWidget);
@@ -83,7 +110,33 @@ void main() {
       findsNothing,
     );
     expect(find.byKey(const Key('sidebar-version-info')), findsNothing);
+    expect(find.byKey(const Key('sidebar-account-card')), findsNothing);
     expect(find.byTooltip('概览'), findsNothing);
+  });
+
+  testWidgets('desktop sidebar grows the account card for large text', (
+    WidgetTester tester,
+  ) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    final sessionStore = await _buildLoggedInSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueOverviewResponses(bundle);
+    await _pumpDesktopApp(
+      tester,
+      bundle: bundle,
+      sessionStore: sessionStore,
+      statusApi: bundle.statusApi,
+      moviesApi: bundle.moviesApi,
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      tester.getSize(find.byKey(const Key('sidebar-account-card'))).height,
+      greaterThanOrEqualTo(88),
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('desktop sidebar highlights available backend and plugin updates', (
@@ -233,14 +286,18 @@ void main() {
     expect(find.text('管理'), findsOneWidget);
 
     // 顺序：概览 → 浏览标题 → … → 管理标题 → 系统设置。
-    final overviewTop =
-        tester.getTopLeft(find.byKey(const Key('nav-group-overview'))).dy;
-    final browseHeaderTop =
-        tester.getTopLeft(find.byKey(const Key('sidebar-section-浏览'))).dy;
-    final manageHeaderTop =
-        tester.getTopLeft(find.byKey(const Key('sidebar-section-管理'))).dy;
-    final configurationTop =
-        tester.getTopLeft(find.byKey(const Key('nav-group-configuration'))).dy;
+    final overviewTop = tester
+        .getTopLeft(find.byKey(const Key('nav-group-overview')))
+        .dy;
+    final browseHeaderTop = tester
+        .getTopLeft(find.byKey(const Key('sidebar-section-浏览')))
+        .dy;
+    final manageHeaderTop = tester
+        .getTopLeft(find.byKey(const Key('sidebar-section-管理')))
+        .dy;
+    final configurationTop = tester
+        .getTopLeft(find.byKey(const Key('nav-group-configuration')))
+        .dy;
     expect(overviewTop, lessThan(browseHeaderTop));
     expect(browseHeaderTop, lessThan(manageHeaderTop));
     expect(manageHeaderTop, lessThan(configurationTop));
@@ -308,9 +365,7 @@ void main() {
     final sidebarHeader = tester.getRect(
       find.byKey(const Key('sidebar-header')),
     );
-    final topbarHeader = tester.getRect(
-      find.byKey(const Key('topbar-header')),
-    );
+    final topbarHeader = tester.getRect(find.byKey(const Key('topbar-header')));
     expect(sidebarHeader.top, topbarHeader.top);
     expect(sidebarHeader.height, topbarHeader.height);
   });
@@ -405,9 +460,7 @@ void main() {
     final expandedToggle = tester.getRect(
       find.byKey(const Key('sidebar-toggle-button')),
     );
-    final headerRect = tester.getRect(
-      find.byKey(const Key('sidebar-header')),
-    );
+    final headerRect = tester.getRect(find.byKey(const Key('sidebar-header')));
     expect(expandedToggle.left, 76 + 8);
     expect(expandedToggle.center.dy, headerRect.center.dy);
 
@@ -496,9 +549,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    Rect contentSurface() => tester.getRect(
-      find.byKey(const Key('desktop-shell-content-surface')),
-    );
+    Rect contentSurface() =>
+        tester.getRect(find.byKey(const Key('desktop-shell-content-surface')));
     Rect navigatorRect() {
       final box =
           desktopShellNavigatorKey.currentContext!.findRenderObject()!
@@ -508,9 +560,7 @@ void main() {
 
     List<Type> navigatorAncestors() {
       final types = <Type>[];
-      desktopShellNavigatorKey.currentContext!.visitAncestorElements((
-        element,
-      ) {
+      desktopShellNavigatorKey.currentContext!.visitAncestorElements((element) {
         types.add(element.widget.runtimeType);
         return true;
       });
@@ -782,12 +832,11 @@ void main() {
         'items': const <Map<String, dynamic>>[],
       },
     );
-    debugImageSearchFilePicker =
-        () async => ImageSearchPickedFile(
-          bytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
-          fileName: 'picked.png',
-          mimeType: 'image/png',
-        );
+    debugImageSearchFilePicker = () async => ImageSearchPickedFile(
+      bytes: Uint8List.fromList(const <int>[1, 2, 3, 4]),
+      fileName: 'picked.png',
+      mimeType: 'image/png',
+    );
 
     final router = await _pumpDesktopAppWithRouter(
       tester,
@@ -831,63 +880,62 @@ void main() {
     expect(bundle.adapter.hitCount('POST', '/image-search/sessions'), 2);
   });
 
-  testWidgets(
-    'desktop top bar search submits query from collapsed sidebar',
-    (WidgetTester tester) async {
-      final sessionStore = await _buildLoggedInSessionStore();
-      final bundle = await createTestApiBundle(sessionStore);
-      addTearDown(bundle.dispose);
-      _enqueueOverviewResponses(bundle);
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/movies',
-        body: <String, dynamic>{
-          'items': const <Map<String, dynamic>>[],
-          'page': 1,
-          'page_size': 50,
-          'total': 0,
-        },
-      );
-      bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/actors',
-        body: <String, dynamic>{
-          'items': const <Map<String, dynamic>>[],
-          'page': 1,
-          'page_size': 50,
-          'total': 0,
-        },
-      );
+  testWidgets('desktop top bar search submits query from collapsed sidebar', (
+    WidgetTester tester,
+  ) async {
+    final sessionStore = await _buildLoggedInSessionStore();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    _enqueueOverviewResponses(bundle);
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 50,
+        'total': 0,
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors',
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 50,
+        'total': 0,
+      },
+    );
 
-      final router = await _pumpDesktopAppWithRouter(
-        tester,
-        bundle: bundle,
-        sessionStore: sessionStore,
-        statusApi: bundle.statusApi,
-        moviesApi: bundle.moviesApi,
-        actorsApi: bundle.actorsApi,
-      );
-      await tester.pumpAndSettle();
+    final router = await _pumpDesktopAppWithRouter(
+      tester,
+      bundle: bundle,
+      sessionStore: sessionStore,
+      statusApi: bundle.statusApi,
+      moviesApi: bundle.moviesApi,
+      actorsApi: bundle.actorsApi,
+    );
+    await tester.pumpAndSettle();
 
-      await tester.tap(find.byKey(const Key('sidebar-toggle-button')));
-      await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('sidebar-toggle-button')));
+    await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.byKey(const Key('topbar-search-input')),
-        'SSNI-888',
-      );
-      await tester.testTextInput.receiveAction(TextInputAction.search);
-      await tester.pumpAndSettle();
+    await tester.enterText(
+      find.byKey(const Key('topbar-search-input')),
+      'SSNI-888',
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.search);
+    await tester.pumpAndSettle();
 
-      expect(
-        router.routeInformationProvider.value.uri.path,
-        '/desktop/search/SSNI-888',
-      );
-      // 提交后保持默认展开。
-      expect(find.byKey(const Key('topbar-search-button')), findsOneWidget);
-      expect(find.byKey(const Key('topbar-search-field')), findsOneWidget);
-    },
-  );
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      '/desktop/search/SSNI-888',
+    );
+    // 提交后保持默认展开。
+    expect(find.byKey(const Key('topbar-search-button')), findsOneWidget);
+    expect(find.byKey(const Key('topbar-search-field')), findsOneWidget);
+  });
 
   testWidgets('desktop top bar search collapses on escape', (
     WidgetTester tester,

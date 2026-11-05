@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
@@ -86,6 +87,131 @@ void main() {
 
     expect(decoration.color, darkTheme.appColors.surfaceElevated);
     expect(decoration.border, isNotNull);
+  });
+
+  testWidgets('inherits the ambient font family', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: const Scaffold(
+          body: DefaultTextStyle(
+            style: TextStyle(fontFamily: 'PreviewCjk'),
+            child: AppSegmentedControl<String>(
+              items: <AppSegmentedItem<String>>[
+                AppSegmentedItem<String>(
+                  key: Key('segment-a'),
+                  value: 'a',
+                  label: 'A',
+                ),
+                AppSegmentedItem<String>(
+                  key: Key('segment-b'),
+                  value: 'b',
+                  label: 'B',
+                ),
+              ],
+              selected: 'a',
+              onChanged: _noop,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    final labelStyles = tester
+        .widgetList<AnimatedDefaultTextStyle>(
+          find.descendant(
+            of: find.byKey(const Key('segment-a')),
+            matching: find.byType(AnimatedDefaultTextStyle),
+          ),
+        )
+        .map((widget) => widget.style.fontFamily);
+    expect(labelStyles, contains('PreviewCjk'));
+  });
+
+  testWidgets('keeps the resolved Windows font over the ambient font', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: sakuraThemeData,
+          home: const Scaffold(
+            body: DefaultTextStyle(
+              style: TextStyle(fontFamily: 'PreviewCjk'),
+              child: AppSegmentedControl<String>(
+                items: <AppSegmentedItem<String>>[
+                  AppSegmentedItem<String>(
+                    key: Key('segment-a'),
+                    value: 'a',
+                    label: 'A',
+                  ),
+                  AppSegmentedItem<String>(
+                    key: Key('segment-b'),
+                    value: 'b',
+                    label: 'B',
+                  ),
+                ],
+                selected: 'a',
+                onChanged: _noop,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final labelStyles = tester
+          .widgetList<AnimatedDefaultTextStyle>(
+            find.descendant(
+              of: find.byKey(const Key('segment-a')),
+              matching: find.byType(AnimatedDefaultTextStyle),
+            ),
+          )
+          .map((widget) => widget.style.fontFamily);
+      expect(labelStyles, contains(kAppWindowsFontFamily));
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets('selection does not reflow segment geometry', (tester) async {
+    var selected = 'a';
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: Scaffold(
+          body: StatefulBuilder(
+            builder: (context, setState) {
+              return AppSegmentedControl<String>(
+                items: const <AppSegmentedItem<String>>[
+                  AppSegmentedItem<String>(
+                    key: Key('segment-a'),
+                    value: 'a',
+                    label: 'A',
+                  ),
+                  AppSegmentedItem<String>(
+                    key: Key('segment-b'),
+                    value: 'b',
+                    label: 'B',
+                  ),
+                ],
+                selected: selected,
+                onChanged: (value) => setState(() => selected = value),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    final itemA = tester.getRect(find.byKey(const Key('segment-a')));
+    final itemB = tester.getRect(find.byKey(const Key('segment-b')));
+    await tester.tap(find.byKey(const Key('segment-b')));
+    await tester.pumpAndSettle();
+
+    expect(tester.getRect(find.byKey(const Key('segment-a'))), itemA);
+    expect(tester.getRect(find.byKey(const Key('segment-b'))), itemB);
   });
 }
 

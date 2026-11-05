@@ -29,7 +29,6 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/l10n/app_localizations_zh.dart';
 import 'package:sakuramedia/widgets/domain/media/media_thumbnail_action_support.dart';
 
@@ -125,12 +124,9 @@ class _FakeDownloadsApi extends DownloadsApi {
 }
 
 class _FakeDownloadClientsApi extends DownloadClientsApi {
-  _FakeDownloadClientsApi({required ApiClient apiClient})
-    : super(apiClient: apiClient);
-
-  @override
-  Future<List<DownloadClientDto>> getClients() async {
-    return const <DownloadClientDto>[
+  _FakeDownloadClientsApi({
+    required ApiClient apiClient,
+    this.clients = const <DownloadClientDto>[
       DownloadClientDto(
         id: 1,
         name: 'qb-main',
@@ -138,8 +134,13 @@ class _FakeDownloadClientsApi extends DownloadClientsApi {
         createdAt: null,
         updatedAt: null,
       ),
-    ];
-  }
+    ],
+  }) : super(apiClient: apiClient);
+
+  final List<DownloadClientDto> clients;
+
+  @override
+  Future<List<DownloadClientDto>> getClients() async => clients;
 }
 
 void main() {
@@ -609,10 +610,10 @@ void main() {
     await tester.pumpAndSettle();
 
     final addButton = find.byKey(
-      const Key('movie-detail-review-add-magnet-7-0'),
+      const Key('movie-detail-review-add-download-7-0'),
     );
     expect(addButton, findsOneWidget);
-    expect(find.text('添加磁力下载'), findsOneWidget);
+    expect(find.text('添加下载'), findsOneWidget);
 
     await tester.tap(addButton);
     await tester.pumpAndSettle();
@@ -630,6 +631,58 @@ void main() {
       find.byKey(const Key('manual-download-movie-number-field')),
       findsNothing,
     );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('review eD2k link prefills the compact download dialog', (
+    WidgetTester tester,
+  ) async {
+    const ed2k =
+        'ed2k://|file|Review.Movie.mp4|12345|'
+        '0123456789abcdef0123456789abcdef|/';
+    await _pumpInspectorPanel(
+      tester,
+      panelHeight: 560,
+      movieTitle: 'Review Movie',
+      downloadClients: const <DownloadClientDto>[
+        DownloadClientDto(
+          id: 3,
+          name: '115-main',
+          libraryId: 2,
+          supportedSourceKinds: <String>{'magnet', 'torrent', 'ed2k', 'http'},
+          createdAt: null,
+          updatedAt: null,
+        ),
+      ],
+      fetchMovieReviews:
+          ({
+            required String movieNumber,
+            required int page,
+            required int pageSize,
+            required MovieReviewSort sort,
+          }) async => <MovieReviewDto>[
+            MovieReviewDto(
+              id: 8,
+              score: 5,
+              content: '资源在这里 $ed2k 自取',
+              createdAt: DateTime.parse('2026-03-10T08:00:00Z'),
+              username: 'ed2k-user',
+              likeCount: 1,
+              watchCount: 2,
+            ),
+          ],
+    );
+    await tester.pumpAndSettle();
+
+    final addButton = find.byKey(
+      const Key('movie-detail-review-add-download-8-0'),
+    );
+    expect(addButton, findsOneWidget);
+    await tester.tap(addButton);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('manual-download-link-field')), findsOneWidget);
+    expect(find.text(ed2k), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -1028,6 +1081,7 @@ Future<ProviderContainer> _pumpInspectorPanel(
   required _FetchMovieReviews fetchMovieReviews,
   _SearchCandidates? searchCandidates,
   _CreateDownloadRequest? createDownloadRequest,
+  List<DownloadClientDto>? downloadClients,
 }) async {
   final sessionStore = SessionStore.inMemory();
   final apiClient = ApiClient(sessionStore: sessionStore);
@@ -1062,7 +1116,20 @@ Future<ProviderContainer> _pumpInspectorPanel(
       moviesApiProvider.overrideWithValue(fakeMoviesApi),
       downloadsApiProvider.overrideWithValue(fakeDownloadsApi),
       downloadClientsApiProvider.overrideWithValue(
-        _FakeDownloadClientsApi(apiClient: apiClient),
+        _FakeDownloadClientsApi(
+          apiClient: apiClient,
+          clients:
+              downloadClients ??
+              const <DownloadClientDto>[
+                DownloadClientDto(
+                  id: 1,
+                  name: 'qb-main',
+                  libraryId: 1,
+                  createdAt: null,
+                  updatedAt: null,
+                ),
+              ],
+        ),
       ),
     ],
   );

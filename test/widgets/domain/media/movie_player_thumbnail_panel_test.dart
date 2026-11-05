@@ -9,7 +9,6 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/domain/media/movie_player_thumbnail_panel.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -61,6 +60,10 @@ void main() {
     expect(decoration.border, isA<Border>());
     expect(
       find.byKey(const Key('movie-player-thumbnail-tile-1-highlight')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movie-player-thumbnail-tile-1-current-badge')),
       findsOneWidget,
     );
   });

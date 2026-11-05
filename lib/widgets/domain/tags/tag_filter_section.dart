@@ -13,12 +13,9 @@ import 'package:sakuramedia/widgets/domain/tags/tag_selector_panel.dart';
 /// 第一次打开时才加载（scope 用 `preload: false`）。筛选面板里走精简形态：
 /// 搜索框默认收起、标签收起态只展示前 5 个、展开后显示全部。
 class TagFilterSection extends ConsumerWidget {
-  const TagFilterSection({super.key, required this.scope, this.title});
+  const TagFilterSection({super.key, required this.scope});
 
   final TagSelectionScope scope;
-
-  /// 分节标题；为 `null` 时使用当前语言的默认文案。
-  final String? title;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,7 +24,7 @@ class TagFilterSection extends ConsumerWidget {
     final notifier = ref.read(tagSelectionProvider(scope).notifier);
     return TagSelectorPanel(
       selection: selection,
-      title: title ?? l10n.widgetTagFilterTitle,
+      title: l10n.widgetTagFilterTitle,
       collapsibleSearch: true,
       collapsedTagCount: 5,
       showTagCounts: false,

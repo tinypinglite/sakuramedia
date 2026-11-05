@@ -11,6 +11,7 @@ import 'package:sakuramedia/features/actors/data/dto/actor_movie_year_dto.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_search_stream_update.dart';
 import 'package:sakuramedia/features/actors/presentation/controllers/listing/actor_filter_state.dart';
 import 'package:sakuramedia/features/search/data/catalog_search_stream_stats.dart';
+import 'package:sakuramedia/features/tags/data/tag_list_item_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/l10n/app_localizations_zh.dart';
 
@@ -181,6 +182,11 @@ class ActorsApi {
         .map(ActorMovieYearDto.fromJson)
         .where((item) => item.year > 0)
         .toList(growable: false);
+  }
+
+  Future<List<TagListItemDto>> getActorTags({required int actorId}) async {
+    final response = await _apiClient.getList('/actors/$actorId/tags');
+    return response.map(TagListItemDto.fromJson).toList(growable: false);
   }
 
   Stream<ActorSearchStreamUpdate> searchOnlineActorsStream({

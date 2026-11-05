@@ -16,8 +16,8 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_sort_menu_button.dart';
+import 'package:sakuramedia/widgets/domain/tags/media_tag_filter_section.dart';
 import 'package:sakuramedia/widgets/domain/tags/tag_filter_section.dart';
-import 'package:sakuramedia/features/movies/presentation/widgets/media_tag_filter_section.dart';
 
 class MobileMoviesPage extends ConsumerStatefulWidget {
   const MobileMoviesPage({super.key});
@@ -145,16 +145,8 @@ class _MobileMoviesPageState extends ConsumerState<MobileMoviesPage> {
       // 分节必须挂在抽屉自己的本地筛选状态上：抽屉其它分节改状态时基于
       // `local.copyWith(...)` 重建，若媒体标签仍用打开抽屉时的快照，
       // 两边的条件会互相覆盖。
-      mediaTagSectionBuilder: (context, local, onApply) => MediaTagFilterSection(
-        selectedTagIds: local.mediaTagIds,
-        matchMode: local.mediaTagMatch,
-        onChanged: (tagIds, matchMode) => onApply(
-          local.copyWith(
-            mediaTagIds: tagIds,
-            mediaTagMatch: matchMode,
-          ),
-        ),
-      ),
+      mediaTagSectionBuilder: (context, local, onApply) =>
+          MediaTagFilterSection(filter: local, onChanged: onApply),
       extraActive: _tagSelectionActive,
       onResetExtra: () {
         ref.read(tagSelectionProvider(_tagSelectionScope).notifier).clear();

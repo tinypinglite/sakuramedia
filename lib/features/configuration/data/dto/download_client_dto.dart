@@ -6,11 +6,17 @@ import 'package:sakuramedia/core/json/json_parse.dart';
 /// only carries the library relation and opaque provider configuration; the
 /// provider key is resolved from the referenced media library when needed.
 class DownloadClientDto {
+  static const Set<String> _defaultSupportedSourceKinds = <String>{
+    'magnet',
+    'torrent',
+  };
+
   const DownloadClientDto({
     required this.id,
     required this.name,
     required this.libraryId,
     this.providerConfig = const <String, dynamic>{},
+    this.supportedSourceKinds = _defaultSupportedSourceKinds,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -19,6 +25,7 @@ class DownloadClientDto {
   final String name;
   final int libraryId;
   final Map<String, dynamic> providerConfig;
+  final Set<String> supportedSourceKinds;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -29,11 +36,20 @@ class DownloadClientDto {
             (dynamic key, dynamic value) => MapEntry(key.toString(), value),
           )
         : <String, dynamic>{};
+    final rawSourceKinds = json['supported_source_kinds'];
+    final sourceKinds = rawSourceKinds is List
+        ? rawSourceKinds
+              .whereType<String>()
+              .map((value) => value.trim())
+              .where((value) => value.isNotEmpty)
+              .toSet()
+        : _defaultSupportedSourceKinds;
     return DownloadClientDto(
       id: json['id'] as int? ?? 0,
       name: json['name'] as String? ?? '',
       libraryId: json['library_id'] as int? ?? 0,
       providerConfig: Map<String, dynamic>.unmodifiable(config),
+      supportedSourceKinds: Set<String>.unmodifiable(sourceKinds),
       createdAt: asDateTime(json['created_at']),
       updatedAt: asDateTime(json['updated_at']),
     );
@@ -115,9 +131,7 @@ class DownloadClientDiagnosticCheckDto {
   final String message;
   final Map<String, dynamic>? details;
 
-  factory DownloadClientDiagnosticCheckDto.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory DownloadClientDiagnosticCheckDto.fromJson(Map<String, dynamic> json) {
     return DownloadClientDiagnosticCheckDto(
       key: json['key'] as String? ?? '',
       status: json['status'] as String? ?? 'failed',

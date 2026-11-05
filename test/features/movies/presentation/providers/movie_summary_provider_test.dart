@@ -413,6 +413,66 @@ void main() {
     expect(cleared.containsKey('media_tag_match'), isFalse);
   });
 
+  test('女优作品媒体文件标签与目录标签共同发送，重置仅清影片条件', () async {
+    const scope = MovieSummaryScope.actor(actorId: 8, pageSize: 1);
+    await prime(scope, <Map<String, dynamic>>[_movie('ABC-001')]);
+
+    final notifier = container.read(movieSummaryProvider(scope).notifier);
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _page(items: <Map<String, dynamic>>[_movie('ABC-002')], total: 1),
+    );
+    await notifier.applyMovieFilter(
+      const MovieFilterState(
+        mediaTagIds: <int>[4, 9],
+        mediaTagMatch: TagMatchMode.and,
+      ),
+    );
+
+    final withMediaTags = adapter.requests.last.uri.queryParameters;
+    expect(withMediaTags['actor_id'], '8');
+    expect(withMediaTags['media_tag_ids'], '4,9');
+    expect(withMediaTags['media_tag_match'], 'and');
+
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _page(items: <Map<String, dynamic>>[_movie('ABC-003')], total: 1),
+    );
+    await notifier.applyTagFilter(
+      tagIds: <int>[3, 5],
+      tagMatch: TagMatchMode.or,
+    );
+
+    final combined = adapter.requests.last.uri.queryParameters;
+    expect(combined['actor_id'], '8');
+    expect(combined['media_tag_ids'], '4,9');
+    expect(combined['media_tag_match'], 'and');
+    expect(combined['tag_ids'], '3,5');
+    expect(combined['tag_match'], 'or');
+
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _page(items: <Map<String, dynamic>>[_movie('ABC-004')], total: 1),
+    );
+    await notifier.applyMovieFilter(
+      container
+          .read(movieSummaryProvider(scope))
+          .requireValue
+          .filter
+          .movie
+          .resetFilters(),
+    );
+
+    final cleared = adapter.requests.last.uri.queryParameters;
+    expect(cleared['actor_id'], '8');
+    expect(cleared.containsKey('media_tag_ids'), isFalse);
+    expect(cleared.containsKey('media_tag_match'), isFalse);
+    expect(cleared['tag_ids'], '3,5');
+  });
+
   test('标签列表 scope 出演年龄与标签条件组合，未设置时不发送', () async {
     const scope = MovieSummaryScope.tags(instanceKey: 'desktop:tags:list');
     container.listen(movieSummaryProvider(scope), (_, __) {});

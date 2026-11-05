@@ -128,8 +128,9 @@ void main() {
       ),
     );
 
-    final decoration =
-        tester.widget<InputDecorator>(find.byType(InputDecorator)).decoration;
+    final decoration = tester
+        .widget<InputDecorator>(find.byType(InputDecorator))
+        .decoration;
     final enabledBorder = decoration.enabledBorder! as OutlineInputBorder;
     final focusedBorder = decoration.focusedBorder! as OutlineInputBorder;
     final errorBorder = decoration.errorBorder! as OutlineInputBorder;
@@ -163,8 +164,9 @@ void main() {
             widget.height == sakuraThemeData.appFormTokens.labelGap,
       ),
     );
-    final decoration =
-        tester.widget<InputDecorator>(find.byType(InputDecorator)).decoration;
+    final decoration = tester
+        .widget<InputDecorator>(find.byType(InputDecorator))
+        .decoration;
 
     expect(sizedBox.height, sakuraThemeData.appFormTokens.labelGap);
     expect(
@@ -193,8 +195,9 @@ void main() {
     );
 
     final editableText = tester.widget<EditableText>(find.byType(EditableText));
-    final decoration =
-        tester.widget<InputDecorator>(find.byType(InputDecorator)).decoration;
+    final decoration = tester
+        .widget<InputDecorator>(find.byType(InputDecorator))
+        .decoration;
 
     expect(editableText.style.fontSize, sakuraMobileThemeData.appTextScale.s14);
     expect(
@@ -226,5 +229,23 @@ void main() {
 
     expect(editableText.style.fontSize, 18);
     expect(editableText.style.fontFamilyFallback, <String>['Menlo']);
+  });
+
+  testWidgets('expands to the requested fixed height', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: sakuraThemeData,
+        home: const Material(
+          child: AppTextField(
+            fieldKey: Key('expanded-field'),
+            height: 84,
+            expands: true,
+          ),
+        ),
+      ),
+    );
+
+    expect(tester.getSize(find.byKey(const Key('expanded-field'))).height, 84);
+    expect(tester.getSize(find.byType(InputDecorator)).height, 84);
   });
 }
