@@ -8,7 +8,7 @@ import 'package:sakuramedia/theme.dart';
 
 /// 桌面概览的数据洞察带。
 ///
-/// 观看趋势和存储分布各自持有主题色推导的深色面；这一行比上方主行略浅一档。
+/// 观看趋势和存储分布各自持有主题色推导的浅色面；这一行比上方主行略浅一档。
 /// 宽窗口按 7:5 分栏，窄窗口改为上下排列。内容卡片的 chrome 由
 /// [WatchTrendCard.embedded] / [StorageUsageCard.embedded] 关闭。
 class DesktopOverviewInsights extends StatelessWidget {
@@ -41,7 +41,6 @@ class DesktopOverviewInsights extends StatelessWidget {
         errorMessage: state.watchTrendError,
         onRetry: onTrendRetry,
         embedded: true,
-        onDark: true,
       ),
     );
     final storage = OverviewSurface(
@@ -54,7 +53,6 @@ class DesktopOverviewInsights extends StatelessWidget {
         errorMessage: state.insightsError,
         onRetry: onInsightsRetry,
         embedded: true,
-        onDark: true,
       ),
     );
 

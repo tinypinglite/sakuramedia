@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/overview/presentation/overview_system_info_format.dart';
 import 'package:sakuramedia/features/overview/presentation/providers/overview_system_info_provider.dart';
 import 'package:sakuramedia/features/overview/presentation/widgets/asset_summary_card.dart';
@@ -31,7 +31,6 @@ class MobileSystemOverviewPage extends ConsumerWidget {
               children: <Widget>[
                 AssetSummaryCard(
                   status: state.status,
-                  insights: state.insights,
                   pendingIndexCount: pendingIndexCount(state.imageSearchStatus),
                   isLoading: state.isLoadingStatus,
                   errorMessage: state.statusError,
@@ -51,7 +50,6 @@ class MobileSystemOverviewPage extends ConsumerWidget {
                     errorMessage: state.watchTrendError,
                     onRetry: notifier.loadWatchTrend,
                     embedded: true,
-                    onDark: true,
                   ),
                 ),
                 SizedBox(height: context.appSpacing.lg),
@@ -65,7 +63,6 @@ class MobileSystemOverviewPage extends ConsumerWidget {
                     errorMessage: state.insightsError,
                     onRetry: notifier.loadInsights,
                     embedded: true,
-                    onDark: true,
                   ),
                 ),
                 SizedBox(height: context.appSpacing.lg),
@@ -118,7 +115,7 @@ class MobileSystemOverviewPage extends ConsumerWidget {
       failureFallback: l10n.systemMaintenanceRebuildFailed,
     );
     if (confirmed && context.mounted) {
-      showToast(l10n.systemMaintenanceRebuildStarted);
+      showToast(l10n.systemMaintenanceRebuildStarted, tone: AppToastTone.info);
     }
   }
 }

@@ -2065,21 +2065,11 @@
   "overviewMediaAssets": "Media assets",
   "overviewNoAssetData": "No media asset data yet",
   "overviewMovies": "Movies",
-  "overviewMoviePlayableSubscribed": "Playable: {playable} · Subscribed: {subscribed}",
-  "@overviewMoviePlayableSubscribed": {
+  "overviewPlayableMovies": "Playable movies",
+  "overviewMovieTotal": "{count} movies total",
+  "@overviewMovieTotal": {
     "placeholders": {
-      "playable": {
-        "type": "String"
-      },
-      "subscribed": {
-        "type": "String"
-      }
-    }
-  },
-  "overviewMoviePlayable": "Playable: {playable}",
-  "@overviewMoviePlayable": {
-    "placeholders": {
-      "playable": {
+      "count": {
         "type": "String"
       }
     }
@@ -2102,7 +2092,6 @@
       }
     }
   },
-  "overviewMediaFiles": "Media files",
   "overviewLibraryCount": "Libraries: {count}",
   "@overviewLibraryCount": {
     "placeholders": {
@@ -2112,24 +2101,8 @@
     }
   },
   "overviewTotalMediaSize": "Total media size",
-  "overviewMediaTotalDetail": "{files} media files · {thumbnails} thumbnails",
-  "@overviewMediaTotalDetail": {
-    "placeholders": {
-      "files": {
-        "type": "String"
-      },
-      "thumbnails": {
-        "type": "String"
-      }
-    }
-  },
-  "overviewCollectionsPrefix": "Collections: ",
-  "overviewCollectionKinds": "Playlists · videos · clips · moments",
   "overviewPendingThumbnails": "Thumbnails pending",
   "overviewPendingIndex": "Pending indexing",
-  "overviewVideoCollections": "Video collections",
-  "overviewClipCollections": "Clip collections",
-  "overviewMomentCollections": "Moment collections",
   "overviewWorkbenchTitle": "Workbench",
   "overviewWorkbenchActive": "{count} active",
   "@overviewWorkbenchActive": {

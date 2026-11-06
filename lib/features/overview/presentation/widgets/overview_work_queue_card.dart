@@ -58,23 +58,28 @@ class OverviewWorkQueueCard extends StatelessWidget {
             children: <Widget>[
               Row(
                 children: <Widget>[
-                  const OverviewCardIcon(
-                    icon: Icons.space_dashboard_rounded,
-                    onDark: true,
-                  ),
+                  const OverviewHeroIcon(icon: Icons.space_dashboard_rounded),
                   SizedBox(width: spacing.md),
                   Expanded(
                     child: Text(
                       l10n.overviewWorkbenchTitle,
                       style: resolveAppTextStyle(
                         context,
-                        size: AppTextSize.s16,
+                        size: AppTextSize.s18,
                         weight: AppTextWeight.semibold,
-                        tone: AppTextTone.onMedia,
+                        tone: AppTextTone.primary,
                       ),
                     ),
                   ),
-                  SizedBox(width: spacing.sm),
+                  if (activeCount > 0) ...<Widget>[
+                    _WorkbenchActiveBadge(
+                      key: const Key('overview-workbench-active'),
+                      label: l10n.overviewWorkbenchActive(
+                        formatCount(activeCount),
+                      ),
+                    ),
+                    SizedBox(width: spacing.md),
+                  ],
                   _WorkbenchAllTasksAction(
                     label: l10n.activityFilterAllTasks,
                     onTap: onAllTasksTap,
@@ -82,31 +87,18 @@ class OverviewWorkQueueCard extends StatelessWidget {
                 ],
               ),
               SizedBox(height: spacing.md),
-              if (activeCount > 0) ...<Widget>[
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: _WorkbenchActiveBadge(
-                    key: const Key('overview-workbench-active'),
-                    label: l10n.overviewWorkbenchActive(
-                      formatCount(activeCount),
-                    ),
-                  ),
-                ),
-                SizedBox(height: spacing.sm),
-              ],
               if (errorMessage != null)
                 OverviewCardErrorRow(
                   message: errorMessage!,
                   onRetry: onRetry,
                   retryKey: const Key('overview-workbench-retry-button'),
-                  onDark: true,
                 )
               else if (isEmpty && !isLoading)
                 _WorkQueueEmptyState(message: l10n.overviewWorkbenchEmpty)
               else
                 AppSkeletonizer(
                   enabled: isLoading,
-                  child: _WorkQueueRows(
+                  child: _WorkQueueMetricGrid(
                     downloading: downloading,
                     importing: importing,
                     imported: imported,
@@ -115,17 +107,17 @@ class OverviewWorkQueueCard extends StatelessWidget {
                 ),
             ],
           ),
-          SizedBox(height: spacing.md),
+          SizedBox(height: spacing.lg),
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[
               Divider(
                 height: 1,
                 thickness: 1,
-                color: context.appTextPalette.onMedia.withValues(alpha: 0.14),
+                color: context.appColors.divider,
               ),
               SizedBox(height: spacing.md),
-              Theme(data: _diagnosticsTheme(context), child: diagnostics),
+              diagnostics,
             ],
           ),
         ],
@@ -134,8 +126,8 @@ class OverviewWorkQueueCard extends StatelessWidget {
   }
 }
 
-class _WorkQueueRows extends StatelessWidget {
-  const _WorkQueueRows({
+class _WorkQueueMetricGrid extends StatelessWidget {
+  const _WorkQueueMetricGrid({
     required this.downloading,
     required this.importing,
     required this.imported,
@@ -150,64 +142,85 @@ class _WorkQueueRows extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final rows = <Widget>[
-      _WorkQueueRow(
+    final metrics = <Widget>[
+      _WorkQueueMetric(
         key: const Key('overview-workbench-downloading'),
         icon: Icons.download_rounded,
         label: l10n.downloadStateDownloading,
         count: downloading,
         tone: AppTextTone.accent,
       ),
-      _WorkQueueRow(
+      _WorkQueueMetric(
         key: const Key('overview-workbench-importing'),
         icon: Icons.inventory_2_outlined,
         label: l10n.downloadImportStatusRunning,
         count: importing,
-        tone: AppTextTone.accent,
+        tone: AppTextTone.info,
       ),
-      _WorkQueueRow(
+      _WorkQueueMetric(
         key: const Key('overview-workbench-imported'),
         icon: Icons.task_alt_rounded,
         label: l10n.downloadImportStatusCompleted,
         count: imported,
         tone: AppTextTone.success,
       ),
-      _WorkQueueRow(
+      _WorkQueueMetric(
         key: const Key('overview-workbench-pending-index'),
         icon: Icons.image_search_rounded,
         label: l10n.overviewPendingIndex,
         count: pendingIndexCount,
-        tone: AppTextTone.accent,
+        tone: AppTextTone.warning,
       ),
     ];
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth >= 560) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: <Widget>[
-              for (var index = 0; index < rows.length; index += 1) ...<Widget>[
-                if (index > 0) SizedBox(width: context.appSpacing.lg),
-                Expanded(child: rows[index]),
+        if (constraints.maxWidth >= 340) {
+          return IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: <Widget>[
+                Expanded(child: metrics[0]),
+                _verticalDivider(context),
+                Expanded(child: metrics[1]),
+                _verticalDivider(context),
+                Expanded(child: metrics[2]),
+                _verticalDivider(context),
+                Expanded(child: metrics[3]),
               ],
-            ],
+            ),
           );
         }
         return Column(
           children: <Widget>[
-            for (var index = 0; index < rows.length; index += 1) ...<Widget>[
-              if (index > 0) SizedBox(height: context.appSpacing.xs),
-              rows[index],
+            for (var index = 0; index < metrics.length; index += 1) ...<Widget>[
+              if (index > 0)
+                Divider(
+                  height: context.appSpacing.md,
+                  thickness: 1,
+                  color: context.appColors.divider,
+                ),
+              metrics[index],
             ],
           ],
         );
       },
     );
   }
+
+  Widget _verticalDivider(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: context.appSpacing.sm),
+      child: VerticalDivider(
+        width: 1,
+        thickness: 1,
+        color: context.appColors.divider,
+      ),
+    );
+  }
 }
 
-class _WorkQueueRow extends StatelessWidget {
-  const _WorkQueueRow({
+class _WorkQueueMetric extends StatelessWidget {
+  const _WorkQueueMetric({
     super.key,
     required this.icon,
     required this.label,
@@ -222,54 +235,50 @@ class _WorkQueueRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final iconColor = context.appTextPalette.onMedia.withValues(
-      alpha: tone == AppTextTone.success ? 0.92 : 0.78,
-    );
-    return SizedBox(
-      height: context.appComponentTokens.buttonHeightXs,
-      child: Row(
+    final spacing = context.appSpacing;
+    final foreground = resolveAppTextToneColor(context, tone);
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing.xs,
+        vertical: spacing.xs,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: <Widget>[
-          Container(
-            width: context.appComponentTokens.buttonHeightXs,
-            height: context.appComponentTokens.buttonHeightXs,
-            decoration: BoxDecoration(
-              color: context.appTextPalette.onMedia.withValues(alpha: 0.10),
-              borderRadius: context.appRadius.smBorder,
-            ),
-            child: Icon(
-              icon,
-              size: context.appComponentTokens.iconSizeXs,
-              color: iconColor,
-            ),
-          ),
-          SizedBox(width: context.appSpacing.sm),
-          Expanded(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style:
-                  resolveAppTextStyle(
+          Row(
+            children: <Widget>[
+              Icon(
+                icon,
+                size: context.appComponentTokens.iconSizeSm,
+                color: foreground,
+              ),
+              SizedBox(width: spacing.xs),
+              Expanded(
+                child: Text(
+                  label,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: resolveAppTextStyle(
                     context,
                     size: AppTextSize.s12,
                     weight: AppTextWeight.medium,
-                    tone: AppTextTone.onMedia,
-                  ).copyWith(
-                    color: context.appTextPalette.onMedia.withValues(
-                      alpha: 0.68,
-                    ),
+                    tone: AppTextTone.secondary,
                   ),
-            ),
+                ),
+              ),
+            ],
           ),
+          SizedBox(height: spacing.sm),
           Text(
             formatCount(count),
             style:
                 resolveAppTextStyle(
                   context,
-                  size: AppTextSize.s12,
+                  size: AppTextSize.s20,
                   weight: AppTextWeight.semibold,
-                  tone: AppTextTone.onMedia,
+                  tone: count > 0 ? AppTextTone.primary : AppTextTone.muted,
                 ).copyWith(
+                  height: 1,
                   fontFeatures: const <FontFeature>[
                     FontFeature.tabularFigures(),
                   ],
@@ -288,29 +297,33 @@ class _WorkQueueEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return ConstrainedBox(
       key: const Key('overview-workbench-empty'),
-      children: <Widget>[
-        Icon(
-          Icons.check_circle_outline_rounded,
-          size: context.appComponentTokens.iconSizeXs,
-          color: context.appTextPalette.onMedia.withValues(alpha: 0.76),
+      constraints: BoxConstraints(
+        minHeight: context.appSpacing.xxxl + context.appSpacing.xl,
+      ),
+      child: Center(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Icon(
+              Icons.check_circle_outline_rounded,
+              size: context.appComponentTokens.iconSizeSm,
+              color: context.appTextPalette.success,
+            ),
+            SizedBox(width: context.appSpacing.md),
+            Text(
+              message,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                weight: AppTextWeight.medium,
+                tone: AppTextTone.secondary,
+              ),
+            ),
+          ],
         ),
-        SizedBox(width: context.appSpacing.sm),
-        Expanded(
-          child: Text(
-            message,
-            style:
-                resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  tone: AppTextTone.onMedia,
-                ).copyWith(
-                  color: context.appTextPalette.onMedia.withValues(alpha: 0.68),
-                ),
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
@@ -322,52 +335,37 @@ class _WorkbenchActiveBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onMedia = context.appTextPalette.onMedia;
+    final accent = Theme.of(context).colorScheme.primary;
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: context.appSpacing.sm,
-        vertical: context.appSpacing.xs / 2,
-      ),
+      height: context.appComponentTokens.buttonHeight2xs,
+      padding: EdgeInsets.symmetric(horizontal: context.appSpacing.sm),
       decoration: BoxDecoration(
-        color: onMedia.withValues(alpha: 0.12),
+        color: context.appColors.selectionSurface.withValues(alpha: 0.7),
         borderRadius: context.appRadius.pillBorder,
-        border: Border.all(color: onMedia.withValues(alpha: 0.12)),
+        border: Border.all(color: accent.withValues(alpha: 0.16)),
       ),
-      child: Text(
-        label,
-        style: resolveAppTextStyle(
-          context,
-          size: AppTextSize.s10,
-          weight: AppTextWeight.medium,
-          tone: AppTextTone.onMedia,
-        ).copyWith(color: onMedia.withValues(alpha: 0.82)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Container(
+            width: context.appSpacing.xs,
+            height: context.appSpacing.xs,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: accent),
+          ),
+          SizedBox(width: context.appSpacing.xs),
+          Text(
+            label,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s10,
+              weight: AppTextWeight.medium,
+              tone: AppTextTone.accent,
+            ),
+          ),
+        ],
       ),
     );
   }
-}
-
-ThemeData _diagnosticsTheme(BuildContext context) {
-  final theme = Theme.of(context);
-  final onMedia = context.appTextPalette.onMedia;
-  final colors = context.appColors.copyWith(
-    surfaceMuted: onMedia.withValues(alpha: 0.10),
-    borderSubtle: onMedia.withValues(alpha: 0.12),
-    selectionSurface: onMedia.withValues(alpha: 0.12),
-    selectionBorder: onMedia.withValues(alpha: 0.22),
-  );
-  final textPalette = context.appTextPalette.copyWith(
-    primary: onMedia,
-    secondary: onMedia.withValues(alpha: 0.78),
-    tertiary: onMedia.withValues(alpha: 0.70),
-    muted: onMedia.withValues(alpha: 0.64),
-    accent: onMedia,
-  );
-  final extensions = Map<Object, ThemeExtension<dynamic>>.from(
-    theme.extensions,
-  );
-  extensions[AppColors] = colors;
-  extensions[AppTextPalette] = textPalette;
-  return theme.copyWith(extensions: extensions.values);
 }
 
 class _WorkbenchAllTasksAction extends StatelessWidget {
@@ -378,7 +376,6 @@ class _WorkbenchAllTasksAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final onMedia = context.appTextPalette.onMedia;
     return AppInteractiveSurface(
       key: const Key('overview-workbench-all-tasks'),
       onTap: onTap,
@@ -394,14 +391,14 @@ class _WorkbenchAllTasksAction extends StatelessWidget {
                 context,
                 size: AppTextSize.s12,
                 weight: AppTextWeight.medium,
-                tone: AppTextTone.onMedia,
-              ).copyWith(color: onMedia.withValues(alpha: 0.72)),
+                tone: AppTextTone.secondary,
+              ),
             ),
             SizedBox(width: context.appSpacing.xs),
             Icon(
               Icons.chevron_right_rounded,
               size: context.appComponentTokens.iconSizeXs,
-              color: onMedia.withValues(alpha: 0.52),
+              color: context.appTextPalette.muted,
             ),
           ],
         ),

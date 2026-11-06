@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_provider.dart';
@@ -33,7 +33,11 @@ final _recentlyPlayedPlaylistProvider = systemPlaylistProvider(
 );
 
 /// 宽桌面时工作台跟媒体资产保持同一视觉高度；窄窗口不强制高度。
-const double _wideTopRowMinHeight = 320;
+const double _wideTopRowMinHeight = 220;
+
+/// 两张主卡并肩排布所需的内容宽度；更窄时上下排列，避免中等宽度下挤成
+/// 两套高度不一致的窄布局。
+const double _wideTopRowMinWidth = 1000;
 
 class DesktopOverviewPage extends ConsumerWidget {
   const DesktopOverviewPage({super.key});
@@ -79,7 +83,10 @@ class DesktopOverviewPage extends ConsumerWidget {
       ]);
     } catch (_) {
       if (context.mounted) {
-        showToast(AppLocalizations.of(context).overviewRefreshFailed);
+        showToast(
+          AppLocalizations.of(context).overviewRefreshFailed,
+          tone: AppToastTone.error,
+        );
       }
     }
   }
@@ -138,7 +145,6 @@ class DesktopOverviewPage extends ConsumerWidget {
             child: _buildTopRow(
               context,
               status: systemInfo.status,
-              insights: systemInfo.insights,
               pendingIndexCount: pendingIndexCount(
                 systemInfo.imageSearchStatus,
               ),
@@ -273,7 +279,6 @@ class DesktopOverviewPage extends ConsumerWidget {
   Widget _buildTopRow(
     BuildContext context, {
     required StatusDto? status,
-    required StatusInsightsDto? insights,
     required int pendingIndexCount,
     required bool isLoadingStatus,
     required String? statusError,
@@ -288,12 +293,10 @@ class DesktopOverviewPage extends ConsumerWidget {
   }) {
     final asset = AssetSummaryCard(
       status: status,
-      insights: insights,
       pendingIndexCount: pendingIndexCount,
       isLoading: isLoadingStatus,
       errorMessage: statusError,
       onRetry: onStatusRetry,
-      layout: AssetSummaryCardLayout.hero,
     );
     Widget buildWorkbench({double? minHeight}) => OverviewWorkQueueCard(
       downloading: downloading,
@@ -310,7 +313,7 @@ class DesktopOverviewPage extends ConsumerWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        if (constraints.maxWidth < DesktopOverviewInsights.wideMinWidth) {
+        if (constraints.maxWidth < _wideTopRowMinWidth) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: <Widget>[

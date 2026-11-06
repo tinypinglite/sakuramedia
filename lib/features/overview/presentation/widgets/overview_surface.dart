@@ -19,65 +19,28 @@ class OverviewSurfaceStyle {
   }) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final isDarkTheme = theme.brightness == Brightness.dark;
-    final primary = HSLColor.fromColor(scheme.primary);
-    final secondary = HSLColor.fromColor(scheme.secondary);
-    final (
-      startLightness,
-      endLightness,
-      saturationScale,
-      glowAlpha,
-    ) = switch (tone) {
-      OverviewSurfaceTone.primary => (
-        isDarkTheme ? 0.17 : 0.14,
-        isDarkTheme ? 0.22 : 0.19,
-        0.78,
-        0.34,
-      ),
-      OverviewSurfaceTone.insight => (
-        isDarkTheme ? 0.21 : 0.175,
-        isDarkTheme ? 0.26 : 0.225,
-        0.72,
-        0.22,
-      ),
-    };
-    final start = _deriveSurfaceColor(
-      primary,
-      lightness: startLightness,
-      saturationScale: saturationScale,
+    final base = context.appColors.surfaceCard;
+    final isPrimary = tone == OverviewSurfaceTone.primary;
+    final start = Color.alphaBlend(
+      scheme.primary.withValues(alpha: isPrimary ? 0.075 : 0.045),
+      base,
     );
-    final end = _deriveSurfaceColor(
-      secondary,
-      lightness: endLightness,
-      saturationScale: saturationScale * 0.88,
+    final end = Color.alphaBlend(
+      scheme.secondary.withValues(alpha: isPrimary ? 0.115 : 0.075),
+      base,
     );
     return OverviewSurfaceStyle(
       gradient: <Color>[start, Color.lerp(start, end, 0.58)!, end],
-      borderColor: scheme.primary.withValues(
-        alpha: tone == OverviewSurfaceTone.primary ? 0.24 : 0.20,
-      ),
-      glowColor: scheme.primary.withValues(alpha: glowAlpha),
+      borderColor: scheme.primary.withValues(alpha: 0.16),
+      glowColor: scheme.primary.withValues(alpha: isPrimary ? 0.10 : 0.06),
     );
   }
 }
 
-/// 概览页两级主题面：主行更深，下方洞察行略浅一档。
+/// 概览页两级主题面：主行品牌 tint 略高，下方洞察行略低一档。
 enum OverviewSurfaceTone { primary, insight }
 
-Color _deriveSurfaceColor(
-  HSLColor base, {
-  required double lightness,
-  required double saturationScale,
-}) {
-  return base
-      .withLightness(lightness.clamp(0, 1).toDouble())
-      .withSaturation(
-        (base.saturation * saturationScale).clamp(0, 1).toDouble(),
-      )
-      .toColor();
-}
-
-/// 主题色推导的概览视觉面，不引入固定卡片色。
+/// 主题色推导的概览视觉面：连续曲率圆角，不引入固定卡片色。
 class OverviewSurface extends StatelessWidget {
   const OverviewSurface({
     super.key,
@@ -98,53 +61,77 @@ class OverviewSurface extends StatelessWidget {
     final spacing = context.appSpacing;
     final radius = context.appRadius.lgBorder;
     final glowSize = spacing.xxxl * 9;
+    final dark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       width: double.infinity,
       constraints: minHeight == null
           ? null
           : BoxConstraints(minHeight: minHeight!),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        borderRadius: radius,
-        border: Border.all(color: style.borderColor),
-      ),
-      child: Stack(
-        children: <Widget>[
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: style.gradient,
-                ),
-              ),
-            ),
+      child: DecoratedBox(
+        decoration: ShapeDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: style.gradient,
           ),
-          Positioned(
-            top: -glowSize * 0.44,
-            right: -glowSize * 0.20,
-            child: IgnorePointer(
-              child: SizedBox(
-                width: glowSize,
-                height: glowSize,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: <Color>[
-                        style.glowColor,
-                        style.glowColor.withValues(alpha: 0),
-                      ],
+          shape: RoundedSuperellipseBorder(
+            borderRadius: radius,
+            side: BorderSide(color: style.borderColor),
+          ),
+        ),
+        child: ClipRSuperellipse(
+          borderRadius: radius,
+          child: Stack(
+            children: <Widget>[
+              Positioned(
+                top: -glowSize * 0.44,
+                right: -glowSize * 0.20,
+                child: IgnorePointer(
+                  child: SizedBox(
+                    width: glowSize,
+                    height: glowSize,
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: <Color>[
+                            style.glowColor,
+                            style.glowColor.withValues(alpha: 0),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: spacing.xxl * 2,
+                child: IgnorePointer(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: <Color>[
+                          Colors.white.withValues(alpha: dark ? 0.035 : 0.22),
+                          Colors.white.withValues(alpha: 0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: padding ?? EdgeInsets.all(spacing.xl),
+                child: child,
+              ),
+            ],
           ),
-          Padding(padding: padding ?? EdgeInsets.all(spacing.xl), child: child),
-        ],
+        ),
       ),
     );
   }

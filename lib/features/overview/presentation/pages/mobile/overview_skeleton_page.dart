@@ -3,7 +3,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/overview/presentation/providers/mobile_overview_tab_index_provider.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
@@ -371,7 +371,10 @@ class _MobileOverviewMyTabState extends ConsumerState<_MobileOverviewMyTab> {
       ]);
     } catch (_) {
       if (mounted) {
-        showToast(AppLocalizations.of(context).overviewRefreshFailed);
+        showToast(
+          AppLocalizations.of(context).overviewRefreshFailed,
+          tone: AppToastTone.error,
+        );
       }
     }
   }
@@ -593,11 +596,14 @@ class _MobileOverviewMyTabState extends ConsumerState<_MobileOverviewMyTab> {
       );
     } on ImageSearchFilePickerException catch (error) {
       if (mounted) {
-        showToast(error.message);
+        showToast(error.message, tone: AppToastTone.error);
       }
     } catch (_) {
       if (mounted) {
-        showToast(ref.read(appLocalizationsProvider).overviewImagePickFailed);
+        showToast(
+          ref.read(appLocalizationsProvider).overviewImagePickFailed,
+          tone: AppToastTone.error,
+        );
       }
     }
   }

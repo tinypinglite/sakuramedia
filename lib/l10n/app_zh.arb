@@ -2065,21 +2065,11 @@
   "overviewMediaAssets": "媒体资产",
   "overviewNoAssetData": "暂无媒体资产数据",
   "overviewMovies": "影片",
-  "overviewMoviePlayableSubscribed": "可播放 {playable} · 已订阅 {subscribed}",
-  "@overviewMoviePlayableSubscribed": {
+  "overviewPlayableMovies": "可播放影片",
+  "overviewMovieTotal": "共 {count} 部影片",
+  "@overviewMovieTotal": {
     "placeholders": {
-      "playable": {
-        "type": "String"
-      },
-      "subscribed": {
-        "type": "String"
-      }
-    }
-  },
-  "overviewMoviePlayable": "可播放 {playable}",
-  "@overviewMoviePlayable": {
-    "placeholders": {
-      "playable": {
+      "count": {
         "type": "String"
       }
     }
@@ -2102,7 +2092,6 @@
       }
     }
   },
-  "overviewMediaFiles": "媒体文件",
   "overviewLibraryCount": "{count} 个资源库",
   "@overviewLibraryCount": {
     "placeholders": {
@@ -2112,24 +2101,8 @@
     }
   },
   "overviewTotalMediaSize": "媒体总量",
-  "overviewMediaTotalDetail": "{files} 个媒体文件 · {thumbnails} 张缩略图",
-  "@overviewMediaTotalDetail": {
-    "placeholders": {
-      "files": {
-        "type": "String"
-      },
-      "thumbnails": {
-        "type": "String"
-      }
-    }
-  },
-  "overviewCollectionsPrefix": "合集：",
-  "overviewCollectionKinds": "播放列表 · 视频 · 切片 · 时刻",
   "overviewPendingThumbnails": "待生成缩略图",
   "overviewPendingIndex": "待索引",
-  "overviewVideoCollections": "视频合集",
-  "overviewClipCollections": "片段合集",
-  "overviewMomentCollections": "时刻合集",
   "overviewWorkbenchTitle": "工作台",
   "overviewWorkbenchActive": "{count} 个进行中",
   "@overviewWorkbenchActive": {
