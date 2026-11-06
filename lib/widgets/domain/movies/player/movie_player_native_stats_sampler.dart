@@ -99,7 +99,7 @@ class MoviePlayerNativeStatsSampler {
 
   final ValueNotifier<MoviePlayerPlaybackInfoSnapshot> _snapshotNotifier =
       ValueNotifier<MoviePlayerPlaybackInfoSnapshot>(
-        MoviePlayerPlaybackInfoSnapshot.empty,
+        moviePlayerPlaybackInfoSnapshotEmpty,
       );
 
   ValueListenable<MoviePlayerPlaybackInfoSnapshot> get snapshot =>

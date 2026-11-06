@@ -1,12 +1,16 @@
-import 'package:sakuramedia/core/json/json_parse.dart';
+import 'package:json_annotation/json_annotation.dart';
+import 'package:sakuramedia/core/json/dto_json_codec.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
+
+part 'video_item_detail_dto.g.dart';
 
 /// 非 JAV 视频条目的详情资源（`VideoItemDetailResource`）。
 ///
 /// 在列表项字段之上追加 [mediaItems]。其中 `media_items` 后端复用「影片媒体资源」
 /// 结构，因此直接复用 [MovieMediaItemDto.fromJson] 解析，不再另立平行 DTO。
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class VideoItemDetailDto {
   const VideoItemDetailDto({
     required this.id,
@@ -27,26 +31,39 @@ class VideoItemDetailDto {
   });
 
   final int id;
+
   final String title;
+
   final String summary;
+
+  @JsonKey(fromJson: videoImageFromJson)
   final MovieImageDto? coverImage;
+
   final DateTime? releaseDate;
 
   /// 时长（秒）/文件大小（字节）：取条目第一条媒体，无媒体时为 0。
   final int durationSeconds;
+
   final int fileSizeBytes;
 
   /// 封面像素宽高（= 第一条媒体探测分辨率）。后端探测失败 / 无媒体时为 null。
   final int? coverWidth;
+
   final int? coverHeight;
+
   final int mediaCount;
+
   final bool canPlay;
 
   /// 该视频归属的全部合集（0..N），后端按合集名升序返回。与列表项共享同一字段。
+  @JsonKey(fromJson: videoCollectionRefsFromJson)
   final List<VideoCollectionRef> collections;
 
   final DateTime? createdAt;
+
   final DateTime? updatedAt;
+
+  @JsonKey(fromJson: _mediaItemsFromJson)
   final List<MovieMediaItemDto> mediaItems;
 
   /// 详情标题：只做 trim。空标题的兜底文案在展示层用语言包补
@@ -73,28 +90,12 @@ class VideoItemDetailDto {
     );
   }
 
-  factory VideoItemDetailDto.fromJson(Map<String, dynamic> json) {
-    return VideoItemDetailDto(
-      id: asIntOrNull(json['id']) ?? 0,
-      title: json['title'] as String? ?? '',
-      summary: json['summary'] as String? ?? '',
-      coverImage: videoImageFromJson(json['cover_image']),
-      releaseDate: videoDateFromJson(json['release_date']),
-      durationSeconds: asIntOrNull(json['duration_seconds']) ?? 0,
-      fileSizeBytes: asIntOrNull(json['file_size_bytes']) ?? 0,
-      coverWidth: asIntOrNull(json['cover_width']),
-      coverHeight: asIntOrNull(json['cover_height']),
-      mediaCount: asIntOrNull(json['media_count']) ?? 0,
-      canPlay: json['can_play'] as bool? ?? false,
-      collections: videoCollectionRefsFromJson(json['collections']),
-      createdAt: videoDateFromJson(json['created_at']),
-      updatedAt: videoDateFromJson(json['updated_at']),
-      mediaItems: _listFromJson(
-        json['media_items'],
-        MovieMediaItemDto.fromJson,
-      ),
-    );
-  }
+  factory VideoItemDetailDto.fromJson(Map<String, dynamic> json) =>
+      _$VideoItemDetailDtoFromJson(json);
+}
+
+List<MovieMediaItemDto> _mediaItemsFromJson(Object? value) {
+  return _listFromJson(value, MovieMediaItemDto.fromJson);
 }
 
 List<T> _listFromJson<T>(

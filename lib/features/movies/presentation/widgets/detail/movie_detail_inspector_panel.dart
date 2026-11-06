@@ -5,10 +5,13 @@ import 'dart:math' as math;
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/core/format/app_date_format.dart';
 import 'package:sakuramedia/core/format/app_number_format.dart';
+import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/core/platform/clipboard_copy.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
 import 'package:sakuramedia/features/clips/presentation/widgets/create_clip_dialog.dart';
+import 'package:sakuramedia/features/downloads/data/download_candidate_dto.dart';
 import 'package:sakuramedia/features/downloads/data/download_source_link.dart';
 import 'package:sakuramedia/features/downloads/presentation/manual_download_dialog.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
@@ -21,7 +24,10 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_
 import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_review_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_thumbnail_provider.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
@@ -35,7 +41,7 @@ import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 import 'package:sakuramedia/widgets/domain/media/media_thumbnail_action_support.dart';
 import 'package:sakuramedia/widgets/domain/media/media_thumbnail_tab.dart';
-import 'package:sakuramedia/widgets/domain/movies/movie_magnet_search_content.dart';
+import 'package:sakuramedia/widgets/domain/downloads/download_candidate_selection_summary.dart';
 
 /// 检查器承载的功能：评论 / 磁力搜索 / 缩略图。
 ///
@@ -249,7 +255,7 @@ class _MovieDetailInspectorPanelState
         movieCoverUrl: widget.movieCoverUrl,
         onSearchSelection: widget.onSearchSelection,
       ),
-      MovieDetailInspectorPane.magnetSearch => MovieMagnetSearchContent(
+      MovieDetailInspectorPane.magnetSearch => _MovieMagnetSearchContent(
         movieNumber: widget.movieNumber,
       ),
       MovieDetailInspectorPane.thumbnail => MediaThumbnailTab(
@@ -718,6 +724,501 @@ class _MovieDetailReviewLoadingList extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// 可嵌入影片详情功能弹窗或独立弹窗的影片磁力搜索内容。
+///
+/// 状态归 [movieDetailMagnetProvider]；Provider 的保活链接由承载它的页面或弹窗
+/// 管理，避免共享展示组件持有跨页面生命周期。
+class _MovieMagnetSearchContent extends ConsumerWidget {
+  static const double _sortToolbarBreakpoint = 320;
+
+  const _MovieMagnetSearchContent({super.key, required this.movieNumber});
+
+  final String movieNumber;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(movieDetailMagnetProvider(movieNumber));
+    final controller = ref.read(
+      movieDetailMagnetProvider(movieNumber).notifier,
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompactToolbar = constraints.maxWidth < _sortToolbarBreakpoint;
+        return Padding(
+          padding: EdgeInsets.only(
+            top: context.appSpacing.md,
+            bottom: context.appSpacing.lg,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (isCompactToolbar)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: _buildSortActions(
+                        context,
+                        state,
+                        controller,
+                        compact: true,
+                      ),
+                    ),
+                    SizedBox(height: context.appSpacing.sm),
+                    _buildSearchAction(
+                      context,
+                      state,
+                      controller,
+                      alignment: Alignment.centerRight,
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSortActions(context, state, controller),
+                    SizedBox(width: context.appSpacing.md),
+                    Expanded(
+                      child: _buildSearchAction(
+                        context,
+                        state,
+                        controller,
+                        alignment: Alignment.centerRight,
+                      ),
+                    ),
+                  ],
+                ),
+              SizedBox(height: context.appSpacing.md),
+              Expanded(child: _buildContent(context, state, controller)),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSearchAction(
+    BuildContext context,
+    MovieDetailMagnetState state,
+    MovieDetailMagnet controller, {
+    Alignment alignment = Alignment.centerLeft,
+  }) {
+    final l10n = AppLocalizations.of(context);
+    return Align(
+      alignment: alignment,
+      child: AppButton(
+        size: AppButtonSize.xSmall,
+        key: const Key('movie-detail-magnet-search-button'),
+        label: state.isLoading
+            ? l10n.widgetMovieMagnetSearching
+            : l10n.widgetMovieMagnetSearchResources,
+        isLoading: state.isLoading,
+        variant: AppButtonVariant.primary,
+        onPressed: state.isLoading ? null : controller.search,
+      ),
+    );
+  }
+
+  Widget _buildSortActions(
+    BuildContext context,
+    MovieDetailMagnetState state,
+    MovieDetailMagnet controller, {
+    bool compact = false,
+  }) {
+    final l10n = AppLocalizations.of(context);
+    final nextDirectionLabel =
+        state.selectedSortDirection == MovieDetailMagnetSortDirection.desc
+        ? l10n.widgetMovieMagnetSortDescHint
+        : l10n.widgetMovieMagnetSortAscHint;
+    final selectWidth = compact
+        ? context.appLayoutTokens.filterFieldWidthSm - context.appSpacing.xl
+        : context.appLayoutTokens.filterFieldWidthSm;
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          width: selectWidth,
+          child: AppSelectField<MovieDetailMagnetSortField>(
+            key: const Key('movie-detail-magnet-sort-field'),
+            value: state.selectedSortField,
+            size: AppSelectFieldSize.mini,
+            textStyle: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s10,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.muted,
+            ),
+            items: MovieDetailMagnetSortField.values
+                .map(
+                  (value) => DropdownMenuItem<MovieDetailMagnetSortField>(
+                    value: value,
+                    child: Text(value.labelWith(l10n)),
+                  ),
+                )
+                .toList(growable: false),
+            onChanged: (value) {
+              if (value == null) {
+                return;
+              }
+              controller.setSortField(value);
+            },
+          ),
+        ),
+        if (state.selectedSortField.supportsDirection) ...[
+          SizedBox(width: context.appSpacing.sm),
+          AppIconButton(
+            key: const Key('movie-detail-magnet-sort-direction'),
+            tooltip: nextDirectionLabel,
+            semanticLabel: nextDirectionLabel,
+            isSelected: true,
+            size: AppIconButtonSize.mini,
+            icon: state.selectedSortDirection.isAscending
+                ? const Icon(Icons.arrow_upward_rounded)
+                : const Icon(Icons.arrow_downward_rounded),
+            onPressed: controller.toggleSortDirection,
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildContent(
+    BuildContext context,
+    MovieDetailMagnetState state,
+    MovieDetailMagnet controller,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final items = state.sortedItems;
+
+    if (state.isLoading && items.isEmpty) {
+      return const Center(
+        child: AppInlineSpinner(
+          key: Key('movie-detail-magnet-loading-indicator'),
+        ),
+      );
+    }
+
+    if (state.errorMessage != null) {
+      return AppErrorState(
+        key: const Key('movie-detail-magnet-error'),
+        title: l10n.baseActionFailed,
+        message: state.errorMessage!,
+        retryKey: const Key('movie-detail-magnet-retry-button'),
+        onRetry: controller.search,
+        variant: AppStatePanelVariant.section,
+      );
+    }
+
+    if (!state.hasSearched) {
+      return Center(
+        child: AppEmptyState(message: l10n.widgetMovieMagnetEmptyHint),
+      );
+    }
+
+    if (items.isEmpty) {
+      return Center(child: AppEmptyState(message: l10n.widgetMovieMagnetEmpty));
+    }
+
+    return AppSelectableTextScrollConfiguration(
+      child: ListView.separated(
+        itemCount: items.length,
+        separatorBuilder: (context, index) =>
+            SizedBox(height: context.appSpacing.md),
+        itemBuilder: (context, index) {
+          final item = items[index];
+          return _MovieMagnetCandidateCard(
+            key: Key('movie-detail-magnet-candidate-$index'),
+            candidate: item,
+            isSubmitting: state.submittingCandidateKey == item.submitKey,
+            copyButtonKey: Key('movie-detail-magnet-copy-$index'),
+            submitButtonKey: Key('movie-detail-magnet-submit-$index'),
+            onSubmit: item.hasDownloadSource
+                ? (clientId) async {
+                    try {
+                      final response = await controller.submitCandidate(
+                        item,
+                        clientId: clientId,
+                      );
+                      if (!context.mounted) {
+                        return;
+                      }
+                      var selectedClientName = item.resolvedClientName;
+                      for (final client in item.selectableDownloadClients) {
+                        if (client.id == clientId) {
+                          selectedClientName = client.name;
+                          break;
+                        }
+                      }
+                      showToast(
+                        response.created
+                            ? l10n.widgetMovieMagnetSubmittedTo(
+                                selectedClientName,
+                              )
+                            : l10n.widgetMovieMagnetDownloadExists,
+                        tone: response.created
+                            ? AppToastTone.success
+                            : AppToastTone.info,
+                      );
+                    } catch (error) {
+                      if (!context.mounted) {
+                        return;
+                      }
+                      showToast(
+                        apiErrorMessage(
+                          error,
+                          fallback: l10n.widgetMovieMagnetSubmitFailed,
+                          l10n: l10n,
+                        ),
+                        tone: AppToastTone.error,
+                      );
+                    }
+                  }
+                : null,
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _MovieMagnetCandidateCard extends StatefulWidget {
+  const _MovieMagnetCandidateCard({
+    super.key,
+    required this.candidate,
+    required this.isSubmitting,
+    required this.copyButtonKey,
+    required this.submitButtonKey,
+    required this.onSubmit,
+  });
+
+  final DownloadCandidateDto candidate;
+  final bool isSubmitting;
+  final Key copyButtonKey;
+  final Key submitButtonKey;
+  final ValueChanged<int>? onSubmit;
+
+  @override
+  State<_MovieMagnetCandidateCard> createState() =>
+      _MovieMagnetCandidateCardState();
+}
+
+class _MovieMagnetCandidateCardState extends State<_MovieMagnetCandidateCard> {
+  late int _selectedClientId;
+
+  DownloadCandidateDto get candidate => widget.candidate;
+
+  int get _defaultClientId {
+    final clients = candidate.selectableDownloadClients;
+    return clients.any((client) => client.id == candidate.resolvedClientId)
+        ? candidate.resolvedClientId
+        : clients.first.id;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedClientId = _defaultClientId;
+  }
+
+  @override
+  void didUpdateWidget(covariant _MovieMagnetCandidateCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.candidate.submitKey != candidate.submitKey ||
+        !candidate.selectableDownloadClients.any(
+          (client) => client.id == _selectedClientId,
+        )) {
+      _selectedClientId = _defaultClientId;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final sourceUri = candidate.sourceUri.trim();
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(context.appSpacing.lg),
+      decoration: BoxDecoration(
+        color: context.appColors.surfaceCard,
+        borderRadius: context.appRadius.lgBorder,
+        border: Border.all(color: context.appColors.borderSubtle),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            candidate.title,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.secondary,
+            ),
+          ),
+          SizedBox(height: context.appSpacing.sm),
+          Wrap(
+            spacing: context.appSpacing.md,
+            runSpacing: context.appSpacing.xs,
+            children: [
+              _MagnetMetaText(
+                label: l10n.widgetMovieMagnetIndexerLabel,
+                value: candidate.indexerName,
+              ),
+              _MagnetMetaText(
+                label: l10n.widgetMovieMagnetTypeLabel,
+                value: candidate.indexerKind.toUpperCase(),
+              ),
+              _MagnetMetaText(
+                label: l10n.widgetMovieMagnetSeedersLabel,
+                value: '${candidate.seeders}',
+              ),
+              _MagnetMetaText(
+                label: l10n.widgetMovieMagnetSizeLabel,
+                value: formatFileSize(candidate.sizeBytes),
+              ),
+            ],
+          ),
+          if (candidate.selectionEvaluation != null) ...[
+            SizedBox(height: context.appSpacing.sm),
+            DownloadCandidateSelectionSummary(
+              evaluation: candidate.selectionEvaluation!,
+            ),
+          ],
+          if (sourceUri.isNotEmpty) ...[
+            SizedBox(height: context.appSpacing.md),
+            Container(
+              key: const Key('movie-detail-magnet-link'),
+              width: double.infinity,
+              padding: EdgeInsets.all(context.appSpacing.sm),
+              decoration: BoxDecoration(
+                color: context.appColors.surfaceMuted,
+                borderRadius: context.appRadius.mdBorder,
+                border: Border.all(color: context.appColors.borderSubtle),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          l10n.widgetMovieMagnetSourceUriLabel,
+                          style: resolveAppTextStyle(
+                            context,
+                            size: AppTextSize.s12,
+                            weight: AppTextWeight.medium,
+                            tone: AppTextTone.secondary,
+                          ),
+                        ),
+                      ),
+                      AppButton(
+                        key: widget.copyButtonKey,
+                        size: AppButtonSize.xxSmall,
+                        label: l10n.commonCopy,
+                        icon: const Icon(Icons.copy_rounded),
+                        variant: AppButtonVariant.secondary,
+                        onPressed: () async {
+                          final copied = await copyTextToClipboard(sourceUri);
+                          if (context.mounted) {
+                            showToast(
+                              copied
+                                  ? l10n.widgetMovieMagnetUriCopied
+                                  : l10n.widgetMovieMagnetCopyFailed,
+                              tone: copied
+                                  ? AppToastTone.success
+                                  : AppToastTone.error,
+                            );
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: context.appSpacing.xs),
+                  SelectableText(
+                    sourceUri,
+                    key: const Key('movie-detail-magnet-link-text'),
+                    maxLines: 3,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s10,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.secondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          SizedBox(height: context.appSpacing.md),
+          Row(
+            children: [
+              Expanded(
+                child: AppSelectField<int>(
+                  key: Key('movie-detail-magnet-client-${candidate.submitKey}'),
+                  value: _selectedClientId,
+                  size: AppSelectFieldSize.compact,
+                  items: candidate.selectableDownloadClients
+                      .map(
+                        (client) => DropdownMenuItem<int>(
+                          value: client.id,
+                          child: Text(client.name),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: widget.isSubmitting
+                      ? null
+                      : (value) {
+                          if (value != null) {
+                            setState(() => _selectedClientId = value);
+                          }
+                        },
+                ),
+              ),
+              SizedBox(width: context.appSpacing.md),
+              AppButton(
+                key: widget.submitButtonKey,
+                size: AppButtonSize.xSmall,
+                label: candidate.hasDownloadSource
+                    ? l10n.widgetMovieMagnetSubmitDownload
+                    : l10n.widgetMovieMagnetUriMissing,
+                variant: AppButtonVariant.primary,
+                isLoading: widget.isSubmitting,
+                onPressed: widget.onSubmit == null
+                    ? null
+                    : () => widget.onSubmit!(_selectedClientId),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MagnetMetaText extends StatelessWidget {
+  const _MagnetMetaText({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      '$label: $value',
+      style: resolveAppTextStyle(
+        context,
+        size: AppTextSize.s12,
+        weight: AppTextWeight.regular,
+        tone: AppTextTone.secondary,
+      ),
     );
   }
 }

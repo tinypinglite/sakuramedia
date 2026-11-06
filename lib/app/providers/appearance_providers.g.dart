@@ -91,7 +91,7 @@ final class AppearanceProvider
   }
 }
 
-String _$appearanceHash() => r'2bf6ce11a135616c6b2f0d491fc581d4f6db38d4';
+String _$appearanceHash() => r'086e9dfc92a2ccbbf1656def066d0694c8d76c4d';
 
 /// 当前外观偏好（明暗模式 + 主题色），供 `MaterialApp` 与设置页读写。
 

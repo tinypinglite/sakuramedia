@@ -162,7 +162,7 @@ final class AppVersionInfoProvider
   AppVersionInfo create() => AppVersionInfo();
 }
 
-String _$appVersionInfoHash() => r'64b29681f87dd888c53297e015f69504ed98f6fa';
+String _$appVersionInfoHash() => r'a5f1bef5b35b77580b162c01a2eb0c5737b9f2cd';
 
 /// 前后端版本信息。provider 本身常驻，但 [load] 仍由版本 UI 出现时显式
 /// 触发，避免仅创建应用容器就请求 `/status`。

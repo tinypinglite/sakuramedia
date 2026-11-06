@@ -201,6 +201,22 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.1.2"
+  copy_with_extension:
+    dependency: "direct main"
+    description:
+      name: copy_with_extension
+      sha256: "9a832fe40e5a5fcbe58e094d2c857ac6b185f34ec200241051daebe48b1b0403"
+      url: "https://pub.dev"
+    source: hosted
+    version: "18.0.0"
+  copy_with_extension_gen:
+    dependency: "direct dev"
+    description:
+      name: copy_with_extension_gen
+      sha256: "4475dfeaa67d41760e7f8b690cbbbbc0d71efb34797997478ae869c0933a5fe1"
+      url: "https://pub.dev"
+    source: hosted
+    version: "18.0.0"
   cross_file:
     dependency: transitive
     description:
@@ -654,13 +670,21 @@ packages:
     source: hosted
     version: "1.0.0"
   json_annotation:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: json_annotation
       sha256: "2a743920d81b7910627f68ee2c9ac1fc0bfee32b9fc3403587d7c6791ca12f80"
       url: "https://pub.dev"
     source: hosted
     version: "4.12.0"
+  json_serializable:
+    dependency: "direct dev"
+    description:
+      name: json_serializable
+      sha256: cc7822761b40be9237bcaae62b755ffe5453ceff96a0001f1f5f2439251c66f1
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.15.2"
   leak_tracker:
     dependency: transitive
     description:
@@ -1306,6 +1330,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.3.0"
+  source_helper:
+    dependency: transitive
+    description:
+      name: source_helper
+      sha256: "279126bce72de3f2b7d4756408a4157988cf6bb4815be551bf55851aa00e9984"
+      url: "https://pub.dev"
+    source: hosted
+    version: "1.4.0"
   source_span:
     dependency: transitive
     description:

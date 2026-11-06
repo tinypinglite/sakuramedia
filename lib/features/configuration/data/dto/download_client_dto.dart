@@ -1,16 +1,18 @@
+import 'package:json_annotation/json_annotation.dart';
+import 'package:sakuramedia/core/json/dto_json_codec.dart';
 import 'package:sakuramedia/core/json/json_parse.dart';
+
+part 'download_client_dto.g.dart';
+
+const Set<String> _defaultSupportedSourceKinds = <String>{'magnet', 'torrent'};
 
 /// A configured download client bound to a media library.
 ///
 /// The client implementation is owned by the library provider. The resource
 /// only carries the library relation and opaque provider configuration; the
 /// provider key is resolved from the referenced media library when needed.
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class DownloadClientDto {
-  static const Set<String> _defaultSupportedSourceKinds = <String>{
-    'magnet',
-    'torrent',
-  };
-
   const DownloadClientDto({
     required this.id,
     required this.name,
@@ -24,38 +26,19 @@ class DownloadClientDto {
   final int id;
   final String name;
   final int libraryId;
+  @JsonKey(fromJson: _unmodifiableMap)
   final Map<String, dynamic> providerConfig;
+
+  @JsonKey(fromJson: _sourceKindsFromJson)
   final Set<String> supportedSourceKinds;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  factory DownloadClientDto.fromJson(Map<String, dynamic> json) {
-    final rawConfig = json['provider_config'];
-    final config = rawConfig is Map
-        ? rawConfig.map(
-            (dynamic key, dynamic value) => MapEntry(key.toString(), value),
-          )
-        : <String, dynamic>{};
-    final rawSourceKinds = json['supported_source_kinds'];
-    final sourceKinds = rawSourceKinds is List
-        ? rawSourceKinds
-              .whereType<String>()
-              .map((value) => value.trim())
-              .where((value) => value.isNotEmpty)
-              .toSet()
-        : _defaultSupportedSourceKinds;
-    return DownloadClientDto(
-      id: json['id'] as int? ?? 0,
-      name: json['name'] as String? ?? '',
-      libraryId: json['library_id'] as int? ?? 0,
-      providerConfig: Map<String, dynamic>.unmodifiable(config),
-      supportedSourceKinds: Set<String>.unmodifiable(sourceKinds),
-      createdAt: asDateTime(json['created_at']),
-      updatedAt: asDateTime(json['updated_at']),
-    );
-  }
+  factory DownloadClientDto.fromJson(Map<String, dynamic> json) =>
+      _$DownloadClientDtoFromJson(json);
 }
 
+@JsonSerializable(createFactory: false)
 class CreateDownloadClientPayload {
   const CreateDownloadClientPayload({
     required this.name,
@@ -67,15 +50,10 @@ class CreateDownloadClientPayload {
   final int libraryId;
   final Map<String, dynamic> providerConfig;
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'name': name,
-      'library_id': libraryId,
-      'provider_config': providerConfig,
-    };
-  }
+  Map<String, dynamic> toJson() => _$CreateDownloadClientPayloadToJson(this);
 }
 
+@JsonSerializable(createFactory: false)
 class UpdateDownloadClientPayload {
   const UpdateDownloadClientPayload({
     this.name,
@@ -83,19 +61,19 @@ class UpdateDownloadClientPayload {
     this.providerConfig,
   });
 
+  @JsonKey(includeIfNull: false)
   final String? name;
+
+  @JsonKey(includeIfNull: false)
   final int? libraryId;
+
+  @JsonKey(includeIfNull: false)
   final Map<String, dynamic>? providerConfig;
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      if (name != null) 'name': name,
-      if (libraryId != null) 'library_id': libraryId,
-      if (providerConfig != null) 'provider_config': providerConfig,
-    };
-  }
+  Map<String, dynamic> toJson() => _$UpdateDownloadClientPayloadToJson(this);
 }
 
+@JsonSerializable(createFactory: false)
 class DownloadClientTestPayload {
   const DownloadClientTestPayload({
     required this.libraryId,
@@ -105,17 +83,13 @@ class DownloadClientTestPayload {
 
   final int libraryId;
   final Map<String, dynamic> providerConfig;
+  @JsonKey(includeIfNull: false)
   final int? clientId;
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'library_id': libraryId,
-      'provider_config': providerConfig,
-      if (clientId != null) 'client_id': clientId,
-    };
-  }
+  Map<String, dynamic> toJson() => _$DownloadClientTestPayloadToJson(this);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class DownloadClientDiagnosticCheckDto {
   const DownloadClientDiagnosticCheckDto({
     required this.key,
@@ -129,19 +103,15 @@ class DownloadClientDiagnosticCheckDto {
   final String status;
   final String code;
   final String message;
+  @JsonKey(fromJson: asMapOrNull)
   final Map<String, dynamic>? details;
 
-  factory DownloadClientDiagnosticCheckDto.fromJson(Map<String, dynamic> json) {
-    return DownloadClientDiagnosticCheckDto(
-      key: json['key'] as String? ?? '',
-      status: json['status'] as String? ?? 'failed',
-      code: json['code'] as String? ?? '',
-      message: json['message'] as String? ?? '',
-      details: asMapOrNull(json['details']),
-    );
-  }
+  factory DownloadClientDiagnosticCheckDto.fromJson(
+    Map<String, dynamic> json,
+  ) => _$DownloadClientDiagnosticCheckDtoFromJson(json);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class DownloadClientDiagnosticReportDto {
   const DownloadClientDiagnosticReportDto({
     required this.status,
@@ -151,29 +121,31 @@ class DownloadClientDiagnosticReportDto {
   });
 
   final String status;
+  @JsonKey(fromJson: _diagnosticChecksFromJson)
   final List<DownloadClientDiagnosticCheckDto> checks;
   final DateTime? checkedAt;
   final int elapsedMs;
 
   factory DownloadClientDiagnosticReportDto.fromJson(
     Map<String, dynamic> json,
-  ) {
-    final rawChecks = json['checks'];
-    final checks = rawChecks is List
-        ? rawChecks
-              .whereType<Map>()
-              .map(
-                (item) => DownloadClientDiagnosticCheckDto.fromJson(
-                  Map<String, dynamic>.from(item),
-                ),
-              )
-              .toList(growable: false)
-        : const <DownloadClientDiagnosticCheckDto>[];
-    return DownloadClientDiagnosticReportDto(
-      status: json['status'] as String? ?? 'failed',
-      checks: checks,
-      checkedAt: asDateTime(json['checked_at']),
-      elapsedMs: asInt(json['elapsed_ms']),
-    );
-  }
+  ) => _$DownloadClientDiagnosticReportDtoFromJson(json);
 }
+
+Map<String, dynamic> _unmodifiableMap(Object? value) =>
+    Map<String, dynamic>.unmodifiable(asMap(value));
+
+Set<String> _sourceKindsFromJson(Object? value) {
+  if (value is! List) {
+    return _defaultSupportedSourceKinds;
+  }
+  return Set<String>.unmodifiable(
+    value
+        .whereType<String>()
+        .map((item) => item.trim())
+        .where((item) => item.isNotEmpty),
+  );
+}
+
+List<DownloadClientDiagnosticCheckDto> _diagnosticChecksFromJson(
+  Object? value,
+) => asObjectList(value, DownloadClientDiagnosticCheckDto.fromJson);

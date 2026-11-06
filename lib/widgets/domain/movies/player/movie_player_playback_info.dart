@@ -32,170 +32,71 @@ class MoviePlayerMediaInfo {
   final String resolutionLabel;
 }
 
-@immutable
-class MoviePlayerPlaybackInfoSnapshot {
-  const MoviePlayerPlaybackInfoSnapshot({
-    required this.decodingModeLabel,
-    required this.videoCodecLabel,
-    required this.videoDecoderLabel,
-    required this.videoResolutionLabel,
-    required this.mediaFrameRateLabel,
-    required this.filterChainFrameRateLabel,
-    required this.actualOutputFrameRateLabel,
-    required this.videoBitrateLabel,
-    required this.renderDropFrameLabel,
-    required this.decoderDropFrameLabel,
-    required this.delayedFrameLabel,
-    required this.mistimedFrameLabel,
-    required this.videoPixelFormatLabel,
-    required this.audioCodecLabel,
-    required this.audioChannelsLabel,
-    required this.audioSampleRateLabel,
-    required this.audioBitrateLabel,
-    required this.dynamicRangeLabel,
-    required this.dynamicRangeDetailLabel,
-    this.playbackGatewayHostLabel,
-    this.playbackGatewayRequestPathLabel,
-    this.playbackModeLabel,
-    this.playbackDemuxerFormatLabel = '--',
-    this.playbackStreamTypeLabel,
-    this.playbackSourceBufferLabel,
-    this.playbackSourceDownloadRateLabel,
-  });
+/// 播放器采样快照。
+///
+/// `playbackGatewayHostLabel` 是播放器最初访问的后端网关主机；
+/// `playbackGatewayRequestPathLabel` 是不含签名 query 的网关路径；
+/// `playbackModeLabel` 为 `null` 表示尚未确认；
+/// `playbackStreamTypeLabel` 为 `null` 表示尚未识别；
+/// `playbackSourceBufferLabel` / `playbackSourceDownloadRateLabel` 为 `null`
+/// 时对应行不展示。
+typedef MoviePlayerPlaybackInfoSnapshot = ({
+  String decodingModeLabel,
+  String videoCodecLabel,
+  String videoDecoderLabel,
+  String videoResolutionLabel,
+  String mediaFrameRateLabel,
+  String filterChainFrameRateLabel,
+  String actualOutputFrameRateLabel,
+  String videoBitrateLabel,
+  String renderDropFrameLabel,
+  String decoderDropFrameLabel,
+  String delayedFrameLabel,
+  String mistimedFrameLabel,
+  String videoPixelFormatLabel,
+  String audioCodecLabel,
+  String audioChannelsLabel,
+  String audioSampleRateLabel,
+  String audioBitrateLabel,
+  String dynamicRangeLabel,
+  String dynamicRangeDetailLabel,
+  String? playbackGatewayHostLabel,
+  String? playbackGatewayRequestPathLabel,
+  String? playbackModeLabel,
+  String playbackDemuxerFormatLabel,
+  String? playbackStreamTypeLabel,
+  String? playbackSourceBufferLabel,
+  String? playbackSourceDownloadRateLabel,
+});
 
-  static const MoviePlayerPlaybackInfoSnapshot empty =
-      MoviePlayerPlaybackInfoSnapshot(
-        decodingModeLabel: '--',
-        videoCodecLabel: '--',
-        videoDecoderLabel: '--',
-        videoResolutionLabel: '--',
-        mediaFrameRateLabel: '--',
-        filterChainFrameRateLabel: '--',
-        actualOutputFrameRateLabel: '--',
-        videoBitrateLabel: '--',
-        renderDropFrameLabel: '--',
-        decoderDropFrameLabel: '--',
-        delayedFrameLabel: '--',
-        mistimedFrameLabel: '--',
-        videoPixelFormatLabel: '--',
-        audioCodecLabel: '--',
-        audioChannelsLabel: '--',
-        audioSampleRateLabel: '--',
-        audioBitrateLabel: '--',
-        dynamicRangeLabel: '--',
-        dynamicRangeDetailLabel: '--',
-      );
-
-  final String decodingModeLabel;
-  final String videoCodecLabel;
-  final String videoDecoderLabel;
-  final String videoResolutionLabel;
-  final String mediaFrameRateLabel;
-  final String filterChainFrameRateLabel;
-  final String actualOutputFrameRateLabel;
-  final String videoBitrateLabel;
-  final String renderDropFrameLabel;
-  final String decoderDropFrameLabel;
-  final String delayedFrameLabel;
-  final String mistimedFrameLabel;
-  final String videoPixelFormatLabel;
-  final String audioCodecLabel;
-  final String audioChannelsLabel;
-  final String audioSampleRateLabel;
-  final String audioBitrateLabel;
-  final String dynamicRangeLabel;
-  final String dynamicRangeDetailLabel;
-
-  /// 播放器最初访问的后端网关主机；不是 302 跳转后的上游主机。
-  final String? playbackGatewayHostLabel;
-
-  /// 后端网关请求路径，不含 query 保护签名；
-  /// `null` 表示不展示该行。
-  final String? playbackGatewayRequestPathLabel;
-
-  /// 后端在播放器本次实际网关请求后确认的播放模式。
-  /// `null` 表示尚未确认，展示时回退到当前语言的「确认中」。
-  final String? playbackModeLabel;
-
-  /// libmpv 报告的解复用格式；未知时展示 `--`。
-  final String playbackDemuxerFormatLabel;
-
-  /// 实际解复用结果识别的流类型，不把文件格式当作 Range 响应证据。
-  /// `null` 表示尚未识别，展示时回退到当前语言的「未确认」。
-  final String? playbackStreamTypeLabel;
-
-  /// 缓冲：`12.3s / 8.2 MB`；未拿到时为 `null`。
-  final String? playbackSourceBufferLabel;
-
-  /// 下载速率：`2.4 MB/s`；libmpv 不给或还没算出时为 `null`（不展示该行）。
-  final String? playbackSourceDownloadRateLabel;
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) {
-      return true;
-    }
-    return other is MoviePlayerPlaybackInfoSnapshot &&
-        other.decodingModeLabel == decodingModeLabel &&
-        other.videoCodecLabel == videoCodecLabel &&
-        other.videoDecoderLabel == videoDecoderLabel &&
-        other.videoResolutionLabel == videoResolutionLabel &&
-        other.mediaFrameRateLabel == mediaFrameRateLabel &&
-        other.filterChainFrameRateLabel == filterChainFrameRateLabel &&
-        other.actualOutputFrameRateLabel == actualOutputFrameRateLabel &&
-        other.videoBitrateLabel == videoBitrateLabel &&
-        other.renderDropFrameLabel == renderDropFrameLabel &&
-        other.decoderDropFrameLabel == decoderDropFrameLabel &&
-        other.delayedFrameLabel == delayedFrameLabel &&
-        other.mistimedFrameLabel == mistimedFrameLabel &&
-        other.videoPixelFormatLabel == videoPixelFormatLabel &&
-        other.audioCodecLabel == audioCodecLabel &&
-        other.audioChannelsLabel == audioChannelsLabel &&
-        other.audioSampleRateLabel == audioSampleRateLabel &&
-        other.audioBitrateLabel == audioBitrateLabel &&
-        other.dynamicRangeLabel == dynamicRangeLabel &&
-        other.dynamicRangeDetailLabel == dynamicRangeDetailLabel &&
-        other.playbackGatewayHostLabel == playbackGatewayHostLabel &&
-        other.playbackGatewayRequestPathLabel ==
-            playbackGatewayRequestPathLabel &&
-        other.playbackModeLabel == playbackModeLabel &&
-        other.playbackDemuxerFormatLabel == playbackDemuxerFormatLabel &&
-        other.playbackStreamTypeLabel == playbackStreamTypeLabel &&
-        other.playbackSourceBufferLabel == playbackSourceBufferLabel &&
-        other.playbackSourceDownloadRateLabel ==
-            playbackSourceDownloadRateLabel;
-  }
-
-  @override
-  int get hashCode => Object.hashAll([
-    decodingModeLabel,
-    videoCodecLabel,
-    videoDecoderLabel,
-    videoResolutionLabel,
-    mediaFrameRateLabel,
-    filterChainFrameRateLabel,
-    actualOutputFrameRateLabel,
-    videoBitrateLabel,
-    renderDropFrameLabel,
-    decoderDropFrameLabel,
-    delayedFrameLabel,
-    mistimedFrameLabel,
-    videoPixelFormatLabel,
-    audioCodecLabel,
-    audioChannelsLabel,
-    audioSampleRateLabel,
-    audioBitrateLabel,
-    dynamicRangeLabel,
-    dynamicRangeDetailLabel,
-    playbackGatewayHostLabel,
-    playbackGatewayRequestPathLabel,
-    playbackModeLabel,
-    playbackDemuxerFormatLabel,
-    playbackStreamTypeLabel,
-    playbackSourceBufferLabel,
-    playbackSourceDownloadRateLabel,
-  ]);
-}
+const MoviePlayerPlaybackInfoSnapshot moviePlayerPlaybackInfoSnapshotEmpty = (
+  decodingModeLabel: '--',
+  videoCodecLabel: '--',
+  videoDecoderLabel: '--',
+  videoResolutionLabel: '--',
+  mediaFrameRateLabel: '--',
+  filterChainFrameRateLabel: '--',
+  actualOutputFrameRateLabel: '--',
+  videoBitrateLabel: '--',
+  renderDropFrameLabel: '--',
+  decoderDropFrameLabel: '--',
+  delayedFrameLabel: '--',
+  mistimedFrameLabel: '--',
+  videoPixelFormatLabel: '--',
+  audioCodecLabel: '--',
+  audioChannelsLabel: '--',
+  audioSampleRateLabel: '--',
+  audioBitrateLabel: '--',
+  dynamicRangeLabel: '--',
+  dynamicRangeDetailLabel: '--',
+  playbackGatewayHostLabel: null,
+  playbackGatewayRequestPathLabel: null,
+  playbackModeLabel: null,
+  playbackDemuxerFormatLabel: '--',
+  playbackStreamTypeLabel: null,
+  playbackSourceBufferLabel: null,
+  playbackSourceDownloadRateLabel: null,
+);
 
 MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
   required Track track,
@@ -235,7 +136,7 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
     decoderDropPerSecond: decoderDropFramePerSecond,
   );
 
-  return MoviePlayerPlaybackInfoSnapshot(
+  return (
     decodingModeLabel: _buildDecodingModeLabel(
       decodingMode,
       hwdecCurrent,
@@ -657,9 +558,30 @@ class MoviePlayerPlaybackInfoPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    _MoviePlayerPlaybackInfoRowData row(
+      String label,
+      String value,
+      String key, {
+      bool copyable = false,
+      Key? copyButtonKey,
+    }) {
+      return _MoviePlayerPlaybackInfoRowData(
+        label: label,
+        value: value,
+        valueKey: Key(key),
+        copyable: copyable,
+        copyButtonKey: copyButtonKey,
+      );
+    }
+
+    Widget section(String title, List<_MoviePlayerPlaybackInfoRowData> rows) {
+      return _MoviePlayerPlaybackInfoSection(title: title, rows: rows);
+    }
+
     return ValueListenableBuilder<MoviePlayerPlaybackInfoSnapshot>(
       valueListenable: infoListenable,
       builder: (context, info, child) {
+        final mediaInfo = this.mediaInfo;
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -678,200 +600,140 @@ class MoviePlayerPlaybackInfoPanel extends StatelessWidget {
               child: ListView(
                 children: [
                   ..._buildPlaybackRouteSection(info, l10n),
-                  if (mediaInfo case final mediaInfo?) ...[
-                    _MoviePlayerPlaybackInfoSection(
-                      title: l10n.widgetMoviePlayerSectionMedia,
-                      rows: [
-                        _MoviePlayerPlaybackInfoRowData(
-                          label: l10n.widgetMoviePlayerStorageSource,
-                          value: mediaInfo.sourceLabel,
-                          valueKey: const Key(
-                            'movie-player-info-value-media-source',
-                          ),
-                        ),
-                        _MoviePlayerPlaybackInfoRowData(
-                          label: l10n.widgetMoviePlayerMediaLibrary,
-                          value: mediaInfo.libraryLabel,
-                          valueKey: const Key(
-                            'movie-player-info-value-media-library',
-                          ),
-                        ),
-                        _MoviePlayerPlaybackInfoRowData(
-                          label: l10n.widgetMoviePlayerFileSize,
-                          value: mediaInfo.fileSizeLabel,
-                          valueKey: const Key(
-                            'movie-player-info-value-media-file-size',
-                          ),
-                        ),
-                        _MoviePlayerPlaybackInfoRowData(
-                          label: l10n.widgetMoviePlayerDuration,
-                          value: mediaInfo.durationLabel,
-                          valueKey: const Key(
-                            'movie-player-info-value-media-duration',
-                          ),
-                        ),
-                        _MoviePlayerPlaybackInfoRowData(
-                          label: l10n.widgetMoviePlayerRecordedResolution,
-                          value: mediaInfo.resolutionLabel,
-                          valueKey: const Key(
-                            'movie-player-info-value-media-resolution',
-                          ),
-                        ),
-                      ],
-                    ),
+                  if (mediaInfo != null) ...[
+                    section(l10n.widgetMoviePlayerSectionMedia, [
+                      row(
+                        l10n.widgetMoviePlayerStorageSource,
+                        mediaInfo.sourceLabel,
+                        'movie-player-info-value-media-source',
+                      ),
+                      row(
+                        l10n.widgetMoviePlayerMediaLibrary,
+                        mediaInfo.libraryLabel,
+                        'movie-player-info-value-media-library',
+                      ),
+                      row(
+                        l10n.widgetMoviePlayerFileSize,
+                        mediaInfo.fileSizeLabel,
+                        'movie-player-info-value-media-file-size',
+                      ),
+                      row(
+                        l10n.widgetMoviePlayerDuration,
+                        mediaInfo.durationLabel,
+                        'movie-player-info-value-media-duration',
+                      ),
+                      row(
+                        l10n.widgetMoviePlayerRecordedResolution,
+                        mediaInfo.resolutionLabel,
+                        'movie-player-info-value-media-resolution',
+                      ),
+                    ]),
                     SizedBox(height: context.appSpacing.md),
                   ],
-                  _MoviePlayerPlaybackInfoSection(
-                    title: l10n.widgetMoviePlayerSectionDecode,
-                    rows: [
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerDecodeMode,
-                        value: info.decodingModeLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-decoding-mode',
-                        ),
-                      ),
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerDynamicRange,
-                        value: info.dynamicRangeLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-dynamic-range',
-                        ),
-                      ),
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerDynamicRangeDetail,
-                        value: info.dynamicRangeDetailLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-dynamic-range-detail',
-                        ),
-                      ),
-                    ],
-                  ),
+                  section(l10n.widgetMoviePlayerSectionDecode, [
+                    row(
+                      l10n.widgetMoviePlayerDecodeMode,
+                      info.decodingModeLabel,
+                      'movie-player-info-value-decoding-mode',
+                    ),
+                    row(
+                      l10n.widgetMoviePlayerDynamicRange,
+                      info.dynamicRangeLabel,
+                      'movie-player-info-value-dynamic-range',
+                    ),
+                    row(
+                      l10n.widgetMoviePlayerDynamicRangeDetail,
+                      info.dynamicRangeDetailLabel,
+                      'movie-player-info-value-dynamic-range-detail',
+                    ),
+                  ]),
                   SizedBox(height: context.appSpacing.md),
-                  _MoviePlayerPlaybackInfoSection(
-                    title: l10n.widgetMoviePlayerSectionVideo,
-                    rows: [
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerCodec,
-                        value: info.videoCodecLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-video-codec',
-                        ),
+                  section(l10n.widgetMoviePlayerSectionVideo, [
+                    row(
+                      l10n.widgetMoviePlayerCodec,
+                      info.videoCodecLabel,
+                      'movie-player-info-value-video-codec',
+                    ),
+                    row(
+                      l10n.widgetMoviePlayerDecoder,
+                      info.videoDecoderLabel,
+                      'movie-player-info-value-video-decoder',
+                    ),
+                    row(
+                      l10n.widgetMoviePlayerResolution,
+                      info.videoResolutionLabel,
+                      'movie-player-info-value-video-resolution',
+                    ),
+                    row(
+                      l10n.widgetMoviePlayerMediaFrameRate,
+                      info.mediaFrameRateLabel,
+                      'movie-player-info-value-video-media-fps',
+                    ),
+                    row(
+                      l10n.widgetMoviePlayerFilterChainFrameRate,
+                      info.filterChainFrameRateLabel,
+                      'movie-player-info-value-video-filter-fps',
+                    ),
+                    row(
+                      l10n.widgetMoviePlayerActualOutputFrameRate,
+                      info.actualOutputFrameRateLabel,
+                      'movie-player-info-value-video-actual-fps',
+                    ),
+                    row(
+                      l10n.widgetMoviePlayerBitrate,
+                      info.videoBitrateLabel,
+                      'movie-player-info-value-video-bitrate',
+                    ),
+                    row(
+                      l10n.widgetMoviePlayerRenderDropped,
+                      info.renderDropFrameLabel,
+                      'movie-player-info-value-video-render-drop',
+                    ),
+                    row(
+                      l10n.widgetMoviePlayerDecodeDropped,
+                      info.decoderDropFrameLabel,
+                      'movie-player-info-value-video-decoder-drop',
+                    ),
+                    row(
+                      l10n.widgetMoviePlayerDelayedFrames,
+                      info.delayedFrameLabel,
+                      'movie-player-info-value-video-delayed-frame',
+                    ),
+                    if (info.mistimedFrameLabel != '--')
+                      row(
+                        l10n.widgetMoviePlayerMistimedFrames,
+                        info.mistimedFrameLabel,
+                        'movie-player-info-value-video-mistimed-frame',
                       ),
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerDecoder,
-                        value: info.videoDecoderLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-video-decoder',
-                        ),
-                      ),
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerResolution,
-                        value: info.videoResolutionLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-video-resolution',
-                        ),
-                      ),
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerMediaFrameRate,
-                        value: info.mediaFrameRateLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-video-media-fps',
-                        ),
-                      ),
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerFilterChainFrameRate,
-                        value: info.filterChainFrameRateLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-video-filter-fps',
-                        ),
-                      ),
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerActualOutputFrameRate,
-                        value: info.actualOutputFrameRateLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-video-actual-fps',
-                        ),
-                      ),
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerBitrate,
-                        value: info.videoBitrateLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-video-bitrate',
-                        ),
-                      ),
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerRenderDropped,
-                        value: info.renderDropFrameLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-video-render-drop',
-                        ),
-                      ),
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerDecodeDropped,
-                        value: info.decoderDropFrameLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-video-decoder-drop',
-                        ),
-                      ),
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerDelayedFrames,
-                        value: info.delayedFrameLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-video-delayed-frame',
-                        ),
-                      ),
-                      if (info.mistimedFrameLabel != '--')
-                        _MoviePlayerPlaybackInfoRowData(
-                          label: l10n.widgetMoviePlayerMistimedFrames,
-                          value: info.mistimedFrameLabel,
-                          valueKey: const Key(
-                            'movie-player-info-value-video-mistimed-frame',
-                          ),
-                        ),
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerPixelFormat,
-                        value: info.videoPixelFormatLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-video-pixelformat',
-                        ),
-                      ),
-                    ],
-                  ),
+                    row(
+                      l10n.widgetMoviePlayerPixelFormat,
+                      info.videoPixelFormatLabel,
+                      'movie-player-info-value-video-pixelformat',
+                    ),
+                  ]),
                   SizedBox(height: context.appSpacing.md),
-                  _MoviePlayerPlaybackInfoSection(
-                    title: l10n.widgetMoviePlayerSectionAudio,
-                    rows: [
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerCodec,
-                        value: info.audioCodecLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-audio-codec',
-                        ),
-                      ),
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerChannels,
-                        value: info.audioChannelsLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-audio-channels',
-                        ),
-                      ),
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerSampleRate,
-                        value: info.audioSampleRateLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-audio-sample-rate',
-                        ),
-                      ),
-                      _MoviePlayerPlaybackInfoRowData(
-                        label: l10n.widgetMoviePlayerBitrate,
-                        value: info.audioBitrateLabel,
-                        valueKey: const Key(
-                          'movie-player-info-value-audio-bitrate',
-                        ),
-                      ),
-                    ],
-                  ),
+                  section(l10n.widgetMoviePlayerSectionAudio, [
+                    row(
+                      l10n.widgetMoviePlayerCodec,
+                      info.audioCodecLabel,
+                      'movie-player-info-value-audio-codec',
+                    ),
+                    row(
+                      l10n.widgetMoviePlayerChannels,
+                      info.audioChannelsLabel,
+                      'movie-player-info-value-audio-channels',
+                    ),
+                    row(
+                      l10n.widgetMoviePlayerSampleRate,
+                      info.audioSampleRateLabel,
+                      'movie-player-info-value-audio-sample-rate',
+                    ),
+                    row(
+                      l10n.widgetMoviePlayerBitrate,
+                      info.audioBitrateLabel,
+                      'movie-player-info-value-audio-bitrate',
+                    ),
+                  ]),
                 ],
               ),
             ),

@@ -308,19 +308,10 @@ class DownloadTaskCenter extends _$DownloadTaskCenter
   void _removeItemById(int taskId) {
     final current = state.value;
     if (current == null) return;
-    final next = current.paged.items
-        .where((row) => row.task.id != taskId)
-        .toList(growable: false);
-    if (next.length == current.paged.items.length) return;
-    final total = current.paged.total > 0 ? current.paged.total - 1 : 0;
+    final paged = current.paged.removeWhere((row) => row.task.id == taskId);
+    if (identical(paged, current.paged)) return;
     state = AsyncData(
-      current.copyWith(
-        paged: current.paged.copyWith(
-          items: List.unmodifiable(next),
-          total: total,
-          hasMore: next.length < total,
-        ),
-      ),
+      current.copyWith(paged: paged),
     );
   }
 

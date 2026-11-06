@@ -1,8 +1,15 @@
-import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
+import 'package:copy_with_extension/copy_with_extension.dart';
+import 'package:json_annotation/json_annotation.dart';
+import 'package:sakuramedia/core/json/dto_json_codec.dart';
+import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/features/media/data/media_tag_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_board_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 
+part 'movie_detail_dto.g.dart';
+
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class MovieDetailDto with MovieCoverSelection {
   const MovieDetailDto({
     this.id = 0,
@@ -44,15 +51,21 @@ class MovieDetailDto with MovieCoverSelection {
   final int id;
 
   final String? javdbId;
+
+  @JsonKey(name: 'metadata_source', fromJson: _metadataSourceNameFromJson)
   final String? metadataSourceName;
+
   final String movieNumber;
   final String title;
   final int? seriesId;
   final String seriesName;
   final String makerName;
   final String directorName;
+
   @override
+  @JsonKey(fromJson: movieImageFromJson)
   final MovieImageDto? coverImage;
+
   final DateTime? releaseDate;
   final int durationMinutes;
   final double score;
@@ -66,23 +79,37 @@ class MovieDetailDto with MovieCoverSelection {
   final bool isBlacklisted;
   final bool canPlay;
   final String summary;
+
   @override
+  @JsonKey(fromJson: movieImageFromJson)
   final MovieImageDto? thinCoverImage;
+
+  @JsonKey(fromJson: _plotImagesFromJson)
   final List<MovieImageDto> plotImages;
+
+  @JsonKey(fromJson: _actorsFromJson)
   final List<MovieActorDto> actors;
 
   /// 演员表被人工编辑后为 true：元数据刷新不会再覆盖演员关联。
   final bool isActorsManuallyManaged;
 
+  @JsonKey(fromJson: _movieTagsFromJson)
   final List<MovieTagDto> tags;
+
+  @JsonKey(fromJson: _mediaItemsFromJson)
   final List<MovieMediaItemDto> mediaItems;
+
+  @JsonKey(fromJson: _mergePlaybackCandidatesFromJson)
   final List<MovieMergePlaybackCandidateDto> mergePlaybackCandidates;
+
+  @JsonKey(fromJson: _playlistsFromJson)
   final List<MoviePlaylistSummaryDto> playlists;
 
   /// 系统「收藏」播放列表 ID；后端未初始化收藏列表时为 null。
   final int? favoritePlaylistId;
 
   /// 影片当前在外部榜单上的上榜记录；没有上榜时为空。
+  @JsonKey(fromJson: _rankingsFromJson)
   final List<MovieRankingDto> rankings;
 
   /// DMM 简介与翻译链路已下线，desc/desc_zh 随 API 移除（存量收拢进 [summary]），
@@ -92,66 +119,11 @@ class MovieDetailDto with MovieCoverSelection {
   /// DMM 中文标题已收拢进 [title]，保留 getter 只做 trim。
   String get preferredTitle => title.trim();
 
-  factory MovieDetailDto.fromJson(Map<String, dynamic> json) {
-    return MovieDetailDto(
-      id: _intFromJson(json['id']) ?? 0,
-      javdbId: json['javdb_id'] as String?,
-      metadataSourceName:
-          (json['metadata_source'] as Map<String, dynamic>?)?['display_name']
-              as String?,
-      movieNumber: json['movie_number'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-      seriesId: _intFromJson(json['series_id']),
-      seriesName: json['series_name'] as String? ?? '',
-      makerName: json['maker_name'] as String? ?? '',
-      directorName: json['director_name'] as String? ?? '',
-      coverImage: _movieImageFromJson(json['cover_image']),
-      releaseDate: _dateFromJson(json['release_date']),
-      durationMinutes: json['duration_minutes'] as int? ?? 0,
-      score: (json['score'] as num?)?.toDouble() ?? 0,
-      heat: json['heat'] as int? ?? 0,
-      watchedCount: json['watched_count'] as int? ?? 0,
-      wantWatchCount: json['want_watch_count'] as int? ?? 0,
-      commentCount: json['comment_count'] as int? ?? 0,
-      scoreNumber: json['score_number'] as int? ?? 0,
-      isCollection: json['is_collection'] as bool? ?? false,
-      isSubscribed: json['is_subscribed'] as bool? ?? false,
-      isBlacklisted: json['is_blacklisted'] as bool? ?? false,
-      canPlay: json['can_play'] as bool? ?? false,
-      summary: json['summary'] as String? ?? '',
-      thinCoverImage: _movieImageFromJson(json['thin_cover_image']),
-      plotImages: _listFromJson(
-        json['plot_images'],
-        (item) => MovieImageDto.fromJson(item),
-      ),
-      actors: _listFromJson(
-        json['actors'],
-        (item) => MovieActorDto.fromJson(item),
-      ),
-      isActorsManuallyManaged:
-          json['is_actors_manually_managed'] as bool? ?? false,
-      tags: _listFromJson(json['tags'], (item) => MovieTagDto.fromJson(item)),
-      mediaItems: _listFromJson(
-        json['media_items'],
-        (item) => MovieMediaItemDto.fromJson(item),
-      ),
-      mergePlaybackCandidates: _listFromJson(
-        json['merge_playback_candidates'],
-        (item) => MovieMergePlaybackCandidateDto.fromJson(item),
-      ),
-      playlists: _listFromJson(
-        json['playlists'],
-        (item) => MoviePlaylistSummaryDto.fromJson(item),
-      ),
-      favoritePlaylistId: _intFromJson(json['favorite_playlist_id']),
-      rankings: _listFromJson(
-        json['rankings'],
-        (item) => MovieRankingDto.fromJson(item),
-      ),
-    );
-  }
+  factory MovieDetailDto.fromJson(Map<String, dynamic> json) =>
+      _$MovieDetailDtoFromJson(json);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class MovieMergePlaybackCandidateDto {
   const MovieMergePlaybackCandidateDto({
     required this.libraryId,
@@ -165,26 +137,21 @@ class MovieMergePlaybackCandidateDto {
   final String providerKey;
   final int segmentCount;
 
-  factory MovieMergePlaybackCandidateDto.fromJson(Map<String, dynamic> json) {
-    return MovieMergePlaybackCandidateDto(
-      libraryId: _intFromJson(json['library_id']) ?? 0,
-      libraryName: json['library_name'] as String? ?? '',
-      providerKey: json['provider_key'] as String? ?? '',
-      segmentCount: _intFromJson(json['segment_count']) ?? 0,
-    );
-  }
+  factory MovieMergePlaybackCandidateDto.fromJson(Map<String, dynamic> json) =>
+      _$MovieMergePlaybackCandidateDtoFromJson(json);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class MovieMergedPlaybackDto {
   const MovieMergedPlaybackDto({required this.playUrl});
 
   final String playUrl;
 
-  factory MovieMergedPlaybackDto.fromJson(Map<String, dynamic> json) {
-    return MovieMergedPlaybackDto(playUrl: json['play_url'] as String? ?? '');
-  }
+  factory MovieMergedPlaybackDto.fromJson(Map<String, dynamic> json) =>
+      _$MovieMergedPlaybackDtoFromJson(json);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class MoviePlaylistSummaryDto {
   const MoviePlaylistSummaryDto({
     required this.id,
@@ -195,20 +162,17 @@ class MoviePlaylistSummaryDto {
 
   final int id;
   final String name;
+
+  @JsonKey(defaultValue: 'custom')
   final String kind;
   final bool isSystem;
 
-  factory MoviePlaylistSummaryDto.fromJson(Map<String, dynamic> json) {
-    return MoviePlaylistSummaryDto(
-      id: json['id'] as int? ?? 0,
-      name: json['name'] as String? ?? '',
-      kind: json['kind'] as String? ?? 'custom',
-      isSystem: json['is_system'] as bool? ?? false,
-    );
-  }
+  factory MoviePlaylistSummaryDto.fromJson(Map<String, dynamic> json) =>
+      _$MoviePlaylistSummaryDtoFromJson(json);
 }
 
 /// 影片的一条上榜记录：来源 · 榜单 · 周期（日/周/月榜、TOP250 子榜或年份）。
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class MovieRankingDto {
   const MovieRankingDto({
     required this.sourceKey,
@@ -229,18 +193,11 @@ class MovieRankingDto {
   /// 榜单周期文案，按当前语言渲染。
   String periodLabel(AppLocalizations l10n) => rankingPeriodLabel(period, l10n);
 
-  factory MovieRankingDto.fromJson(Map<String, dynamic> json) {
-    return MovieRankingDto(
-      sourceKey: json['source_key'] as String? ?? '',
-      sourceName: json['source_name'] as String? ?? '',
-      boardKey: json['board_key'] as String? ?? '',
-      boardName: json['board_name'] as String? ?? '',
-      period: json['period'] as String? ?? '',
-      rank: _intFromJson(json['rank']) ?? 0,
-    );
-  }
+  factory MovieRankingDto.fromJson(Map<String, dynamic> json) =>
+      _$MovieRankingDtoFromJson(json);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class MovieActorDto {
   const MovieActorDto({
     required this.id,
@@ -261,7 +218,11 @@ class MovieActorDto {
   final String aliasName;
   final int gender;
   final bool isSubscribed;
+
+  @JsonKey(fromJson: movieImageFromJson)
   final MovieImageDto? profileImage;
+
+  @JsonKey(name: 'display_name')
   final String? apiDisplayName;
   String get displayName {
     final normalized = apiDisplayName?.trim();
@@ -273,34 +234,22 @@ class MovieActorDto {
 
   bool get isFemale => gender == femaleGender;
 
-  factory MovieActorDto.fromJson(Map<String, dynamic> json) {
-    return MovieActorDto(
-      id: json['id'] as int? ?? 0,
-      javdbId: json['javdb_id'] as String? ?? '',
-      name: json['name'] as String? ?? '',
-      aliasName: json['alias_name'] as String? ?? '',
-      gender: (json['gender'] as num?)?.toInt() ?? 0,
-      isSubscribed: json['is_subscribed'] as bool? ?? false,
-      profileImage: _movieImageFromJson(json['profile_image']),
-      apiDisplayName: json['display_name'] as String?,
-    );
-  }
+  factory MovieActorDto.fromJson(Map<String, dynamic> json) =>
+      _$MovieActorDtoFromJson(json);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class MovieTagDto {
   const MovieTagDto({required this.tagId, required this.name});
 
   final int tagId;
   final String name;
 
-  factory MovieTagDto.fromJson(Map<String, dynamic> json) {
-    return MovieTagDto(
-      tagId: json['tag_id'] as int? ?? 0,
-      name: json['name'] as String? ?? '',
-    );
-  }
+  factory MovieTagDto.fromJson(Map<String, dynamic> json) =>
+      _$MovieTagDtoFromJson(json);
 }
 
+@CopyWith()
 class MovieMediaItemDto {
   const MovieMediaItemDto({
     required this.mediaId,
@@ -338,8 +287,8 @@ class MovieMediaItemDto {
 
   factory MovieMediaItemDto.fromJson(Map<String, dynamic> json) {
     return MovieMediaItemDto(
-      mediaId: _intFromJson(json['media_id'] ?? json['id']) ?? 0,
-      libraryId: json['library_id'] as int?,
+      mediaId: asInt(json['media_id'] ?? json['id']),
+      libraryId: asIntOrNull(json['library_id']),
       providerKey: json['provider_key'] as String?,
       playUrl: json['play_url'] as String? ?? '',
       fileName: json['file_name'] as String? ?? '',
@@ -347,67 +296,26 @@ class MovieMediaItemDto {
       fileSizeBytes: json['file_size_bytes'] as int? ?? 0,
       durationSeconds: json['duration_seconds'] as int? ?? 0,
       valid: json['valid'] as bool? ?? true,
-      progress: _progressFromJson(json['progress']),
-      points: _listFromJson(
-        json['points'],
-        (item) => MovieMediaPointDto.fromJson(item),
+      progress: asObjectOrNull(
+        json['progress'],
+        MovieMediaProgressDto.fromJson,
       ),
-      videoInfo: _videoInfoFromJson(json['video_info']),
+      points: asObjectList(json['points'], MovieMediaPointDto.fromJson),
+      videoInfo: asObjectOrNull(
+        json['video_info'],
+        MovieMediaVideoInfoDto.fromJson,
+      ),
       tags: mediaTagRefsFromJson(json['tags']),
       isMediaTagsManuallyManaged:
           json['is_media_tags_manually_managed'] as bool? ?? false,
     );
   }
 
-  /// 可空字段用 sentinel 区分「不改」与「改为 null」；普通字段 `??`。
-  MovieMediaItemDto copyWith({
-    int? mediaId,
-    Object? libraryId = _sentinel,
-    Object? providerKey = _sentinel,
-    String? playUrl,
-    String? fileName,
-    Object? resolution = _sentinel,
-    int? fileSizeBytes,
-    int? durationSeconds,
-    bool? valid,
-    Object? progress = _sentinel,
-    List<MovieMediaPointDto>? points,
-    Object? videoInfo = _sentinel,
-    List<MediaTagRefDto>? tags,
-    bool? isMediaTagsManuallyManaged,
-  }) {
-    return MovieMediaItemDto(
-      mediaId: mediaId ?? this.mediaId,
-      libraryId: identical(libraryId, _sentinel)
-          ? this.libraryId
-          : libraryId as int?,
-      providerKey: identical(providerKey, _sentinel)
-          ? this.providerKey
-          : providerKey as String?,
-      playUrl: playUrl ?? this.playUrl,
-      fileName: fileName ?? this.fileName,
-      resolution: identical(resolution, _sentinel)
-          ? this.resolution
-          : resolution as String?,
-      fileSizeBytes: fileSizeBytes ?? this.fileSizeBytes,
-      durationSeconds: durationSeconds ?? this.durationSeconds,
-      valid: valid ?? this.valid,
-      progress: identical(progress, _sentinel)
-          ? this.progress
-          : progress as MovieMediaProgressDto?,
-      points: points ?? this.points,
-      videoInfo: identical(videoInfo, _sentinel)
-          ? this.videoInfo
-          : videoInfo as MovieMediaVideoInfoDto?,
-      tags: tags ?? this.tags,
-      isMediaTagsManuallyManaged:
-          isMediaTagsManuallyManaged ?? this.isMediaTagsManuallyManaged,
-    );
-  }
+  _$MovieMediaItemDtoCWProxy get copyWith =>
+      _$MovieMediaItemDtoCWProxyImpl(this);
 }
 
-const Object _sentinel = Object();
-
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class MovieMediaVideoInfoDto {
   const MovieMediaVideoInfoDto({
     required this.container,
@@ -416,24 +324,23 @@ class MovieMediaVideoInfoDto {
     required this.subtitles,
   });
 
+  @JsonKey(fromJson: _containerInfoFromJson)
   final MovieMediaContainerInfoDto? container;
+
+  @JsonKey(fromJson: _videoStreamInfoFromJson)
   final MovieMediaVideoStreamInfoDto? video;
+
+  @JsonKey(fromJson: _audioStreamInfoFromJson)
   final MovieMediaAudioStreamInfoDto? audio;
+
+  @JsonKey(fromJson: _subtitlesFromJson)
   final List<MovieMediaSubtitleInfoDto> subtitles;
 
-  factory MovieMediaVideoInfoDto.fromJson(Map<String, dynamic> json) {
-    return MovieMediaVideoInfoDto(
-      container: _containerInfoFromJson(json['container']),
-      video: _videoStreamInfoFromJson(json['video']),
-      audio: _audioStreamInfoFromJson(json['audio']),
-      subtitles: _listFromJson(
-        json['subtitles'],
-        (item) => MovieMediaSubtitleInfoDto.fromJson(item),
-      ),
-    );
-  }
+  factory MovieMediaVideoInfoDto.fromJson(Map<String, dynamic> json) =>
+      _$MovieMediaVideoInfoDtoFromJson(json);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class MovieMediaContainerInfoDto {
   const MovieMediaContainerInfoDto({
     required this.formatName,
@@ -447,16 +354,11 @@ class MovieMediaContainerInfoDto {
   final int? bitRate;
   final int? sizeBytes;
 
-  factory MovieMediaContainerInfoDto.fromJson(Map<String, dynamic> json) {
-    return MovieMediaContainerInfoDto(
-      formatName: json['format_name'] as String? ?? '',
-      durationSeconds: (json['duration_seconds'] as num?)?.toInt(),
-      bitRate: (json['bit_rate'] as num?)?.toInt(),
-      sizeBytes: (json['size_bytes'] as num?)?.toInt(),
-    );
-  }
+  factory MovieMediaContainerInfoDto.fromJson(Map<String, dynamic> json) =>
+      _$MovieMediaContainerInfoDtoFromJson(json);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class MovieMediaVideoStreamInfoDto {
   const MovieMediaVideoStreamInfoDto({
     required this.codecName,
@@ -478,20 +380,11 @@ class MovieMediaVideoStreamInfoDto {
   final double? frameRate;
   final String pixelFormat;
 
-  factory MovieMediaVideoStreamInfoDto.fromJson(Map<String, dynamic> json) {
-    return MovieMediaVideoStreamInfoDto(
-      codecName: json['codec_name'] as String? ?? '',
-      codecLongName: json['codec_long_name'] as String? ?? '',
-      profile: json['profile'] as String?,
-      bitRate: (json['bit_rate'] as num?)?.toInt(),
-      width: (json['width'] as num?)?.toInt(),
-      height: (json['height'] as num?)?.toInt(),
-      frameRate: (json['frame_rate'] as num?)?.toDouble(),
-      pixelFormat: json['pixel_format'] as String? ?? '',
-    );
-  }
+  factory MovieMediaVideoStreamInfoDto.fromJson(Map<String, dynamic> json) =>
+      _$MovieMediaVideoStreamInfoDtoFromJson(json);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class MovieMediaAudioStreamInfoDto {
   const MovieMediaAudioStreamInfoDto({
     required this.codecName,
@@ -511,19 +404,11 @@ class MovieMediaAudioStreamInfoDto {
   final int? channels;
   final String channelLayout;
 
-  factory MovieMediaAudioStreamInfoDto.fromJson(Map<String, dynamic> json) {
-    return MovieMediaAudioStreamInfoDto(
-      codecName: json['codec_name'] as String? ?? '',
-      codecLongName: json['codec_long_name'] as String? ?? '',
-      profile: json['profile'] as String?,
-      bitRate: (json['bit_rate'] as num?)?.toInt(),
-      sampleRate: (json['sample_rate'] as num?)?.toInt(),
-      channels: (json['channels'] as num?)?.toInt(),
-      channelLayout: json['channel_layout'] as String? ?? '',
-    );
-  }
+  factory MovieMediaAudioStreamInfoDto.fromJson(Map<String, dynamic> json) =>
+      _$MovieMediaAudioStreamInfoDtoFromJson(json);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class MovieMediaSubtitleInfoDto {
   const MovieMediaSubtitleInfoDto({
     required this.codecName,
@@ -537,16 +422,11 @@ class MovieMediaSubtitleInfoDto {
   final String language;
   final String title;
 
-  factory MovieMediaSubtitleInfoDto.fromJson(Map<String, dynamic> json) {
-    return MovieMediaSubtitleInfoDto(
-      codecName: json['codec_name'] as String? ?? '',
-      codecLongName: json['codec_long_name'] as String? ?? '',
-      language: json['language'] as String? ?? '',
-      title: json['title'] as String? ?? '',
-    );
-  }
+  factory MovieMediaSubtitleInfoDto.fromJson(Map<String, dynamic> json) =>
+      _$MovieMediaSubtitleInfoDtoFromJson(json);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class MovieMediaProgressDto {
   const MovieMediaProgressDto({
     required this.lastPositionSeconds,
@@ -556,14 +436,11 @@ class MovieMediaProgressDto {
   final int lastPositionSeconds;
   final DateTime? lastWatchedAt;
 
-  factory MovieMediaProgressDto.fromJson(Map<String, dynamic> json) {
-    return MovieMediaProgressDto(
-      lastPositionSeconds: json['last_position_seconds'] as int? ?? 0,
-      lastWatchedAt: _dateTimeFromJson(json['last_watched_at']),
-    );
-  }
+  factory MovieMediaProgressDto.fromJson(Map<String, dynamic> json) =>
+      _$MovieMediaProgressDtoFromJson(json);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class MovieMediaPointDto {
   const MovieMediaPointDto({
     required this.pointId,
@@ -575,132 +452,47 @@ class MovieMediaPointDto {
   final int pointId;
   final int thumbnailId;
   final int offsetSeconds;
+
+  @JsonKey(fromJson: movieImageFromJson)
   final MovieImageDto? image;
 
-  factory MovieMediaPointDto.fromJson(Map<String, dynamic> json) {
-    return MovieMediaPointDto(
-      pointId: json['point_id'] as int? ?? 0,
-      thumbnailId: json['thumbnail_id'] as int? ?? 0,
-      offsetSeconds: json['offset_seconds'] as int? ?? 0,
-      image: _movieImageFromJson(json['image']),
-    );
-  }
+  factory MovieMediaPointDto.fromJson(Map<String, dynamic> json) =>
+      _$MovieMediaPointDtoFromJson(json);
 }
 
-MovieImageDto? _movieImageFromJson(dynamic value) {
-  if (value is Map<String, dynamic>) {
-    return MovieImageDto.fromJson(value);
-  }
-  if (value is Map) {
-    return MovieImageDto.fromJson(
-      value.map((dynamic key, dynamic data) => MapEntry(key.toString(), data)),
-    );
-  }
-  return null;
-}
+String? _metadataSourceNameFromJson(Object? value) =>
+    asMapOrNull(value)?['display_name'] as String?;
 
-MovieMediaProgressDto? _progressFromJson(dynamic value) {
-  if (value is Map<String, dynamic>) {
-    return MovieMediaProgressDto.fromJson(value);
-  }
-  if (value is Map) {
-    return MovieMediaProgressDto.fromJson(
-      value.map((dynamic key, dynamic data) => MapEntry(key.toString(), data)),
-    );
-  }
-  return null;
-}
+List<MovieImageDto> _plotImagesFromJson(Object? value) =>
+    asObjectList(value, MovieImageDto.fromJson);
 
-MovieMediaVideoInfoDto? _videoInfoFromJson(dynamic value) {
-  if (value is Map<String, dynamic>) {
-    return MovieMediaVideoInfoDto.fromJson(value);
-  }
-  if (value is Map) {
-    return MovieMediaVideoInfoDto.fromJson(
-      value.map((dynamic key, dynamic data) => MapEntry(key.toString(), data)),
-    );
-  }
-  return null;
-}
+List<MovieActorDto> _actorsFromJson(Object? value) =>
+    asObjectList(value, MovieActorDto.fromJson);
 
-MovieMediaContainerInfoDto? _containerInfoFromJson(dynamic value) {
-  if (value is Map<String, dynamic>) {
-    return MovieMediaContainerInfoDto.fromJson(value);
-  }
-  if (value is Map) {
-    return MovieMediaContainerInfoDto.fromJson(
-      value.map((dynamic key, dynamic data) => MapEntry(key.toString(), data)),
-    );
-  }
-  return null;
-}
+List<MovieTagDto> _movieTagsFromJson(Object? value) =>
+    asObjectList(value, MovieTagDto.fromJson);
 
-MovieMediaVideoStreamInfoDto? _videoStreamInfoFromJson(dynamic value) {
-  if (value is Map<String, dynamic>) {
-    return MovieMediaVideoStreamInfoDto.fromJson(value);
-  }
-  if (value is Map) {
-    return MovieMediaVideoStreamInfoDto.fromJson(
-      value.map((dynamic key, dynamic data) => MapEntry(key.toString(), data)),
-    );
-  }
-  return null;
-}
+List<MovieMediaItemDto> _mediaItemsFromJson(Object? value) =>
+    asObjectList(value, MovieMediaItemDto.fromJson);
 
-MovieMediaAudioStreamInfoDto? _audioStreamInfoFromJson(dynamic value) {
-  if (value is Map<String, dynamic>) {
-    return MovieMediaAudioStreamInfoDto.fromJson(value);
-  }
-  if (value is Map) {
-    return MovieMediaAudioStreamInfoDto.fromJson(
-      value.map((dynamic key, dynamic data) => MapEntry(key.toString(), data)),
-    );
-  }
-  return null;
-}
+List<MovieMergePlaybackCandidateDto> _mergePlaybackCandidatesFromJson(
+  Object? value,
+) => asObjectList(value, MovieMergePlaybackCandidateDto.fromJson);
 
-DateTime? _dateFromJson(dynamic value) {
-  if (value is! String || value.isEmpty) {
-    return null;
-  }
-  return DateTime.tryParse(value);
-}
+List<MoviePlaylistSummaryDto> _playlistsFromJson(Object? value) =>
+    asObjectList(value, MoviePlaylistSummaryDto.fromJson);
 
-int? _intFromJson(dynamic value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is num) {
-    return value.toInt();
-  }
-  if (value is String) {
-    return int.tryParse(value);
-  }
-  return null;
-}
+List<MovieRankingDto> _rankingsFromJson(Object? value) =>
+    asObjectList(value, MovieRankingDto.fromJson);
 
-DateTime? _dateTimeFromJson(dynamic value) {
-  if (value is! String || value.isEmpty) {
-    return null;
-  }
-  return DateTime.tryParse(value);
-}
+MovieMediaContainerInfoDto? _containerInfoFromJson(Object? value) =>
+    asObjectOrNull(value, MovieMediaContainerInfoDto.fromJson);
 
-List<T> _listFromJson<T>(
-  dynamic value,
-  T Function(Map<String, dynamic>) fromJson,
-) {
-  if (value is! List) {
-    return <T>[];
-  }
-  return value
-      .whereType<Map>()
-      .map(
-        (item) => fromJson(
-          item.map(
-            (dynamic key, dynamic data) => MapEntry(key.toString(), data),
-          ),
-        ),
-      )
-      .toList(growable: false);
-}
+MovieMediaVideoStreamInfoDto? _videoStreamInfoFromJson(Object? value) =>
+    asObjectOrNull(value, MovieMediaVideoStreamInfoDto.fromJson);
+
+MovieMediaAudioStreamInfoDto? _audioStreamInfoFromJson(Object? value) =>
+    asObjectOrNull(value, MovieMediaAudioStreamInfoDto.fromJson);
+
+List<MovieMediaSubtitleInfoDto> _subtitlesFromJson(Object? value) =>
+    asObjectList(value, MovieMediaSubtitleInfoDto.fromJson);

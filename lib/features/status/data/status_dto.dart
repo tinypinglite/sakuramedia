@@ -1,6 +1,11 @@
+import 'package:json_annotation/json_annotation.dart';
+import 'package:sakuramedia/core/json/dto_json_codec.dart';
 import 'package:sakuramedia/core/json/json_parse.dart'
-    show asDateTime, asInt, asIntOrNull, asMap, asMapOrNull, asStringList;
+    show asBool, asObject, asObjectList, asObjectOrNull, asStringList;
 
+part 'status_dto.g.dart';
+
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class ActorStatsDto {
   const ActorStatsDto({
     required this.femaleTotal,
@@ -10,21 +15,13 @@ class ActorStatsDto {
   final int femaleTotal;
   final int femaleSubscribed;
 
-  factory ActorStatsDto.fromJson(Map<String, dynamic> json) {
-    return ActorStatsDto(
-      femaleTotal: json['female_total'] as int? ?? 0,
-      femaleSubscribed: json['female_subscribed'] as int? ?? 0,
-    );
-  }
+  factory ActorStatsDto.fromJson(Map<String, dynamic> json) =>
+      _$ActorStatsDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'female_total': femaleTotal,
-      'female_subscribed': femaleSubscribed,
-    };
-  }
+  Map<String, dynamic> toJson() => _$ActorStatsDtoToJson(this);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class MovieStatsDto {
   const MovieStatsDto({
     required this.total,
@@ -36,58 +33,38 @@ class MovieStatsDto {
   final int subscribed;
   final int playable;
 
-  factory MovieStatsDto.fromJson(Map<String, dynamic> json) {
-    return MovieStatsDto(
-      total: json['total'] as int? ?? 0,
-      subscribed: json['subscribed'] as int? ?? 0,
-      playable: json['playable'] as int? ?? 0,
-    );
-  }
+  factory MovieStatsDto.fromJson(Map<String, dynamic> json) =>
+      _$MovieStatsDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'total': total,
-      'subscribed': subscribed,
-      'playable': playable,
-    };
-  }
+  Map<String, dynamic> toJson() => _$MovieStatsDtoToJson(this);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class MediaFileStatsDto {
   const MediaFileStatsDto({required this.total, required this.totalSizeBytes});
 
   final int total;
   final int totalSizeBytes;
 
-  factory MediaFileStatsDto.fromJson(Map<String, dynamic> json) {
-    return MediaFileStatsDto(
-      total: json['total'] as int? ?? 0,
-      totalSizeBytes: json['total_size_bytes'] as int? ?? 0,
-    );
-  }
+  factory MediaFileStatsDto.fromJson(Map<String, dynamic> json) =>
+      _$MediaFileStatsDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'total': total,
-      'total_size_bytes': totalSizeBytes,
-    };
-  }
+  Map<String, dynamic> toJson() => _$MediaFileStatsDtoToJson(this);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class MediaLibraryStatsDto {
   const MediaLibraryStatsDto({required this.total});
 
   final int total;
 
-  factory MediaLibraryStatsDto.fromJson(Map<String, dynamic> json) {
-    return MediaLibraryStatsDto(total: json['total'] as int? ?? 0);
-  }
+  factory MediaLibraryStatsDto.fromJson(Map<String, dynamic> json) =>
+      _$MediaLibraryStatsDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{'total': total};
-  }
+  Map<String, dynamic> toJson() => _$MediaLibraryStatsDtoToJson(this);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class ThumbnailStatsDto {
   const ThumbnailStatsDto({
     required this.pendingMedia,
@@ -101,25 +78,13 @@ class ThumbnailStatsDto {
   final int terminalFailedMedia;
   final int total;
 
-  factory ThumbnailStatsDto.fromJson(Map<String, dynamic> json) {
-    return ThumbnailStatsDto(
-      pendingMedia: json['pending_media'] as int? ?? 0,
-      retryWaitMedia: json['retry_wait_media'] as int? ?? 0,
-      terminalFailedMedia: json['terminal_failed_media'] as int? ?? 0,
-      total: json['total'] as int? ?? 0,
-    );
-  }
+  factory ThumbnailStatsDto.fromJson(Map<String, dynamic> json) =>
+      _$ThumbnailStatsDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'pending_media': pendingMedia,
-      'retry_wait_media': retryWaitMedia,
-      'terminal_failed_media': terminalFailedMedia,
-      'total': total,
-    };
-  }
+  Map<String, dynamic> toJson() => _$ThumbnailStatsDtoToJson(this);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class ImageSearchEmbeddingServiceStatsDto {
   const ImageSearchEmbeddingServiceStatsDto({
     required this.healthy,
@@ -130,10 +95,13 @@ class ImageSearchEmbeddingServiceStatsDto {
     this.error,
   });
 
+  @JsonKey(fromJson: asBool)
   final bool healthy;
   final String? endpoint;
   final String? spaceId;
   final int? dimension;
+
+  @JsonKey(fromJson: _trimmedStringList)
   final List<String> modalities;
 
   /// 探测失败原因；healthy 为 true 时后端不返回。诊断页要用它给出可定位的文案。
@@ -141,29 +109,13 @@ class ImageSearchEmbeddingServiceStatsDto {
 
   factory ImageSearchEmbeddingServiceStatsDto.fromJson(
     Map<String, dynamic> json,
-  ) {
-    return ImageSearchEmbeddingServiceStatsDto(
-      healthy: _asBool(json['healthy']),
-      endpoint: json['endpoint'] as String?,
-      spaceId: json['space_id'] as String?,
-      dimension: (json['dimension'] as num?)?.toInt(),
-      modalities: asStringList(json['modalities'], trim: true),
-      error: json['error'] as String?,
-    );
-  }
+  ) => _$ImageSearchEmbeddingServiceStatsDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'healthy': healthy,
-      'endpoint': endpoint,
-      'space_id': spaceId,
-      'dimension': dimension,
-      'modalities': modalities,
-      'error': error,
-    };
-  }
+  Map<String, dynamic> toJson() =>
+      _$ImageSearchEmbeddingServiceStatsDtoToJson(this);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class ImageSearchIndexSpaceStatsDto {
   const ImageSearchIndexSpaceStatsDto({
     required this.state,
@@ -172,32 +124,23 @@ class ImageSearchIndexSpaceStatsDto {
     this.isRebuilding = false,
   });
 
+  @JsonKey(defaultValue: 'unknown')
   final String state;
   final String? indexedSpaceId;
   final String? currentSpaceId;
+
+  @JsonKey(fromJson: asBool)
   final bool isRebuilding;
 
   bool get requiresRebuild => state == 'rebuild_required';
 
-  factory ImageSearchIndexSpaceStatsDto.fromJson(Map<String, dynamic> json) {
-    return ImageSearchIndexSpaceStatsDto(
-      state: json['state'] as String? ?? 'unknown',
-      indexedSpaceId: json['indexed_space_id'] as String?,
-      currentSpaceId: json['current_space_id'] as String?,
-      isRebuilding: _asBool(json['is_rebuilding']),
-    );
-  }
+  factory ImageSearchIndexSpaceStatsDto.fromJson(Map<String, dynamic> json) =>
+      _$ImageSearchIndexSpaceStatsDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'state': state,
-      'indexed_space_id': indexedSpaceId,
-      'current_space_id': currentSpaceId,
-      'is_rebuilding': isRebuilding,
-    };
-  }
+  Map<String, dynamic> toJson() => _$ImageSearchIndexSpaceStatsDtoToJson(this);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class ImageSearchIndexingStatsDto {
   const ImageSearchIndexingStatsDto({
     required this.pendingThumbnails,
@@ -207,21 +150,13 @@ class ImageSearchIndexingStatsDto {
   final int pendingThumbnails;
   final int failedThumbnails;
 
-  factory ImageSearchIndexingStatsDto.fromJson(Map<String, dynamic> json) {
-    return ImageSearchIndexingStatsDto(
-      pendingThumbnails: asInt(json['pending_thumbnails']),
-      failedThumbnails: asInt(json['failed_thumbnails']),
-    );
-  }
+  factory ImageSearchIndexingStatsDto.fromJson(Map<String, dynamic> json) =>
+      _$ImageSearchIndexingStatsDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'pending_thumbnails': pendingThumbnails,
-      'failed_thumbnails': failedThumbnails,
-    };
-  }
+  Map<String, dynamic> toJson() => _$ImageSearchIndexingStatsDtoToJson(this);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class StatusImageSearchDto {
   const StatusImageSearchDto({
     this.enabled = true,
@@ -231,38 +166,27 @@ class StatusImageSearchDto {
     required this.indexSpace,
   });
 
+  @JsonKey(defaultValue: true)
   final bool enabled;
 
   /// 后端口径是嵌入服务与向量库（Qdrant）的 AND。向量库不单独做诊断项，
   /// 所以这里只透出聚合值，不解析 `image_search_vector_store` 节。
+  @JsonKey(fromJson: asBool)
   final bool healthy;
+
+  @JsonKey(fromJson: _embeddingServiceFromJson)
   final ImageSearchEmbeddingServiceStatsDto embeddingService;
+
+  @JsonKey(fromJson: _indexingStatsFromJson)
   final ImageSearchIndexingStatsDto indexing;
+
+  @JsonKey(fromJson: _indexSpaceStatsFromJson)
   final ImageSearchIndexSpaceStatsDto indexSpace;
 
-  factory StatusImageSearchDto.fromJson(Map<String, dynamic> json) {
-    return StatusImageSearchDto(
-      enabled: json['enabled'] as bool? ?? true,
-      healthy: _asBool(json['healthy']),
-      embeddingService: ImageSearchEmbeddingServiceStatsDto.fromJson(
-        asMap(json['embedding_service']),
-      ),
-      indexing: ImageSearchIndexingStatsDto.fromJson(asMap(json['indexing'])),
-      indexSpace: ImageSearchIndexSpaceStatsDto.fromJson(
-        asMap(json['index_space']),
-      ),
-    );
-  }
+  factory StatusImageSearchDto.fromJson(Map<String, dynamic> json) =>
+      _$StatusImageSearchDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'healthy': healthy,
-      'enabled': enabled,
-      'embedding_service': embeddingService.toJson(),
-      'indexing': indexing.toJson(),
-      'index_space': indexSpace.toJson(),
-    };
-  }
+  Map<String, dynamic> toJson() => _$StatusImageSearchDtoToJson(this);
 }
 
 /// 元数据源探测失败详情。
@@ -270,6 +194,7 @@ class StatusImageSearchDto {
 /// [type] 是后端 `StatusService.test_metadata_provider` 定义的**封闭枚举**，
 /// 只有三种取值（见 [MetadataProviderErrorType]）；诊断文案必须按它分派，
 /// 不要去猜 [message] 里的关键字——JavDB 的 message 是英文异常串，关键字匹配不可靠。
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class StatusMetadataProviderTestErrorDto {
   const StatusMetadataProviderTestErrorDto({
     required this.type,
@@ -293,27 +218,10 @@ class StatusMetadataProviderTestErrorDto {
 
   factory StatusMetadataProviderTestErrorDto.fromJson(
     Map<String, dynamic> json,
-  ) {
-    return StatusMetadataProviderTestErrorDto(
-      type: json['type'] as String? ?? '',
-      message: json['message'] as String? ?? '',
-      method: json['method'] as String?,
-      url: json['url'] as String?,
-      resource: json['resource'] as String?,
-      lookupValue: json['lookup_value'] as String?,
-    );
-  }
+  ) => _$StatusMetadataProviderTestErrorDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'type': type,
-      'message': message,
-      'method': method,
-      'url': url,
-      'resource': resource,
-      'lookup_value': lookupValue,
-    };
-  }
+  Map<String, dynamic> toJson() =>
+      _$StatusMetadataProviderTestErrorDtoToJson(this);
 }
 
 /// 后端 `StatusMetadataProviderTestError.type` 的全部取值。
@@ -328,6 +236,7 @@ abstract final class MetadataProviderErrorType {
   static const String unexpected = 'unexpected_error';
 }
 
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class StatusMetadataProviderTestDto {
   const StatusMetadataProviderTestDto({
     required this.healthy,
@@ -338,6 +247,7 @@ class StatusMetadataProviderTestDto {
     this.error,
   });
 
+  @JsonKey(fromJson: asBool)
   final bool healthy;
   final String provider;
 
@@ -346,35 +256,18 @@ class StatusMetadataProviderTestDto {
   final String movieNumber;
   final int elapsedMs;
   final DateTime? checkedAt;
+
+  @JsonKey(fromJson: _metadataErrorFromJson)
   final StatusMetadataProviderTestErrorDto? error;
 
-  factory StatusMetadataProviderTestDto.fromJson(Map<String, dynamic> json) {
-    final errorJson = asMapOrNull(json['error']);
-    return StatusMetadataProviderTestDto(
-      healthy: _asBool(json['healthy']),
-      provider: json['provider'] as String? ?? '',
-      movieNumber: json['movie_number'] as String? ?? '',
-      elapsedMs: asInt(json['elapsed_ms']),
-      checkedAt: asDateTime(json['checked_at']),
-      error: errorJson == null
-          ? null
-          : StatusMetadataProviderTestErrorDto.fromJson(errorJson),
-    );
-  }
+  factory StatusMetadataProviderTestDto.fromJson(Map<String, dynamic> json) =>
+      _$StatusMetadataProviderTestDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'healthy': healthy,
-      'provider': provider,
-      'movie_number': movieNumber,
-      'elapsed_ms': elapsedMs,
-      'checked_at': checkedAt?.toIso8601String(),
-      'error': error?.toJson(),
-    };
-  }
+  Map<String, dynamic> toJson() => _$StatusMetadataProviderTestDtoToJson(this);
 }
 
 /// 单个媒体库的用量；各库 [fileCount] 之和恒等于全局媒体文件总数。
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class MediaLibraryUsageDto {
   const MediaLibraryUsageDto({
     required this.libraryId,
@@ -400,52 +293,27 @@ class MediaLibraryUsageDto {
   final int? spaceUsedBytes;
   final int? spaceFreeBytes;
 
-  factory MediaLibraryUsageDto.fromJson(Map<String, dynamic> json) {
-    return MediaLibraryUsageDto(
-      libraryId: asInt(json['library_id']),
-      name: json['name'] as String? ?? '',
-      providerKey: json['provider_key'] as String? ?? '',
-      fileCount: asInt(json['file_count']),
-      totalSizeBytes: asInt(json['total_size_bytes']),
-      spaceTotalBytes: asIntOrNull(json['space_total_bytes']),
-      spaceUsedBytes: asIntOrNull(json['space_used_bytes']),
-      spaceFreeBytes: asIntOrNull(json['space_free_bytes']),
-    );
-  }
+  factory MediaLibraryUsageDto.fromJson(Map<String, dynamic> json) =>
+      _$MediaLibraryUsageDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'library_id': libraryId,
-      'name': name,
-      'provider_key': providerKey,
-      'file_count': fileCount,
-      'total_size_bytes': totalSizeBytes,
-      'space_total_bytes': spaceTotalBytes,
-      'space_used_bytes': spaceUsedBytes,
-      'space_free_bytes': spaceFreeBytes,
-    };
-  }
+  Map<String, dynamic> toJson() => _$MediaLibraryUsageDtoToJson(this);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class CollectionSummaryDto {
   const CollectionSummaryDto({this.count = 0, this.itemCount = 0});
 
   final int count;
   final int itemCount;
 
-  factory CollectionSummaryDto.fromJson(Map<String, dynamic> json) {
-    return CollectionSummaryDto(
-      count: asInt(json['count']),
-      itemCount: asInt(json['item_count']),
-    );
-  }
+  factory CollectionSummaryDto.fromJson(Map<String, dynamic> json) =>
+      _$CollectionSummaryDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{'count': count, 'item_count': itemCount};
-  }
+  Map<String, dynamic> toJson() => _$CollectionSummaryDtoToJson(this);
 }
 
 /// 用户创建的合集资产统计；`playlists` 不含系统「最近播放」列表。
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class CollectionsStatsDto {
   const CollectionsStatsDto({
     this.playlists = const CollectionSummaryDto(),
@@ -454,9 +322,16 @@ class CollectionsStatsDto {
     this.momentCollections = const CollectionSummaryDto(),
   });
 
+  @JsonKey(fromJson: _collectionSummaryFromJson)
   final CollectionSummaryDto playlists;
+
+  @JsonKey(fromJson: _collectionSummaryFromJson)
   final CollectionSummaryDto videoCollections;
+
+  @JsonKey(fromJson: _collectionSummaryFromJson)
   final CollectionSummaryDto clipCollections;
+
+  @JsonKey(fromJson: _collectionSummaryFromJson)
   final CollectionSummaryDto momentCollections;
 
   bool get isEmpty =>
@@ -465,34 +340,16 @@ class CollectionsStatsDto {
       clipCollections.count == 0 &&
       momentCollections.count == 0;
 
-  factory CollectionsStatsDto.fromJson(Map<String, dynamic> json) {
-    return CollectionsStatsDto(
-      playlists: CollectionSummaryDto.fromJson(asMap(json['playlists'])),
-      videoCollections: CollectionSummaryDto.fromJson(
-        asMap(json['video_collections']),
-      ),
-      clipCollections: CollectionSummaryDto.fromJson(
-        asMap(json['clip_collections']),
-      ),
-      momentCollections: CollectionSummaryDto.fromJson(
-        asMap(json['moment_collections']),
-      ),
-    );
-  }
+  factory CollectionsStatsDto.fromJson(Map<String, dynamic> json) =>
+      _$CollectionsStatsDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'playlists': playlists.toJson(),
-      'video_collections': videoCollections.toJson(),
-      'clip_collections': clipCollections.toJson(),
-      'moment_collections': momentCollections.toJson(),
-    };
-  }
+  Map<String, dynamic> toJson() => _$CollectionsStatsDtoToJson(this);
 }
 
 /// 下载任务状态分布（当前任务快照，非历史累计）。
 ///
 /// 六类互斥，合计恒等于 [total]；概览工作台只消费进行中与已导入的数量。
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class StatusDownloadTaskSummaryDto {
   const StatusDownloadTaskSummaryDto({
     this.downloading = 0,
@@ -512,31 +369,13 @@ class StatusDownloadTaskSummaryDto {
   final int downloadFailed;
   final int total;
 
-  factory StatusDownloadTaskSummaryDto.fromJson(Map<String, dynamic> json) {
-    return StatusDownloadTaskSummaryDto(
-      downloading: asInt(json['downloading']),
-      importing: asInt(json['importing']),
-      imported: asInt(json['imported']),
-      importFailed: asInt(json['import_failed']),
-      skipped: asInt(json['skipped']),
-      downloadFailed: asInt(json['download_failed']),
-      total: asInt(json['total']),
-    );
-  }
+  factory StatusDownloadTaskSummaryDto.fromJson(Map<String, dynamic> json) =>
+      _$StatusDownloadTaskSummaryDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'downloading': downloading,
-      'importing': importing,
-      'imported': imported,
-      'import_failed': importFailed,
-      'skipped': skipped,
-      'download_failed': downloadFailed,
-      'total': total,
-    };
-  }
+  Map<String, dynamic> toJson() => _$StatusDownloadTaskSummaryDtoToJson(this);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class StatusInsightsDto {
   const StatusInsightsDto({
     this.downloadTasks = const StatusDownloadTaskSummaryDto(),
@@ -544,47 +383,32 @@ class StatusInsightsDto {
     this.collections = const CollectionsStatsDto(),
   });
 
+  @JsonKey(fromJson: _downloadTaskSummaryFromJson)
   final StatusDownloadTaskSummaryDto downloadTasks;
+
+  @JsonKey(fromJson: _mediaLibrariesFromJson)
   final List<MediaLibraryUsageDto> mediaLibraries;
+
+  @JsonKey(fromJson: _collectionsStatsFromJson)
   final CollectionsStatsDto collections;
 
-  factory StatusInsightsDto.fromJson(Map<String, dynamic> json) {
-    final libraries = json['media_libraries'];
-    return StatusInsightsDto(
-      downloadTasks: StatusDownloadTaskSummaryDto.fromJson(
-        asMap(json['download_tasks']),
-      ),
-      mediaLibraries: libraries is List
-          ? libraries
-                .whereType<Map>()
-                .map(
-                  (item) => MediaLibraryUsageDto.fromJson(
-                    item.map((key, value) => MapEntry(key.toString(), value)),
-                  ),
-                )
-                .toList(growable: false)
-          : const <MediaLibraryUsageDto>[],
-      collections: CollectionsStatsDto.fromJson(asMap(json['collections'])),
-    );
-  }
+  factory StatusInsightsDto.fromJson(Map<String, dynamic> json) =>
+      _$StatusInsightsDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'download_tasks': downloadTasks.toJson(),
-      'media_libraries': mediaLibraries
-          .map((library) => library.toJson())
-          .toList(growable: false),
-      'collections': collections.toJson(),
-    };
-  }
+  Map<String, dynamic> toJson() => _$StatusInsightsDtoToJson(this);
 }
 
 /// 观看趋势时间窗口；粒度由后端随窗口推导（7d/30d/90d 按天，1y/all 按月）。
 enum WatchTrendRange {
+  @JsonValue('7d')
   last7Days('7d'),
+  @JsonValue('30d')
   last30Days('30d'),
+  @JsonValue('90d')
   last90Days('90d'),
+  @JsonValue('1y')
   lastYear('1y'),
+  @JsonValue('all')
   all('all');
 
   const WatchTrendRange(this.apiValue);
@@ -592,6 +416,7 @@ enum WatchTrendRange {
   final String apiValue;
 }
 
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class WatchTrendBucketDto {
   const WatchTrendBucketDto({required this.period, required this.count});
 
@@ -599,22 +424,17 @@ class WatchTrendBucketDto {
   final String period;
   final int count;
 
-  factory WatchTrendBucketDto.fromJson(Map<String, dynamic> json) {
-    return WatchTrendBucketDto(
-      period: json['period'] as String? ?? '',
-      count: asInt(json['count']),
-    );
-  }
+  factory WatchTrendBucketDto.fromJson(Map<String, dynamic> json) =>
+      _$WatchTrendBucketDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{'period': period, 'count': count};
-  }
+  Map<String, dynamic> toJson() => _$WatchTrendBucketDtoToJson(this);
 }
 
 /// 观看趋势。
 ///
 /// 数据源是「每个媒体最后一次观看时间」的分布，不是完整观看历史——
 /// 更早的记录已被覆盖，文案不要写成「观看历史」。
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class StatusWatchTrendDto {
   const StatusWatchTrendDto({
     required this.range,
@@ -623,47 +443,24 @@ class StatusWatchTrendDto {
     this.buckets = const <WatchTrendBucketDto>[],
   });
 
+  @JsonKey(unknownEnumValue: WatchTrendRange.last30Days)
   final WatchTrendRange range;
 
   /// `day` 或 `month`。
+  @JsonKey(defaultValue: 'day')
   final String granularity;
   final int watchedMovieCount;
+
+  @JsonKey(fromJson: _bucketsFromJson)
   final List<WatchTrendBucketDto> buckets;
 
-  factory StatusWatchTrendDto.fromJson(Map<String, dynamic> json) {
-    final buckets = json['buckets'];
-    return StatusWatchTrendDto(
-      range: WatchTrendRange.values.firstWhere(
-        (range) => range.apiValue == json['range'],
-        orElse: () => WatchTrendRange.last30Days,
-      ),
-      granularity: json['granularity'] as String? ?? 'day',
-      watchedMovieCount: asInt(json['watched_movie_count']),
-      buckets: buckets is List
-          ? buckets
-                .whereType<Map>()
-                .map(
-                  (item) => WatchTrendBucketDto.fromJson(
-                    item.map((key, value) => MapEntry(key.toString(), value)),
-                  ),
-                )
-                .toList(growable: false)
-          : const <WatchTrendBucketDto>[],
-    );
-  }
+  factory StatusWatchTrendDto.fromJson(Map<String, dynamic> json) =>
+      _$StatusWatchTrendDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'range': range.apiValue,
-      'granularity': granularity,
-      'watched_movie_count': watchedMovieCount,
-      'buckets': buckets
-          .map((bucket) => bucket.toJson())
-          .toList(growable: false),
-    };
-  }
+  Map<String, dynamic> toJson() => _$StatusWatchTrendDtoToJson(this);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class StatusDto {
   const StatusDto({
     required this.backendVersion,
@@ -675,37 +472,69 @@ class StatusDto {
   });
 
   final String backendVersion;
+
+  @JsonKey(fromJson: _actorStatsFromJson)
   final ActorStatsDto actors;
+
+  @JsonKey(fromJson: _movieStatsFromJson)
   final MovieStatsDto movies;
+
+  @JsonKey(fromJson: _mediaFileStatsFromJson)
   final MediaFileStatsDto mediaFiles;
+
+  @JsonKey(fromJson: _mediaLibraryStatsFromJson)
   final MediaLibraryStatsDto mediaLibraries;
+
+  @JsonKey(fromJson: _thumbnailStatsFromJson)
   final ThumbnailStatsDto thumbnails;
 
-  factory StatusDto.fromJson(Map<String, dynamic> json) {
-    return StatusDto(
-      backendVersion: json['backend_version'] as String? ?? '',
-      actors: ActorStatsDto.fromJson(asMap(json['actors'])),
-      movies: MovieStatsDto.fromJson(asMap(json['movies'])),
-      mediaFiles: MediaFileStatsDto.fromJson(asMap(json['media_files'])),
-      mediaLibraries: MediaLibraryStatsDto.fromJson(
-        asMap(json['media_libraries']),
-      ),
-      thumbnails: ThumbnailStatsDto.fromJson(asMap(json['thumbnails'])),
-    );
-  }
+  factory StatusDto.fromJson(Map<String, dynamic> json) =>
+      _$StatusDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'backend_version': backendVersion,
-      'actors': actors.toJson(),
-      'movies': movies.toJson(),
-      'media_files': mediaFiles.toJson(),
-      'media_libraries': mediaLibraries.toJson(),
-      'thumbnails': thumbnails.toJson(),
-    };
-  }
+  Map<String, dynamic> toJson() => _$StatusDtoToJson(this);
 }
 
-bool _asBool(dynamic value) {
-  return value is bool ? value : false;
-}
+List<String> _trimmedStringList(Object? value) =>
+    asStringList(value, trim: true);
+
+ImageSearchEmbeddingServiceStatsDto _embeddingServiceFromJson(Object? value) =>
+    asObject(value, ImageSearchEmbeddingServiceStatsDto.fromJson);
+
+ImageSearchIndexingStatsDto _indexingStatsFromJson(Object? value) =>
+    asObject(value, ImageSearchIndexingStatsDto.fromJson);
+
+ImageSearchIndexSpaceStatsDto _indexSpaceStatsFromJson(Object? value) =>
+    asObject(value, ImageSearchIndexSpaceStatsDto.fromJson);
+
+StatusMetadataProviderTestErrorDto? _metadataErrorFromJson(Object? value) =>
+    asObjectOrNull(value, StatusMetadataProviderTestErrorDto.fromJson);
+
+CollectionSummaryDto _collectionSummaryFromJson(Object? value) =>
+    asObject(value, CollectionSummaryDto.fromJson);
+
+StatusDownloadTaskSummaryDto _downloadTaskSummaryFromJson(Object? value) =>
+    asObject(value, StatusDownloadTaskSummaryDto.fromJson);
+
+List<MediaLibraryUsageDto> _mediaLibrariesFromJson(Object? value) =>
+    asObjectList(value, MediaLibraryUsageDto.fromJson);
+
+CollectionsStatsDto _collectionsStatsFromJson(Object? value) =>
+    asObject(value, CollectionsStatsDto.fromJson);
+
+List<WatchTrendBucketDto> _bucketsFromJson(Object? value) =>
+    asObjectList(value, WatchTrendBucketDto.fromJson);
+
+ActorStatsDto _actorStatsFromJson(Object? value) =>
+    asObject(value, ActorStatsDto.fromJson);
+
+MovieStatsDto _movieStatsFromJson(Object? value) =>
+    asObject(value, MovieStatsDto.fromJson);
+
+MediaFileStatsDto _mediaFileStatsFromJson(Object? value) =>
+    asObject(value, MediaFileStatsDto.fromJson);
+
+MediaLibraryStatsDto _mediaLibraryStatsFromJson(Object? value) =>
+    asObject(value, MediaLibraryStatsDto.fromJson);
+
+ThumbnailStatsDto _thumbnailStatsFromJson(Object? value) =>
+    asObject(value, ThumbnailStatsDto.fromJson);

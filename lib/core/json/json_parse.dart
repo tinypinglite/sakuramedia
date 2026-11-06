@@ -33,6 +33,9 @@ double? asDoubleOrNull(dynamic value) {
   return null;
 }
 
+/// 宽松转 `bool`：非 bool 返回 `false`。
+bool asBool(dynamic value) => value is bool ? value : false;
+
 /// 解析 ISO-8601 时间字符串；非字符串或 trim 后为空时返回 `null`。
 DateTime? asDateTime(dynamic value) {
   if (value is! String || value.trim().isEmpty) {
@@ -70,6 +73,37 @@ Map<String, dynamic>? asMapOrNull(dynamic value) {
 /// 同 [asMapOrNull]，但非 Map 时返回空 Map（用于「必有对象」字段的兜底）。
 Map<String, dynamic> asMap(dynamic value) =>
     asMapOrNull(value) ?? <String, dynamic>{};
+
+/// 解析对象数组；非 List 返回空列表，非 Map 元素跳过。
+List<T> asObjectList<T>(
+  dynamic value,
+  T Function(Map<String, dynamic> json) fromJson,
+) {
+  if (value is! List) {
+    return <T>[];
+  }
+  final result = <T>[];
+  for (final item in value) {
+    final map = asMapOrNull(item);
+    if (map != null) {
+      result.add(fromJson(map));
+    }
+  }
+  return List<T>.of(result, growable: false);
+}
+
+/// 解析可空对象；非 Map 返回 null。
+T? asObjectOrNull<T>(
+  dynamic value,
+  T Function(Map<String, dynamic> json) fromJson,
+) {
+  final map = asMapOrNull(value);
+  return map == null ? null : fromJson(map);
+}
+
+/// 解析必有对象；非 Map 视为空对象。
+T asObject<T>(dynamic value, T Function(Map<String, dynamic> json) fromJson) =>
+    fromJson(asMap(value));
 
 /// 宽松转 `List<String>`：非 List 返回空列表；只保留可转成字符串的项。
 ///

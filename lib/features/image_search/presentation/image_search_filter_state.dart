@@ -74,17 +74,12 @@ class ImageSearchFilterState {
     ImageSearchCurrentMovieScope? currentMovieScope,
     ImageSearchActorFilterMode? actorFilterMode,
     List<ActorListItemDto>? selectedActors,
-    double? scoreThreshold,
-    bool clearScoreThreshold = false,
   }) {
     return ImageSearchFilterState(
       searchTarget: searchTarget ?? this.searchTarget,
       currentMovieScope: currentMovieScope ?? this.currentMovieScope,
       actorFilterMode: actorFilterMode ?? this.actorFilterMode,
       selectedActors: selectedActors ?? this.selectedActors,
-      scoreThreshold: clearScoreThreshold
-          ? null
-          : scoreThreshold ?? this.scoreThreshold,
     );
   }
 }

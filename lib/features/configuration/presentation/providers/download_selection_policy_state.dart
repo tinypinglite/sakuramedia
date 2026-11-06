@@ -33,7 +33,6 @@ class DownloadSelectionPolicyState {
       saved.rules.semanticFingerprint != draft.semanticFingerprint;
 
   DownloadSelectionPolicyState copyWith({
-    DownloadSelectionPolicyDto? saved,
     DownloadSelectionRulesDto? draft,
     bool? isSaving,
     bool? hasVersionConflict,
@@ -43,7 +42,7 @@ class DownloadSelectionPolicyState {
     Object? previewMovieNumber = _sentinel,
   }) {
     return DownloadSelectionPolicyState(
-      saved: saved ?? this.saved,
+      saved: saved,
       draft: draft ?? this.draft,
       isSaving: isSaving ?? this.isSaving,
       hasVersionConflict: hasVersionConflict ?? this.hasVersionConflict,

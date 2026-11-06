@@ -79,6 +79,8 @@ dependencies:
   upnp_client: ^1.5.0
   url_launcher: ^6.3.3
   flutter_inappwebview: 6.2.0-beta.3
+  json_annotation: ^4.12.0
+  copy_with_extension: ^18.0.0
 
 dev_dependencies:
   flutter_test:
@@ -90,6 +92,8 @@ dev_dependencies:
   riverpod_generator: 4.0.9
   # 投屏测试需要直接解析 UPnP 设备描述 XML。
   xml: ^7.0.0
+  json_serializable: ^6.15.2
+  copy_with_extension_gen: ^18.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

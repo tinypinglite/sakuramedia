@@ -8,27 +8,27 @@ part of 'media_browse_provider.dart';
 
 // GENERATED CODE - DO NOT MODIFY BY HAND
 // ignore_for_file: type=lint, type=warning
-/// 「媒体管理」列表控制器（Riverpod）：分页拉取全局 `/media`，持有筛选与多选。
+/// 「媒体管理」列表控制器（Riverpod）：分页拉取全局 `/media`，持有筛选。
 ///
 /// 筛选状态遵循项目主流约定：值对象 [MediaBrowseFilterState] 由 State 持有，
 /// `fetchPage` 从共享筛选 mixin 的 [activeFilter] 读取参数；UI 改筛选时先同步
-/// 写入 State 并清多选，再防抖刷新第一页。
+/// 写入 State 并退出多选，再防抖刷新第一页。
 
 @ProviderFor(MediaBrowse)
 final mediaBrowseProvider = MediaBrowseProvider._();
 
-/// 「媒体管理」列表控制器（Riverpod）：分页拉取全局 `/media`，持有筛选与多选。
+/// 「媒体管理」列表控制器（Riverpod）：分页拉取全局 `/media`，持有筛选。
 ///
 /// 筛选状态遵循项目主流约定：值对象 [MediaBrowseFilterState] 由 State 持有，
 /// `fetchPage` 从共享筛选 mixin 的 [activeFilter] 读取参数；UI 改筛选时先同步
-/// 写入 State 并清多选，再防抖刷新第一页。
+/// 写入 State 并退出多选，再防抖刷新第一页。
 final class MediaBrowseProvider
     extends $AsyncNotifierProvider<MediaBrowse, MediaBrowseState> {
-  /// 「媒体管理」列表控制器（Riverpod）：分页拉取全局 `/media`，持有筛选与多选。
+  /// 「媒体管理」列表控制器（Riverpod）：分页拉取全局 `/media`，持有筛选。
   ///
   /// 筛选状态遵循项目主流约定：值对象 [MediaBrowseFilterState] 由 State 持有，
   /// `fetchPage` 从共享筛选 mixin 的 [activeFilter] 读取参数；UI 改筛选时先同步
-  /// 写入 State 并清多选，再防抖刷新第一页。
+  /// 写入 State 并退出多选，再防抖刷新第一页。
   MediaBrowseProvider._()
     : super(
         from: null,
@@ -48,13 +48,13 @@ final class MediaBrowseProvider
   MediaBrowse create() => MediaBrowse();
 }
 
-String _$mediaBrowseHash() => r'f6638b901a4392e607c8d42ade763ded8f701c97';
+String _$mediaBrowseHash() => r'2f8d14322477fbb0e8660678d784bf8ef60d1ced';
 
-/// 「媒体管理」列表控制器（Riverpod）：分页拉取全局 `/media`，持有筛选与多选。
+/// 「媒体管理」列表控制器（Riverpod）：分页拉取全局 `/media`，持有筛选。
 ///
 /// 筛选状态遵循项目主流约定：值对象 [MediaBrowseFilterState] 由 State 持有，
 /// `fetchPage` 从共享筛选 mixin 的 [activeFilter] 读取参数；UI 改筛选时先同步
-/// 写入 State 并清多选，再防抖刷新第一页。
+/// 写入 State 并退出多选，再防抖刷新第一页。
 
 abstract class _$MediaBrowse extends $AsyncNotifier<MediaBrowseState> {
   FutureOr<MediaBrowseState> build();

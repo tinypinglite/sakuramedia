@@ -1,21 +1,22 @@
+import 'package:json_annotation/json_annotation.dart';
+import 'package:sakuramedia/core/json/dto_json_codec.dart';
 import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
+
+part 'video_item_list_item_dto.g.dart';
 
 /// 视频归属合集的精简引用（后端 `VideoCollectionRef`）：仅承载 [id]/[name]
 /// 用于列表/详情侧显式展示"所属合集"，避免复用 [VideoCollectionDto] 时把
 /// item_count / cover_image 等无关字段带过来（后端也不下发这些）。
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class VideoCollectionRef {
   const VideoCollectionRef({required this.id, required this.name});
 
   final int id;
   final String name;
 
-  factory VideoCollectionRef.fromJson(Map<String, dynamic> json) {
-    return VideoCollectionRef(
-      id: asIntOrNull(json['id']) ?? 0,
-      name: asStringOrNull(json['name']) ?? '',
-    );
-  }
+  factory VideoCollectionRef.fromJson(Map<String, dynamic> json) =>
+      _$VideoCollectionRefFromJson(json);
 }
 
 /// 解析后端 `collections` 字段：非 List / 空列表 → `const []`；元素非 Map 或 id ≤ 0 时跳过。
@@ -42,6 +43,7 @@ List<VideoCollectionRef> videoCollectionRefsFromJson(dynamic value) {
 ///
 /// 与 [MovieListItemDto] 平行，但裁掉番号/订阅等 JAV 专属概念，主键为 [id]。
 /// 封面复用影片图片结构 [MovieImageDto]。
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class VideoItemListItemDto {
   const VideoItemListItemDto({
     required this.id,
@@ -63,7 +65,10 @@ class VideoItemListItemDto {
   final int id;
   final String title;
   final String summary;
+
+  @JsonKey(fromJson: videoImageFromJson)
   final MovieImageDto? coverImage;
+
   final DateTime? releaseDate;
 
   /// 时长（秒）/文件大小（字节）：取条目第一条媒体，无媒体时为 0。供时长/大小排序与展示。
@@ -78,6 +83,7 @@ class VideoItemListItemDto {
   final bool canPlay;
 
   /// 该视频归属的全部合集（0..N），后端按合集名升序返回。列表/详情共享。
+  @JsonKey(fromJson: videoCollectionRefsFromJson)
   final List<VideoCollectionRef> collections;
 
   final DateTime? createdAt;
@@ -87,24 +93,8 @@ class VideoItemListItemDto {
   /// （见 `videoDisplayTitle`），数据层不持有用户可见文案。
   String get preferredTitle => title.trim();
 
-  factory VideoItemListItemDto.fromJson(Map<String, dynamic> json) {
-    return VideoItemListItemDto(
-      id: asIntOrNull(json['id']) ?? 0,
-      title: json['title'] as String? ?? '',
-      summary: json['summary'] as String? ?? '',
-      coverImage: videoImageFromJson(json['cover_image']),
-      releaseDate: videoDateFromJson(json['release_date']),
-      durationSeconds: asIntOrNull(json['duration_seconds']) ?? 0,
-      fileSizeBytes: asIntOrNull(json['file_size_bytes']) ?? 0,
-      coverWidth: asIntOrNull(json['cover_width']),
-      coverHeight: asIntOrNull(json['cover_height']),
-      mediaCount: asIntOrNull(json['media_count']) ?? 0,
-      canPlay: json['can_play'] as bool? ?? false,
-      collections: videoCollectionRefsFromJson(json['collections']),
-      createdAt: videoDateFromJson(json['created_at']),
-      updatedAt: videoDateFromJson(json['updated_at']),
-    );
-  }
+  factory VideoItemListItemDto.fromJson(Map<String, dynamic> json) =>
+      _$VideoItemListItemDtoFromJson(json);
 }
 
 /// 解析复用影片图片结构的封面/头像字段，容忍 `Map`/`Map<String, dynamic>` 两种形态。
@@ -118,11 +108,4 @@ MovieImageDto? videoImageFromJson(dynamic value) {
     );
   }
   return null;
-}
-
-DateTime? videoDateFromJson(dynamic value) {
-  if (value is! String || value.isEmpty) {
-    return null;
-  }
-  return DateTime.tryParse(value);
 }

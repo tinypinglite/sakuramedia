@@ -21,12 +21,11 @@ class IndexerSettingsState {
       !listEquals(saved.indexers, draft.indexers);
 
   IndexerSettingsState copyWith({
-    IndexerSettingsDto? saved,
     IndexerSettingsDto? draft,
     bool? isSaving,
   }) {
     return IndexerSettingsState(
-      saved: saved ?? this.saved,
+      saved: saved,
       draft: draft ?? this.draft,
       isSaving: isSaving ?? this.isSaving,
     );

@@ -200,7 +200,7 @@ Future<void> blacklistMovie({
 /// 影片卡悬停动作行里「标记合集/单体 + 屏蔽」两个回调的默认接线。
 ///
 /// 各列表页把它直接传给 `MovieSummarySliver` / `RankedMovieSummarySliver` /
-/// `CatalogSearchContent` 的悬停回调；
+/// 搜索结果页的悬停回调；
 /// [onBlacklisted] 由页面提供（通常把该影片从当前列表移除）。
 typedef MovieCardHoverFeatureActions = ({
   ValueChanged<MovieListItemDto> toggleCollectionType,

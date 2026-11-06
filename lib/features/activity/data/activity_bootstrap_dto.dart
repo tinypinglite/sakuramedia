@@ -1,8 +1,13 @@
+import 'package:json_annotation/json_annotation.dart';
+import 'package:sakuramedia/core/json/dto_json_codec.dart';
 import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/activity/data/activity_notification_dto.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 
+part 'activity_bootstrap_dto.g.dart';
+
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class ActivityBootstrapDto {
   const ActivityBootstrapDto({
     required this.notifications,
@@ -11,39 +16,33 @@ class ActivityBootstrapDto {
     required this.taskRuns,
   });
 
+  @JsonKey(fromJson: _notificationsFromJson)
   final PaginatedResponseDto<ActivityNotificationDto> notifications;
+
   final int unreadCount;
+
+  @JsonKey(fromJson: _activeTaskRunsFromJson)
   final List<TaskRunDto> activeTaskRuns;
+
+  @JsonKey(fromJson: _taskRunsFromJson)
   final PaginatedResponseDto<TaskRunDto> taskRuns;
 
-  factory ActivityBootstrapDto.fromJson(Map<String, dynamic> json) {
-    final activeTaskRunsJson = json['active_task_runs'];
-    final activeTaskRuns =
-        activeTaskRunsJson is List
-            ? activeTaskRunsJson
-                .whereType<Map>()
-                .map(
-                  (item) => TaskRunDto.fromJson(
-                    item.map(
-                      (dynamic key, dynamic value) =>
-                          MapEntry(key.toString(), value),
-                    ),
-                  ),
-                )
-                .toList(growable: false)
-            : const <TaskRunDto>[];
-
-    return ActivityBootstrapDto(
-      notifications: PaginatedResponseDto<ActivityNotificationDto>.fromJson(
-        asMap(json['notifications']),
-        ActivityNotificationDto.fromJson,
-      ),
-      unreadCount: asInt(json['unread_count']),
-      activeTaskRuns: activeTaskRuns,
-      taskRuns: PaginatedResponseDto<TaskRunDto>.fromJson(
-        asMap(json['task_runs']),
-        TaskRunDto.fromJson,
-      ),
-    );
-  }
+  factory ActivityBootstrapDto.fromJson(Map<String, dynamic> json) =>
+      _$ActivityBootstrapDtoFromJson(json);
 }
+
+PaginatedResponseDto<ActivityNotificationDto> _notificationsFromJson(
+  Object? value,
+) => PaginatedResponseDto<ActivityNotificationDto>.fromJson(
+  asMap(value),
+  ActivityNotificationDto.fromJson,
+);
+
+PaginatedResponseDto<TaskRunDto> _taskRunsFromJson(Object? value) =>
+    PaginatedResponseDto<TaskRunDto>.fromJson(
+      asMap(value),
+      TaskRunDto.fromJson,
+    );
+
+List<TaskRunDto> _activeTaskRunsFromJson(Object? value) =>
+    asObjectList(value, TaskRunDto.fromJson);

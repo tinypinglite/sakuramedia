@@ -362,30 +362,18 @@ class MovieSubscriptionManager extends _$MovieSubscriptionManager
     final current = state.value;
     if (current == null || movieNumbers.isEmpty) return;
 
-    final nextItems = current.paged.items
-        .where((item) => !movieNumbers.contains(item.movieNumber))
-        .toList(growable: false);
-    final removedCount = current.paged.items.length - nextItems.length;
-
     final nextPending = Set<String>.of(current.pendingMovieNumbers)
       ..removeAll(movieNumbers);
-
-    if (removedCount <= 0) {
+    final nextPaged = current.paged.removeWhere(
+      (item) => movieNumbers.contains(item.movieNumber),
+    );
+    if (identical(nextPaged, current.paged)) {
       state = AsyncData(current.copyWith(pendingMovieNumbers: nextPending));
       return;
     }
-
-    final nextTotal = (current.paged.total - removedCount).clamp(
-      0,
-      current.paged.total,
-    );
     state = AsyncData(
       current.copyWith(
-        paged: current.paged.copyWith(
-          items: List<MovieSubscriptionListItemDto>.unmodifiable(nextItems),
-          total: nextTotal,
-          hasMore: nextItems.length < nextTotal,
-        ),
+        paged: nextPaged,
         pendingMovieNumbers: nextPending,
       ),
     );

@@ -1,10 +1,15 @@
+import 'package:json_annotation/json_annotation.dart';
+import 'package:sakuramedia/core/json/dto_json_codec.dart';
 import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 
+part 'video_collection_dto.g.dart';
+
 /// 视频合集资源（`VideoCollectionResource`）。成员顺序见 [VideoCollectionItemDto]。
 ///
 /// - `coverImage`：取按顺序排在最前的视频封面；空合集或来源缺失时为 `null`。
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class VideoCollectionDto {
   const VideoCollectionDto({
     required this.id,
@@ -20,33 +25,15 @@ class VideoCollectionDto {
   final String name;
   final String description;
   final int itemCount;
+
+  @JsonKey(fromJson: videoImageFromJson)
   final MovieImageDto? coverImage;
+
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
-  factory VideoCollectionDto.fromJson(Map<String, dynamic> json) {
-    return VideoCollectionDto(
-      id: _intFromJson(json['id']) ?? 0,
-      name: json['name'] as String? ?? '',
-      description: json['description'] as String? ?? '',
-      itemCount: _intFromJson(json['item_count']) ?? 0,
-      coverImage: _coverImageFromJson(json['cover_image']),
-      createdAt: videoDateFromJson(json['created_at']),
-      updatedAt: videoDateFromJson(json['updated_at']),
-    );
-  }
-}
-
-MovieImageDto? _coverImageFromJson(dynamic value) {
-  if (value is Map<String, dynamic>) {
-    return MovieImageDto.fromJson(value);
-  }
-  if (value is Map) {
-    return MovieImageDto.fromJson(
-      value.map((dynamic key, dynamic data) => MapEntry(key.toString(), data)),
-    );
-  }
-  return null;
+  factory VideoCollectionDto.fromJson(Map<String, dynamic> json) =>
+      _$VideoCollectionDtoFromJson(json);
 }
 
 /// 视频合集成员项（`VideoCollectionItemResource`）：含排序位 [position] 与内嵌视频概要。
@@ -57,6 +44,7 @@ MovieImageDto? _coverImageFromJson(dynamic value) {
 /// [firstMediaId]：「首个媒体」（Media.id 升序）的 id，与 [playUrl] 同源但**恒返回**
 /// （不依赖 `include_play_url`），成员无媒体时为 `null`。连播页右侧「整部合集」关键帧
 /// 面板据此调 `GET /media/{id}/thumbnails` 拉该集关键帧。
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class VideoCollectionItemDto {
   const VideoCollectionItemDto({
     required this.position,
@@ -66,26 +54,21 @@ class VideoCollectionItemDto {
   });
 
   final int position;
+
+  @JsonKey(fromJson: _videoFromJson)
   final VideoItemListItemDto video;
+
+  @JsonKey(fromJson: asStringOrNull)
   final String? playUrl;
+
   final int? firstMediaId;
 
-  factory VideoCollectionItemDto.fromJson(Map<String, dynamic> json) {
-    final rawVideo = json['video'];
-    final videoMap =
-        rawVideo is Map
-            ? rawVideo.map(
-              (dynamic key, dynamic value) => MapEntry(key.toString(), value),
-            )
-            : <String, dynamic>{};
-    return VideoCollectionItemDto(
-      position: _intFromJson(json['position']) ?? 0,
-      video: VideoItemListItemDto.fromJson(videoMap),
-      playUrl: asStringOrNull(json['play_url']),
-      firstMediaId: _intFromJson(json['first_media_id']),
-    );
-  }
+  factory VideoCollectionItemDto.fromJson(Map<String, dynamic> json) =>
+      _$VideoCollectionItemDtoFromJson(json);
 }
+
+VideoItemListItemDto _videoFromJson(Object? value) =>
+    VideoItemListItemDto.fromJson(asMap(value));
 
 /// `PATCH /video-collections/{id}` 的局部更新载荷；字段为 `null` 即不下发。
 class VideoCollectionUpdatePayload {
@@ -100,17 +83,4 @@ class VideoCollectionUpdatePayload {
       if (description != null) 'description': description,
     };
   }
-}
-
-int? _intFromJson(dynamic value) {
-  if (value is int) {
-    return value;
-  }
-  if (value is num) {
-    return value.toInt();
-  }
-  if (value is String) {
-    return int.tryParse(value);
-  }
-  return null;
 }

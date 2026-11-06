@@ -14,6 +14,19 @@ class MovieImageDto {
   }
 }
 
+/// 解析图片对象；容忍 `Map` 与 `Map<String, dynamic>`，非对象返回 null。
+MovieImageDto? movieImageFromJson(dynamic value) {
+  if (value is Map<String, dynamic>) {
+    return MovieImageDto.fromJson(value);
+  }
+  if (value is Map) {
+    return MovieImageDto.fromJson(
+      value.map((dynamic key, dynamic data) => MapEntry(key.toString(), data)),
+    );
+  }
+  return null;
+}
+
 /// 「主封面 + 窄封面」两图选择逻辑：列表行卡在桌面用宽图、移动用窄图；
 /// 用图与框方向一致才裁切（`cover`），回退到另一方向的图时居中留边（`contain`）。
 ///

@@ -49,7 +49,7 @@ class ActorDetail extends _$ActorDetail {
     if (!ref.mounted) {
       return;
     }
-    state = AsyncData(current!.copyWith(actor: actor, errorMessage: null));
+    state = AsyncData(ActorDetailState(actor: actor));
   }
 
   /// 页面手势刷新（下拉 / 顶栏）成功后显式调用，计入一次浏览。

@@ -45,12 +45,11 @@ class PluginMarketState {
   }
 
   PluginMarketState copyWith({
-    PluginMarketCatalogDto? catalog,
     Set<String>? busyPluginIds,
     String? keyword,
   }) {
     return PluginMarketState(
-      catalog: catalog ?? this.catalog,
+      catalog: catalog,
       busyPluginIds: busyPluginIds ?? this.busyPluginIds,
       keyword: keyword ?? this.keyword,
     );

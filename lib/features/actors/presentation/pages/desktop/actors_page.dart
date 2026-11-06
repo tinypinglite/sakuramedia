@@ -15,7 +15,6 @@ import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
-import 'package:sakuramedia/widgets/domain/actors/actor_filter_sections.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_list_search_field.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_sort_menu_button.dart';
 

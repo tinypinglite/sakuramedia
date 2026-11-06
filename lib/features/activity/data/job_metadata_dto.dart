@@ -1,6 +1,11 @@
+import 'package:json_annotation/json_annotation.dart';
+import 'package:sakuramedia/core/json/dto_json_codec.dart';
 import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 
+part 'job_metadata_dto.g.dart';
+
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class JobMetadataDto {
   const JobMetadataDto({
     required this.taskKey,
@@ -25,7 +30,10 @@ class JobMetadataDto {
   final String cronExpr;
   final bool manualTriggerAllowed;
   final String? disabledReason;
+  @JsonKey(fromJson: asMapOrNull)
   final Map<String, dynamic>? paramsSchema;
+
+  @JsonKey(fromJson: _taskRunFromJson)
   final TaskRunDto? lastTaskRun;
 
   /// 配置了定时表达式即为自动任务（会被调度器按计划触发）。
@@ -34,26 +42,14 @@ class JobMetadataDto {
   /// 最近一次运行失败，或完成带警告。
   bool get needsAttention => lastTaskRun?.needsAttention ?? false;
 
-  factory JobMetadataDto.fromJson(Map<String, dynamic> json) {
-    final lastTaskRunJson = asMapOrNull(json['last_task_run']);
-    return JobMetadataDto(
-      taskKey: json['task_key'] as String? ?? '',
-      pluginId: json['plugin_id'] as String?,
-      logName: json['log_name'] as String? ?? '',
-      cliName: json['cli_name'] as String? ?? '',
-      cliHelp: json['cli_help'] as String? ?? '',
-      cronSetting: json['cron_setting'] as String? ?? '',
-      cronExpr: json['cron_expr'] as String? ?? '',
-      manualTriggerAllowed: json['manual_trigger_allowed'] as bool? ?? false,
-      disabledReason: json['disabled_reason'] as String?,
-      paramsSchema: asMapOrNull(json['params_schema']),
-      lastTaskRun: lastTaskRunJson == null
-          ? null
-          : TaskRunDto.fromJson(lastTaskRunJson),
-    );
-  }
+  factory JobMetadataDto.fromJson(Map<String, dynamic> json) =>
+      _$JobMetadataDtoFromJson(json);
 }
 
+TaskRunDto? _taskRunFromJson(Object? value) =>
+    asObjectOrNull(value, TaskRunDto.fromJson);
+
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class ManualJobTriggerResponseDto {
   const ManualJobTriggerResponseDto({
     required this.taskRunId,
@@ -65,11 +61,6 @@ class ManualJobTriggerResponseDto {
   final String taskKey;
   final String state;
 
-  factory ManualJobTriggerResponseDto.fromJson(Map<String, dynamic> json) {
-    return ManualJobTriggerResponseDto(
-      taskRunId: asInt(json['task_run_id']),
-      taskKey: json['task_key'] as String? ?? '',
-      state: json['state'] as String? ?? '',
-    );
-  }
+  factory ManualJobTriggerResponseDto.fromJson(Map<String, dynamic> json) =>
+      _$ManualJobTriggerResponseDtoFromJson(json);
 }

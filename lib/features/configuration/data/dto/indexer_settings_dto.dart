@@ -1,20 +1,21 @@
+import 'package:json_annotation/json_annotation.dart';
+import 'package:sakuramedia/core/json/dto_json_codec.dart';
+import 'package:sakuramedia/core/json/json_parse.dart';
+
+part 'indexer_settings_dto.g.dart';
+
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class IndexerBoundClientDto {
-  const IndexerBoundClientDto({
-    required this.id,
-    required this.name,
-  });
+  const IndexerBoundClientDto({required this.id, required this.name});
 
   final int id;
   final String name;
 
-  factory IndexerBoundClientDto.fromJson(Map<String, dynamic> json) {
-    return IndexerBoundClientDto(
-      id: json['id'] as int? ?? 0,
-      name: json['name'] as String? ?? '',
-    );
-  }
+  factory IndexerBoundClientDto.fromJson(Map<String, dynamic> json) =>
+      _$IndexerBoundClientDtoFromJson(json);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class IndexerEntryDto {
   const IndexerEntryDto({
     required this.id,
@@ -32,6 +33,7 @@ class IndexerEntryDto {
 
   /// 每个索引器独立的 Torznab 鉴权 key；为空表示请求不携带 apikey。
   final String? apiKey;
+  @JsonKey(fromJson: _boundClientsFromJson)
   final List<IndexerBoundClientDto> downloadClients;
 
   bool get hasApiKey => apiKey?.trim().isNotEmpty ?? false;
@@ -42,16 +44,8 @@ class IndexerEntryDto {
   String get downloadClientNames =>
       downloadClients.map((client) => client.name).join('、');
 
-  factory IndexerEntryDto.fromJson(Map<String, dynamic> json) {
-    return IndexerEntryDto(
-      id: json['id'] as int? ?? 0,
-      name: json['name'] as String? ?? '',
-      url: json['url'] as String? ?? '',
-      kind: json['kind'] as String? ?? '',
-      apiKey: json['api_key'] as String?,
-      downloadClients: _parseBoundClients(json['download_clients']),
-    );
-  }
+  factory IndexerEntryDto.fromJson(Map<String, dynamic> json) =>
+      _$IndexerEntryDtoFromJson(json);
 
   Map<String, dynamic> toJson() {
     final key = apiKey?.trim() ?? '';
@@ -63,64 +57,31 @@ class IndexerEntryDto {
       'download_client_ids': downloadClientIds,
     };
   }
-
-  static List<IndexerBoundClientDto> _parseBoundClients(dynamic value) {
-    if (value is! List) return const <IndexerBoundClientDto>[];
-    return value
-        .whereType<Map>()
-        .map(
-          (item) => IndexerBoundClientDto.fromJson(
-            item.map(
-              (dynamic key, dynamic value) => MapEntry(key.toString(), value),
-            ),
-          ),
-        )
-        .toList(growable: false);
-  }
 }
 
+@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
 class IndexerSettingsDto {
   const IndexerSettingsDto({required this.indexers});
 
+  @JsonKey(fromJson: _indexersFromJson)
   final List<IndexerEntryDto> indexers;
 
-  factory IndexerSettingsDto.fromJson(Map<String, dynamic> json) {
-    final rawIndexers = json['indexers'];
-    final indexers = rawIndexers is List
-        ? rawIndexers
-              .whereType<Map>()
-              .map(
-                (entry) => IndexerEntryDto.fromJson(
-                  entry.map(
-                    (dynamic key, dynamic value) =>
-                        MapEntry(key.toString(), value),
-                  ),
-                ),
-              )
-              .toList(growable: false)
-        : const <IndexerEntryDto>[];
-    return IndexerSettingsDto(indexers: indexers);
-  }
+  factory IndexerSettingsDto.fromJson(Map<String, dynamic> json) =>
+      _$IndexerSettingsDtoFromJson(json);
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'indexers': indexers.map((item) => item.toJson()).toList(growable: false),
-    };
-  }
+  Map<String, dynamic> toJson() => _$IndexerSettingsDtoToJson(this);
 }
 
+@JsonSerializable(explicitToJson: true, createFactory: false)
 class UpdateIndexerSettingsPayload {
   const UpdateIndexerSettingsPayload({required this.indexers});
 
   final List<IndexerEntryDto> indexers;
 
-  Map<String, dynamic> toJson() {
-    return <String, dynamic>{
-      'indexers': indexers.map((item) => item.toJson()).toList(growable: false),
-    };
-  }
+  Map<String, dynamic> toJson() => _$UpdateIndexerSettingsPayloadToJson(this);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class IndexerConnectionTestErrorDto {
   const IndexerConnectionTestErrorDto({
     required this.type,
@@ -130,14 +91,11 @@ class IndexerConnectionTestErrorDto {
   final String type;
   final String message;
 
-  factory IndexerConnectionTestErrorDto.fromJson(Map<String, dynamic> json) {
-    return IndexerConnectionTestErrorDto(
-      type: json['type'] as String? ?? '',
-      message: json['message'] as String? ?? '',
-    );
-  }
+  factory IndexerConnectionTestErrorDto.fromJson(Map<String, dynamic> json) =>
+      _$IndexerConnectionTestErrorDtoFromJson(json);
 }
 
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class IndexerConnectionTestResultDto {
   const IndexerConnectionTestResultDto({
     required this.healthy,
@@ -155,25 +113,18 @@ class IndexerConnectionTestResultDto {
   final int indexersChecked;
   final int resultCount;
   final int elapsedMs;
+  @JsonKey(fromJson: _testErrorFromJson)
   final IndexerConnectionTestErrorDto? error;
 
-  factory IndexerConnectionTestResultDto.fromJson(Map<String, dynamic> json) {
-    final rawCheckedAt = json['checked_at'] as String?;
-    final rawError = json['error'];
-    return IndexerConnectionTestResultDto(
-      healthy: json['healthy'] as bool? ?? false,
-      checkedAt: rawCheckedAt == null ? null : DateTime.tryParse(rawCheckedAt),
-      query: json['query'] as String? ?? '',
-      indexersChecked: json['indexers_checked'] as int? ?? 0,
-      resultCount: json['result_count'] as int? ?? 0,
-      elapsedMs: json['elapsed_ms'] as int? ?? 0,
-      error: rawError is Map
-          ? IndexerConnectionTestErrorDto.fromJson(
-              rawError.map(
-                (dynamic key, dynamic value) => MapEntry(key.toString(), value),
-              ),
-            )
-          : null,
-    );
-  }
+  factory IndexerConnectionTestResultDto.fromJson(Map<String, dynamic> json) =>
+      _$IndexerConnectionTestResultDtoFromJson(json);
 }
+
+List<IndexerBoundClientDto> _boundClientsFromJson(Object? value) =>
+    asObjectList(value, IndexerBoundClientDto.fromJson);
+
+List<IndexerEntryDto> _indexersFromJson(Object? value) =>
+    asObjectList(value, IndexerEntryDto.fromJson);
+
+IndexerConnectionTestErrorDto? _testErrorFromJson(Object? value) =>
+    asObjectOrNull(value, IndexerConnectionTestErrorDto.fromJson);

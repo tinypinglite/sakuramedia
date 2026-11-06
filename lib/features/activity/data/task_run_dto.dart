@@ -1,8 +1,15 @@
 import 'dart:convert';
 
+import 'package:copy_with_extension/copy_with_extension.dart';
+import 'package:json_annotation/json_annotation.dart';
+import 'package:sakuramedia/core/json/dto_json_codec.dart';
 import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 
+part 'task_run_dto.g.dart';
+
+@JsonSerializable(converters: dtoJsonConverters, createToJson: false)
+@CopyWith()
 class TaskRunDto {
   const TaskRunDto({
     required this.id,
@@ -32,6 +39,7 @@ class TaskRunDto {
   final int? progressTotal;
   final String? progressText;
   final String? resultText;
+  @JsonKey(fromJson: asMapOrNull)
   final Map<String, dynamic>? resultSummary;
   final String? errorMessage;
   final DateTime? startedAt;
@@ -152,63 +160,6 @@ class TaskRunDto {
     return fragments.isEmpty ? null : fragments.join(' · ');
   }
 
-  TaskRunDto copyWith({
-    String? taskKey,
-    String? taskName,
-    String? triggerType,
-    String? state,
-    Object? progressCurrent = _sentinel,
-    Object? progressTotal = _sentinel,
-    Object? progressText = _sentinel,
-    Object? resultText = _sentinel,
-    Object? resultSummary = _sentinel,
-    Object? errorMessage = _sentinel,
-    Object? startedAt = _sentinel,
-    Object? finishedAt = _sentinel,
-    Object? createdAt = _sentinel,
-    Object? updatedAt = _sentinel,
-    bool? hasWarning,
-  }) {
-    return TaskRunDto(
-      id: id,
-      taskKey: taskKey ?? this.taskKey,
-      taskName: taskName ?? this.taskName,
-      triggerType: triggerType ?? this.triggerType,
-      state: state ?? this.state,
-      progressCurrent: identical(progressCurrent, _sentinel)
-          ? this.progressCurrent
-          : progressCurrent as int?,
-      progressTotal: identical(progressTotal, _sentinel)
-          ? this.progressTotal
-          : progressTotal as int?,
-      progressText: identical(progressText, _sentinel)
-          ? this.progressText
-          : progressText as String?,
-      resultText: identical(resultText, _sentinel)
-          ? this.resultText
-          : resultText as String?,
-      resultSummary: identical(resultSummary, _sentinel)
-          ? this.resultSummary
-          : resultSummary as Map<String, dynamic>?,
-      errorMessage: identical(errorMessage, _sentinel)
-          ? this.errorMessage
-          : errorMessage as String?,
-      startedAt: identical(startedAt, _sentinel)
-          ? this.startedAt
-          : startedAt as DateTime?,
-      finishedAt: identical(finishedAt, _sentinel)
-          ? this.finishedAt
-          : finishedAt as DateTime?,
-      createdAt: identical(createdAt, _sentinel)
-          ? this.createdAt
-          : createdAt as DateTime?,
-      updatedAt: identical(updatedAt, _sentinel)
-          ? this.updatedAt
-          : updatedAt as DateTime?,
-      hasWarning: hasWarning ?? this.hasWarning,
-    );
-  }
-
   TaskRunDto mergeFromServer(TaskRunDto next) {
     return copyWith(
       taskKey: next.taskKey,
@@ -229,26 +180,10 @@ class TaskRunDto {
     );
   }
 
-  factory TaskRunDto.fromJson(Map<String, dynamic> json) {
-    return TaskRunDto(
-      id: asInt(json['id']),
-      taskKey: json['task_key'] as String? ?? '',
-      taskName: json['task_name'] as String? ?? '',
-      triggerType: json['trigger_type'] as String? ?? '',
-      state: json['state'] as String? ?? '',
-      progressCurrent: asIntOrNull(json['progress_current']),
-      progressTotal: asIntOrNull(json['progress_total']),
-      progressText: json['progress_text'] as String?,
-      resultText: json['result_text'] as String?,
-      resultSummary: asMapOrNull(json['result_summary']),
-      errorMessage: json['error_message'] as String?,
-      startedAt: asDateTime(json['started_at']),
-      finishedAt: asDateTime(json['finished_at']),
-      createdAt: asDateTime(json['created_at']),
-      updatedAt: asDateTime(json['updated_at']),
-      hasWarning: json['has_warning'] as bool? ?? false,
-    );
-  }
+  factory TaskRunDto.fromJson(Map<String, dynamic> json) =>
+      _$TaskRunDtoFromJson(json);
+
+  _$TaskRunDtoCWProxy get copyWith => _$TaskRunDtoCWProxyImpl(this);
 
   /// 值相等：任务中心轮询拿它判断快照是否实质变化，未变则不写回 state，
   /// 避免 3 秒 tick 凭空重建订阅者。必须覆盖全部字段。
@@ -299,5 +234,3 @@ bool _jsonMapsEqual(Map<String, dynamic>? a, Map<String, dynamic>? b) {
   if (a == null || b == null) return false;
   return jsonEncode(a) == jsonEncode(b);
 }
-
-const Object _sentinel = Object();

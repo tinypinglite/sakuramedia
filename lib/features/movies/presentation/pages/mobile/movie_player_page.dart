@@ -19,14 +19,12 @@ class MobileMoviePlayerPage extends StatefulWidget {
     this.initialMediaId,
     this.mergedLibraryId,
     this.initialPositionSeconds,
-    this.surfaceBuilder,
   });
 
   final String movieNumber;
   final int? initialMediaId;
   final int? mergedLibraryId;
   final int? initialPositionSeconds;
-  final MoviePlayerSurfaceBuilder? surfaceBuilder;
 
   @override
   State<MobileMoviePlayerPage> createState() => _MobileMoviePlayerPageState();
@@ -71,7 +69,6 @@ class _MobileMoviePlayerPageState extends State<MobileMoviePlayerPage> {
       imageSearchRoutePath: mobileImageSearchPath,
       useTouchOptimizedControls: true,
       dividerHandleBuffer: _mobilePlayerDividerHandleBuffer,
-      surfaceBuilder: widget.surfaceBuilder,
     );
   }
 }

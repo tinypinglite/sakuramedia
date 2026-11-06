@@ -7,6 +7,8 @@ import 'package:sakuramedia/app/page_cache_keys.dart';
 import 'package:sakuramedia/app/providers/riverpod_page_cache_provider.dart';
 import 'package:sakuramedia/app/riverpod_page_cache.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
+import 'package:sakuramedia/features/actors/presentation/actor_placeholders.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_provider.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_scope.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_state.dart';
@@ -14,7 +16,16 @@ import 'package:sakuramedia/features/subscriptions/presentation/subscription_fee
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
-import 'package:sakuramedia/widgets/domain/search/catalog_search_content.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
+import 'package:sakuramedia/widgets/domain/actors/actor_summary_grid.dart';
+import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
+import 'package:sakuramedia/widgets/domain/search/catalog_search_field.dart';
+import 'package:sakuramedia/widgets/domain/search/catalog_search_stream_status_card.dart';
 
 class CatalogSearchPage extends ConsumerStatefulWidget {
   const CatalogSearchPage({
@@ -131,53 +142,180 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
         }
       },
     );
-    return CatalogSearchContent(
-      state: searchState,
-      textController: _textController,
-      tabController: _tabController,
-      useOnlineSearch: searchState.useOnlineSearch,
-      onOnlineSearchToggle: (value) => ref
-          .read(catalogSearchProvider(_scope).notifier)
-          .setUseOnlineSearch(value),
-      onSubmitSearch: _submitSearch,
-      onTabSelected: (index) => ref
-          .read(catalogSearchProvider(_scope).notifier)
-          .setActiveKind(_kindForIndex(index)),
-      onMovieTap: (movie) {
-        if (widget.mobile) {
-          MobileRoutes.movieDetail(
-            movieNumber: movie.movieNumber,
-          ).push(context);
-        } else {
-          DesktopRoutes.movieDetail(
-            movieNumber: movie.movieNumber,
-          ).push(context);
-        }
-      },
-      onMovieMenuRequest: (movie, globalPosition) => requestMovieCollectionMenu(
-        context,
-        movie.movieNumber,
-        globalPosition,
-        isSubscribed: movie.isSubscribed,
+    return _buildContent(context, searchState);
+  }
+
+  Widget _buildContent(BuildContext context, CatalogSearchState state) {
+    final l10n = AppLocalizations.of(context);
+    return Material(
+      color: Colors.transparent,
+      child: AppFixedHeaderLayout(
+        header: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            CatalogSearchField(
+              key: const Key('catalog-search-page-field'),
+              fieldKey: const Key('catalog-search-page-input'),
+              searchButtonKey: const Key('catalog-search-page-submit'),
+              onlineToggleKey: const Key('catalog-search-page-online-toggle'),
+              controller: _textController,
+              hintText: l10n.widgetSearchHint,
+              showOnlineToggle: true,
+              isOnlineSearchEnabled: state.useOnlineSearch,
+              onOnlineSearchToggle: (value) => ref
+                  .read(catalogSearchProvider(_scope).notifier)
+                  .setUseOnlineSearch(value),
+              onSubmitted: (_) => _submitSearch(),
+              onSearchTap: _submitSearch,
+            ),
+            SizedBox(height: context.appSpacing.xs),
+            AppTabBar(
+              controller: _tabController,
+              onTap: (index) => ref
+                  .read(catalogSearchProvider(_scope).notifier)
+                  .setActiveKind(_kindForIndex(index)),
+              tabs: [
+                Tab(text: l10n.widgetSearchTabMovies),
+                Tab(text: l10n.widgetSearchTabActors),
+              ],
+            ),
+            SizedBox(height: context.appSpacing.lg),
+          ],
+        ),
+        child: CustomScrollView(
+          slivers: [
+            if (state.streamStatus != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: context.appSpacing.md),
+                  child: CatalogSearchStreamStatusCard(
+                    status: state.streamStatus!,
+                  ),
+                ),
+              ),
+            _buildBodySliver(context, state),
+            ...bottomSafeAreaSliver(context),
+          ],
+        ),
       ),
-      onMovieToggleCollectionType: _hoverFeatureActions.toggleCollectionType,
-      onMovieBlacklist: _hoverFeatureActions.blacklist,
-      onActorTap: (actor) {
-        if (widget.mobile) {
-          MobileRoutes.actorDetail(actorId: actor.id).push(context);
-        } else {
-          DesktopRoutes.actorDetail(actorId: actor.id).push(context);
+    );
+  }
+
+  Widget _buildBodySliver(BuildContext context, CatalogSearchState state) {
+    final l10n = AppLocalizations.of(context);
+    if (state.query.isEmpty && !state.isLoading) {
+      return SliverToBoxAdapter(
+        child: AppEmptyState(message: l10n.widgetSearchInputPrompt),
+      );
+    }
+
+    if (state.errorMessage != null) {
+      return SliverToBoxAdapter(
+        child: AppEmptyState(
+          message: state.errorMessage!,
+          onRetry: _submitSearch,
+          retryKey: const Key('catalog-search-retry'),
+        ),
+      );
+    }
+
+    switch (state.activeKind) {
+      case CatalogSearchKind.movies:
+        if (!state.isOnlineSearchActive &&
+            state.movieResults.isEmpty &&
+            !state.isLoading) {
+          return _buildLocalEmptyFallback(
+            context,
+            l10n.widgetSearchLocalNoMovies,
+          );
         }
-      },
-      onMovieSubscriptionTap: (movie) =>
-          _toggleMovieSubscription(movie.movieNumber),
-      onActorSubscriptionTap: (actor) => _toggleActorSubscription(actor.id),
-      onFallbackToOnlineSearch: () {
-        ref
-            .read(catalogSearchProvider(_scope).notifier)
-            .setUseOnlineSearch(true);
-        _submitSearch();
-      },
+        final movies = state.isLoading
+            ? movieListItemPlaceholders(count: 12)
+            : state.movieResults;
+        return AppSkeletonizer.sliver(
+          enabled: state.isLoading,
+          child: MovieSummarySliver(
+            items: movies,
+            emptyMessage: state.isOnlineSearchActive
+                ? l10n.widgetSearchOnlineNoMovie
+                : l10n.widgetSearchLocalNoMatchingMovies,
+            onMovieTap: (movie) {
+              if (widget.mobile) {
+                MobileRoutes.movieDetail(
+                  movieNumber: movie.movieNumber,
+                ).push(context);
+              } else {
+                DesktopRoutes.movieDetail(
+                  movieNumber: movie.movieNumber,
+                ).push(context);
+              }
+            },
+            onMovieMenuRequest: (movie, globalPosition) =>
+                requestMovieCollectionMenu(
+                  context,
+                  movie.movieNumber,
+                  globalPosition,
+                  isSubscribed: movie.isSubscribed,
+                ),
+            onMovieToggleCollectionType:
+                _hoverFeatureActions.toggleCollectionType,
+            onMovieBlacklist: _hoverFeatureActions.blacklist,
+            onMovieSubscriptionTap: (movie) =>
+                _toggleMovieSubscription(movie.movieNumber),
+            isMovieSubscriptionUpdating: (movie) =>
+                state.isMovieSubscriptionUpdating(movie.movieNumber),
+          ),
+        );
+      case CatalogSearchKind.actors:
+        if (!state.isOnlineSearchActive &&
+            state.actorResults.isEmpty &&
+            !state.isLoading) {
+          return _buildLocalEmptyFallback(
+            context,
+            l10n.widgetSearchLocalNoActors,
+          );
+        }
+        final actors = state.isLoading
+            ? actorListItemPlaceholders(count: 12)
+            : state.actorResults;
+        return AppSkeletonizer.sliver(
+          enabled: state.isLoading,
+          child: ActorSummarySliver(
+            items: actors,
+            emptyMessage: state.isOnlineSearchActive
+                ? l10n.widgetSearchOnlineNoActor
+                : l10n.widgetSearchLocalNoMatchingActors,
+            onActorTap: (actor) {
+              if (widget.mobile) {
+                MobileRoutes.actorDetail(actorId: actor.id).push(context);
+              } else {
+                DesktopRoutes.actorDetail(actorId: actor.id).push(context);
+              }
+            },
+            onActorSubscriptionTap: (actor) =>
+                _toggleActorSubscription(actor.id),
+            isActorSubscriptionUpdating: (actor) =>
+                state.isActorSubscriptionUpdating(actor.id),
+          ),
+        );
+    }
+  }
+
+  Widget _buildLocalEmptyFallback(BuildContext context, String message) {
+    final l10n = AppLocalizations.of(context);
+    return SliverToBoxAdapter(
+      child: AppEmptyState(
+        message: message,
+        icon: Icons.travel_explore,
+        onRetry: () {
+          ref
+              .read(catalogSearchProvider(_scope).notifier)
+              .setUseOnlineSearch(true);
+          _submitSearch();
+        },
+        retryLabel: l10n.widgetSearchFetchExternal,
+        retryKey: const Key('catalog-search-online-fallback'),
+      ),
     );
   }
 

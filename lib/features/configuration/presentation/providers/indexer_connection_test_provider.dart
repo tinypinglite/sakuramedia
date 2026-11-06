@@ -25,7 +25,6 @@ class IndexerConnectionTestState {
     bool clearResult = false,
     String? requestError,
     bool clearRequestError = false,
-    int? configurationVersion,
   }) {
     return IndexerConnectionTestState(
       isTesting: isTesting ?? this.isTesting,
@@ -33,7 +32,6 @@ class IndexerConnectionTestState {
       requestError: clearRequestError
           ? null
           : requestError ?? this.requestError,
-      configurationVersion: configurationVersion ?? this.configurationVersion,
     );
   }
 }

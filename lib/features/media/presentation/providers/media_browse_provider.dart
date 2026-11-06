@@ -91,31 +91,17 @@ class MediaBrowse extends _$MediaBrowse
     final targets = ids.toSet();
     if (targets.isEmpty) return;
     invalidateInFlightLoadMore();
-    if (current.paged.isLoadingMore ||
-        current.paged.loadMoreErrorMessage != null) {
-      current = current.copyWith(
-        paged: current.paged.copyWith(
-          isLoadingMore: false,
-          loadMoreErrorMessage: null,
-        ),
-      );
-      state = AsyncData(current);
-    }
-
-    final beforeLength = current.paged.items.length;
-    final nextItems = current.paged.items
-        .where((item) => !targets.contains(item.id))
-        .toList(growable: false);
-    final removed = beforeLength - nextItems.length;
-
-    if (removed <= 0) return;
-
-    final nextTotal = (current.paged.total - removed).clamp(0, 1 << 30);
-    final nextPaged = current.paged.copyWith(
-      items: List<MediaListItemDto>.unmodifiable(nextItems),
-      total: nextTotal.toInt(),
-      hasMore: nextItems.length < nextTotal,
+    final hadTransientState =
+        current.paged.isLoadingMore ||
+        current.paged.loadMoreErrorMessage != null;
+    final basePaged = current.paged.copyWith(
+      isLoadingMore: false,
+      loadMoreErrorMessage: null,
     );
+    final nextPaged = basePaged.removeWhere(
+      (item) => targets.contains(item.id),
+    );
+    if (identical(nextPaged, basePaged) && !hadTransientState) return;
     state = AsyncData(current.copyWith(paged: nextPaged));
   }
 
