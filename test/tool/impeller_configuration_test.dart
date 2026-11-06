@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('iOS and Android enable Impeller while macOS uses the compatible renderer', () {
+  test('iOS, Android, and macOS enable Impeller', () {
     final androidManifest = File(
       'android/app/src/main/AndroidManifest.xml',
     ).readAsStringSync();
@@ -25,7 +25,7 @@ void main() {
     );
     expect(
       macosInfoPlist,
-      matches(RegExp(r'<key>FLTEnableImpeller</key>\s*<false/>')),
+      matches(RegExp(r'<key>FLTEnableImpeller</key>\s*<true/>')),
     );
   });
 }

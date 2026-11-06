@@ -374,9 +374,7 @@ class _AppContextMenuPanel<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.2)
-        : Colors.black.withValues(alpha: 0.3);
+    final borderColor = context.appColors.borderStrong;
     final firstEnabledIndex = items.indexWhere((item) => item.enabled);
 
     return Semantics(
@@ -493,16 +491,16 @@ class _AppContextMenuActionRowState<T>
         ? AppTextTone.error
         : (enabled ? AppTextTone.secondary : AppTextTone.muted);
     final fontFamily = resolveAppFontFamily(context);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final highlightColor = danger
         ? context.appTextPalette.error.withValues(alpha: 0.12)
-        : (isDark ? Colors.white : Colors.black).withValues(
-            alpha: isDark ? 0.08 : 0.06,
-          );
-    final background = _pressed
+        : context.appColors.divider;
+    final pressedBackground = danger
         ? highlightColor.withValues(
             alpha: math.min(1.0, highlightColor.a + 0.04),
           )
+        : context.appColors.borderSubtle;
+    final background = _pressed
+        ? pressedBackground
         : (_hovered || _focused ? highlightColor : Colors.transparent);
     final subtitle = item.subtitle;
     final icon = item.icon;
