@@ -1,22 +1,9 @@
-import 'package:flutter/foundation.dart';
+/// 视频列表页面的缓存身份。桌面与移动各保留独立的分页/筛选进度。
+enum VideoSummaryScope {
+  desktop('desktop:videos:list'),
+  mobile('mobile:pornbox:list');
 
-/// 视频列表页面的缓存身份。
-///
-/// 桌面 PornBox 与移动 Pornbox 原先各自持有缓存 entry；family 保持两个独立
-/// scope，避免筛选和分页进度在两个宿主之间串用。
-@immutable
-class VideoSummaryScope {
-  const VideoSummaryScope._(this.cacheKey);
-
-  const VideoSummaryScope.desktop() : this._('desktop:videos:list');
-  const VideoSummaryScope.mobile() : this._('mobile:pornbox:list');
+  const VideoSummaryScope(this.cacheKey);
 
   final String cacheKey;
-
-  @override
-  bool operator ==(Object other) =>
-      other is VideoSummaryScope && other.cacheKey == cacheKey;
-
-  @override
-  int get hashCode => cacheKey.hashCode;
 }

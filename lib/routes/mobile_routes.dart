@@ -39,7 +39,7 @@ import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_coll
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_collections_page.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_player_page.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_thumbnail_page.dart';
-import 'package:sakuramedia/features/movies/presentation/pages/mobile/movie_detail_page.dart';
+import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_page.dart';
 import 'package:sakuramedia/features/cast/presentation/pages/cast_remote_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/movie_player_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/series_movies_page.dart';
@@ -1714,7 +1714,7 @@ class MobileMovieDetailRouteData extends _MobileSubpageRouteData
 
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
-    return MobileMovieDetailPage(movieNumber: movieNumber);
+    return MovieDetailPage(movieNumber: movieNumber, mobile: true);
   }
 }
 

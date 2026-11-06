@@ -27,18 +27,6 @@ class VideoCollectionSort {
   /// 当前是否为手动顺序：仅此模式下允许拖拽重排。
   bool get isManual => field == null;
 
-  VideoCollectionSort copyWith({
-    Object? field = _kSentinel,
-    SortDirection? direction,
-  }) {
-    return VideoCollectionSort(
-      field: identical(field, _kSentinel)
-          ? this.field
-          : field as VideoSortField?,
-      direction: direction ?? this.direction,
-    );
-  }
-
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -49,5 +37,3 @@ class VideoCollectionSort {
   @override
   int get hashCode => Object.hash(field, direction);
 }
-
-const Object _kSentinel = Object();

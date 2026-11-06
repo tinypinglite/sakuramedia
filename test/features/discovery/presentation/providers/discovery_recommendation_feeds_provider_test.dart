@@ -93,6 +93,30 @@ void main() {
       expect(paged.loadMoreErrorMessage, '加载更多推荐影片失败，请点击重试');
       expect(paged.isLoadingMore, isFalse);
     });
+
+    test('refresh keeps loaded items and returns a failure message', () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/daily-recommendations',
+        body: _dailyPage(page: 1, total: 25, start: 1, count: 24),
+      );
+
+      final provider = dailyRecommendationFeedProvider(24);
+      final subscription = container.listen(provider, (_, __) {});
+      addTearDown(subscription.close);
+      await container.read(provider.future);
+
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/daily-recommendations',
+        statusCode: 500,
+        body: <String, dynamic>{'detail': 'failed'},
+      );
+      final error = await container.read(provider.notifier).refresh();
+
+      expect(error, isNotNull);
+      expect(container.read(provider).requireValue.items, hasLength(24));
+    });
   });
 
   group('MomentRecommendationFeed', () {

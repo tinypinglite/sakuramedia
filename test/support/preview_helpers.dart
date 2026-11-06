@@ -31,7 +31,7 @@ import 'test_api_bundle.dart';
 ///     registerPreviewImage(coverUrl, cover);
 ///     await pumpPreviewApp(
 ///       tester,
-///       home: const DesktopMovieDetailPage(movieNumber: 'ABC-001'),
+///       home: const MovieDetailPage(movieNumber: 'ABC-001', mobile: false),
 ///       size: const Size(1100, 760),
 ///       theme: buildSakuraDesktopThemeData(),
 ///       platform: TargetPlatform.macOS,

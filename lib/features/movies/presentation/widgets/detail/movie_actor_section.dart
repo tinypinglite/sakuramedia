@@ -1,12 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/features/actors/data/api/actors_api.dart';
-import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
-import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_actor_picker_sheet.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_actor_wrap.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_section.dart';
+import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_view_model.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
@@ -15,24 +13,17 @@ import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 class MovieActorSection extends StatefulWidget {
   const MovieActorSection({
     super.key,
-    required this.movieNumber,
     required this.actors,
     this.isActorsManuallyManaged = false,
     this.onActorTap,
-    this.moviesApi,
-    this.actorsApi,
-    this.onActorsChanged,
+    this.actorActions = const MovieDetailActorActions(),
   });
 
-  final String movieNumber;
   final List<MovieActorDto> actors;
   final bool isActorsManuallyManaged;
   final ValueChanged<MovieActorDto>? onActorTap;
 
-  /// 三个依赖同时存在时才开放编辑；只读上下文（如纯组件测试）不显示入口。
-  final MoviesApi? moviesApi;
-  final ActorsApi? actorsApi;
-  final Future<void> Function()? onActorsChanged;
+  final MovieDetailActorActions actorActions;
 
   @override
   State<MovieActorSection> createState() => _MovieActorSectionState();
@@ -43,21 +34,15 @@ class _MovieActorSectionState extends State<MovieActorSection> {
   bool _isAdding = false;
   final Set<int> _removingActorIds = <int>{};
 
-  bool get _canManage =>
-      widget.moviesApi != null &&
-      widget.actorsApi != null &&
-      widget.onActorsChanged != null;
+  bool get _canManage => widget.actorActions.canManage;
 
   Future<void> _openPicker() async {
-    final actorsApi = widget.actorsApi;
-    final moviesApi = widget.moviesApi;
-    if (!_canManage || actorsApi == null || moviesApi == null || _isAdding) {
+    if (!_canManage || _isAdding) {
       return;
     }
-    final selected = await showMovieActorPickerSheet(
+    final selected = await widget.actorActions.pickActors!(
       context,
-      actorsApi: actorsApi,
-      existingActorIds: widget.actors.map((actor) => actor.id).toSet(),
+      widget.actors.map((actor) => actor.id).toSet(),
     );
     if (!mounted || selected == null || selected.isEmpty) return;
 
@@ -66,10 +51,7 @@ class _MovieActorSectionState extends State<MovieActorSection> {
     var failed = 0;
     for (final actor in selected) {
       try {
-        await moviesApi.addMovieActor(
-          movieNumber: widget.movieNumber,
-          actorId: actor.id,
-        );
+        await widget.actorActions.addActor!(actor.id);
         added++;
       } catch (_) {
         failed++;
@@ -103,16 +85,12 @@ class _MovieActorSectionState extends State<MovieActorSection> {
   }
 
   Future<void> _removeActor(MovieActorDto actor) async {
-    final moviesApi = widget.moviesApi;
-    if (!_canManage || moviesApi == null) return;
+    if (!_canManage) return;
     if (_removingActorIds.contains(actor.id)) return;
 
     setState(() => _removingActorIds.add(actor.id));
     try {
-      await moviesApi.removeMovieActor(
-        movieNumber: widget.movieNumber,
-        actorId: actor.id,
-      );
+      await widget.actorActions.removeActor!(actor.id);
       final refreshed = await _notifyActorsChanged();
       if (!mounted) return;
       final l10n = AppLocalizations.of(context);
@@ -142,10 +120,10 @@ class _MovieActorSectionState extends State<MovieActorSection> {
   }
 
   Future<bool> _notifyActorsChanged() async {
-    final onActorsChanged = widget.onActorsChanged;
-    if (onActorsChanged == null) return false;
+    final refreshActors = widget.actorActions.refreshActors;
+    if (refreshActors == null) return false;
     try {
-      await onActorsChanged();
+      await refreshActors();
       return true;
     } catch (_) {
       return false;

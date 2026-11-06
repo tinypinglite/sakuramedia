@@ -6,7 +6,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_modal_glass_surface.dart';
 
 /// 弹出视频筛选底部抽屉。内容与桌面玻璃筛选浮层**完全一致**
-/// （同一个 `VideoFilterSectionGroup`），**即时生效**，语义同
+/// （同一个 `VideoGlassFilterPopoverContent`），**即时生效**，语义同
 /// `showMobileMovieFilterDrawer`。
 Future<void> showMobileVideoFilterDrawer(
   BuildContext context, {

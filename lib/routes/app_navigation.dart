@@ -14,7 +14,7 @@ import 'package:sakuramedia/features/tags/presentation/pages/desktop/tags_page.d
 import 'package:sakuramedia/features/movies/presentation/pages/desktop/movies_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/movies_page.dart';
 import 'package:sakuramedia/features/overview/presentation/pages/desktop/overview_page.dart';
-import 'package:sakuramedia/features/overview/presentation/pages/mobile/overview_skeleton_page.dart';
+import 'package:sakuramedia/features/overview/presentation/pages/mobile/mobile_overview_page.dart';
 import 'package:sakuramedia/features/clips/presentation/pages/desktop/clips_page.dart';
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
 import 'package:sakuramedia/features/playlists/presentation/pages/desktop/playlists_page.dart';
@@ -444,7 +444,7 @@ final Map<String, WidgetBuilder> _desktopRouteBuilders =
     };
 
 final Map<String, WidgetBuilder> _mobileRouteBuilders = <String, WidgetBuilder>{
-  mobileOverviewPath: (_) => const MobileOverviewSkeletonPage(),
+  mobileOverviewPath: (_) => const MobileOverviewPage(),
   mobileMoviesPath: (_) => const MobileMoviesPage(),
   mobileActorsPath: (_) => const MobileActorsPage(),
   mobileRankingsPath: (_) => const MobileRankingsPage(),

@@ -1,17 +1,8 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_actions_sheet.dart';
-import 'package:sakuramedia/features/videos/presentation/actions/video_playback_launcher.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/shared/video_collection_detail_content.dart';
-import 'package:sakuramedia/features/videos/presentation/video_display_title.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 
-/// 移动视频合集详情壳：移动语义（网格 / 长按进多选 / 底部批量条 /
-/// 底部抽屉筛选 / 动作抽屉与确认抽屉 / 标题报返回栏）收在壳里，实现在
-/// [VideoCollectionDetailContent]。
+/// 移动视频合集详情：移动网格、吸顶栏和动作抽屉由 content 层根据 `mobile` 选择。
 class MobileVideoCollectionDetailPage extends StatelessWidget {
   const MobileVideoCollectionDetailPage({
     super.key,
@@ -22,82 +13,11 @@ class MobileVideoCollectionDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     return VideoCollectionDetailContent(
       collectionId: collectionId,
       surfaceColor: context.appColors.surfaceCard,
       keyPrefix: 'mobile-video-collection',
-      useMobileSelectionLayout: true,
-      hoistTitleToSubpageShell: true,
-      useMobileSortDrawer: true,
-      playAllBuilder: (context, {required enabled, required onPlayFrom}) {
-        return AppTextButton(
-          key: const Key('mobile-video-collection-play-all-button'),
-          label: l10n.videoPlay,
-          size: AppTextButtonSize.xSmall,
-          onPressed: onPlayFrom,
-        );
-      },
-      onMemberTap: (context, item, actions) {
-        final video = item.video;
-        // 过滤掉「当前合集」这条冗余归属：用户已经在这里了。
-        final otherCollections = video.collections
-            .where((ref) => ref.id != collectionId)
-            .toList(growable: false);
-        showMobileVideoActionsSheet(
-          context,
-          video: video,
-          onPlay: () =>
-              actions.playSingle(context, video.id, video.displayTitle(l10n)),
-          onThumbnails: () => MobileVideoThumbnailRouteData(
-            videoId: video.id,
-          ).push<void>(context),
-          onRemoveFromCollection: () => actions.remove(item.video.id),
-          onDelete: () => actions.delete(item.video.id),
-          collections: otherCollections,
-          onCollectionTap: (ref) => MobileVideoCollectionDetailRouteData(
-            collectionId: ref.id,
-          ).push(context),
-        );
-      },
-      playSingle: (context, videoId, title) async {
-        if (await tryLaunchExternalVideoPlayback(
-          context,
-          videoId: videoId,
-          title: title,
-        )) {
-          return;
-        }
-        if (!context.mounted) {
-          return;
-        }
-        await MobileVideoPlayerRouteData(videoId: videoId).push<void>(context);
-      },
-      onOpenCollection: (context, targetId) {
-        MobileVideoCollectionDetailRouteData(
-          collectionId: targetId,
-        ).push(context);
-      },
-      confirm:
-          (
-            context, {
-            required title,
-            required message,
-            required confirmLabel,
-            required confirmKey,
-            drawerKey,
-            onConfirm,
-          }) => showAppConfirmDialog(
-            context,
-            title: title,
-            message: message,
-            danger: true,
-            confirmLabel: confirmLabel,
-            dialogKey: drawerKey,
-            confirmKey: confirmKey,
-            onConfirm: onConfirm,
-            failureFallback: l10n.videoDeleteFailed,
-          ),
+      mobile: true,
     );
   }
 }

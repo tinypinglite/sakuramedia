@@ -118,7 +118,10 @@ class VideoCollectionDetail extends _$VideoCollectionDetail
   }) {
     final current = state.value;
     if (current == null) return Future<void>.value();
-    final nextSort = current.sort.copyWith(field: field, direction: direction);
+    final nextSort = VideoCollectionSort(
+      field: field,
+      direction: direction ?? current.sort.direction,
+    );
     if (nextSort == current.sort) return Future<void>.value();
     // 先写 sort（工具条与拖拽开关即时切换），保留旧 items 到新数据回来。
     state = AsyncData(

@@ -1,16 +1,10 @@
-import 'dart:async';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:intl/intl.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
-import 'package:sakuramedia/features/actors/data/api/actors_api.dart';
-import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
-import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
-import 'package:sakuramedia/features/movies/data/dto/player/movie_subtitle_dto.dart';
-import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
+import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_view_model.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
@@ -20,7 +14,6 @@ import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_actor_section.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_hero_card.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_info_block.dart';
-import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_inspector_panel.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_section.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_clip_strip.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_media_item_list.dart';
@@ -37,152 +30,22 @@ class MovieDetailPageContent extends StatelessWidget {
   static const Key scrollViewKey = Key('movie-detail-scroll-view');
 
   const MovieDetailPageContent({
-    this.showSimilarMovies = true,
     super.key,
-    required this.surfaceColor,
-    required this.movie,
-    required this.selectedPreviewKey,
-    required this.selectedPreviewUrl,
-    required this.isSubscribed,
-    required this.isSubscriptionUpdating,
-    this.onFavoriteTap,
-    this.isFavoriteUpdating = false,
-    required this.selectedMediaId,
-    required this.similarMovies,
-    required this.isSimilarMoviesLoading,
-    required this.onInspectorPaneTap,
-    required this.onPlaylistTap,
-    required this.onMediaSelect,
-    this.isDeletingSelectedMedia = false,
-    this.onDeleteSelectedMedia,
-    this.onEditMediaTags,
-    this.mediaItemsOverride,
-    this.onOpenMediaPointPreview,
-    this.onRequestMediaPointMenu,
-    this.onPlayTap,
-    this.mergePlaybackLabel,
-    this.onMergePlaybackTap,
-    this.isMergePlaybackLoading = false,
-    this.onSubscriptionTap,
-    this.onMoreActionsTap,
-    this.onActorTap,
-    this.moviesApi,
-    this.actorsApi,
-    this.onActorsChanged,
-    this.onSeriesTap,
-    this.onTagTap,
-    this.onRequestPlotImageMenu,
-    this.onOpenPlotPreview,
-    this.similarMoviesErrorMessage,
-    this.onRetrySimilarMovies,
-    this.onSimilarMovieTap,
-    this.clips = const <MediaClipDto>[],
-    this.isClipsLoading = false,
-    this.clipsErrorMessage,
-    this.onRetryClips,
-    this.onOpenClipActions,
-    this.onPlayClip,
-    this.onRenameClip,
-    this.onDeleteClip,
-    this.onAddClipToCollection,
-    this.subtitleItems = const <MovieSubtitleItemDto>[],
-    this.isSubtitlesLoading = false,
-    this.subtitleErrorMessage,
-    this.onRetrySubtitles,
-    this.onOpenSubtitle,
-    this.contentPadding = EdgeInsets.zero,
-    this.isMoreActionsUpdating = false,
-    this.isPlayLoading = false,
-    this.ratingPanel,
+    required this.data,
+    required this.state,
+    required this.actions,
+    required this.config,
   });
 
-  final MovieDetailDto movie;
-  final Color surfaceColor;
-  final List<MovieMediaItemDto>? mediaItemsOverride;
-  final String selectedPreviewKey;
-  final String? selectedPreviewUrl;
-  final bool isSubscribed;
-  final bool isSubscriptionUpdating;
-  final VoidCallback? onFavoriteTap;
-  final bool isFavoriteUpdating;
-  final bool isMoreActionsUpdating;
-  final int? selectedMediaId;
-  final List<MovieListItemDto> similarMovies;
-  final bool isSimilarMoviesLoading;
-
-  /// 点击操作列的评论 / 缩略图键：打开对应功能的弹窗。
-  final ValueChanged<MovieDetailInspectorPane> onInspectorPaneTap;
-  final VoidCallback onPlaylistTap;
-  final ValueChanged<MovieMediaItemDto> onMediaSelect;
-  final bool isDeletingSelectedMedia;
-  final ValueChanged<MovieMediaItemDto>? onDeleteSelectedMedia;
-  final ValueChanged<MovieMediaItemDto>? onEditMediaTags;
-  final void Function(MovieMediaItemDto mediaItem, MovieMediaPointDto point)?
-  onOpenMediaPointPreview;
-  final Future<void> Function(
-    BuildContext context,
-    MovieMediaItemDto mediaItem,
-    MovieMediaPointDto point,
-    Offset globalPosition,
-  )?
-  onRequestMediaPointMenu;
-  final VoidCallback? onPlayTap;
-  final String? mergePlaybackLabel;
-  final VoidCallback? onMergePlaybackTap;
-  final bool isMergePlaybackLoading;
-  final VoidCallback? onSubscriptionTap;
-  final Future<void> Function(Offset globalPosition)? onMoreActionsTap;
-  final ValueChanged<MovieActorDto>? onActorTap;
-
-  /// 演员表编辑依赖；三项同时存在时演员区块才显示管理入口。
-  final MoviesApi? moviesApi;
-  final ActorsApi? actorsApi;
-  final Future<void> Function()? onActorsChanged;
-
-  final VoidCallback? onSeriesTap;
-  final ValueChanged<MovieTagDto>? onTagTap;
-  final Future<void> Function(
-    BuildContext context,
-    int index,
-    Offset globalPosition,
-  )?
-  onRequestPlotImageMenu;
-  final ValueChanged<int>? onOpenPlotPreview;
-  final String? similarMoviesErrorMessage;
-  final VoidCallback? onRetrySimilarMovies;
-  final ValueChanged<MovieListItemDto>? onSimilarMovieTap;
-  final List<MediaClipDto> clips;
-  final bool isClipsLoading;
-  final String? clipsErrorMessage;
-  final VoidCallback? onRetryClips;
-
-  /// 点击切片卡：打开动作面板。
-  final ValueChanged<MediaClipDto>? onOpenClipActions;
-
-  /// 切片卡悬停播放键：直接播放。
-  final ValueChanged<MediaClipDto>? onPlayClip;
-  final ValueChanged<MediaClipDto>? onRenameClip;
-  final ValueChanged<MediaClipDto>? onDeleteClip;
-  final ValueChanged<MediaClipDto>? onAddClipToCollection;
-  final List<MovieSubtitleItemDto> subtitleItems;
-  final bool isSubtitlesLoading;
-  final String? subtitleErrorMessage;
-  final Future<void> Function()? onRetrySubtitles;
-  final Future<void> Function(MovieSubtitleItemDto item)? onOpenSubtitle;
-  final EdgeInsetsGeometry contentPadding;
-
-  /// 播放动作进行中（合并播放探测/拉起外部播放器），透传给 hero 播放按钮显示 loading。
-  final bool isPlayLoading;
-
-  /// 元信息行下方的内联评分面板；null 时不渲染。
-  final Widget? ratingPanel;
-
-  final bool showSimilarMovies;
+  final MovieDetailViewData data;
+  final MovieDetailViewState state;
+  final MovieDetailViewActions actions;
+  final MovieDetailViewConfig config;
 
   /// 当前是否真的有封面图：桌面用视口上限加高、信息块上叠只对「有封面」生效，
   /// 没有封面时不为一块纯色占位撑满一屏。
   bool get _hasCover =>
-      selectedPreviewUrl != null && selectedPreviewUrl!.isNotEmpty;
+      data.selectedPreviewUrl != null && data.selectedPreviewUrl!.isNotEmpty;
 
   @override
   Widget build(BuildContext context) {
@@ -192,8 +55,8 @@ class MovieDetailPageContent extends StatelessWidget {
         // 背景固定不随滚动，封面切换时才重绘一次。
         Positioned.fill(
           child: _MovieDetailBackground(
-            url: selectedPreviewUrl,
-            baseColor: surfaceColor,
+            url: data.selectedPreviewUrl,
+            baseColor: config.surfaceColor,
           ),
         ),
         Positioned.fill(
@@ -218,7 +81,7 @@ class MovieDetailPageContent extends StatelessWidget {
                 // 最后一块内容不会被 home indicator 压住。
                 slivers: <Widget>[
                   SliverPadding(
-                    padding: contentPadding,
+                    padding: config.contentPadding,
                     sliver: _buildDetailBody(
                       context: context,
                       heroHeight: heroHeight,
@@ -237,7 +100,7 @@ class MovieDetailPageContent extends StatelessWidget {
 
   MovieMediaProgressDto? get _latestProgress {
     MovieMediaProgressDto? latest;
-    for (final media in movie.mediaItems) {
+    for (final media in data.movie.mediaItems) {
       final progress = media.progress;
       if (progress == null) continue;
       if (latest == null ||
@@ -267,7 +130,7 @@ class MovieDetailPageContent extends StatelessWidget {
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
               Text(l10n.moviePagePlaylistAdded, style: style),
-              for (final playlist in movie.playlists.take(2))
+              for (final playlist in data.movie.playlists.take(2))
                 Tooltip(
                   message: playlist.name,
                   child: ConstrainedBox(
@@ -296,9 +159,9 @@ class MovieDetailPageContent extends StatelessWidget {
                     ),
                   ),
                 ),
-              if (movie.playlists.length > 2)
+              if (data.movie.playlists.length > 2)
                 Text(
-                  l10n.moviePagePlaylistTotalCount(movie.playlists.length),
+                  l10n.moviePagePlaylistTotalCount(data.movie.playlists.length),
                   style: style,
                 ),
             ],
@@ -322,11 +185,11 @@ class MovieDetailPageContent extends StatelessWidget {
             formatMediaTimecode(progress.lastPositionSeconds),
           );
     final watchedAt = progress?.lastWatchedAt?.toLocal();
-    final mediaItems = mediaItemsOverride ?? movie.mediaItems;
-    final normalizedMergePlaybackLabel = mergePlaybackLabel?.trim() ?? '';
+    final mediaItems = data.mediaItems;
+    final normalizedMergePlaybackLabel = state.mergePlaybackLabel?.trim() ?? '';
     final orderedActors = <MovieActorDto>[
-      ...movie.actors.where((actor) => actor.isFemale),
-      ...movie.actors.where((actor) => !actor.isFemale),
+      ...data.movie.actors.where((actor) => actor.isFemale),
+      ...data.movie.actors.where((actor) => !actor.isFemale),
     ];
 
     // 首屏两块（Hero / 信息块）整幅铺满，其余正文区块统一左右留白。
@@ -352,10 +215,10 @@ class MovieDetailPageContent extends StatelessWidget {
               height: heroHeight,
               child: MovieDetailHeroCard(
                 height: heroHeight,
-                mainImageKey: selectedPreviewKey,
-                mainImageUrl: selectedPreviewUrl,
+                mainImageKey: data.selectedPreviewKey,
+                mainImageUrl: data.selectedPreviewUrl,
                 heroFit: heroFit,
-                veilColor: surfaceColor,
+                veilColor: config.surfaceColor,
               ),
             ),
             Padding(
@@ -364,12 +227,12 @@ class MovieDetailPageContent extends StatelessWidget {
                 // 撑满可用宽度：Stack 里只有这一个非定位子节点，它决定整块宽度。
                 width: double.infinity,
                 child: MovieDetailInfoBlock(
-                  overlayTitle: _resolveOverlayTitle(movie),
-                  eyebrow: movie.movieNumber,
-                  metaItems: _resolveMetaItems(context, movie),
+                  overlayTitle: _resolveOverlayTitle(data.movie),
+                  eyebrow: data.movie.movieNumber,
+                  metaItems: _resolveMetaItems(context, data.movie),
                   fileSizeLabel: _resolveFileSizeLabel(
                     mediaItems,
-                    selectedMediaId,
+                    data.selectedMediaId,
                   ),
                   watchLabel: watchLabel,
                   watchTooltip: watchedAt == null
@@ -380,29 +243,29 @@ class MovieDetailPageContent extends StatelessWidget {
                             l10n.moviePageWatchedAtDatePattern,
                           ).format(watchedAt),
                         ),
-                  isSubscribed: isSubscribed,
-                  onSubscriptionTap: onSubscriptionTap,
-                  isSubscriptionUpdating: isSubscriptionUpdating,
-                  isFavorite: movie.playlists.any(
+                  isSubscribed: state.isSubscribed,
+                  onSubscriptionTap: actions.onSubscriptionTap,
+                  isSubscriptionUpdating: state.isSubscriptionUpdating,
+                  isFavorite: data.movie.playlists.any(
                     (playlist) => playlist.kind == PlaylistKind.favorites,
                   ),
-                  onFavoriteTap: onFavoriteTap,
-                  isFavoriteUpdating: isFavoriteUpdating,
-                  onPlaylistTap: onPlaylistTap,
-                  playlistTooltip: movie.playlists.isEmpty
+                  onFavoriteTap: actions.onFavoriteTap,
+                  isFavoriteUpdating: state.isFavoriteUpdating,
+                  onPlaylistTap: actions.onPlaylistTap,
+                  playlistTooltip: data.movie.playlists.isEmpty
                       ? l10n.moviePagePlaylistAddAction
                       : l10n.moviePagePlaylistManageAction,
-                  onMoreActionsTap: onMoreActionsTap,
-                  isMoreActionsUpdating: isMoreActionsUpdating,
-                  isPlayLoading: isPlayLoading,
-                  onPlayTap: onPlayTap,
+                  onMoreActionsTap: actions.onMoreActionsTap,
+                  isMoreActionsUpdating: state.isMoreActionsUpdating,
+                  isPlayLoading: state.isPlayLoading,
+                  onPlayTap: actions.onPlayTap,
                   mergePlaybackLabel: normalizedMergePlaybackLabel.isEmpty
                       ? null
                       : normalizedMergePlaybackLabel,
-                  onMergePlaybackTap: onMergePlaybackTap,
-                  isMergePlaybackLoading: isMergePlaybackLoading,
-                  onInspectorPaneTap: onInspectorPaneTap,
-                  ratingPanel: ratingPanel,
+                  onMergePlaybackTap: actions.onMergePlaybackTap,
+                  isMergePlaybackLoading: state.isMergePlaybackLoading,
+                  onInspectorPaneTap: actions.onInspectorPaneTap,
+                  ratingPanel: config.ratingPanel,
                 ),
               ),
             ),
@@ -412,22 +275,22 @@ class MovieDetailPageContent extends StatelessWidget {
     );
 
     final sections = <Widget>[
-      if (movie.plotImages.isNotEmpty) ...[
+      if (data.movie.plotImages.isNotEmpty) ...[
         SizedBox(height: context.appSpacing.lg),
         MoviePlotGallery(
-          plotImages: movie.plotImages,
-          onRequestImageMenu: onRequestPlotImageMenu,
-          onOpenPreview: onOpenPlotPreview,
+          plotImages: data.movie.plotImages,
+          onRequestImageMenu: actions.onRequestPlotImageMenu,
+          onOpenPreview: actions.onOpenPlotPreview,
         ),
       ],
       SizedBox(height: context.appComponentTokens.movieDetailSectionGap),
-      if (movie.preferredDescription.isNotEmpty)
+      if (data.movie.preferredDescription.isNotEmpty)
         Padding(
           padding: EdgeInsets.only(
             bottom: context.appComponentTokens.movieDetailSectionGap,
           ),
           child: Text(
-            movie.preferredDescription,
+            data.movie.preferredDescription,
             key: const Key('movie-detail-summary'),
             style: resolveAppTextStyle(
               context,
@@ -437,27 +300,27 @@ class MovieDetailPageContent extends StatelessWidget {
             ),
           ),
         ),
-      if (movie.playlists.isNotEmpty) _buildPlaylistMembership(context),
-      ..._buildInlineMetaItems(context, movie, onSeriesTap),
-      if (movie.rankings.isNotEmpty)
+      if (data.movie.playlists.isNotEmpty) _buildPlaylistMembership(context),
+      ..._buildInlineMetaItems(context, data.movie, actions.onSeriesTap),
+      if (data.movie.rankings.isNotEmpty)
         MovieDetailSection(
           title: l10n.moviePageSectionRankings,
           titleKey: const Key('movie-rankings-title'),
-          child: MovieRankingList(rankings: movie.rankings),
+          child: MovieRankingList(rankings: data.movie.rankings),
         ),
-      if (movie.tags.isNotEmpty)
+      if (data.movie.tags.isNotEmpty)
         MovieDetailSection(
           title: l10n.moviePageSectionTags,
-          child: MovieTagWrap(tags: movie.tags, onTagTap: onTagTap),
+          child: MovieTagWrap(
+            tags: data.movie.tags,
+            onTagTap: actions.onTagTap,
+          ),
         ),
       MovieActorSection(
-        movieNumber: movie.movieNumber,
         actors: orderedActors,
-        isActorsManuallyManaged: movie.isActorsManuallyManaged,
-        onActorTap: onActorTap,
-        moviesApi: moviesApi,
-        actorsApi: actorsApi,
-        onActorsChanged: onActorsChanged,
+        isActorsManuallyManaged: data.movie.isActorsManuallyManaged,
+        onActorTap: actions.onActorTap,
+        actorActions: actions.actorActions,
       ),
       if (mediaItems.isNotEmpty)
         MovieDetailSection(
@@ -467,62 +330,64 @@ class MovieDetailPageContent extends StatelessWidget {
             children: [
               MovieMediaItemList(
                 mediaItems: mediaItems,
-                selectedMediaId: selectedMediaId,
-                onSelect: onMediaSelect,
-                isDeletingSelectedMedia: isDeletingSelectedMedia,
-                onDeleteSelectedMedia: onDeleteSelectedMedia,
-                onEditMediaTags: onEditMediaTags,
-                onOpenPointPreview: onOpenMediaPointPreview,
-                onRequestPointMenu: onRequestMediaPointMenu,
+                selectedMediaId: data.selectedMediaId,
+                onSelect: actions.onMediaSelect,
+                isDeletingSelectedMedia: state.isDeletingSelectedMedia,
+                onDeleteSelectedMedia: actions.onDeleteSelectedMedia,
+                onEditMediaTags: actions.onEditMediaTags,
+                onOpenPointPreview: actions.onOpenMediaPointPreview,
+                onRequestPointMenu: actions.onRequestMediaPointMenu,
               ),
             ],
           ),
         ),
-      if (isSubtitlesLoading ||
-          subtitleErrorMessage?.trim().isNotEmpty == true ||
-          subtitleItems.isNotEmpty)
+      if (state.isSubtitlesLoading ||
+          state.subtitleErrorMessage?.trim().isNotEmpty == true ||
+          data.subtitleItems.isNotEmpty)
         MovieDetailSection(
-          title: subtitleItems.isEmpty
+          title: data.subtitleItems.isEmpty
               ? l10n.moviePageSectionSubtitles
-              : l10n.moviePageSectionSubtitlesCount(subtitleItems.length),
+              : l10n.moviePageSectionSubtitlesCount(data.subtitleItems.length),
           titleKey: const Key('movie-subtitles-title'),
           child: MovieSubtitleSection(
-            items: subtitleItems,
-            isLoading: isSubtitlesLoading,
-            errorMessage: subtitleErrorMessage,
-            onRetry: onRetrySubtitles,
-            onOpenSubtitle: onOpenSubtitle,
+            items: data.subtitleItems,
+            isLoading: state.isSubtitlesLoading,
+            errorMessage: state.subtitleErrorMessage,
+            onRetry: actions.onRetrySubtitles,
+            onOpenSubtitle: actions.onOpenSubtitle,
           ),
         ),
-      if (isClipsLoading || clipsErrorMessage != null || clips.isNotEmpty)
+      if (state.isClipsLoading ||
+          state.clipsErrorMessage != null ||
+          data.clips.isNotEmpty)
         MovieDetailSection(
           title: l10n.moviePageSectionClips,
           titleKey: const Key('movie-clips-title'),
           child: MovieClipStrip(
-            clips: clips,
-            isLoading: isClipsLoading,
-            errorMessage: clipsErrorMessage,
-            onRetry: onRetryClips,
-            onOpenClipActions: onOpenClipActions ?? (_) {},
-            onPlayClip: onPlayClip ?? (_) {},
-            onRenameClip: onRenameClip ?? (_) {},
-            onDeleteClip: onDeleteClip ?? (_) {},
-            onAddClipToCollection: onAddClipToCollection ?? (_) {},
+            clips: data.clips,
+            isLoading: state.isClipsLoading,
+            errorMessage: state.clipsErrorMessage,
+            onRetry: actions.onRetryClips,
+            onOpenClipActions: actions.onOpenClipActions ?? (_) {},
+            onPlayClip: actions.onPlayClip ?? (_) {},
+            onRenameClip: actions.onRenameClip ?? (_) {},
+            onDeleteClip: actions.onDeleteClip ?? (_) {},
+            onAddClipToCollection: actions.onAddClipToCollection ?? (_) {},
           ),
         ),
-      if (showSimilarMovies &&
-          (isSimilarMoviesLoading ||
-              similarMoviesErrorMessage?.trim().isNotEmpty == true ||
-              similarMovies.isNotEmpty))
+      if (config.showSimilarMovies &&
+          (state.isSimilarMoviesLoading ||
+              state.similarMoviesErrorMessage?.trim().isNotEmpty == true ||
+              data.similarMovies.isNotEmpty))
         MovieDetailSection(
           title: l10n.moviePageSectionSimilarMovies,
           titleKey: const Key('movie-similar-movies-title'),
           child: MovieSimilarMovieStrip(
-            movies: similarMovies,
-            isLoading: isSimilarMoviesLoading,
-            errorMessage: similarMoviesErrorMessage,
-            onRetry: onRetrySimilarMovies,
-            onMovieTap: onSimilarMovieTap,
+            movies: data.similarMovies,
+            isLoading: state.isSimilarMoviesLoading,
+            errorMessage: state.similarMoviesErrorMessage,
+            onRetry: actions.onRetrySimilarMovies,
+            onMovieTap: actions.onSimilarMovieTap,
             onMovieMenuRequest: (movie, globalPosition) =>
                 requestMovieCollectionMenu(
                   context,

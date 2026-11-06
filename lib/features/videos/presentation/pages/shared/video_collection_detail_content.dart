@@ -11,7 +11,10 @@ import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.
 import 'package:sakuramedia/features/shared/presentation/providers/batch_operation_submission_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/collection_playback_handoff_provider.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
+import 'package:sakuramedia/features/videos/presentation/actions/video_playback_launcher.dart';
 import 'package:sakuramedia/features/videos/presentation/controllers/listing/video_filter_state.dart';
+import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_actions_dialog.dart';
+import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_actions_sheet.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_collection_detail_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_collection_detail_state.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_mutation_events_provider.dart';
@@ -25,6 +28,7 @@ import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
@@ -41,97 +45,22 @@ import 'package:sakuramedia/widgets/domain/collections/collection_member_views.d
 import 'package:sakuramedia/widgets/domain/videos/video_collection_sort_menu_button.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
 
-typedef VideoCollectionPlaySingle =
-    Future<void> Function(BuildContext context, int videoId, String title);
-
-typedef VideoCollectionConfirm =
-    Future<bool> Function(
-      BuildContext context, {
-      required String title,
-      required String message,
-      required String confirmLabel,
-      required Key confirmKey,
-      Key? drawerKey,
-      Future<void> Function()? onConfirm,
-    });
-
-typedef VideoCollectionPlayAllBuilder =
-    Widget Function(
-      BuildContext context, {
-      required bool enabled,
-      required VoidCallback onPlayFrom,
-    });
-
-/// 单条成员动作的执行器（由共享 State 绑定后交给壳渲染动作弹窗/抽屉）。
-class VideoCollectionMemberActions {
-  const VideoCollectionMemberActions({
-    required this.playSingle,
-    required this.remove,
-    required this.delete,
-  });
-
-  final VideoCollectionPlaySingle playSingle;
-  final Future<void> Function(int videoId) remove;
-  final Future<void> Function(int videoId) delete;
-}
-
 /// 视频合集详情共享实现（桌面 / 移动双端壳收敛的 content 层）。
 ///
-/// 平台差异收在壳参数与钩子里：
-/// - `surfaceColor` / `keyPrefix` / `useMobileSelectionLayout` /
-///   `hoistTitleToSubpageShell` 表达渲染差异；
-/// - `onMemberTap` / `playSingle` / `onOpenCollection` / `confirm` / `playAllBuilder`
-///   收掉动作壳、确认弹层与主行动按钮的平台呈现；
-/// - 批量动作 / 删除 / 连播 / 封面比例等逐字重复块全部下沉本层。
+/// 只保留 `mobile` 作为平台语义；具体用哪套路由、弹层和动作壳由本层判断。
 class VideoCollectionDetailContent extends ConsumerStatefulWidget {
   const VideoCollectionDetailContent({
     super.key,
     required this.collectionId,
     required this.surfaceColor,
     required this.keyPrefix,
-    this.useMobileSelectionLayout = false,
-    this.hoistTitleToSubpageShell = false,
-    this.useMobileSortDrawer = false,
-    this.playAllBuilder,
-    this.onMemberTap,
-    this.playSingle,
-    this.onOpenCollection,
-    this.confirm,
+    required this.mobile,
   });
 
   final int collectionId;
   final Color surfaceColor;
   final String keyPrefix;
-
-  /// 移动端多选布局：多选态顶栏只留退出/计数/全选，批量动作走贴底
-  /// `AppSelectionBottomBar`；桌面端批量动作内联在顶栏。语义对齐 `SeriesMoviesContent`。
-  final bool useMobileSelectionLayout;
-
-  /// 把合集名报给外层移动子页壳的返回栏（见 [AppMobileSubpageTitle]）；桌面端
-  /// 保持 `false`——标题块留在页内（名称 + 简介 + 播放全部）。
-  final bool hoistTitleToSubpageShell;
-
-  /// 顶栏筛选入口容器：`true` 弹底部抽屉（移动端），`false` 就地展开浮层（桌面端）。
-  final bool useMobileSortDrawer;
-
-  final VideoCollectionPlayAllBuilder? playAllBuilder;
-
-  /// 单条成员点击后的动作壳（桌面弹窗 / 移动抽屉），由壳实现。
-  final void Function(
-    BuildContext context,
-    VideoCollectionItemDto item,
-    VideoCollectionMemberActions actions,
-  )?
-  onMemberTap;
-
-  /// 单集播放（桌面快播弹窗 / 移动全屏页），由壳实现。
-  final VideoCollectionPlaySingle? playSingle;
-
-  /// 「跳到其它合集」（桌面 push / 移动 push 路由），由壳实现。
-  final void Function(BuildContext context, int collectionId)? onOpenCollection;
-
-  /// 确认弹层（桌面 dialog / 移动 drawer），由壳实现；`drawerKey` 仅移动端使用。
-  final VideoCollectionConfirm? confirm;
+  final bool mobile;
 
   @override
   ConsumerState<VideoCollectionDetailContent> createState() =>
@@ -150,7 +79,7 @@ class _VideoCollectionDetailContentState
   VideoMutationEvents get _mutationBroadcaster =>
       ref.read(videoMutationEventsProvider.notifier);
 
-  bool get _isMobile => widget.useMobileSelectionLayout;
+  bool get _isMobile => widget.mobile;
 
   @override
   void initState() {
@@ -169,7 +98,7 @@ class _VideoCollectionDetailContentState
     final async = ref.watch(_providerRef);
     final state = async.value;
     final notifier = ref.read(_providerRef.notifier);
-    if (widget.hoistTitleToSubpageShell) {
+    if (_isMobile) {
       _reportTitle(state);
     }
     final isLoading = async.isLoading && state == null;
@@ -222,13 +151,12 @@ class _VideoCollectionDetailContentState
       key: Key('${widget.keyPrefix}-detail-page'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (!widget.hoistTitleToSubpageShell && !hasListHeader)
-          _buildTitleBlock(context, state),
+        if (!_isMobile && !hasListHeader) _buildTitleBlock(context, state),
         if (hasListHeader)
           selectionMode
               ? _buildSelectionHeader(context, state)
               : _buildListHeader(context, state),
-        if (!widget.hoistTitleToSubpageShell &&
+        if (!_isMobile &&
             hasListHeader &&
             !selectionMode &&
             description.isNotEmpty) ...[
@@ -278,7 +206,7 @@ class _VideoCollectionDetailContentState
                   AppPinnedSliverSection(
                     headerKey: _listHeaderKey,
                     before: <Widget>[
-                      if (widget.hoistTitleToSubpageShell) ...[
+                      if (_isMobile) ...[
                         SliverToBoxAdapter(
                           child: _buildMobileHero(context, state),
                         ),
@@ -292,7 +220,7 @@ class _VideoCollectionDetailContentState
                         : _buildListHeader(context, state),
                     headerBottomSpacing: context.appSpacing.md,
                     after: <Widget>[
-                      if (!widget.hoistTitleToSubpageShell &&
+                      if (!_isMobile &&
                           !selectionMode &&
                           description.isNotEmpty)
                         SliverToBoxAdapter(
@@ -315,7 +243,7 @@ class _VideoCollectionDetailContentState
                     ],
                   )
                 else ...[
-                  if (widget.hoistTitleToSubpageShell) ...[
+                  if (_isMobile) ...[
                     SliverToBoxAdapter(child: _buildMobileHero(context, state)),
                     SliverToBoxAdapter(
                       child: SizedBox(height: context.appSpacing.md),
@@ -557,10 +485,10 @@ class _VideoCollectionDetailContentState
           keyPrefix: widget.keyPrefix,
           sort: state.sort,
           onChanged: _applySort,
-          useDrawer: widget.useMobileSortDrawer,
+          useDrawer: _isMobile,
           iconOnly: true,
         ),
-        if (widget.playAllBuilder != null && state.items.isNotEmpty)
+        if (state.items.isNotEmpty)
           AppGlassIconButton(
             key: const Key('mobile-video-collection-play-all-button'),
             tooltip: l10n.videoPlayAll,
@@ -592,7 +520,6 @@ class _VideoCollectionDetailContentState
     final count = state.collection.itemCount == 0
         ? state.items.length
         : state.collection.itemCount;
-    final playAllBuilder = widget.playAllBuilder;
     return AppGlassListHeader(
       leading: Row(
         mainAxisSize: MainAxisSize.min,
@@ -639,12 +566,14 @@ class _VideoCollectionDetailContentState
       ),
       trailing: AppGlassHeaderGroup(
         children: <Widget>[
-          if (playAllBuilder != null)
-            playAllBuilder(
-              context,
-              enabled: state.items.isNotEmpty,
-              onPlayFrom: () => _playFrom(0),
-            ),
+          AppGlassHeaderButton(
+            key: const Key('video-collection-play-all-button'),
+            icon: Icons.play_arrow_rounded,
+            label: l10n.videoPlayAll,
+            enabled: state.items.isNotEmpty,
+            onTap: () => _playFrom(0),
+            foregroundColor: Theme.of(context).colorScheme.primary,
+          ),
           AppGlassHeaderButton(
             key: Key('${widget.keyPrefix}-enter-selection-button'),
             icon: Icons.check_circle_outline,
@@ -868,7 +797,6 @@ class _VideoCollectionDetailContentState
   }
 
   Widget _buildMemberCard(BuildContext context, VideoCollectionItemDto item) {
-    final playSingle = widget.playSingle;
     return CollectionMemberCard(
       key: ValueKey<int>(item.video.id),
       onLongPress: _isMobile && !selectionMode
@@ -888,9 +816,9 @@ class _VideoCollectionDetailContentState
           ? () => toggleSelect(item.video.id)
           : () => _openMemberActions(context, item),
       menuKey: Key('${widget.keyPrefix}-grid-menu-${item.video.id}'),
-      onPlay: _isMobile || playSingle == null
+      onPlay: _isMobile
           ? null
-          : () => playSingle(
+          : () => _playSingle(
               context,
               item.video.id,
               item.video.displayTitle(AppLocalizations.of(context)),
@@ -917,19 +845,68 @@ class _VideoCollectionDetailContentState
   // --------------------------------------------------------- 单条动作
 
   void _openMemberActions(BuildContext context, VideoCollectionItemDto item) {
-    final handler = widget.onMemberTap;
-    if (handler == null) {
+    final video = item.video;
+    final otherCollections = video.collections
+        .where((ref) => ref.id != widget.collectionId)
+        .toList(growable: false);
+    if (_isMobile) {
+      showMobileVideoActionsSheet(
+        context,
+        video: video,
+        onPlay: () => _playSingle(
+          context,
+          video.id,
+          video.displayTitle(AppLocalizations.of(context)),
+        ),
+        onThumbnails: () => MobileVideoThumbnailRouteData(
+          videoId: video.id,
+        ).push<void>(context),
+        onRemoveFromCollection: () => _removeVideo(video.id),
+        onDelete: () => _deleteVideo(video.id),
+        collections: otherCollections,
+        onCollectionTap: (ref) => MobileVideoCollectionDetailRouteData(
+          collectionId: ref.id,
+        ).push(context),
+      );
       return;
     }
-    handler(
+    showDesktopVideoActionsDialog(
       context,
-      item,
-      VideoCollectionMemberActions(
-        playSingle: widget.playSingle ?? (_, __, ___) async {},
-        remove: _removeVideo,
-        delete: _deleteVideo,
+      video: video,
+      onPlay: () => _playSingle(
+        context,
+        video.id,
+        video.displayTitle(AppLocalizations.of(context)),
       ),
+      onThumbnails: () => _openThumbnails(item),
+      onRemoveFromCollection: () => _removeVideo(video.id),
+      onDelete: () => _deleteVideo(video.id),
+      collections: otherCollections,
+      onCollectionTap: (ref) =>
+          context.pushDesktopVideoCollectionDetail(collectionId: ref.id),
     );
+  }
+
+  Future<void> _playSingle(
+    BuildContext context,
+    int videoId,
+    String title,
+  ) async {
+    if (await tryLaunchExternalVideoPlayback(
+      context,
+      videoId: videoId,
+      title: title,
+    )) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+    if (_isMobile) {
+      await MobileVideoPlayerRouteData(videoId: videoId).push<void>(context);
+      return;
+    }
+    context.pushDesktopVideoPlayer(videoId: videoId);
   }
 
   Future<void> _removeVideo(int videoId) async {
@@ -965,13 +942,16 @@ class _VideoCollectionDetailContentState
     }
     final label = title.isEmpty ? l10n.videoGenericVideo : '“$title”';
     final notifier = ref.read(_providerRef.notifier);
-    final confirmed = await _confirm(
+    final confirmed = await showAppConfirmDialog(
+      context,
       title: l10n.videoDeleteTitle,
       message: l10n.videoDeleteConfirmMessage(label),
+      danger: true,
       confirmLabel: l10n.commonDelete,
       confirmKey: Key('${widget.keyPrefix}-delete-confirm-button'),
-      drawerKey: _isMobile ? Key('${widget.keyPrefix}-delete-drawer') : null,
+      dialogKey: _isMobile ? Key('${widget.keyPrefix}-delete-drawer') : null,
       onConfirm: () => notifier.deleteVideo(videoId),
+      failureFallback: l10n.videoDeleteFailed,
     );
     if (!mounted || !confirmed) {
       return;
@@ -1030,29 +1010,6 @@ class _VideoCollectionDetailContentState
         tone: AppToastTone.error,
       );
     }
-  }
-
-  Future<bool> _confirm({
-    required String title,
-    required String message,
-    required String confirmLabel,
-    required Key confirmKey,
-    Key? drawerKey,
-    Future<void> Function()? onConfirm,
-  }) async {
-    final handler = widget.confirm;
-    if (handler == null) {
-      return false;
-    }
-    return handler(
-      context,
-      title: title,
-      message: message,
-      confirmLabel: confirmLabel,
-      confirmKey: confirmKey,
-      drawerKey: drawerKey,
-      onConfirm: onConfirm,
-    );
   }
 
   Future<void> _playFrom(int index) async {
@@ -1128,14 +1085,17 @@ class _VideoCollectionDetailContentState
       return;
     }
     final l10n = AppLocalizations.of(context);
-    final confirmed = await _confirm(
+    final confirmed = await showAppConfirmDialog(
+      context,
       title: l10n.videoRemoveFromCollectionTitle,
       message: l10n.videoBatchRemoveConfirmMessage(selected.length),
+      danger: true,
       confirmLabel: _isMobile ? l10n.videoRemove : l10n.videoConfirm,
       confirmKey: _batchConfirmKey('remove'),
-      drawerKey: _isMobile
+      dialogKey: _isMobile
           ? Key('${widget.keyPrefix}-batch-remove-drawer')
           : null,
+      failureFallback: l10n.videoDeleteFailed,
     );
     if (!mounted || !confirmed) {
       return;
@@ -1159,14 +1119,17 @@ class _VideoCollectionDetailContentState
       return;
     }
     final l10n = AppLocalizations.of(context);
-    final confirmed = await _confirm(
+    final confirmed = await showAppConfirmDialog(
+      context,
       title: l10n.videoDeleteTitle,
       message: l10n.videoBatchDeleteConfirmMessage(selected.length),
+      danger: true,
       confirmLabel: _isMobile ? l10n.commonDelete : l10n.videoConfirm,
       confirmKey: _batchConfirmKey('delete'),
-      drawerKey: _isMobile
+      dialogKey: _isMobile
           ? Key('${widget.keyPrefix}-batch-delete-drawer')
           : null,
+      failureFallback: l10n.videoDeleteFailed,
     );
     if (!mounted || !confirmed) {
       return;

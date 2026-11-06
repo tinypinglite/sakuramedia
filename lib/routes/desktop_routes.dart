@@ -11,7 +11,7 @@ import 'package:sakuramedia/features/discovery/presentation/pages/desktop/discov
 import 'package:sakuramedia/features/discovery/presentation/pages/desktop/hot_actress_releases_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/pages/desktop/image_search_page.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_draft_store_provider.dart';
-import 'package:sakuramedia/features/movies/presentation/pages/desktop/movie_detail_page.dart';
+import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_page.dart';
 import 'package:sakuramedia/features/cast/presentation/pages/cast_remote_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/desktop/movie_player_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/desktop/series_movies_page.dart';
@@ -949,7 +949,7 @@ class DesktopMovieDetailRouteData extends _DesktopShellPageRouteData
 
   @override
   Widget buildContent(BuildContext context, GoRouterState state) {
-    return DesktopMovieDetailPage(movieNumber: movieNumber);
+    return MovieDetailPage(movieNumber: movieNumber, mobile: false);
   }
 }
 

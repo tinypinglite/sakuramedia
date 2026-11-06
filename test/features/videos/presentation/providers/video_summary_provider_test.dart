@@ -64,7 +64,7 @@ void main() {
   }
 
   test('初始加载使用默认排序和 24 条分页参数', () async {
-    const scope = VideoSummaryScope.desktop();
+    const scope = VideoSummaryScope.desktop;
     await prime(scope, <Map<String, dynamic>>[_video(1)]);
 
     final request = adapter.requests.single;
@@ -75,7 +75,7 @@ void main() {
   });
 
   test('未归类筛选携带 uncollected 重拉且清空旧页', () async {
-    const scope = VideoSummaryScope.desktop();
+    const scope = VideoSummaryScope.desktop;
     await prime(scope, <Map<String, dynamic>>[_video(1)]);
     adapter.enqueueJson(
       method: 'GET',
@@ -94,7 +94,7 @@ void main() {
   });
 
   test('排序切换清空旧页并用新参数重拉', () async {
-    const scope = VideoSummaryScope.desktop();
+    const scope = VideoSummaryScope.desktop;
     await prime(scope, <Map<String, dynamic>>[_video(1)]);
     adapter.enqueueJson(
       method: 'GET',
@@ -118,7 +118,7 @@ void main() {
   });
 
   test('删除广播就地移除条目，合集成员变更不影响网格', () async {
-    const scope = VideoSummaryScope.desktop();
+    const scope = VideoSummaryScope.desktop;
     await prime(scope, <Map<String, dynamic>>[_video(1), _video(2)]);
 
     mutationBroadcaster().reportCollectionMembershipChanged(videoId: 1);
@@ -141,8 +141,8 @@ void main() {
   });
 
   test('desktop/mobile family 状态隔离', () async {
-    const desktop = VideoSummaryScope.desktop();
-    const mobile = VideoSummaryScope.mobile();
+    const desktop = VideoSummaryScope.desktop;
+    const mobile = VideoSummaryScope.mobile;
     await prime(desktop, <Map<String, dynamic>>[_video(1)]);
     await prime(mobile, <Map<String, dynamic>>[_video(2)]);
 
@@ -169,7 +169,7 @@ void main() {
   });
 
   test('页面缓存 link 保活列表，驱逐后重新请求', () async {
-    const scope = VideoSummaryScope.desktop();
+    const scope = VideoSummaryScope.desktop;
     adapter.enqueueJson(
       method: 'GET',
       path: '/videos',
@@ -180,8 +180,9 @@ void main() {
       (_, __) {},
     );
     await container.read(videoSummaryProvider(scope).future);
-    final firstLink =
-        container.read(videoSummaryProvider(scope).notifier).cacheLink;
+    final firstLink = container
+        .read(videoSummaryProvider(scope).notifier)
+        .cacheLink;
     expect(firstLink, isNotNull);
 
     final cache = RiverpodPageCache();

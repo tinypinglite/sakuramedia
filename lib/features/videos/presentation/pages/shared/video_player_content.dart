@@ -19,7 +19,6 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/videos_api_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/video_display_title.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
@@ -135,9 +134,7 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
       if (playable == null) {
         setState(() {
           _isLoading = false;
-          _errorMessage = AppLocalizations.of(
-            context,
-          ).videoNoPlayableMedia;
+          _errorMessage = AppLocalizations.of(context).videoNoPlayableMedia;
         });
         return;
       }
