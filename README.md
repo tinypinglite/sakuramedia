@@ -193,6 +193,7 @@ Get the client from [GitHub Releases](https://github.com/tinypinglite/sakuramedi
 
 - Found a bug or have a feature request: [open an issue](https://github.com/tinypinglite/sakuramedia/issues). Please include the client, backend, and plugin versions, the steps to reproduce, and the relevant logs; don't upload screenshots, covers, or personal information that shouldn't be public.
 - Chat with other users or ask for help: [join Discussions](https://github.com/tinypinglite/sakuramedia/discussions).
+- Sensitive topics (app screenshots, movie screenshots, or anything else that shouldn't be public): [join the Telegram group](https://t.me/+ysbUBDExCsw5N2Jh).
 - If you hit connection or import problems, check connectivity for your media library, indexer, JavDB, and the embedding service under "Overview → Component diagnostics" first.
 - You can also hand the Markdown files in `wiki/` to an AI together with your problem and the steps you've already tried; that usually narrows things down faster.
 - The project is evolving quickly; check the release notes before upgrading, and upgrade the client, backend, and plugins together whenever possible.
