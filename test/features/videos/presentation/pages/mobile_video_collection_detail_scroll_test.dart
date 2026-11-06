@@ -14,8 +14,6 @@ import '../../../../support/preview_helpers.dart';
 import '../../../../support/test_api_bundle.dart';
 
 void main() {
-  setUpAll(loadPreviewFonts);
-
   late SessionStore sessionStore;
   late TestApiBundle bundle;
 
