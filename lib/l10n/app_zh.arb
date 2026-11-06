@@ -28,6 +28,8 @@
   "loginErrorNetwork": "登录失败，请检查网络或服务器地址",
   "loginDeployGuideInError": "还没有部署后端？查看部署教程",
   "loginOpenBrowserFailed": "无法打开浏览器，请手动访问 Wiki 的「快速开始」",
+  "loginLocalNetworkPermissionHintMacos": "连接失败？请打开「系统设置 → 隐私与安全性 → 本地网络」，确认 SakuraMedia 已开启，然后完全退出并重新打开 App。若列表中没有 SakuraMedia，先点一次登录再回来查看。",
+  "loginLocalNetworkPermissionHintIos": "连接失败？请打开「设置 → 隐私与安全性 → 本地网络」，确认 SakuraMedia 已开启，然后重新打开 App。若列表中没有 SakuraMedia，先点一次登录再回来查看。",
   "loginServerRequired": "请输入服务器地址",
   "loginServerInvalid": "请输入有效的 http(s) 地址",
   "loginFieldRequired": "请输入{field}",

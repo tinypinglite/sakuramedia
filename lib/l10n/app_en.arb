@@ -28,6 +28,8 @@
   "loginErrorNetwork": "Sign-in failed. Check your network or server address.",
   "loginDeployGuideInError": "Backend not deployed yet? View the deployment guide",
   "loginOpenBrowserFailed": "Could not open the browser. Open the Wiki quick-start page manually.",
+  "loginLocalNetworkPermissionHintMacos": "Can't connect? Open System Settings → Privacy & Security → Local Network and make sure SakuraMedia is enabled, then quit and reopen the app. If SakuraMedia is not listed, sign in once first and check again.",
+  "loginLocalNetworkPermissionHintIos": "Can't connect? Open Settings → Privacy & Security → Local Network and make sure SakuraMedia is enabled, then reopen the app. If SakuraMedia is not listed, sign in once first and check again.",
   "loginServerRequired": "Enter the server address.",
   "loginServerInvalid": "Enter a valid http(s) address.",
   "loginFieldRequired": "Please enter {field}.",

@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart'
+    show debugDefaultTargetPlatformOverride;
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -241,7 +243,67 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('login-error-message')), findsOneWidget);
+    expect(
+      find.byKey(const Key('login-local-network-permission-hint')),
+      findsNothing,
+    );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('macOS transport failure prompts for local network permission', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+    try {
+      final sessionStore = SessionStore.inMemory();
+      final bundle = await createTestApiBundle(sessionStore);
+      addTearDown(bundle.dispose);
+      addTearDown(sessionStore.dispose);
+      bundle.adapter.enqueueResponder(
+        method: 'POST',
+        path: '/auth/tokens',
+        responder: (options, _) async {
+          throw DioException(
+            requestOptions: options,
+            type: DioExceptionType.connectionError,
+            message: 'Connection failed',
+          );
+        },
+      );
+
+      await pumpWithProviders(
+        tester,
+        home: const LoginPage(platform: AppPlatform.desktop),
+        bundle: bundle,
+        theme: buildSakuraDesktopThemeData(),
+        physicalSize: const Size(1200, 800),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.byKey(const Key('login-form-base-url')),
+        '192.168.1.10:38000',
+      );
+      await tester.enterText(
+        find.byKey(const Key('login-form-username')),
+        'account',
+      );
+      await tester.enterText(
+        find.byKey(const Key('login-form-password')),
+        'account',
+      );
+      await tester.tap(find.byKey(const Key('login-submit-button')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('login-error-message')), findsOneWidget);
+      expect(
+        find.byKey(const Key('login-local-network-permission-hint')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
   });
 }
 

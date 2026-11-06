@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart' show defaultTargetPlatform;
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/widgets/shell/window/app_windows_caption.dart';
 import 'package:go_router/go_router.dart';
@@ -360,7 +361,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 final scrollFallback =
                     viewInsets.bottom > 0 ||
                     largeText ||
-                    constraints.maxHeight < _scrollFallbackMinHeight;
+                    constraints.maxHeight < _scrollFallbackMinHeight ||
+                    _submitError != null;
                 final horizontalPadding = wideLayout
                     ? spacing.xxxl + spacing.xl
                     : spacing.lg;
@@ -900,6 +902,12 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           message: _submitError!,
           tone: AppInlineErrorTone.error,
         ),
+        if (_showDeployHelp &&
+            (defaultTargetPlatform == TargetPlatform.macOS ||
+                defaultTargetPlatform == TargetPlatform.iOS)) ...[
+          SizedBox(height: spacing.sm),
+          _buildLocalNetworkPermissionHint(context, l10n),
+        ],
         if (_showDeployHelp) ...<Widget>[
           SizedBox(height: spacing.sm),
           AppTextButton(
@@ -913,6 +921,38 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             onPressed: _isSubmitting ? null : _openDeployGuide,
           ),
         ],
+      ],
+    );
+  }
+
+  Widget _buildLocalNetworkPermissionHint(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    final spacing = context.appSpacing;
+    final hint = defaultTargetPlatform == TargetPlatform.iOS
+        ? l10n.loginLocalNetworkPermissionHintIos
+        : l10n.loginLocalNetworkPermissionHintMacos;
+    return Row(
+      key: const Key('login-local-network-permission-hint'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Icon(
+          Icons.wifi_tethering_rounded,
+          size: context.appComponentTokens.iconSizeXs,
+          color: context.appTextPalette.muted,
+        ),
+        SizedBox(width: spacing.xs),
+        Expanded(
+          child: Text(
+            hint,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              tone: AppTextTone.secondary,
+            ),
+          ),
+        ),
       ],
     );
   }
