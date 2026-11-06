@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 /// 加载态骨架化的统一入口：把**真实组件树**自动灰化为骨架。
@@ -54,13 +55,16 @@ class AppSkeletonizer extends StatelessWidget {
     final textBoneBorderRadius = TextBoneBorderRadius(
       context.appRadius.smBorder,
     );
+    final effectiveChild = enabled
+        ? AppSurfaceStyleScope(style: AppSurfaceStyle.flat, child: child)
+        : child;
     if (_sliver) {
       return Skeletonizer.sliver(
         enabled: enabled,
         effect: effect,
         textBoneBorderRadius: textBoneBorderRadius,
         containersColor: colors.surfaceCard,
-        child: child,
+        child: effectiveChild,
       );
     }
     return Skeletonizer(
@@ -68,7 +72,7 @@ class AppSkeletonizer extends StatelessWidget {
       effect: effect,
       textBoneBorderRadius: textBoneBorderRadius,
       containersColor: colors.surfaceCard,
-      child: ExcludeSemantics(excluding: enabled, child: child),
+      child: ExcludeSemantics(excluding: enabled, child: effectiveChild),
     );
   }
 }
