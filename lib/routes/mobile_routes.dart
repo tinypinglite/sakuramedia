@@ -20,12 +20,12 @@ import 'package:sakuramedia/features/image_search/presentation/providers/image_s
 import 'package:sakuramedia/features/media/presentation/pages/mobile/media_management_page.dart';
 import 'package:sakuramedia/features/media_import/presentation/pages/shared/media_import_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/appearance_settings_page.dart';
-import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_downloaders_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_download_selection_policy_page.dart';
-import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_indexers_page.dart';
-import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_media_libraries_page.dart';
-import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_media_tags_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_system_maintenance_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/shared/media_libraries_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/shared/downloaders_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/shared/indexers_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/shared/media_tags_page.dart';
 import 'package:sakuramedia/features/plugins/presentation/pages/mobile/mobile_plugin_market_page.dart';
 import 'package:sakuramedia/features/plugins/presentation/pages/mobile/mobile_plugins_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/mobile/clip_collection_detail_page.dart';
@@ -271,7 +271,7 @@ class MobileSettingsMediaLibrariesRouteData extends _MobileSubpageRouteData
 
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
-    return const MobileMediaLibrariesPage();
+    return const MediaLibrariesPage(mobile: true);
   }
 }
 
@@ -293,7 +293,7 @@ class MobileSettingsMediaTagsRouteData extends _MobileSubpageRouteData
 
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
-    return const MobileMediaTagsPage();
+    return const MediaTagsPage(mobile: true);
   }
 }
 
@@ -659,7 +659,7 @@ class MobileSettingsDownloadersRouteData extends _MobileSubpageRouteData
 
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
-    return const MobileDownloadersPage();
+    return const DownloadersPage(mobile: true);
   }
 }
 
@@ -679,7 +679,7 @@ class MobileSettingsIndexersRouteData extends _MobileSubpageRouteData
 
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
-    return const MobileIndexersPage();
+    return const IndexersPage(mobile: true);
   }
 }
 

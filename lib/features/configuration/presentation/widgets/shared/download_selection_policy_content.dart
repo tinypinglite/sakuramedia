@@ -533,9 +533,10 @@ class _DownloadSelectionPolicyContentState
                         ? 0
                         : context.appSpacing.sm,
                   ),
-                  child: _RankingRow(
+                  child: _PolicyRow(
                     index: index,
-                    label: _rankingLabel(rules.ranking[index]),
+                    actionTitle: _rankingLabel(rules.ranking[index]),
+                    keyPrefix: 'download-selection-ranking',
                     canMoveUp: index > 0,
                     canMoveDown: index < rules.ranking.length - 1,
                     canRemove: rules.ranking.length > 1,
@@ -543,6 +544,16 @@ class _DownloadSelectionPolicyContentState
                     onMoveUp: () => _moveRanking(index, index - 1),
                     onMoveDown: () => _moveRanking(index, index + 1),
                     onRemove: () => _removeRanking(index),
+                    style: _PolicyRowStyle.rankingCard,
+                    removeIcon: Icons.close_rounded,
+                    child: Text(
+                      _rankingLabel(rules.ranking[index]),
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s14,
+                        tone: AppTextTone.primary,
+                      ),
+                    ),
                   ),
                 ),
               if (rules.ranking.length <
@@ -618,18 +629,31 @@ class _DownloadSelectionPolicyContentState
                         index < rules.indexerPriorityNames.length;
                         index++
                       )
-                        _PriorityIndexerRow(
+                        _PolicyRow(
                           index: index,
-                          name: rules.indexerPriorityNames[index],
+                          actionTitle: rules.indexerPriorityNames[index],
+                          keyPrefix: 'download-selection-priority-indexer',
                           canMoveUp: index > 0,
                           canMoveDown:
                               index < rules.indexerPriorityNames.length - 1,
+                          canRemove: true,
                           mobile: widget.mobile,
                           onMoveUp: () =>
                               _movePriorityIndexer(index, index - 1),
                           onMoveDown: () =>
                               _movePriorityIndexer(index, index + 1),
                           onRemove: () => _removePriorityIndexer(index),
+                          style: _PolicyRowStyle.plain,
+                          removeIcon: Icons.close_rounded,
+                          child: Text(
+                            rules.indexerPriorityNames[index],
+                            overflow: TextOverflow.ellipsis,
+                            style: resolveAppTextStyle(
+                              context,
+                              size: AppTextSize.s14,
+                              tone: AppTextTone.primary,
+                            ),
+                          ),
                         ),
                     ],
                   ),
@@ -906,10 +930,7 @@ class _DownloadSelectionPolicyContentState
   }
 
   Future<void> _save(DownloadSelectionPolicyState state) async {
-    setState(() => _showRuleErrors = true);
-    final formValid = _formKey.currentState?.validate() ?? false;
-    final ruleErrors = _ruleValidationErrors(state.draft);
-    if (!formValid || ruleErrors.isNotEmpty) return;
+    if (!_validateFormAndRules(state)) return;
     try {
       final saved = await ref
           .read(downloadSelectionPolicyProvider.notifier)
@@ -942,11 +963,8 @@ class _DownloadSelectionPolicyContentState
   Future<void> _preview(DownloadSelectionPolicyState state) async {
     if (_isParsingPreviewMovieNumber || state.isPreviewing) return;
     final l10n = AppLocalizations.of(context);
-    setState(() => _showRuleErrors = true);
-    final formValid = _formKey.currentState?.validate() ?? false;
-    final ruleErrors = _ruleValidationErrors(state.draft);
     final rawMovieNumber = _previewMovieController.text.trim();
-    if (!formValid || ruleErrors.isNotEmpty) return;
+    if (!_validateFormAndRules(state)) return;
     if (rawMovieNumber.isEmpty) {
       setState(() {
         _previewValidationMessage = l10n.downloadSelectionMovieNumberRequired;
@@ -998,6 +1016,13 @@ class _DownloadSelectionPolicyContentState
     return mounted &&
         version == _previewMovieInputVersion &&
         _previewMovieController.text.trim() == rawMovieNumber;
+  }
+
+  bool _validateFormAndRules(DownloadSelectionPolicyState state) {
+    setState(() => _showRuleErrors = true);
+    final formValid = _formKey.currentState?.validate() ?? false;
+    final ruleErrors = _ruleValidationErrors(state.draft);
+    return formValid && ruleErrors.isEmpty;
   }
 
   Future<void> _reloadAfterConflict() async {
@@ -1168,9 +1193,7 @@ class _DownloadSelectionPolicyContentState
     if (from < 0 || to < 0 || from >= source.length || to >= source.length) {
       return;
     }
-    final next = List<DownloadSelectionKeywordGroupDto>.from(source);
-    final item = next.removeAt(from);
-    next.insert(to, item);
+    final next = _moved(source, from, to);
     _updateRules(
       required
           ? rules.copyWith(requiredGroups: next)
@@ -1181,41 +1204,44 @@ class _DownloadSelectionPolicyContentState
   void _moveRanking(int from, int to) {
     final current = ref.read(downloadSelectionPolicyProvider).value;
     if (current == null) return;
-    final ranking = List<DownloadSelectionRanking>.from(current.draft.ranking);
-    if (from < 0 || to < 0 || from >= ranking.length || to >= ranking.length) {
+    final source = current.draft.ranking;
+    if (from < 0 || to < 0 || from >= source.length || to >= source.length) {
       return;
     }
-    final item = ranking.removeAt(from);
-    ranking.insert(to, item);
-    _updateRules(current.draft.copyWith(ranking: ranking));
+    _updateRules(current.draft.copyWith(ranking: _moved(source, from, to)));
   }
 
   void _removeRanking(int index) {
     final current = ref.read(downloadSelectionPolicyProvider).value;
     if (current == null || current.draft.ranking.length <= 1) return;
-    final ranking = List<DownloadSelectionRanking>.from(current.draft.ranking)
-      ..removeAt(index);
-    _updateRules(current.draft.copyWith(ranking: ranking));
+    _updateRules(
+      current.draft.copyWith(ranking: _removedAt(current.draft.ranking, index)),
+    );
   }
 
   void _movePriorityIndexer(int from, int to) {
     final current = ref.read(downloadSelectionPolicyProvider).value;
     if (current == null) return;
-    final names = List<String>.from(current.draft.indexerPriorityNames);
-    if (from < 0 || to < 0 || from >= names.length || to >= names.length) {
+    final source = current.draft.indexerPriorityNames;
+    if (from < 0 || to < 0 || from >= source.length || to >= source.length) {
       return;
     }
-    final item = names.removeAt(from);
-    names.insert(to, item);
-    _updateRules(current.draft.copyWith(indexerPriorityNames: names));
+    _updateRules(
+      current.draft.copyWith(indexerPriorityNames: _moved(source, from, to)),
+    );
   }
 
   void _removePriorityIndexer(int index) {
     final current = ref.read(downloadSelectionPolicyProvider).value;
     if (current == null) return;
-    final names = List<String>.from(current.draft.indexerPriorityNames)
-      ..removeAt(index);
-    _updateRules(current.draft.copyWith(indexerPriorityNames: names));
+    _updateRules(
+      current.draft.copyWith(
+        indexerPriorityNames: _removedAt(
+          current.draft.indexerPriorityNames,
+          index,
+        ),
+      ),
+    );
   }
 
   void _updateRules(DownloadSelectionRulesDto rules) {
@@ -1388,6 +1414,17 @@ class _DownloadSelectionPolicyContentState
         .toStringAsFixed(2)
         .replaceFirst(RegExp(r'0+$'), '')
         .replaceFirst(RegExp(r'\.$'), '');
+  }
+
+  static List<T> _moved<T>(List<T> source, int from, int to) {
+    final next = List<T>.of(source);
+    final item = next.removeAt(from);
+    next.insert(to, item);
+    return next;
+  }
+
+  static List<T> _removedAt<T>(List<T> source, int index) {
+    return List<T>.of(source)..removeAt(index);
   }
 }
 
@@ -1596,6 +1633,162 @@ Future<_PolicyRowAction?> _showPolicyRowActions(
   );
 }
 
+enum _PolicyRowStyle { groupCard, rankingCard, plain }
+
+/// 下载选种里三种“可排序行”的共用外壳。
+///
+/// 关键字组、排序项、优先索引器只在内容槽和容器样式上不同；移动端更多菜单、
+/// 桌面端上下移/编辑/删除按钮以及动作分发都在这里维护一份。
+class _PolicyRow extends StatelessWidget {
+  const _PolicyRow({
+    required this.index,
+    required this.actionTitle,
+    required this.keyPrefix,
+    required this.mobile,
+    required this.canMoveUp,
+    required this.canMoveDown,
+    required this.canRemove,
+    required this.onMoveUp,
+    required this.onMoveDown,
+    required this.onRemove,
+    required this.child,
+    this.canEdit = false,
+    this.onEdit,
+    this.badgeLabel,
+    this.showMoveActions = true,
+    this.style = _PolicyRowStyle.plain,
+    this.removeIcon = Icons.delete_outline,
+  });
+
+  final int index;
+  final String actionTitle;
+  final String keyPrefix;
+  final bool mobile;
+  final bool canMoveUp;
+  final bool canMoveDown;
+  final bool canRemove;
+  final bool canEdit;
+  final String? badgeLabel;
+  final bool showMoveActions;
+  final VoidCallback onMoveUp;
+  final VoidCallback onMoveDown;
+  final VoidCallback onRemove;
+  final VoidCallback? onEdit;
+  final Widget child;
+  final _PolicyRowStyle style;
+  final IconData removeIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final row = Row(
+      crossAxisAlignment: style == _PolicyRowStyle.plain
+          ? CrossAxisAlignment.center
+          : CrossAxisAlignment.start,
+      children: [
+        AppBadge(
+          label: badgeLabel ?? '${index + 1}',
+          size: AppBadgeSize.compact,
+          tone: AppBadgeTone.neutral,
+        ),
+        SizedBox(width: context.appSpacing.sm),
+        Expanded(child: child),
+        if (mobile)
+          AppIconButton(
+            key: Key('$keyPrefix-more-$index'),
+            tooltip: MaterialLocalizations.of(context).showMenuTooltip,
+            size: AppIconButtonSize.regular,
+            onPressed: () => unawaited(_showActions(context)),
+            icon: const Icon(Icons.more_horiz_rounded),
+          )
+        else ...[
+          if (showMoveActions) ...[
+            AppIconButton(
+              key: Key('$keyPrefix-up-$index'),
+              tooltip: l10n.commonMoveUp,
+              size: AppIconButtonSize.mini,
+              onPressed: canMoveUp ? onMoveUp : null,
+              icon: const Icon(Icons.arrow_upward_rounded),
+            ),
+            AppIconButton(
+              key: Key('$keyPrefix-down-$index'),
+              tooltip: l10n.commonMoveDown,
+              size: AppIconButtonSize.mini,
+              onPressed: canMoveDown ? onMoveDown : null,
+              icon: const Icon(Icons.arrow_downward_rounded),
+            ),
+          ],
+          if (canEdit)
+            AppIconButton(
+              key: Key('$keyPrefix-edit-$index'),
+              tooltip: l10n.commonEdit,
+              size: AppIconButtonSize.mini,
+              onPressed: onEdit,
+              icon: const Icon(Icons.edit_outlined),
+            ),
+          AppIconButton(
+            key: Key('$keyPrefix-remove-$index'),
+            tooltip: l10n.commonDelete,
+            size: AppIconButtonSize.mini,
+            onPressed: canRemove ? onRemove : null,
+            icon: Icon(removeIcon),
+          ),
+        ],
+      ],
+    );
+    return switch (style) {
+      _PolicyRowStyle.groupCard => Container(
+        padding: EdgeInsets.all(context.appSpacing.md),
+        decoration: BoxDecoration(
+          color: context.appColors.surfaceMuted,
+          borderRadius: context.appRadius.mdBorder,
+        ),
+        child: row,
+      ),
+      _PolicyRowStyle.rankingCard => Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: context.appSpacing.md,
+          vertical: context.appSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: context.appColors.surfaceMuted,
+          borderRadius: context.appRadius.mdBorder,
+        ),
+        child: row,
+      ),
+      _PolicyRowStyle.plain => Padding(
+        padding: EdgeInsets.only(bottom: context.appSpacing.xs),
+        child: row,
+      ),
+    };
+  }
+
+  Future<void> _showActions(BuildContext context) async {
+    final action = await _showPolicyRowActions(
+      context,
+      title: actionTitle,
+      drawerKey: Key('$keyPrefix-actions-$index'),
+      canMoveUp: showMoveActions && canMoveUp,
+      canMoveDown: showMoveActions && canMoveDown,
+      canEdit: canEdit,
+      canRemove: canRemove,
+    );
+    if (!context.mounted) return;
+    switch (action) {
+      case _PolicyRowAction.moveUp:
+        onMoveUp();
+      case _PolicyRowAction.moveDown:
+        onMoveDown();
+      case _PolicyRowAction.edit:
+        onEdit?.call();
+      case _PolicyRowAction.remove:
+        onRemove();
+      case null:
+        break;
+    }
+  }
+}
+
 class _KeywordGroupList extends StatelessWidget {
   const _KeywordGroupList({
     super.key,
@@ -1625,7 +1818,7 @@ class _KeywordGroupList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final colors = context.appColors;
+    final l10n = AppLocalizations.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -1633,99 +1826,49 @@ class _KeywordGroupList extends StatelessWidget {
         if (groups.isNotEmpty) SizedBox(height: spacing.sm),
         for (var index = 0; index < groups.length; index++) ...[
           if (index > 0) SizedBox(height: spacing.sm),
-          Container(
-            padding: EdgeInsets.all(spacing.md),
-            decoration: BoxDecoration(
-              color: colors.surfaceMuted,
-              borderRadius: context.appRadius.mdBorder,
-            ),
-            child: Row(
+          _PolicyRow(
+            index: index,
+            actionTitle: groups[index].label?.trim().isNotEmpty ?? false
+                ? groups[index].label!
+                : l10n.downloadSelectionGroupNumber(index + 1),
+            keyPrefix: 'download-selection-group',
+            mobile: mobile,
+            canMoveUp: ordered && onMove != null && index > 0,
+            canMoveDown: ordered && onMove != null && index < groups.length - 1,
+            canRemove: true,
+            canEdit: true,
+            badgeLabel: ordered
+                ? '${index + 1}'
+                : l10n.downloadSelectionGroupNumber(index + 1),
+            showMoveActions: ordered && onMove != null,
+            onMoveUp: () => onMove?.call(index, index - 1),
+            onMoveDown: () => onMove?.call(index, index + 1),
+            onEdit: () => onEdit(index),
+            onRemove: () => onRemove(index),
+            style: _PolicyRowStyle.groupCard,
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppBadge(
-                  label: ordered
-                      ? '${index + 1}'
-                      : AppLocalizations.of(
-                          context,
-                        ).downloadSelectionGroupNumber(index + 1),
-                  tone: AppBadgeTone.neutral,
-                  size: AppBadgeSize.compact,
-                ),
-                SizedBox(width: spacing.sm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        groups[index].label?.trim().isNotEmpty ?? false
-                            ? groups[index].label!
-                            : AppLocalizations.of(
-                                context,
-                              ).downloadSelectionUnnamedGroup,
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s14,
-                          weight: AppTextWeight.medium,
-                          tone: AppTextTone.primary,
-                        ),
-                      ),
-                      SizedBox(height: spacing.xs),
-                      Wrap(
-                        spacing: spacing.xs,
-                        runSpacing: spacing.xs,
-                        children: [
-                          for (final term in groups[index].terms)
-                            AppPill(label: term, size: AppPillSize.compact),
-                        ],
-                      ),
-                    ],
+                Text(
+                  groups[index].label?.trim().isNotEmpty ?? false
+                      ? groups[index].label!
+                      : l10n.downloadSelectionUnnamedGroup,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s14,
+                    weight: AppTextWeight.medium,
+                    tone: AppTextTone.primary,
                   ),
                 ),
-                SizedBox(width: spacing.xs),
-                if (mobile)
-                  AppIconButton(
-                    key: Key('download-selection-group-more-$index'),
-                    tooltip: MaterialLocalizations.of(context).showMenuTooltip,
-                    size: AppIconButtonSize.regular,
-                    onPressed: () => unawaited(_showActions(context, index)),
-                    icon: const Icon(Icons.more_horiz_rounded),
-                  )
-                else ...[
-                  if (ordered && onMove != null) ...[
-                    AppIconButton(
-                      key: Key('download-selection-group-up-$index'),
-                      tooltip: AppLocalizations.of(context).commonMoveUp,
-                      size: AppIconButtonSize.mini,
-                      onPressed: index == 0
-                          ? null
-                          : () => onMove!(index, index - 1),
-                      icon: const Icon(Icons.arrow_upward_rounded),
-                    ),
-                    AppIconButton(
-                      key: Key('download-selection-group-down-$index'),
-                      tooltip: AppLocalizations.of(context).commonMoveDown,
-                      size: AppIconButtonSize.mini,
-                      onPressed: index == groups.length - 1
-                          ? null
-                          : () => onMove!(index, index + 1),
-                      icon: const Icon(Icons.arrow_downward_rounded),
-                    ),
+                SizedBox(height: spacing.xs),
+                Wrap(
+                  spacing: spacing.xs,
+                  runSpacing: spacing.xs,
+                  children: [
+                    for (final term in groups[index].terms)
+                      AppPill(label: term, size: AppPillSize.compact),
                   ],
-                  AppIconButton(
-                    key: Key('download-selection-group-edit-$index'),
-                    tooltip: AppLocalizations.of(context).commonEdit,
-                    size: AppIconButtonSize.mini,
-                    onPressed: () => onEdit(index),
-                    icon: const Icon(Icons.edit_outlined),
-                  ),
-                  AppIconButton(
-                    key: Key('download-selection-group-remove-$index'),
-                    tooltip: AppLocalizations.of(context).commonDelete,
-                    size: AppIconButtonSize.mini,
-                    onPressed: () => onRemove(index),
-                    icon: const Icon(Icons.delete_outline),
-                  ),
-                ],
+                ),
               ],
             ),
           ),
@@ -1742,248 +1885,6 @@ class _KeywordGroupList extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  Future<void> _showActions(BuildContext context, int index) async {
-    final group = groups[index];
-    final label = group.label?.trim();
-    final action = await _showPolicyRowActions(
-      context,
-      title: label?.isNotEmpty ?? false
-          ? label!
-          : AppLocalizations.of(
-              context,
-            ).downloadSelectionGroupNumber(index + 1),
-      drawerKey: Key('download-selection-group-actions-$index'),
-      canMoveUp: ordered && onMove != null && index > 0,
-      canMoveDown: ordered && onMove != null && index < groups.length - 1,
-      canEdit: true,
-      canRemove: true,
-    );
-    if (!context.mounted) return;
-    switch (action) {
-      case _PolicyRowAction.moveUp:
-        onMove?.call(index, index - 1);
-      case _PolicyRowAction.moveDown:
-        onMove?.call(index, index + 1);
-      case _PolicyRowAction.edit:
-        onEdit(index);
-      case _PolicyRowAction.remove:
-        onRemove(index);
-      case null:
-        break;
-    }
-  }
-}
-
-class _RankingRow extends StatelessWidget {
-  const _RankingRow({
-    required this.index,
-    required this.label,
-    required this.canMoveUp,
-    required this.canMoveDown,
-    required this.canRemove,
-    required this.mobile,
-    required this.onMoveUp,
-    required this.onMoveDown,
-    required this.onRemove,
-  });
-
-  final int index;
-  final String label;
-  final bool canMoveUp;
-  final bool canMoveDown;
-  final bool canRemove;
-  final bool mobile;
-  final VoidCallback onMoveUp;
-  final VoidCallback onMoveDown;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: context.appSpacing.md,
-        vertical: context.appSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceMuted,
-        borderRadius: context.appRadius.mdBorder,
-      ),
-      child: Row(
-        children: [
-          AppBadge(
-            label: '${index + 1}',
-            size: AppBadgeSize.compact,
-            tone: AppBadgeTone.neutral,
-          ),
-          SizedBox(width: context.appSpacing.sm),
-          Expanded(
-            child: Text(
-              label,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                tone: AppTextTone.primary,
-              ),
-            ),
-          ),
-          if (mobile)
-            AppIconButton(
-              key: Key('download-selection-ranking-more-$index'),
-              tooltip: MaterialLocalizations.of(context).showMenuTooltip,
-              size: AppIconButtonSize.regular,
-              onPressed: () => unawaited(_showActions(context)),
-              icon: const Icon(Icons.more_horiz_rounded),
-            )
-          else ...[
-            AppIconButton(
-              key: Key('download-selection-ranking-up-$index'),
-              tooltip: l10n.commonMoveUp,
-              size: AppIconButtonSize.mini,
-              onPressed: canMoveUp ? onMoveUp : null,
-              icon: const Icon(Icons.arrow_upward_rounded),
-            ),
-            AppIconButton(
-              key: Key('download-selection-ranking-down-$index'),
-              tooltip: l10n.commonMoveDown,
-              size: AppIconButtonSize.mini,
-              onPressed: canMoveDown ? onMoveDown : null,
-              icon: const Icon(Icons.arrow_downward_rounded),
-            ),
-            AppIconButton(
-              key: Key('download-selection-ranking-remove-$index'),
-              tooltip: l10n.commonDelete,
-              size: AppIconButtonSize.mini,
-              onPressed: canRemove ? onRemove : null,
-              icon: const Icon(Icons.close_rounded),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showActions(BuildContext context) async {
-    final action = await _showPolicyRowActions(
-      context,
-      title: label,
-      drawerKey: Key('download-selection-ranking-actions-$index'),
-      canMoveUp: canMoveUp,
-      canMoveDown: canMoveDown,
-      canRemove: canRemove,
-    );
-    if (!context.mounted) return;
-    switch (action) {
-      case _PolicyRowAction.moveUp:
-        onMoveUp();
-      case _PolicyRowAction.moveDown:
-        onMoveDown();
-      case _PolicyRowAction.remove:
-        onRemove();
-      case _PolicyRowAction.edit:
-      case null:
-        break;
-    }
-  }
-}
-
-class _PriorityIndexerRow extends StatelessWidget {
-  const _PriorityIndexerRow({
-    required this.index,
-    required this.name,
-    required this.canMoveUp,
-    required this.canMoveDown,
-    required this.mobile,
-    required this.onMoveUp,
-    required this.onMoveDown,
-    required this.onRemove,
-  });
-
-  final int index;
-  final String name;
-  final bool canMoveUp;
-  final bool canMoveDown;
-  final bool mobile;
-  final VoidCallback onMoveUp;
-  final VoidCallback onMoveDown;
-  final VoidCallback onRemove;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Padding(
-      padding: EdgeInsets.only(bottom: context.appSpacing.xs),
-      child: Row(
-        children: [
-          AppBadge(label: '${index + 1}', size: AppBadgeSize.compact),
-          SizedBox(width: context.appSpacing.sm),
-          Expanded(
-            child: Text(
-              name,
-              overflow: TextOverflow.ellipsis,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                tone: AppTextTone.primary,
-              ),
-            ),
-          ),
-          if (mobile)
-            AppIconButton(
-              key: Key('download-selection-priority-indexer-more-$index'),
-              tooltip: MaterialLocalizations.of(context).showMenuTooltip,
-              size: AppIconButtonSize.regular,
-              onPressed: () => unawaited(_showActions(context)),
-              icon: const Icon(Icons.more_horiz_rounded),
-            )
-          else ...[
-            AppIconButton(
-              tooltip: l10n.commonMoveUp,
-              size: AppIconButtonSize.mini,
-              onPressed: canMoveUp ? onMoveUp : null,
-              icon: const Icon(Icons.arrow_upward_rounded),
-            ),
-            AppIconButton(
-              tooltip: l10n.commonMoveDown,
-              size: AppIconButtonSize.mini,
-              onPressed: canMoveDown ? onMoveDown : null,
-              icon: const Icon(Icons.arrow_downward_rounded),
-            ),
-            AppIconButton(
-              tooltip: l10n.commonDelete,
-              size: AppIconButtonSize.mini,
-              onPressed: onRemove,
-              icon: const Icon(Icons.close_rounded),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Future<void> _showActions(BuildContext context) async {
-    final action = await _showPolicyRowActions(
-      context,
-      title: name,
-      drawerKey: Key('download-selection-priority-indexer-actions-$index'),
-      canMoveUp: canMoveUp,
-      canMoveDown: canMoveDown,
-      canRemove: true,
-    );
-    if (!context.mounted) return;
-    switch (action) {
-      case _PolicyRowAction.moveUp:
-        onMoveUp();
-      case _PolicyRowAction.moveDown:
-        onMoveDown();
-      case _PolicyRowAction.remove:
-        onRemove();
-      case _PolicyRowAction.edit:
-      case null:
-        break;
-    }
   }
 }
 

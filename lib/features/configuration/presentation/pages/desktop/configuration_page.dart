@@ -4,11 +4,11 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/account_security_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/advanced_settings_section.dart';
-import 'package:sakuramedia/features/configuration/presentation/pages/desktop/download_clients_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/download_selection_policy_section.dart';
-import 'package:sakuramedia/features/configuration/presentation/pages/desktop/indexer_settings_section.dart';
-import 'package:sakuramedia/features/configuration/presentation/pages/desktop/media_libraries_section.dart';
-import 'package:sakuramedia/features/configuration/presentation/pages/desktop/media_tags_section.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/shared/media_libraries_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/shared/downloaders_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/shared/indexers_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/shared/media_tags_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/configuration_tab_request_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/download_selection_policy_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/system_maintenance_section.dart';
@@ -69,7 +69,7 @@ class _DesktopConfigurationPageState
           label: l10n.configTabMediaLibraries,
           icon: Icons.folder_open_outlined,
         ),
-        builder: (active) => MediaLibrariesSection(active: active),
+        builder: (active) => MediaLibrariesPage(mobile: false, active: active),
       ),
       _ConfigurationTab(
         category: _ConfigurationCategory(
@@ -77,7 +77,7 @@ class _DesktopConfigurationPageState
           label: l10n.configTabMediaTags,
           icon: Icons.sell_outlined,
         ),
-        builder: (active) => DesktopMediaTagsSection(active: active),
+        builder: (active) => MediaTagsPage(mobile: false, active: active),
       ),
       _ConfigurationTab(
         category: _ConfigurationCategory(
@@ -85,7 +85,7 @@ class _DesktopConfigurationPageState
           label: l10n.configTabDownloadClients,
           icon: Icons.download_outlined,
         ),
-        builder: (active) => DownloadClientsSection(active: active),
+        builder: (active) => DownloadersPage(mobile: false, active: active),
       ),
       _ConfigurationTab(
         category: _ConfigurationCategory(
@@ -93,7 +93,7 @@ class _DesktopConfigurationPageState
           label: l10n.configTabIndexers,
           icon: Icons.travel_explore_outlined,
         ),
-        builder: (active) => IndexerSettingsSection(active: active),
+        builder: (active) => IndexersPage(mobile: false, active: active),
       ),
       _ConfigurationTab(
         category: _ConfigurationCategory(

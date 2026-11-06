@@ -155,114 +155,91 @@ class _DesktopAdvancedSettingsSectionState
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
     final saving = _savingCards.contains(_AdvancedCardKind.optionalServices);
-    return AppContentCard(
-      key: const Key('configuration-optional-services-card'),
+    return _AdvancedCard(
+      cardKey: const Key('configuration-optional-services-card'),
       title: l10n.configOptionalServicesTitle,
-      padding: EdgeInsets.all(spacing.lg),
-      headerBottomSpacing: spacing.md,
-      headerTrailing: _CardBadges(
-        badges: [
-          AppBadge(
-            label: l10n.configRestartRequiredBadge,
-            tone: AppBadgeTone.warning,
-          ),
-          if (_dirtyCards.contains(_AdvancedCardKind.optionalServices))
-            AppBadge(
-              label: l10n.configUnsavedBadge,
-              tone: AppBadgeTone.warning,
-            ),
-        ],
-      ),
-      child: Form(
-        key: _optionalFormKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _CardTip(
-              icon: Icons.info_outline_rounded,
-              message: l10n.configOptionalServicesTip,
-            ),
-            SizedBox(height: spacing.md),
-            _optionalSwitch(
-              key: const Key('configuration-qdrant-enabled'),
-              title: l10n.configQdrantEnabledTitle,
-              subtitle: l10n.configQdrantEnabledSubtitle,
-              value: _qdrantEnabled,
-              onChanged: saving ? null : _changeQdrantEnabled,
-            ),
-            if (_qdrantEnabled)
-              _buildFieldGrid(
-                context,
-                children: [
-                  AppTextField(
-                    controller: _qdrantUrl,
-                    label: l10n.configQdrantUrlLabel,
-                    hintText: 'http://qdrant:6333',
-                    helperText: l10n.configComposeDefaultHelper,
-                    fieldKey: const Key('configuration-qdrant-url'),
-                    enabled: !saving,
-                    validator: _httpUrlError,
-                    onChanged: (_) =>
-                        _markDirty(_AdvancedCardKind.optionalServices),
-                  ),
-                  AppPasswordField(
-                    controller: _qdrantKey,
-                    label: l10n.configQdrantApiKeyLabel,
-                    enabled: !saving,
-                    onChanged: (_) =>
-                        _markDirty(_AdvancedCardKind.optionalServices),
-                  ),
-                ],
-              ),
-            SizedBox(height: spacing.md),
-            _optionalSwitch(
-              key: const Key('configuration-image-search-enabled'),
-              title: l10n.configImageSearchEnabledTitle,
-              subtitle: _qdrantEnabled
-                  ? l10n.configImageSearchEnabledSubtitle
-                  : l10n.configImageSearchRequiresQdrant,
-              value: _imageSearchEnabled,
-              onChanged: saving || !_qdrantEnabled
-                  ? null
-                  : (value) {
-                      setState(() => _imageSearchEnabled = value);
-                      _markDirty(_AdvancedCardKind.optionalServices);
-                    },
-            ),
-            if (_imageSearchEnabled)
-              _buildFieldGrid(
-                context,
-                children: [
-                  AppTextField(
-                    controller: _inferenceUrl,
-                    label: l10n.configEmbeddingUrlLabel,
-                    hintText: 'http://siglip2-embed:8080',
-                    helperText: l10n.configComposeDefaultHelper,
-                    fieldKey: const Key('configuration-inference-url'),
-                    enabled: !saving,
-                    validator: _httpUrlError,
-                    onChanged: (_) =>
-                        _markDirty(_AdvancedCardKind.optionalServices),
-                  ),
-                  AppPasswordField(
-                    controller: _inferenceKey,
-                    label: l10n.configEmbeddingApiKeyLabel,
-                    enabled: !saving,
-                    onChanged: (_) =>
-                        _markDirty(_AdvancedCardKind.optionalServices),
-                  ),
-                ],
-              ),
-            SizedBox(height: spacing.lg),
-            _buildActions(
-              context,
-              buttonKey: const Key('configuration-optional-services-save'),
-              isSaving: saving,
-              onSave: _saveOptionalServices,
-            ),
-          ],
+      formKey: _optionalFormKey,
+      dirty: _dirtyCards.contains(_AdvancedCardKind.optionalServices),
+      saving: saving,
+      saveButtonKey: const Key('configuration-optional-services-save'),
+      onSave: _saveOptionalServices,
+      children: [
+        _CardTip(
+          icon: Icons.info_outline_rounded,
+          message: l10n.configOptionalServicesTip,
         ),
-      ),
+        SizedBox(height: spacing.md),
+        _optionalSwitch(
+          key: const Key('configuration-qdrant-enabled'),
+          title: l10n.configQdrantEnabledTitle,
+          subtitle: l10n.configQdrantEnabledSubtitle,
+          value: _qdrantEnabled,
+          onChanged: saving ? null : _changeQdrantEnabled,
+        ),
+        if (_qdrantEnabled)
+          _buildFieldGrid(
+            context,
+            children: [
+              AppTextField(
+                controller: _qdrantUrl,
+                label: l10n.configQdrantUrlLabel,
+                hintText: 'http://qdrant:6333',
+                helperText: l10n.configComposeDefaultHelper,
+                fieldKey: const Key('configuration-qdrant-url'),
+                enabled: !saving,
+                validator: _httpUrlError,
+                onChanged: (_) =>
+                    _markDirty(_AdvancedCardKind.optionalServices),
+              ),
+              AppPasswordField(
+                controller: _qdrantKey,
+                label: l10n.configQdrantApiKeyLabel,
+                enabled: !saving,
+                onChanged: (_) =>
+                    _markDirty(_AdvancedCardKind.optionalServices),
+              ),
+            ],
+          ),
+        SizedBox(height: spacing.md),
+        _optionalSwitch(
+          key: const Key('configuration-image-search-enabled'),
+          title: l10n.configImageSearchEnabledTitle,
+          subtitle: _qdrantEnabled
+              ? l10n.configImageSearchEnabledSubtitle
+              : l10n.configImageSearchRequiresQdrant,
+          value: _imageSearchEnabled,
+          onChanged: saving || !_qdrantEnabled
+              ? null
+              : (value) {
+                  setState(() => _imageSearchEnabled = value);
+                  _markDirty(_AdvancedCardKind.optionalServices);
+                },
+        ),
+        if (_imageSearchEnabled)
+          _buildFieldGrid(
+            context,
+            children: [
+              AppTextField(
+                controller: _inferenceUrl,
+                label: l10n.configEmbeddingUrlLabel,
+                hintText: 'http://siglip2-embed:8080',
+                helperText: l10n.configComposeDefaultHelper,
+                fieldKey: const Key('configuration-inference-url'),
+                enabled: !saving,
+                validator: _httpUrlError,
+                onChanged: (_) =>
+                    _markDirty(_AdvancedCardKind.optionalServices),
+              ),
+              AppPasswordField(
+                controller: _inferenceKey,
+                label: l10n.configEmbeddingApiKeyLabel,
+                enabled: !saving,
+                onChanged: (_) =>
+                    _markDirty(_AdvancedCardKind.optionalServices),
+              ),
+            ],
+          ),
+      ],
     );
   }
 
@@ -336,66 +313,41 @@ class _DesktopAdvancedSettingsSectionState
   Widget _buildMediaCard(BuildContext context) {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    return AppContentCard(
-      key: const Key('configuration-advanced-media-card'),
+    return _AdvancedCard(
+      cardKey: const Key('configuration-advanced-media-card'),
       title: l10n.configMediaImportTitle,
-      padding: EdgeInsets.all(spacing.lg),
-      headerBottomSpacing: spacing.md,
-      headerTrailing: _CardBadges(
-        badges: [
-          AppBadge(
-            label: l10n.configRestartRequiredBadge,
-            tone: AppBadgeTone.warning,
-          ),
-          if (_dirtyCards.contains(_AdvancedCardKind.media))
-            AppBadge(
-              label: l10n.configUnsavedBadge,
-              tone: AppBadgeTone.warning,
-            ),
-        ],
-      ),
-      child: Form(
-        key: _mediaFormKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      formKey: _mediaFormKey,
+      dirty: _dirtyCards.contains(_AdvancedCardKind.media),
+      saving: _savingCards.contains(_AdvancedCardKind.media),
+      saveButtonKey: const Key('configuration-advanced-media-save-button'),
+      onSave: _handleSaveMedia,
+      children: [
+        _CardTip(
+          icon: Icons.info_outline_rounded,
+          message: l10n.configMediaImportTip,
+        ),
+        SizedBox(height: spacing.lg),
+        _buildFieldGrid(
+          context,
           children: [
-            _CardTip(
-              icon: Icons.info_outline_rounded,
-              message: l10n.configMediaImportTip,
-            ),
-            SizedBox(height: spacing.lg),
-            _buildFieldGrid(
-              context,
-              children: [
-                AppTextField(
-                  fieldKey: const Key(
-                    'configuration-advanced-min-video-size-field',
-                  ),
-                  controller: _allowedMinVideoFileSizeController,
-                  label: l10n.configMinVideoSizeLabel,
-                  hintText: l10n.configMinVideoSizeHint,
-                  helperText: l10n.configMinVideoSizeHelper,
-                  keyboardType: TextInputType.number,
-                  suffix: const _UnitSuffix(label: 'MB'),
-                  tightSuffix: true,
-                  validator: (value) => _positiveIntError(
-                    value,
-                    label: l10n.configMinVideoSizeShort,
-                  ),
-                  onChanged: (_) => _markDirty(_AdvancedCardKind.media),
-                ),
-              ],
-            ),
-            SizedBox(height: spacing.lg),
-            _buildActions(
-              context,
-              buttonKey: const Key('configuration-advanced-media-save-button'),
-              isSaving: _savingCards.contains(_AdvancedCardKind.media),
-              onSave: _handleSaveMedia,
+            AppTextField(
+              fieldKey: const Key(
+                'configuration-advanced-min-video-size-field',
+              ),
+              controller: _allowedMinVideoFileSizeController,
+              label: l10n.configMinVideoSizeLabel,
+              hintText: l10n.configMinVideoSizeHint,
+              helperText: l10n.configMinVideoSizeHelper,
+              keyboardType: TextInputType.number,
+              suffix: const _UnitSuffix(label: 'MB'),
+              tightSuffix: true,
+              validator: (value) =>
+                  _positiveIntError(value, label: l10n.configMinVideoSizeShort),
+              onChanged: (_) => _markDirty(_AdvancedCardKind.media),
             ),
           ],
         ),
-      ),
+      ],
     );
   }
 
@@ -403,157 +355,106 @@ class _DesktopAdvancedSettingsSectionState
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
     final cronGroups = _buildCronGroups(l10n);
-    return AppContentCard(
-      key: const Key('configuration-advanced-scheduler-card'),
+    return _AdvancedCard(
+      cardKey: const Key('configuration-advanced-scheduler-card'),
       title: l10n.configSchedulerTitle,
-      padding: EdgeInsets.all(spacing.lg),
-      headerBottomSpacing: spacing.md,
-      headerTrailing: _CardBadges(
-        badges: [
-          AppBadge(
-            label: l10n.configRestartRequiredBadge,
-            tone: AppBadgeTone.warning,
-          ),
-          if (_dirtyCards.contains(_AdvancedCardKind.scheduler))
-            AppBadge(
-              label: l10n.configUnsavedBadge,
-              tone: AppBadgeTone.warning,
-            ),
-        ],
-      ),
-      child: Form(
-        key: _schedulerFormKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      formKey: _schedulerFormKey,
+      dirty: _dirtyCards.contains(_AdvancedCardKind.scheduler),
+      saving: _savingCards.contains(_AdvancedCardKind.scheduler),
+      saveButtonKey: const Key('configuration-advanced-scheduler-save-button'),
+      onSave: _handleSaveScheduler,
+      children: [
+        _CardTip(
+          icon: Icons.schedule_outlined,
+          message: l10n.configSchedulerTip,
+        ),
+        SizedBox(height: spacing.lg),
+        _SubsectionTitle(title: l10n.configWorkerSectionTitle),
+        SizedBox(height: spacing.md),
+        _buildFieldGrid(
+          context,
           children: [
-            _CardTip(
-              icon: Icons.schedule_outlined,
-              message: l10n.configSchedulerTip,
-            ),
-            SizedBox(height: spacing.lg),
-            _SubsectionTitle(title: l10n.configWorkerSectionTitle),
-            SizedBox(height: spacing.md),
-            _buildFieldGrid(
-              context,
-              children: [
-                AppTextField(
-                  fieldKey: const Key(
-                    'configuration-advanced-worker-default-concurrency-field',
-                  ),
-                  controller: _workerDefaultConcurrencyController,
-                  label: l10n.configWorkerConcurrencyLabel,
-                  hintText: '4',
-                  helperText: l10n.configWorkerConcurrencyHelper,
-                  keyboardType: TextInputType.number,
-                  suffix: _UnitSuffix(label: l10n.configWorkerConcurrencyUnit),
-                  tightSuffix: true,
-                  validator: _workerConcurrencyError,
-                  onChanged: (_) => _markDirty(_AdvancedCardKind.scheduler),
-                ),
-              ],
-            ),
-            SizedBox(height: spacing.lg),
-            for (final group in cronGroups) ...[
-              _SubsectionTitle(title: group.title),
-              SizedBox(height: spacing.md),
-              _buildFieldGrid(
-                context,
-                children: [
-                  for (final key in group.keys)
-                    AppTextField(
-                      fieldKey: Key('configuration-advanced-cron-$key-field'),
-                      controller: _cronControllers[key],
-                      label: _cronCopy(l10n, key),
-                      hintText: '0 2 * * *',
-                      helperText: _cronFieldHelper(l10n, key),
-                      validator: _cronError,
-                      onChanged: (_) => _markDirty(_AdvancedCardKind.scheduler),
-                    ),
-                ],
+            AppTextField(
+              fieldKey: const Key(
+                'configuration-advanced-worker-default-concurrency-field',
               ),
-              if (group != cronGroups.last) SizedBox(height: spacing.lg),
-            ],
-            SizedBox(height: spacing.lg),
-            _buildActions(
-              context,
-              buttonKey: const Key(
-                'configuration-advanced-scheduler-save-button',
-              ),
-              isSaving: _savingCards.contains(_AdvancedCardKind.scheduler),
-              onSave: _handleSaveScheduler,
+              controller: _workerDefaultConcurrencyController,
+              label: l10n.configWorkerConcurrencyLabel,
+              hintText: '4',
+              helperText: l10n.configWorkerConcurrencyHelper,
+              keyboardType: TextInputType.number,
+              suffix: _UnitSuffix(label: l10n.configWorkerConcurrencyUnit),
+              tightSuffix: true,
+              validator: _workerConcurrencyError,
+              onChanged: (_) => _markDirty(_AdvancedCardKind.scheduler),
             ),
           ],
         ),
-      ),
+        SizedBox(height: spacing.lg),
+        for (final group in cronGroups) ...[
+          _SubsectionTitle(title: group.title),
+          SizedBox(height: spacing.md),
+          _buildFieldGrid(
+            context,
+            children: [
+              for (final key in group.keys)
+                AppTextField(
+                  fieldKey: Key('configuration-advanced-cron-$key-field'),
+                  controller: _cronControllers[key],
+                  label: _cronCopy(l10n, key),
+                  hintText: '0 2 * * *',
+                  helperText: _cronFieldHelper(l10n, key),
+                  validator: _cronError,
+                  onChanged: (_) => _markDirty(_AdvancedCardKind.scheduler),
+                ),
+            ],
+          ),
+          if (group != cronGroups.last) SizedBox(height: spacing.lg),
+        ],
+      ],
     );
   }
 
   Widget _buildOtherCard(BuildContext context) {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    return AppContentCard(
-      key: const Key('configuration-advanced-other-card'),
+    return _AdvancedCard(
+      cardKey: const Key('configuration-advanced-other-card'),
       title: l10n.configLoggingTitle,
-      padding: EdgeInsets.all(spacing.lg),
-      headerBottomSpacing: spacing.md,
-      headerTrailing: _CardBadges(
-        badges: [
-          AppBadge(
-            label: l10n.configRestartRequiredBadge,
-            tone: AppBadgeTone.warning,
-          ),
-          if (_dirtyCards.contains(_AdvancedCardKind.other))
-            AppBadge(
-              label: l10n.configUnsavedBadge,
-              tone: AppBadgeTone.warning,
-            ),
-        ],
-      ),
-      child: Form(
-        key: _otherFormKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      formKey: _otherFormKey,
+      dirty: _dirtyCards.contains(_AdvancedCardKind.other),
+      saving: _savingCards.contains(_AdvancedCardKind.other),
+      saveButtonKey: const Key('configuration-advanced-other-save-button'),
+      onSave: _handleSaveOther,
+      children: [
+        _CardTip(icon: Icons.tune_outlined, message: l10n.configLoggingTip),
+        SizedBox(height: spacing.lg),
+        _buildFieldGrid(
+          context,
           children: [
-            _CardTip(icon: Icons.tune_outlined, message: l10n.configLoggingTip),
-            SizedBox(height: spacing.lg),
-            _buildFieldGrid(
-              context,
-              children: [
-                AppSelectField<String>(
-                  key: const Key('configuration-advanced-logging-level-field'),
-                  label: l10n.configLoggingLevelLabel,
-                  value: _loggingLevel,
-                  items: [
-                    for (final level in _loggingLevels)
-                      DropdownMenuItem<String>(
-                        value: level,
-                        child: Text(level),
-                      ),
-                  ],
-                  onChanged: _savingCards.contains(_AdvancedCardKind.other)
-                      ? null
-                      : (value) {
-                          if (value == null || value == _loggingLevel) {
-                            return;
-                          }
-                          setState(() {
-                            _loggingLevel = value;
-                          });
-                          _markDirty(_AdvancedCardKind.other);
-                        },
-                ),
+            AppSelectField<String>(
+              key: const Key('configuration-advanced-logging-level-field'),
+              label: l10n.configLoggingLevelLabel,
+              value: _loggingLevel,
+              items: [
+                for (final level in _loggingLevels)
+                  DropdownMenuItem<String>(value: level, child: Text(level)),
               ],
-            ),
-            SizedBox(height: spacing.lg),
-            _buildActions(
-              context,
-              buttonKey: const Key('configuration-advanced-other-save-button'),
-              isSaving: _savingCards.contains(_AdvancedCardKind.other),
-              onSave: _handleSaveOther,
+              onChanged: _savingCards.contains(_AdvancedCardKind.other)
+                  ? null
+                  : (value) {
+                      if (value == null || value == _loggingLevel) {
+                        return;
+                      }
+                      setState(() {
+                        _loggingLevel = value;
+                      });
+                      _markDirty(_AdvancedCardKind.other);
+                    },
             ),
           ],
         ),
-      ),
+      ],
     );
   }
 
@@ -579,29 +480,6 @@ class _DesktopAdvancedSettingsSectionState
           ],
         );
       },
-    );
-  }
-
-  Widget _buildActions(
-    BuildContext context, {
-    required Key buttonKey,
-    required bool isSaving,
-    required VoidCallback onSave,
-  }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        SizedBox(
-          width: context.appLayoutTokens.filterFieldWidthMd,
-          child: AppButton(
-            key: buttonKey,
-            label: AppLocalizations.of(context).commonSave,
-            variant: AppButtonVariant.primary,
-            isLoading: isSaving,
-            onPressed: onSave,
-          ),
-        ),
-      ],
     );
   }
 
@@ -884,6 +762,78 @@ String buildAdvancedConfigSaveSuccessMessage(
     return saved;
   }
   return buildRestartRequiredMessage(saved, l10n);
+}
+
+class _AdvancedCard extends StatelessWidget {
+  const _AdvancedCard({
+    required this.cardKey,
+    required this.title,
+    required this.formKey,
+    required this.dirty,
+    required this.saving,
+    required this.saveButtonKey,
+    required this.onSave,
+    required this.children,
+  });
+
+  final Key cardKey;
+  final String title;
+  final GlobalKey<FormState> formKey;
+  final bool dirty;
+  final bool saving;
+  final Key saveButtonKey;
+  final VoidCallback onSave;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    final l10n = AppLocalizations.of(context);
+    return AppContentCard(
+      key: cardKey,
+      title: title,
+      padding: EdgeInsets.all(spacing.lg),
+      headerBottomSpacing: spacing.md,
+      headerTrailing: _CardBadges(
+        badges: [
+          AppBadge(
+            label: l10n.configRestartRequiredBadge,
+            tone: AppBadgeTone.warning,
+          ),
+          if (dirty)
+            AppBadge(
+              label: l10n.configUnsavedBadge,
+              tone: AppBadgeTone.warning,
+            ),
+        ],
+      ),
+      child: Form(
+        key: formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ...children,
+            SizedBox(height: spacing.lg),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                SizedBox(
+                  width: context.appLayoutTokens.filterFieldWidthMd,
+                  child: AppButton(
+                    key: saveButtonKey,
+                    label: l10n.commonSave,
+                    variant: AppButtonVariant.primary,
+                    isLoading: saving,
+                    onPressed: onSave,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _CardBadges extends StatelessWidget {
