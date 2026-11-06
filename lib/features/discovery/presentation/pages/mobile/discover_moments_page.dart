@@ -3,7 +3,7 @@ import 'package:sakuramedia/features/discovery/presentation/pages/shared/discove
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 
-/// 移动推荐时刻壳：移动语义（pageSize 18 / surfaceCard 背景 / 下拉刷新 /
+/// 移动推荐时刻壳：移动语义（pageSize 18 / 下拉刷新 /
 /// 预览弹层底部抽屉 + drawerKey）收在壳里，实现在 [DiscoveryMomentsContent]。
 class MobileDiscoverMomentsPage extends StatelessWidget {
   const MobileDiscoverMomentsPage({super.key});
@@ -14,7 +14,6 @@ class MobileDiscoverMomentsPage extends StatelessWidget {
       pageSize: 18,
       keyPrefix: 'mobile-discover-moments',
       headerGap: context.appSpacing.md,
-      backgroundColor: context.appColors.surfaceCard,
       fallbackPath: mobileOverviewPath,
       previewDrawerKey: const Key(
         'mobile-discover-moments-preview-bottom-sheet',

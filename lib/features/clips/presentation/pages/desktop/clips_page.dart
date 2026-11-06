@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/clip_collections/data/dto/clip_collection_dto.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/clip_collection_placeholders.dart';
@@ -64,7 +64,6 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
   bool _railRefreshScheduled = false;
 
   @override
-  @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
@@ -119,69 +118,63 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
 
     return AppPageRefreshScope(
       onRefresh: _handleRefresh,
-      child: ColoredBox(
-        color: context.appColors.surfaceElevated,
-        child: Builder(
-          builder: (context) {
-            final l10n = AppLocalizations.of(context);
-            if (clipsView.initialError case final error?) {
-              return AppEmptyState(
-                message: apiErrorMessage(
-                  error,
-                  fallback: l10n.errorClipLoadFailed,
-                  l10n: l10n,
-                ),
-              );
-            }
-            return AppFilterResultLoadingOverlay(
-              protectedHeaderKey: _listHeaderKey,
-              scrollController: _scrollController,
-              isLoading: clipsView.filterUpdate.isLoading,
-              hasPreviousItems: clips.isNotEmpty,
-              child: AppPagedLoadMoreScope(
-                canLoadMore: () =>
-                    ref
-                        .read(clipsOverviewProvider)
-                        .value
-                        ?.paged
-                        .canAutoLoadMore ??
-                    false,
-                onLoadMore: () =>
-                    ref.read(clipsOverviewProvider.notifier).loadMore(),
-                child: CustomScrollView(
-                  controller: _scrollController,
-                  slivers: <Widget>[
-                    SliverToBoxAdapter(
-                      child: _buildCollectionsSection(
-                        context,
-                        collectionsAsync,
-                      ),
-                    ),
-                    AppPinnedListHeader(
-                      key: _listHeaderKey,
-                      color: context.appColors.surfaceElevated,
-                      child: _buildClipsHeader(context, clips),
-                    ),
-                    _buildClipsSliver(context, clipsView),
-                    // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
-                    // 隐藏时保留 lg 底部边距（原语义）。
-                    PagedLoadMoreFooterSliver(
-                      hiddenSpacing: PagedFooterSpacing.lg,
-                      watchFooter: (ref) => ref.watch(
-                        clipsOverviewProvider.select(
-                          (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
-                        ),
-                      ),
-                      onLoadMore: (ref) => unawaited(
-                        ref.read(clipsOverviewProvider.notifier).loadMore(),
-                      ),
-                    ),
-                  ],
-                ),
+      child: Builder(
+        builder: (context) {
+          final l10n = AppLocalizations.of(context);
+          if (clipsView.initialError case final error?) {
+            return AppEmptyState(
+              message: apiErrorMessage(
+                error,
+                fallback: l10n.errorClipLoadFailed,
+                l10n: l10n,
               ),
             );
-          },
-        ),
+          }
+          return AppFilterResultLoadingOverlay(
+            protectedHeaderKey: _listHeaderKey,
+            scrollController: _scrollController,
+            isLoading: clipsView.filterUpdate.isLoading,
+            hasPreviousItems: clips.isNotEmpty,
+            child: AppPagedLoadMoreScope(
+              canLoadMore: () =>
+                  ref
+                      .read(clipsOverviewProvider)
+                      .value
+                      ?.paged
+                      .canAutoLoadMore ??
+                  false,
+              onLoadMore: () =>
+                  ref.read(clipsOverviewProvider.notifier).loadMore(),
+              child: CustomScrollView(
+                controller: _scrollController,
+                slivers: <Widget>[
+                  SliverToBoxAdapter(
+                    child: _buildCollectionsSection(context, collectionsAsync),
+                  ),
+                  AppPinnedListHeader(
+                    key: _listHeaderKey,
+                    color: Colors.transparent,
+                    child: _buildClipsHeader(context, clips),
+                  ),
+                  _buildClipsSliver(context, clipsView),
+                  // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
+                  // 隐藏时保留 lg 底部边距（原语义）。
+                  PagedLoadMoreFooterSliver(
+                    hiddenSpacing: PagedFooterSpacing.lg,
+                    watchFooter: (ref) => ref.watch(
+                      clipsOverviewProvider.select(
+                        (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
+                      ),
+                    ),
+                    onLoadMore: (ref) => unawaited(
+                      ref.read(clipsOverviewProvider.notifier).loadMore(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -502,11 +495,12 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
           .updateClipTitle(clipId: clip.clipId, title: newTitle);
       ref.read(clipsOverviewProvider.notifier).replaceClip(updated);
       if (mounted) {
-        showToast(l10n.clipRenamed);
+        showToast(l10n.clipRenamed, tone: AppToastTone.success);
       }
     } catch (error) {
       showToast(
         apiErrorMessage(error, fallback: l10n.clipRenameFailed, l10n: l10n),
+        tone: AppToastTone.error,
       );
     }
   }
@@ -532,7 +526,10 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
     }
     // 广播删除信号：本页监听后从网格精准移除，并刷新合集横滑区（封面 / 计数可能变化）。
     ref.read(clipMutationEventsProvider.notifier).reportDeleted(clip.clipId);
-    showToast(AppLocalizations.of(context).clipDeleted);
+    showToast(
+      AppLocalizations.of(context).clipDeleted,
+      tone: AppToastTone.success,
+    );
   }
 
   Future<void> _addToCollection(MediaClipDto clip) async {
@@ -554,7 +551,10 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
     ref
         .read(clipCollectionsOverviewProvider.notifier)
         .insertCollection(created);
-    showToast(AppLocalizations.of(context).clipCollectionCreated);
+    showToast(
+      AppLocalizations.of(context).clipCollectionCreated,
+      tone: AppToastTone.success,
+    );
   }
 
   Future<void> _viewAllCollections() async {

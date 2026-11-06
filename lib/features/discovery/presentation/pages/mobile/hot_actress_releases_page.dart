@@ -11,7 +11,6 @@ class MobileHotActressReleasesPage extends StatelessWidget {
     pageSize: 18,
     keyPrefix: 'mobile-hot-actress-releases',
     headerGap: context.appSpacing.md,
-    backgroundColor: context.appColors.surfaceCard,
     placeholderCount: 6,
     basePath: mobileMoviesPath,
     enablePullToRefresh: true,

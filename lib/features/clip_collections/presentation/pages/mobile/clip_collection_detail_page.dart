@@ -6,7 +6,6 @@ import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/features/clips/presentation/actions/clip_playback_launcher.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
-import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_actions_panel.dart';
@@ -14,10 +13,7 @@ import 'package:sakuramedia/widgets/domain/clips/clip_actions_panel.dart';
 /// 移动切片合集详情壳：移动语义（长按进多选 / 底部批量条 / 动作抽屉与确认抽屉 /
 /// 标题报返回栏）收在壳里，实现在 [ClipCollectionDetailContent]。
 class MobileClipCollectionDetailPage extends StatelessWidget {
-  const MobileClipCollectionDetailPage({
-    super.key,
-    required this.collectionId,
-  });
+  const MobileClipCollectionDetailPage({super.key, required this.collectionId});
 
   final int collectionId;
 
@@ -25,7 +21,6 @@ class MobileClipCollectionDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipCollectionDetailContent(
       collectionId: collectionId,
-      surfaceColor: context.appColors.surfaceCard,
       keyPrefix: 'mobile-clip-collection',
       useMobileSelectionLayout: true,
       hoistTitleToSubpageShell: true,
@@ -61,16 +56,16 @@ class MobileClipCollectionDetailPage extends StatelessWidget {
         }
         MobileMovieDetailRouteData(movieNumber: movieNumber).push(context);
       },
-      confirm: (
-        context, {
-        required title,
-        required message,
-        required confirmLabel,
-        required confirmKey,
-        drawerKey,
-        onConfirm,
-      }) =>
-          showAppConfirmDialog(
+      confirm:
+          (
+            context, {
+            required title,
+            required message,
+            required confirmLabel,
+            required confirmKey,
+            drawerKey,
+            onConfirm,
+          }) => showAppConfirmDialog(
             context,
             title: title,
             message: message,
@@ -105,8 +100,7 @@ class MobileClipCollectionDetailPage extends StatelessWidget {
     if (movieNumber == null || movieNumber.isEmpty) {
       return null;
     }
-    return () => MobileMovieDetailRouteData(movieNumber: movieNumber).push(
-      context,
-    );
+    return () =>
+        MobileMovieDetailRouteData(movieNumber: movieNumber).push(context);
   }
 }

@@ -19,19 +19,16 @@ class DesktopPlaylistDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ColoredBox(
-      color: context.appColors.surfaceElevated,
-      child: PlaylistDetailContent(
-        playlistId: playlistId,
-        surfaceColor: context.appColors.surfaceElevated,
-        fallbackPath: desktopPlaylistsPath,
-        enablePullToRefresh: false,
-        onMovieTap: (movie) => context.pushDesktopMovieDetail(
-          movieNumber: movie.movieNumber,
-          fallbackPath:
-              movieFallbackPath ??
-              buildDesktopPlaylistDetailRoutePath(playlistId),
-        ),
+    return PlaylistDetailContent(
+      playlistId: playlistId,
+      surfaceColor: context.appColors.surfacePage,
+      fallbackPath: desktopPlaylistsPath,
+      enablePullToRefresh: false,
+      onMovieTap: (movie) => context.pushDesktopMovieDetail(
+        movieNumber: movie.movieNumber,
+        fallbackPath:
+            movieFallbackPath ??
+            buildDesktopPlaylistDetailRoutePath(playlistId),
       ),
     );
   }

@@ -239,115 +239,107 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
     return AppPageRefreshScope(
       onRefresh: () =>
           ref.read(rankingSummaryProvider(_scope).notifier).refresh(),
-      child: ColoredBox(
-        color: context.appColors.surfaceElevated,
-        child: AppFixedHeaderLayout(
-          header: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (selectionMode)
-                buildBatchSelectionToolbar()
-              else
-                _buildHeader(context, paged, filters, syncedAt),
+      child: AppFixedHeaderLayout(
+        header: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (selectionMode)
+              buildBatchSelectionToolbar()
+            else
+              _buildHeader(context, paged, filters, syncedAt),
+            SizedBox(height: context.appSpacing.md),
+            if (filters.errorMessage != null && paged.filterUpdate.isIdle) ...[
+              AppInlineErrorBanner(
+                message: filters.errorMessage!,
+                onRetry: () => ref
+                    .read(rankingSummaryProvider(_scope).notifier)
+                    .reloadFiltersAndData(),
+              ),
               SizedBox(height: context.appSpacing.md),
-              if (filters.errorMessage != null &&
-                  paged.filterUpdate.isIdle) ...[
-                AppInlineErrorBanner(
-                  message: filters.errorMessage!,
-                  onRetry: () => ref
-                      .read(rankingSummaryProvider(_scope).notifier)
-                      .reloadFiltersAndData(),
-                ),
-                SizedBox(height: context.appSpacing.md),
-              ],
-              SizedBox(height: context.appSpacing.sm),
             ],
-          ),
-          child: AppFilterResultLoadingOverlay(
-            isLoading: paged.filterUpdate.isLoading,
-            hasPreviousItems: paged.items.isNotEmpty,
-            child: AppPagedLoadMoreScope(
-              canLoadMore: () =>
-                  ref
-                      .read(rankingSummaryProvider(_scope))
-                      .value
-                      ?.paged
-                      .canAutoLoadMore ??
-                  false,
-              onLoadMore: () =>
-                  ref.read(rankingSummaryProvider(_scope).notifier).loadMore(),
-              child: CustomScrollView(
-                key: const PageStorageKey<String>('desktop:rankings:list'),
-                controller: _scrollController,
-                slivers: [
-                  SliverMainAxisGroup(
-                    key: const Key('desktop-rankings-page'),
-                    slivers: [
-                      if (hasNoSources &&
-                          !(paged.filterUpdate.hasFailed &&
-                              paged.items.isEmpty))
-                        SliverToBoxAdapter(
-                          child: AppEmptyState(message: l10n.rankingNoBoards),
-                        )
-                      else if (!paged.filterUpdate.hasFailed ||
-                          paged.items.isNotEmpty)
-                        AppSkeletonizer.sliver(
-                          enabled:
+            SizedBox(height: context.appSpacing.sm),
+          ],
+        ),
+        child: AppFilterResultLoadingOverlay(
+          isLoading: paged.filterUpdate.isLoading,
+          hasPreviousItems: paged.items.isNotEmpty,
+          child: AppPagedLoadMoreScope(
+            canLoadMore: () =>
+                ref
+                    .read(rankingSummaryProvider(_scope))
+                    .value
+                    ?.paged
+                    .canAutoLoadMore ??
+                false,
+            onLoadMore: () =>
+                ref.read(rankingSummaryProvider(_scope).notifier).loadMore(),
+            child: CustomScrollView(
+              key: const PageStorageKey<String>('desktop:rankings:list'),
+              controller: _scrollController,
+              slivers: [
+                SliverMainAxisGroup(
+                  key: const Key('desktop-rankings-page'),
+                  slivers: [
+                    if (hasNoSources &&
+                        !(paged.filterUpdate.hasFailed && paged.items.isEmpty))
+                      SliverToBoxAdapter(
+                        child: AppEmptyState(message: l10n.rankingNoBoards),
+                      )
+                    else if (!paged.filterUpdate.hasFailed ||
+                        paged.items.isNotEmpty)
+                      AppSkeletonizer.sliver(
+                        enabled:
+                            (paged.isInitialLoading || filters.isLoading) &&
+                            paged.items.isEmpty,
+                        child: RankedMovieSummarySliver(
+                          items:
                               (paged.isInitialLoading || filters.isLoading) &&
-                              paged.items.isEmpty,
-                          child: RankedMovieSummarySliver(
-                            items:
-                                (paged.isInitialLoading || filters.isLoading) &&
-                                    paged.items.isEmpty
-                                ? rankedMoviePlaceholders(count: 24)
-                                : paged.items,
-                            errorMessage: initialErrorMessage,
-                            onMovieTap: (movie) =>
-                                context.pushDesktopMovieDetail(
-                                  movieNumber: movie.movieNumber,
-                                  fallbackPath: desktopRankingsPath,
-                                ),
-                            onMovieMenuRequest: (movie, globalPosition) =>
-                                requestMovieCollectionMenu(
-                                  context,
-                                  movie.movieNumber,
-                                  globalPosition,
-                                  isSubscribed: movie.isSubscribed,
-                                ),
-                            onMovieSubscriptionTap: (movie) =>
-                                _toggleMovieSubscription(movie.movieNumber),
-                            onMovieToggleCollectionType:
-                                _hoverFeatureActions.toggleCollectionType,
-                            onMovieBlacklist: _hoverFeatureActions.blacklist,
-                            isMovieSubscriptionUpdating: (movie) =>
-                                subscriptionUpdating.contains(
-                                  movie.movieNumber,
-                                ),
-                            emptyMessage: l10n.rankingEmptyData,
-                            selectionMode: selectionMode,
-                            isMovieSelected: (movie) =>
-                                isSelected(movie.movieNumber),
-                            onMovieSelectedChanged: (movie, _) =>
-                                toggleSelect(movie.movieNumber),
+                                  paged.items.isEmpty
+                              ? rankedMoviePlaceholders(count: 24)
+                              : paged.items,
+                          errorMessage: initialErrorMessage,
+                          onMovieTap: (movie) => context.pushDesktopMovieDetail(
+                            movieNumber: movie.movieNumber,
+                            fallbackPath: desktopRankingsPath,
                           ),
-                        ),
-                      // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
-                      PagedLoadMoreFooterSliver(
-                        watchFooter: (ref) => ref.watch(
-                          rankingSummaryProvider(_scope).select(
-                            (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
-                          ),
-                        ),
-                        onLoadMore: (ref) => unawaited(
-                          ref
-                              .read(rankingSummaryProvider(_scope).notifier)
-                              .loadMore(),
+                          onMovieMenuRequest: (movie, globalPosition) =>
+                              requestMovieCollectionMenu(
+                                context,
+                                movie.movieNumber,
+                                globalPosition,
+                                isSubscribed: movie.isSubscribed,
+                              ),
+                          onMovieSubscriptionTap: (movie) =>
+                              _toggleMovieSubscription(movie.movieNumber),
+                          onMovieToggleCollectionType:
+                              _hoverFeatureActions.toggleCollectionType,
+                          onMovieBlacklist: _hoverFeatureActions.blacklist,
+                          isMovieSubscriptionUpdating: (movie) =>
+                              subscriptionUpdating.contains(movie.movieNumber),
+                          emptyMessage: l10n.rankingEmptyData,
+                          selectionMode: selectionMode,
+                          isMovieSelected: (movie) =>
+                              isSelected(movie.movieNumber),
+                          onMovieSelectedChanged: (movie, _) =>
+                              toggleSelect(movie.movieNumber),
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
+                    PagedLoadMoreFooterSliver(
+                      watchFooter: (ref) => ref.watch(
+                        rankingSummaryProvider(_scope).select(
+                          (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
+                        ),
+                      ),
+                      onLoadMore: (ref) => unawaited(
+                        ref
+                            .read(rankingSummaryProvider(_scope).notifier)
+                            .loadMore(),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),

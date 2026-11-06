@@ -98,31 +98,28 @@ class _DesktopDiscoverPageState extends ConsumerState<DesktopDiscoverPage> {
     final follow = ref.watch(movieSummaryProvider(_followScope));
     return AppPageRefreshScope(
       onRefresh: _handleRefresh,
-      child: ColoredBox(
-        color: context.appColors.surfaceElevated,
-        child: AppPageFrame(
-          title: '',
-          child: Column(
-            key: const Key('desktop-discover-page'),
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TasteProfileSection(
-                onTagTap: (tagId) => context.pushDesktopTags(tagId: tagId),
-                onActorTap: (actorId) => context.pushDesktopActorDetail(
-                  actorId: actorId,
-                  fallbackPath: desktopDiscoverPath,
-                ),
+      child: AppPageFrame(
+        title: '',
+        child: Column(
+          key: const Key('desktop-discover-page'),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TasteProfileSection(
+              onTagTap: (tagId) => context.pushDesktopTags(tagId: tagId),
+              onActorTap: (actorId) => context.pushDesktopActorDetail(
+                actorId: actorId,
+                fallbackPath: desktopDiscoverPath,
               ),
-              SizedBox(height: context.appSpacing.xl),
-              _buildFollowSection(context, follow),
-              SizedBox(height: context.appSpacing.xl),
-              _buildHotActressSection(context, hotActress),
-              SizedBox(height: context.appSpacing.xl),
-              _buildDailySection(context, daily),
-              SizedBox(height: context.appSpacing.xl),
-              _buildMomentSection(context, moment),
-            ],
-          ),
+            ),
+            SizedBox(height: context.appSpacing.xl),
+            _buildFollowSection(context, follow),
+            SizedBox(height: context.appSpacing.xl),
+            _buildHotActressSection(context, hotActress),
+            SizedBox(height: context.appSpacing.xl),
+            _buildDailySection(context, daily),
+            SizedBox(height: context.appSpacing.xl),
+            _buildMomentSection(context, moment),
+          ],
         ),
       ),
     );

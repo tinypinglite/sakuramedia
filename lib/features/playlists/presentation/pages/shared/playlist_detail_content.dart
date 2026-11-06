@@ -7,7 +7,7 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_sc
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
@@ -180,7 +180,7 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
             ),
             AppPinnedListHeader(
               key: _listHeaderKey,
-              color: widget.surfaceColor,
+              color: Colors.transparent,
               child: Padding(
                 padding: EdgeInsets.only(bottom: context.appSpacing.sm),
                 child: selectionMode
@@ -303,7 +303,7 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
       ]);
     } catch (_) {
       if (mounted) {
-        showToast(l10n.playlistRefreshFailed);
+        showToast(l10n.playlistRefreshFailed, tone: AppToastTone.error);
       }
     }
   }
@@ -367,7 +367,7 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
     ref
         .read(playlistMutationEventsProvider.notifier)
         .reportDeleted(playlist.id);
-    showToast(l10n.playlistDeletedToast);
+    showToast(l10n.playlistDeletedToast, tone: AppToastTone.success);
     if (context.canPop()) {
       context.pop();
       return;

@@ -3,11 +3,10 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/providers/app_shell_providers.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
 import 'package:sakuramedia/theme.dart';
@@ -109,6 +108,7 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
       }
       showToast(
         apiErrorMessage(error, fallback: l10n.shellRefreshFailed, l10n: l10n),
+        tone: AppToastTone.error,
       );
     } finally {
       if (mounted) {
@@ -133,6 +133,7 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
 
     final current = _current;
     final immersive = widget.layout == AppShellLayout.immersive;
+    final ambientSurface = useDesktopSidebarGlass && !immersive;
     // 内容区在 standard / fullscreen / immersive 三态共用**同一棵树**：只改内边距
     // 数值与顶栏的悬浮开关。navigator 因此不换父级——换父级会让整条路由栈
     // （含背后已缓存的列表页）在切布局那一帧被重新激活并重排，进详情页会明显变慢。
@@ -191,9 +192,7 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
                     Expanded(
                       child: Container(
                         key: const Key('desktop-shell-content-surface'),
-                        color:
-                            useDesktopSidebarGlass &&
-                                widget.currentPath == desktopOverviewPath
+                        color: ambientSurface
                             ? Colors.transparent
                             : context.appColors.surfaceElevated,
                         child: Stack(
@@ -223,10 +222,9 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
                                   isRefreshing:
                                       current != null && _isRefreshing,
                                   overlay: immersive,
-                                  translucent:
-                                      useDesktopSidebarGlass &&
-                                      widget.currentPath == desktopOverviewPath,
-                                  contentLeadingInset: useDesktopSidebarGlass
+                                  translucent: ambientSurface,
+                                  contentLeadingInset:
+                                      ambientSurface && !sidebarCollapsed
                                       ? context.appSpacing.lg
                                       : AppPageInsets.desktop,
                                   hideActions: immersive,

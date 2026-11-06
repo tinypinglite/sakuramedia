@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/recent_views/presentation/providers/recent_views_provider.dart';
 import 'package:sakuramedia/features/recent_views/presentation/widgets/recent_views_grid_sliver.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -20,7 +20,7 @@ class DesktopRecentViewsPage extends ConsumerWidget {
     try {
       await ref.read(recentViewsProvider.future);
     } catch (_) {
-      showToast(failureMessage);
+      showToast(failureMessage, tone: AppToastTone.error);
     }
   }
 
@@ -28,26 +28,23 @@ class DesktopRecentViewsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return AppPageRefreshScope(
       onRefresh: () => _refresh(context, ref),
-      child: ColoredBox(
-        color: context.appColors.surfaceElevated,
-        child: CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: EdgeInsets.only(top: context.appSpacing.lg),
-              sliver: RecentViewsGridSliver(
-                onRetry: () => ref.invalidate(recentViewsProvider),
-                onMovieTap: (movieNumber) => context.pushDesktopMovieDetail(
-                  movieNumber: movieNumber,
-                  fallbackPath: desktopRecentViewsPath,
-                ),
-                onActorTap: (actorId) => context.pushDesktopActorDetail(
-                  actorId: actorId,
-                  fallbackPath: desktopRecentViewsPath,
-                ),
+      child: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: EdgeInsets.only(top: context.appSpacing.lg),
+            sliver: RecentViewsGridSliver(
+              onRetry: () => ref.invalidate(recentViewsProvider),
+              onMovieTap: (movieNumber) => context.pushDesktopMovieDetail(
+                movieNumber: movieNumber,
+                fallbackPath: desktopRecentViewsPath,
+              ),
+              onActorTap: (actorId) => context.pushDesktopActorDetail(
+                actorId: actorId,
+                fallbackPath: desktopRecentViewsPath,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

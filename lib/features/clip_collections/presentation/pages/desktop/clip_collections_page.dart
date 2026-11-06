@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/clip_collections/data/dto/clip_collection_dto.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/clip_collection_placeholders.dart';
@@ -78,44 +78,41 @@ class _DesktopClipCollectionsPageState
 
     return AppPageRefreshScope(
       onRefresh: notifier.refresh,
-      child: ColoredBox(
-        color: context.appColors.surfaceElevated,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  l10n.clipCollectionPageTitle,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s18,
-                    weight: AppTextWeight.semibold,
-                    tone: AppTextTone.primary,
-                  ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                l10n.clipCollectionPageTitle,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s18,
+                  weight: AppTextWeight.semibold,
+                  tone: AppTextTone.primary,
                 ),
-                const Spacer(),
-                AppTextButton(
-                  key: const Key('clip-collections-create-button'),
-                  label: l10n.clipCollectionCreate,
-                  size: AppTextButtonSize.small,
-                  onPressed: _createCollection,
-                ),
-              ],
-            ),
-            SizedBox(height: context.appSpacing.sm),
-            AppSearchField(
-              fieldKey: const Key('clip-collections-search-field'),
-              controller: _searchController,
-              hintText: l10n.clipCollectionSearchHint,
-              onChanged: (value) =>
-                  setState(() => _keyword = value.trim().toLowerCase()),
-              clearKey: const Key('clip-collections-search-clear'),
-            ),
-            SizedBox(height: context.appSpacing.lg),
-            Expanded(child: _buildBody(context, async)),
-          ],
-        ),
+              ),
+              const Spacer(),
+              AppTextButton(
+                key: const Key('clip-collections-create-button'),
+                label: l10n.clipCollectionCreate,
+                size: AppTextButtonSize.small,
+                onPressed: _createCollection,
+              ),
+            ],
+          ),
+          SizedBox(height: context.appSpacing.sm),
+          AppSearchField(
+            fieldKey: const Key('clip-collections-search-field'),
+            controller: _searchController,
+            hintText: l10n.clipCollectionSearchHint,
+            onChanged: (value) =>
+                setState(() => _keyword = value.trim().toLowerCase()),
+            clearKey: const Key('clip-collections-search-clear'),
+          ),
+          SizedBox(height: context.appSpacing.lg),
+          Expanded(child: _buildBody(context, async)),
+        ],
       ),
     );
   }
@@ -165,16 +162,15 @@ class _DesktopClipCollectionsPageState
               gridKey: const Key('clip-collections-grid'),
               items: collections,
               orientation: AppCardGridOrientation.landscape,
-              itemBuilder:
-                  (context, collection, _) => CollectionCard.clip(
-                    key: Key('clip-collection-card-${collection.id}'),
-                    collection: collection,
-                    onTap: () => context.pushDesktopClipCollectionDetail(
-                      collectionId: collection.id,
-                    ),
-                    onEdit: () => _editCollection(collection),
-                    onDelete: () => _deleteCollection(collection),
-                  ),
+              itemBuilder: (context, collection, _) => CollectionCard.clip(
+                key: Key('clip-collection-card-${collection.id}'),
+                collection: collection,
+                onTap: () => context.pushDesktopClipCollectionDetail(
+                  collectionId: collection.id,
+                ),
+                onEdit: () => _editCollection(collection),
+                onDelete: () => _deleteCollection(collection),
+              ),
             ),
           ),
         ],
@@ -190,7 +186,10 @@ class _DesktopClipCollectionsPageState
     ref
         .read(clipCollectionsOverviewProvider.notifier)
         .insertCollection(created);
-    showToast(AppLocalizations.of(context).clipCollectionCreatedToast);
+    showToast(
+      AppLocalizations.of(context).clipCollectionCreatedToast,
+      tone: AppToastTone.success,
+    );
   }
 
   Future<void> _editCollection(ClipCollectionDto collection) async {
@@ -204,7 +203,10 @@ class _DesktopClipCollectionsPageState
     ref
         .read(clipCollectionsOverviewProvider.notifier)
         .replaceCollection(updated);
-    showToast(AppLocalizations.of(context).commonSaved);
+    showToast(
+      AppLocalizations.of(context).commonSaved,
+      tone: AppToastTone.success,
+    );
   }
 
   Future<void> _deleteCollection(ClipCollectionDto collection) async {
@@ -231,7 +233,7 @@ class _DesktopClipCollectionsPageState
           .read(clipCollectionsOverviewProvider.notifier)
           .removeCollection(collection.id);
       if (mounted) {
-        showToast(l10n.clipCollectionDeletedToast);
+        showToast(l10n.clipCollectionDeletedToast, tone: AppToastTone.success);
       }
     } catch (error) {
       showToast(
@@ -240,6 +242,7 @@ class _DesktopClipCollectionsPageState
           fallback: l10n.clipCollectionDeleteFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }

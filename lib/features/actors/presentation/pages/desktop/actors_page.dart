@@ -153,111 +153,107 @@ class _DesktopActorsPageState extends ConsumerState<DesktopActorsPage> {
 
     return AppPageRefreshScope(
       onRefresh: _refresh,
-      child: ColoredBox(
-        color: context.appColors.surfaceElevated,
-        child: AppFixedHeaderLayout(
-          header: Column(
-            key: const Key('actors-page'),
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _ActorsHeader(
-                total: snapshot.total,
-                filterState: filter,
-                filterUpdate: snapshot.filterUpdate,
-                hasPreviousItems: items.isNotEmpty,
-                onRetryFilter: () => unawaited(
-                  ref.read(actorSummaryProvider(_scope).notifier).retryFilter(),
-                ),
-                onFilterChanged: _applyFilter,
-                onResetFilters: _resetFilters,
-                searchExpanded: _searchExpanded,
-                searchToggle: ActorListSearchToggle(
-                  key: const Key('actors-search-toggle'),
-                  isActive: _searchExpanded || filter.query != null,
-                  tooltip: _searchExpanded
-                      ? AppLocalizations.of(context).actorSearchCollapseTooltip
-                      : AppLocalizations.of(context).actorSearchTooltip,
-                  onTap: _toggleSearch,
-                ),
-                searchField: ActorListSearchField(
-                  fieldKey: const Key('actors-search-field'),
-                  clearButtonKey: const Key('actors-search-clear'),
-                  controller: _searchController,
-                  onChanged: _applySearchQuery,
-                ),
+      child: AppFixedHeaderLayout(
+        header: Column(
+          key: const Key('actors-page'),
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _ActorsHeader(
+              total: snapshot.total,
+              filterState: filter,
+              filterUpdate: snapshot.filterUpdate,
+              hasPreviousItems: items.isNotEmpty,
+              onRetryFilter: () => unawaited(
+                ref.read(actorSummaryProvider(_scope).notifier).retryFilter(),
               ),
-              SizedBox(height: context.appSpacing.lg),
-            ],
-          ),
-          child: AppFilterResultLoadingOverlay(
-            isLoading: snapshot.filterUpdate.isLoading,
-            hasPreviousItems: items.isNotEmpty,
-            child: AppPagedLoadMoreScope(
-              canLoadMore: () =>
-                  ref
-                      .read(actorSummaryProvider(_scope))
-                      .value
-                      ?.paged
-                      .canAutoLoadMore ??
-                  false,
-              onLoadMore: () =>
-                  ref.read(actorSummaryProvider(_scope).notifier).loadMore(),
-              child: CustomScrollView(
-                key: const PageStorageKey<String>('desktop:actors:list'),
-                controller: _scrollController,
-                slivers: [
-                  if (!filter.hasActiveFilters)
-                    SliverToBoxAdapter(
-                      child: ActorTasteRecommendationRail(
-                        onActorTap: (actorId) => context.pushDesktopActorDetail(
-                          actorId: actorId,
-                          fallbackPath: desktopActorsPath,
-                        ),
+              onFilterChanged: _applyFilter,
+              onResetFilters: _resetFilters,
+              searchExpanded: _searchExpanded,
+              searchToggle: ActorListSearchToggle(
+                key: const Key('actors-search-toggle'),
+                isActive: _searchExpanded || filter.query != null,
+                tooltip: _searchExpanded
+                    ? AppLocalizations.of(context).actorSearchCollapseTooltip
+                    : AppLocalizations.of(context).actorSearchTooltip,
+                onTap: _toggleSearch,
+              ),
+              searchField: ActorListSearchField(
+                fieldKey: const Key('actors-search-field'),
+                clearButtonKey: const Key('actors-search-clear'),
+                controller: _searchController,
+                onChanged: _applySearchQuery,
+              ),
+            ),
+            SizedBox(height: context.appSpacing.lg),
+          ],
+        ),
+        child: AppFilterResultLoadingOverlay(
+          isLoading: snapshot.filterUpdate.isLoading,
+          hasPreviousItems: items.isNotEmpty,
+          child: AppPagedLoadMoreScope(
+            canLoadMore: () =>
+                ref
+                    .read(actorSummaryProvider(_scope))
+                    .value
+                    ?.paged
+                    .canAutoLoadMore ??
+                false,
+            onLoadMore: () =>
+                ref.read(actorSummaryProvider(_scope).notifier).loadMore(),
+            child: CustomScrollView(
+              key: const PageStorageKey<String>('desktop:actors:list'),
+              controller: _scrollController,
+              slivers: [
+                if (!filter.hasActiveFilters)
+                  SliverToBoxAdapter(
+                    child: ActorTasteRecommendationRail(
+                      onActorTap: (actorId) => context.pushDesktopActorDetail(
+                        actorId: actorId,
+                        fallbackPath: desktopActorsPath,
                       ),
                     ),
-                  SliverMainAxisGroup(
-                    slivers: [
-                      if (!snapshot.filterUpdate.hasFailed || items.isNotEmpty)
-                        AppSkeletonizer.sliver(
-                          enabled: snapshot.isInitialLoading,
-                          child: ActorSummarySliver(
-                            items: snapshot.isInitialLoading
-                                ? actorListItemPlaceholders(count: 24)
-                                : items,
-                            errorMessage: initialErrorMessage,
-                            onActorTap: (actor) =>
-                                context.pushDesktopActorDetail(
-                                  actorId: actor.id,
-                                  fallbackPath: desktopActorsPath,
-                                ),
-                            onActorSubscriptionTap: (actor) =>
-                                _toggleActorSubscription(actor.id),
-                            isActorSubscriptionUpdating: (actor) =>
-                                subscriptionUpdating.contains(actor.id),
-                            emptyMessage: !filter.hasActiveFilters
-                                ? AppLocalizations.of(context).actorListEmpty
-                                : AppLocalizations.of(
-                                    context,
-                                  ).actorListEmptyFiltered,
+                  ),
+                SliverMainAxisGroup(
+                  slivers: [
+                    if (!snapshot.filterUpdate.hasFailed || items.isNotEmpty)
+                      AppSkeletonizer.sliver(
+                        enabled: snapshot.isInitialLoading,
+                        child: ActorSummarySliver(
+                          items: snapshot.isInitialLoading
+                              ? actorListItemPlaceholders(count: 24)
+                              : items,
+                          errorMessage: initialErrorMessage,
+                          onActorTap: (actor) => context.pushDesktopActorDetail(
+                            actorId: actor.id,
+                            fallbackPath: desktopActorsPath,
                           ),
-                        ),
-                      // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
-                      PagedLoadMoreFooterSliver(
-                        watchFooter: (ref) => ref.watch(
-                          actorSummaryProvider(_scope).select(
-                            (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
-                          ),
-                        ),
-                        onLoadMore: (ref) => unawaited(
-                          ref
-                              .read(actorSummaryProvider(_scope).notifier)
-                              .loadMore(),
+                          onActorSubscriptionTap: (actor) =>
+                              _toggleActorSubscription(actor.id),
+                          isActorSubscriptionUpdating: (actor) =>
+                              subscriptionUpdating.contains(actor.id),
+                          emptyMessage: !filter.hasActiveFilters
+                              ? AppLocalizations.of(context).actorListEmpty
+                              : AppLocalizations.of(
+                                  context,
+                                ).actorListEmptyFiltered,
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
+                    PagedLoadMoreFooterSliver(
+                      watchFooter: (ref) => ref.watch(
+                        actorSummaryProvider(_scope).select(
+                          (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
+                        ),
+                      ),
+                      onLoadMore: (ref) => unawaited(
+                        ref
+                            .read(actorSummaryProvider(_scope).notifier)
+                            .loadMore(),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),

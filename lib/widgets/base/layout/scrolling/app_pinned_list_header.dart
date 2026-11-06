@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/rendering.dart';
 
-/// 资料区后的列表控制栏，背景遮住从下方滚过的卡片。
+/// 资料区后的列表控制栏。
 class AppPinnedListHeader extends StatelessWidget {
   const AppPinnedListHeader({
     super.key,

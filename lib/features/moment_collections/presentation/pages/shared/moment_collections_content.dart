@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/moment_collections/data/dto/moment_collection_dto.dart';
 import 'package:sakuramedia/features/moment_collections/presentation/moment_collection_placeholders.dart';
@@ -63,86 +63,78 @@ class _MomentCollectionsContentState
     });
     final async = ref.watch(momentCollectionsOverviewProvider);
     if (widget.isMobile) {
-      return ColoredBox(
+      return Column(
         key: const Key('mobile-moment-collections-page'),
-        color: context.appColors.surfaceCard,
-        child: Column(
-          children: [
-            Padding(
-              padding: EdgeInsets.only(top: context.appSpacing.sm),
-              child: AppSearchField(
-                fieldKey: const Key('mobile-moment-collections-search-field'),
-                controller: _searchController,
-                hintText: l10n.momentCollectionSearchHint,
-                onChanged: (value) =>
-                    setState(() => _keyword = value.trim().toLowerCase()),
-                clearKey: const Key('mobile-moment-collections-search-clear'),
-              ),
-            ),
-            Expanded(child: _buildMobileBody(context, ref, async)),
-            Container(
-              padding: EdgeInsets.all(context.appSpacing.md),
-              decoration: BoxDecoration(
-                color: context.appColors.surfaceCard,
-                border: Border(
-                  top: BorderSide(color: context.appColors.divider),
-                ),
-              ),
-              child: SizedBox(
-                width: double.infinity,
-                child: AppButton(
-                  key: const Key('mobile-moment-collections-create-button'),
-                  label: l10n.momentCollectionCreateTitle,
-                  variant: AppButtonVariant.primary,
-                  icon: const Icon(Icons.add_rounded),
-                  onPressed: () => _edit(context, ref),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-    return AppPageRefreshScope(
-      onRefresh: ref.read(momentCollectionsOverviewProvider.notifier).refresh,
-      child: ColoredBox(
-        color: context.appColors.surfaceElevated,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  l10n.momentCollectionSectionTitle,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s18,
-                    weight: AppTextWeight.semibold,
-                    tone: AppTextTone.primary,
-                  ),
-                ),
-                const Spacer(),
-                AppTextButton(
-                  key: const Key('moment-collections-create-button'),
-                  label: l10n.momentCollectionCreateTitle,
-                  size: AppTextButtonSize.small,
-                  onPressed: () => _edit(context, ref),
-                ),
-              ],
-            ),
-            SizedBox(height: context.appSpacing.sm),
-            AppSearchField(
-              fieldKey: const Key('moment-collections-search-field'),
+        children: [
+          Padding(
+            padding: EdgeInsets.only(top: context.appSpacing.sm),
+            child: AppSearchField(
+              fieldKey: const Key('mobile-moment-collections-search-field'),
               controller: _searchController,
               hintText: l10n.momentCollectionSearchHint,
               onChanged: (value) =>
                   setState(() => _keyword = value.trim().toLowerCase()),
-              clearKey: const Key('moment-collections-search-clear'),
+              clearKey: const Key('mobile-moment-collections-search-clear'),
             ),
-            SizedBox(height: context.appSpacing.lg),
-            Expanded(child: _buildDesktopBody(context, ref, async)),
-          ],
-        ),
+          ),
+          Expanded(child: _buildMobileBody(context, ref, async)),
+          Container(
+            padding: EdgeInsets.all(context.appSpacing.md),
+            decoration: BoxDecoration(
+              color: context.appColors.surfaceCard,
+              border: Border(top: BorderSide(color: context.appColors.divider)),
+            ),
+            child: SizedBox(
+              width: double.infinity,
+              child: AppButton(
+                key: const Key('mobile-moment-collections-create-button'),
+                label: l10n.momentCollectionCreateTitle,
+                variant: AppButtonVariant.primary,
+                icon: const Icon(Icons.add_rounded),
+                onPressed: () => _edit(context, ref),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    return AppPageRefreshScope(
+      onRefresh: ref.read(momentCollectionsOverviewProvider.notifier).refresh,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                l10n.momentCollectionSectionTitle,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s18,
+                  weight: AppTextWeight.semibold,
+                  tone: AppTextTone.primary,
+                ),
+              ),
+              const Spacer(),
+              AppTextButton(
+                key: const Key('moment-collections-create-button'),
+                label: l10n.momentCollectionCreateTitle,
+                size: AppTextButtonSize.small,
+                onPressed: () => _edit(context, ref),
+              ),
+            ],
+          ),
+          SizedBox(height: context.appSpacing.sm),
+          AppSearchField(
+            fieldKey: const Key('moment-collections-search-field'),
+            controller: _searchController,
+            hintText: l10n.momentCollectionSearchHint,
+            onChanged: (value) =>
+                setState(() => _keyword = value.trim().toLowerCase()),
+            clearKey: const Key('moment-collections-search-clear'),
+          ),
+          SizedBox(height: context.appSpacing.lg),
+          Expanded(child: _buildDesktopBody(context, ref, async)),
+        ],
       ),
     );
   }
@@ -192,13 +184,12 @@ class _MomentCollectionsContentState
               gridKey: const Key('moment-collections-grid'),
               items: collections,
               orientation: AppCardGridOrientation.landscape,
-              itemBuilder:
-                  (context, collection, _) => CollectionCard.moment(
-                    collection: collection,
-                    onTap: () => widget.onOpenDetail(collection.id),
-                    onEdit: () => _edit(context, ref, collection: collection),
-                    onDelete: () => _delete(context, ref, collection),
-                  ),
+              itemBuilder: (context, collection, _) => CollectionCard.moment(
+                collection: collection,
+                onTap: () => widget.onOpenDetail(collection.id),
+                onEdit: () => _edit(context, ref, collection: collection),
+                onDelete: () => _delete(context, ref, collection),
+              ),
             ),
           ),
         ],
@@ -260,13 +251,12 @@ class _MomentCollectionsContentState
                 gridKey: const Key('mobile-moment-collections-grid'),
                 items: collections,
                 orientation: AppCardGridOrientation.landscape,
-                itemBuilder:
-                    (context, collection, _) => CollectionCard.moment(
-                      collection: collection,
-                      onTap: () => widget.onOpenDetail(collection.id),
-                      onEdit: () => _edit(context, ref, collection: collection),
-                      onDelete: () => _delete(context, ref, collection),
-                    ),
+                itemBuilder: (context, collection, _) => CollectionCard.moment(
+                  collection: collection,
+                  onTap: () => widget.onOpenDetail(collection.id),
+                  onEdit: () => _edit(context, ref, collection: collection),
+                  onDelete: () => _delete(context, ref, collection),
+                ),
               ),
             ),
         ],
@@ -288,10 +278,10 @@ class _MomentCollectionsContentState
     final notifier = ref.read(momentCollectionsOverviewProvider.notifier);
     if (collection == null) {
       notifier.insertCollection(result);
-      showToast(l10n.momentCollectionCreatedToast);
+      showToast(l10n.momentCollectionCreatedToast, tone: AppToastTone.success);
     } else {
       notifier.replaceCollection(result);
-      showToast(l10n.commonSaved);
+      showToast(l10n.commonSaved, tone: AppToastTone.success);
     }
   }
 
@@ -320,7 +310,7 @@ class _MomentCollectionsContentState
       ref
           .read(momentCollectionsOverviewProvider.notifier)
           .removeCollection(collection.id);
-      showToast(l10n.momentCollectionDeletedToast);
+      showToast(l10n.momentCollectionDeletedToast, tone: AppToastTone.success);
     } catch (error) {
       showToast(
         apiErrorMessage(
@@ -328,6 +318,7 @@ class _MomentCollectionsContentState
           fallback: l10n.momentErrorDeleteFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }

@@ -23,7 +23,7 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
@@ -280,7 +280,10 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
         .read(rankingSummaryProvider(_scope).notifier)
         .refresh();
     if (error != null && mounted) {
-      showToast(AppLocalizations.of(context).sharedRefreshFailed);
+      showToast(
+        AppLocalizations.of(context).sharedRefreshFailed,
+        tone: AppToastTone.error,
+      );
     }
   }
 

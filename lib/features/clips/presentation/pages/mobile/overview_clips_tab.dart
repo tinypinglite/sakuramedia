@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/clip_collections/data/dto/clip_collection_dto.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/clip_collection_placeholders.dart';
@@ -65,7 +65,6 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
   final _listHeaderKey = GlobalKey();
   bool _railRefreshScheduled = false;
 
-  @override
   @override
   void dispose() {
     _scrollController.dispose();
@@ -529,11 +528,12 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
           .updateClipTitle(clipId: clip.clipId, title: newTitle);
       ref.read(clipsOverviewProvider.notifier).replaceClip(updated);
       if (mounted) {
-        showToast(l10n.clipRenamed);
+        showToast(l10n.clipRenamed, tone: AppToastTone.success);
       }
     } catch (error) {
       showToast(
         apiErrorMessage(error, fallback: l10n.clipRenameFailed, l10n: l10n),
+        tone: AppToastTone.error,
       );
     }
   }
@@ -559,7 +559,10 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
       return;
     }
     ref.read(clipMutationEventsProvider.notifier).reportDeleted(clip.clipId);
-    showToast(AppLocalizations.of(context).clipDeleted);
+    showToast(
+      AppLocalizations.of(context).clipDeleted,
+      tone: AppToastTone.success,
+    );
   }
 
   Future<void> _addToCollection(MediaClipDto clip) async {
@@ -587,7 +590,10 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
     ref
         .read(clipCollectionsOverviewProvider.notifier)
         .insertCollection(created);
-    showToast(AppLocalizations.of(context).clipCollectionCreated);
+    showToast(
+      AppLocalizations.of(context).clipCollectionCreated,
+      tone: AppToastTone.success,
+    );
   }
 
   void _viewAllCollections() {

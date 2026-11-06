@@ -11,7 +11,6 @@ class DesktopHotActressReleasesPage extends StatelessWidget {
     pageSize: 24,
     keyPrefix: 'desktop-hot-actress-releases',
     headerGap: context.appSpacing.lg,
-    backgroundColor: context.appColors.surfaceElevated,
     placeholderCount: 12,
     basePath: desktopMoviesPath,
   );

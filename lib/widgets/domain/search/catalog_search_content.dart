@@ -61,7 +61,7 @@ class CatalogSearchContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Material(
-      color: surfaceColor,
+      color: Colors.transparent,
       child: AppFixedHeaderLayout(
         header: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -241,9 +241,7 @@ class _CatalogSearchOnlineFallback extends StatelessWidget {
             AppButton(
               key: const Key('catalog-search-online-fallback'),
               variant: AppButtonVariant.primary,
-              label: AppLocalizations.of(
-                context,
-              ).widgetSearchFetchExternal,
+              label: AppLocalizations.of(context).widgetSearchFetchExternal,
               onPressed: onPressed,
             ),
           ],

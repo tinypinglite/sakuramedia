@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
@@ -172,7 +172,7 @@ class MomentsContent extends HookConsumerWidget {
           key: listHeaderKey,
           color: useMobileFilterDrawer
               ? context.appColors.surfaceCard
-              : context.appColors.surfaceElevated,
+              : Colors.transparent,
           child: _buildMomentsHeader(
             context,
             ref,
@@ -236,7 +236,7 @@ class MomentsContent extends HookConsumerWidget {
     final page = AppFilterResultLoadingOverlay(
       surfaceColor: useMobileFilterDrawer
           ? context.appColors.surfaceCard
-          : context.appColors.surfaceElevated,
+          : context.appColors.surfacePage,
       protectedHeaderKey: listHeaderKey,
       scrollController: scrollController,
       isLoading: paged.filterUpdate.isLoading,
@@ -305,12 +305,7 @@ class MomentsContent extends HookConsumerWidget {
 
     return AppPageRefreshScope(
       onRefresh: () => _handleRefresh(context, ref),
-      child: ColoredBox(
-        color: useMobileFilterDrawer
-            ? context.appColors.surfaceCard
-            : context.appColors.surfaceElevated,
-        child: pageWithSelectionBar,
-      ),
+      child: pageWithSelectionBar,
     );
   }
 
@@ -322,7 +317,10 @@ class MomentsContent extends HookConsumerWidget {
     final errorMessage = await momentsRefresh;
     await collectionsRefresh;
     if (errorMessage != null && context.mounted) {
-      showToast(AppLocalizations.of(context).momentErrorRefreshFailed);
+      showToast(
+        AppLocalizations.of(context).momentErrorRefreshFailed,
+        tone: AppToastTone.error,
+      );
     }
   }
 
@@ -441,6 +439,7 @@ class MomentsContent extends HookConsumerWidget {
         .insertCollection(created);
     showToast(
       AppLocalizations.of(context).momentCollectionCreatedFromMomentsToast,
+      tone: AppToastTone.success,
     );
   }
 
@@ -757,7 +756,7 @@ class MomentsContent extends HookConsumerWidget {
         return;
       }
       unawaited(_refreshAfterPointDelete(ref));
-      showToast(l10n.momentDeletedToast);
+      showToast(l10n.momentDeletedToast, tone: AppToastTone.success);
     } catch (error) {
       if (!context.mounted) {
         return;
@@ -768,6 +767,7 @@ class MomentsContent extends HookConsumerWidget {
           fallback: l10n.momentErrorDeleteFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }

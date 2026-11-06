@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_result_item_dto.dart';
@@ -73,6 +73,7 @@ class MobileImageSearchPage extends StatelessWidget {
             fallback: l10n.imageSearchReadResultImageFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
       return false;

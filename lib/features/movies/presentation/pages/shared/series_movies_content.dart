@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
@@ -39,7 +39,6 @@ class SeriesMoviesContent extends ConsumerStatefulWidget {
   const SeriesMoviesContent({
     super.key,
     required this.seriesId,
-    required this.surfaceColor,
     required this.contentKey,
     required this.totalKey,
     required this.sectionSpacing,
@@ -54,7 +53,6 @@ class SeriesMoviesContent extends ConsumerStatefulWidget {
 
   final int seriesId;
   final String? initialSeriesName;
-  final Color surfaceColor;
   final Key contentKey;
   final Key totalKey;
   final double sectionSpacing;
@@ -174,7 +172,10 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
       if (onRefreshFailure != null) {
         onRefreshFailure(context);
       } else {
-        showToast(AppLocalizations.of(context).moviePageRefreshFailed);
+        showToast(
+          AppLocalizations.of(context).moviePageRefreshFailed,
+          tone: AppToastTone.error,
+        );
       }
     }
   }
@@ -207,59 +208,54 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
     // CustomScrollView / AppAdaptiveRefreshScrollView 不需要跟着分页 tick 重建。
     final body = AppPageRefreshScope(
       onRefresh: _handleRefresh,
-      child: ColoredBox(
-        color: widget.surfaceColor,
-        child: AppFixedHeaderLayout(
-          header: Column(
-            key: widget.contentKey,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (selectionMode)
-                (widget.useMobileSelectionLayout
-                    ? buildMobileBatchSelectionHeader()
-                    : buildBatchSelectionToolbar())
-              else
-                _buildHeader(context, view.items, view.total),
-              SizedBox(height: widget.sectionSpacing),
-            ],
-          ),
-          child: AppPagedLoadMoreScope(
-            canLoadMore: () =>
-                ref
-                    .read(movieSummaryProvider(_scope))
-                    .value
-                    ?.paged
-                    .canAutoLoadMore ??
-                false,
-            onLoadMore: () =>
-                ref.read(movieSummaryProvider(_scope).notifier).loadMore(),
-            child: widget.bodyBuilder(
-              context,
-              _scrollController,
-              SliverMainAxisGroup(
-                slivers: [
-                  _buildMoviesArea(
-                    context,
-                    view,
-                    subscriptionUpdatingMovieNumbers: subscriptionUpdating,
-                  ),
-                  // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
-                  PagedLoadMoreFooterSliver(
-                    watchFooter: (ref) => ref.watch(
-                      movieSummaryProvider(_scope).select(
-                        (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
-                      ),
-                    ),
-                    onLoadMore: (ref) => unawaited(
-                      ref
-                          .read(movieSummaryProvider(_scope).notifier)
-                          .loadMore(),
+      child: AppFixedHeaderLayout(
+        header: Column(
+          key: widget.contentKey,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (selectionMode)
+              (widget.useMobileSelectionLayout
+                  ? buildMobileBatchSelectionHeader()
+                  : buildBatchSelectionToolbar())
+            else
+              _buildHeader(context, view.items, view.total),
+            SizedBox(height: widget.sectionSpacing),
+          ],
+        ),
+        child: AppPagedLoadMoreScope(
+          canLoadMore: () =>
+              ref
+                  .read(movieSummaryProvider(_scope))
+                  .value
+                  ?.paged
+                  .canAutoLoadMore ??
+              false,
+          onLoadMore: () =>
+              ref.read(movieSummaryProvider(_scope).notifier).loadMore(),
+          child: widget.bodyBuilder(
+            context,
+            _scrollController,
+            SliverMainAxisGroup(
+              slivers: [
+                _buildMoviesArea(
+                  context,
+                  view,
+                  subscriptionUpdatingMovieNumbers: subscriptionUpdating,
+                ),
+                // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
+                PagedLoadMoreFooterSliver(
+                  watchFooter: (ref) => ref.watch(
+                    movieSummaryProvider(_scope).select(
+                      (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
                     ),
                   ),
-                ],
-              ),
-              widget.enableRefresh ? _handleRefresh : null,
+                  onLoadMore: (ref) => unawaited(
+                    ref.read(movieSummaryProvider(_scope).notifier).loadMore(),
+                  ),
+                ),
+              ],
             ),
+            widget.enableRefresh ? _handleRefresh : null,
           ),
         ),
       ),

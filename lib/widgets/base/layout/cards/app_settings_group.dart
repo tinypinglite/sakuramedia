@@ -64,6 +64,9 @@ class AppSettingsGroup extends StatelessWidget {
           ),
         Container(
           width: double.infinity,
+          // 行内的 InkWell / Material 原生控件会在 hover / 按下时铺矩形底色，
+          // 不裁剪会从卡片圆角外漏出。
+          clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: colors.surfaceCard,
             borderRadius: context.appRadius.lgBorder,

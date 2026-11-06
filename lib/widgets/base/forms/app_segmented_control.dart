@@ -37,16 +37,12 @@ class AppSegmentedControl<T> extends StatefulWidget {
     required this.selected,
     required this.onChanged,
     this.size = AppSegmentedSize.regular,
-    this.onDark = false,
   });
 
   final List<AppSegmentedItem<T>> items;
   final T selected;
   final ValueChanged<T> onChanged;
   final AppSegmentedSize size;
-
-  /// 放在深色品牌面上时切换未选中文字、指示器和轨道透明度。
-  final bool onDark;
 
   @override
   State<AppSegmentedControl<T>> createState() => _AppSegmentedControlState<T>();
@@ -109,14 +105,10 @@ class _AppSegmentedControlState<T> extends State<AppSegmentedControl<T>> {
         ? GlassDefaults.capsuleRadius
         : context.appRadius.pill;
     final selectedTextStyle = baseTextStyle.copyWith(
-      color: widget.onDark
-          ? context.appTextPalette.onMedia
-          : selectedColors.foreground,
+      color: selectedColors.foreground,
     );
     final unselectedTextStyle = baseTextStyle.copyWith(
-      color: widget.onDark
-          ? context.appTextPalette.onMedia.withValues(alpha: 0.68)
-          : context.appTextPalette.secondary,
+      color: context.appTextPalette.secondary,
     );
     void selectSegment(int index) {
       if (index < 0 || index >= widget.items.length) {
@@ -141,31 +133,23 @@ class _AppSegmentedControlState<T> extends State<AppSegmentedControl<T>> {
       padding: EdgeInsets.all(context.appSpacing.xs / 2),
       selectedTextStyle: selectedTextStyle,
       unselectedTextStyle: unselectedTextStyle,
-      indicatorColor: widget.onDark
-          ? context.appTextPalette.onMedia.withValues(alpha: 0.18)
-          : selectedColors.background,
+      indicatorColor: selectedColors.background,
       labelPadding: EdgeInsets.symmetric(horizontal: spec.horizontalPadding),
       iconSize: spec.iconSize,
-      settings: _trackSettings(context, onDark: widget.onDark),
+      settings: _trackSettings(context),
       useOwnLayer: true,
       quality: GlassQuality.standard,
     );
   }
 
-  static LiquidGlassSettings _trackSettings(
-    BuildContext context, {
-    required bool onDark,
-  }) {
-    final overlay = context.appTextPalette.onMedia;
+  static LiquidGlassSettings _trackSettings(BuildContext context) {
     return LiquidGlassSettings(
       thickness: 12,
       blur: 4,
       saturation: 1,
       chromaticAberration: 0,
       lightIntensity: 0.35,
-      glassColor: onDark
-          ? overlay.withValues(alpha: 0.08)
-          : context.appColors.mediaOverlaySoft.withValues(alpha: 0.10),
+      glassColor: context.appColors.mediaOverlaySoft.withValues(alpha: 0.10),
     );
   }
 }

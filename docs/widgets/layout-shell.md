@@ -2,12 +2,12 @@
 
 ## 应用壳层
 
-- `AppDesktopShell`：`lib/widgets/shell/desktop/app_desktop_shell.dart`，桌面工作台容器。`AppShellLayout.immersive` 变体用于播放页等全出血场景：内容区去掉圆角与外边距，顶栏隐藏。macOS / Windows 下由 `DesktopAmbientBackdrop` 在侧栏和内容后面提供主题色对角光与低透明 veil；当前概览页已切到透明内容面/顶栏，其它桌面页仍保持不透明内容面，待逐页迁移。玻璃侧栏展开时，页面和标准顶栏左内边距收到 `lg`，与侧栏面板自身的外侧 margin 合成 24px gutter；收起时恢复桌面页面边距。页面若要透出环境背景，根节点不要再铺 `surfaceElevated` 实色。
+- `AppDesktopShell`：`lib/widgets/shell/desktop/app_desktop_shell.dart`，桌面工作台容器。`AppShellLayout.immersive` 变体用于播放页等全出血场景：内容区去掉圆角与外边距，顶栏隐藏。macOS / Windows 下由 `DesktopAmbientBackdrop` 在侧栏和内容后面提供主题色对角光与环境底；玻璃桌面页内容区透明，由卡片和分区承载层级，不再由壳层或页面铺整块全高底色。玻璃侧栏展开时，页面和标准顶栏左内边距收到 `lg`，与侧栏面板自身的外侧 margin 合成 24px gutter；收起时恢复桌面页面边距。非玻璃桌面由壳层提供 `surfaceElevated` 底色，页面不再重复铺根背景。
 - `AppSidebar`、`AppSidebarGroup`、`AppSidebarItem`：`app_sidebar.dart`，桌面导航分组和条目。macOS / Windows 展开态是一块从窗口边缘内收 `outerInset`、使用 `panelRadius` 圆角的 `AppGlassSurface.sidebar` 浮板；红绿灯和收起按钮仍固定在窗口坐标系，自然落在玻璃内。侧栏收起时面板、边距和内容一起归零并 `Offstage` 卸载（不是留一条窄栏），展开/悬停态由 `AppShellSidebarCollapsed` 驱动。底部账户卡承载产品名、登录状态、固定产品首字母 `S`、明暗/主题色入口、版本行和退出按钮。
 - `SidebarAppearanceMenu`：`sidebar_appearance_menu.dart`，账户卡内的明暗模式三态切换图标与主题色小浮窗（浮层由 `AppAnchoredPopover` 承载）；读写 `appearanceProvider`，沿用设置页持久化，选色后自动收起。
 - `AppSidebarToggleButton`：`app_sidebar_toggle_button.dart`，收起/展开按钮。窗口坐标位置由 `sidebarToggleButtonLeft` 计算：macOS 排在自绘红绿灯右侧，其它平台贴左缘。
 - `AppMacTrafficLights`：`lib/widgets/shell/window/app_mac_traffic_lights.dart`，macOS 自绘红绿灯（系统按钮由 `window_bootstrap_desktop.dart` 隐藏）。用于与自绘窗口标题栏对齐；非 macOS 平台不渲染。
-- `AppTopBar`：`app_top_bar.dart`，桌面页面顶栏和操作区；搜索框固定显示在顶栏右侧（不再在侧栏），聚焦时 Esc 清空并失焦，不再提供折叠/展开搜索的图标按钮。概览透明顶栏使用 `AppTopBarGlassSearchField` 包装 `liquid_glass_widgets` 的 `GlassTextField.search`（32 高，保留文字图搜 / 图片图搜后缀），右侧只保留同高的 `AppTopBarGlassRefreshButton`；高对比度下搜索框回退 solid、刷新按钮回退普通图标按钮。其他桌面页继续使用标准 `CatalogSearchField` 和普通刷新按钮。
+- `AppTopBar`：`app_top_bar.dart`，桌面页面顶栏和操作区；搜索框固定显示在顶栏右侧（不再在侧栏），聚焦时 Esc 清空并失焦，不再提供折叠/展开搜索的图标按钮。玻璃桌面页使用透明顶栏、`AppTopBarGlassSearchField`（32 高，保留文字图搜 / 图片图搜后缀）和同高的 `AppTopBarGlassRefreshButton`；非玻璃桌面继续使用标准 `CatalogSearchField` 和普通刷新按钮。高对比度下搜索框回退 solid、刷新按钮回退普通图标按钮。
 - `SidebarVersionFooter`：`desktop/sidebar_version_footer.dart`，桌面侧栏底部版本行；嵌入账户卡第二行，收紧外扩但保留 hover 底色的左右内缩。有更新时 info 图标带小圆点，点开为上方版本浮层（客户端 / 服务端 / 发布页 / 插件更新，浮层由 `AppAnchoredPopover` 承载）。
 - `AppVersionInfoCard`：`app_version_info_card.dart`，移动端抽屉里的版本卡片（完整信息内联展示）。
 - `AppVersionRow`、`AppVersionUpdateNotice`：`app_version_info_parts.dart`，上述两处的共用行与更新提示块。

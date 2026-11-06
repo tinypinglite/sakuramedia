@@ -6,7 +6,6 @@ import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/features/clips/presentation/actions/clip_playback_launcher.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
-import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_actions_panel.dart';
@@ -25,7 +24,6 @@ class DesktopClipCollectionDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipCollectionDetailContent(
       collectionId: collectionId,
-      surfaceColor: context.appColors.surfaceElevated,
       keyPrefix: 'clip-collection',
       useMobileSelectionLayout: false,
       hoistTitleToSubpageShell: false,
@@ -55,16 +53,16 @@ class DesktopClipCollectionDetailPage extends StatelessWidget {
         );
       },
       onOpenMovie: (context, clip) => _pushMovie(context, clip),
-      confirm: (
-        context, {
-        required title,
-        required message,
-        required confirmLabel,
-        required confirmKey,
-        drawerKey,
-        onConfirm,
-      }) =>
-          showAppConfirmDialog(
+      confirm:
+          (
+            context, {
+            required title,
+            required message,
+            required confirmLabel,
+            required confirmKey,
+            drawerKey,
+            onConfirm,
+          }) => showAppConfirmDialog(
             context,
             title: title,
             message: message,

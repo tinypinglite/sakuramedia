@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
@@ -266,7 +266,10 @@ class _MovieSummaryListContentState
     if (onRefreshFailure != null) {
       onRefreshFailure(context);
     } else {
-      showToast(AppLocalizations.of(context).moviePageRefreshFailed);
+      showToast(
+        AppLocalizations.of(context).moviePageRefreshFailed,
+        tone: AppToastTone.error,
+      );
     }
   }
 
@@ -405,117 +408,112 @@ class _MovieSummaryListContentState
       );
     }
 
-    final body = ColoredBox(
-      color: widget.surfaceColor,
-      child: AppFixedHeaderLayout(
-        header: Column(
-          key: widget.contentKey,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (!selectionMode && widget.headerLeading != null)
-              widget.headerLeading!,
-            ?header,
-            AppFilterUpdateBar(
-              state: paged.filterUpdate,
-              hasPreviousItems: items.isNotEmpty,
-              onRetry: () => unawaited(
-                ref
-                    .read(movieSummaryProvider(widget.scope).notifier)
-                    .retryFilter(),
-              ),
+    final body = AppFixedHeaderLayout(
+      header: Column(
+        key: widget.contentKey,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!selectionMode && widget.headerLeading != null)
+            widget.headerLeading!,
+          ?header,
+          AppFilterUpdateBar(
+            state: paged.filterUpdate,
+            hasPreviousItems: items.isNotEmpty,
+            onRetry: () => unawaited(
+              ref
+                  .read(movieSummaryProvider(widget.scope).notifier)
+                  .retryFilter(),
             ),
-            SizedBox(height: widget.sectionSpacing),
-          ],
-        ),
-        child: AppFilterResultLoadingOverlay(
-          surfaceColor: widget.surfaceColor,
-          // 结果区已经在渲染骨架时，不再叠居中的筛选进度层，避免遮住骨架。
-          isLoading: paged.filterUpdate.isLoading && !isInitialLoading,
-          hasPreviousItems: items.isNotEmpty,
-          child: AppPagedLoadMoreScope(
-            canLoadMore: () =>
-                ref
-                    .read(movieSummaryProvider(widget.scope))
-                    .value
-                    ?.paged
-                    .canAutoLoadMore ??
-                false,
-            onLoadMore: () => ref
-                .read(movieSummaryProvider(widget.scope).notifier)
-                .loadMore(),
-            child: widget.bodyBuilder(
-              context,
-              _scrollController,
-              SliverMainAxisGroup(
-                slivers: [
-                  if (!paged.filterUpdate.hasFailed || items.isNotEmpty)
-                    AppSkeletonizer.sliver(
-                      enabled: isInitialLoading,
-                      child: MovieSummarySliver(
-                        items: isInitialLoading
-                            ? movieListItemPlaceholders(count: 24)
-                            : items,
-                        errorMessage: initialErrorMessage,
-                        trailingLabelForMovie: widget.trailingLabelForMovie,
-                        onMovieTap: (movie) =>
-                            widget.onMovieTap(context, movie.movieNumber),
-                        onMovieMenuRequest: (movie, globalPosition) {
-                          unawaited(
-                            showMovieCollectionFeatureActionMenu(
-                              context: context,
-                              movieNumber: movie.movieNumber,
-                              globalPosition: globalPosition,
-                              isSubscribed: movie.isSubscribed,
-                              onBlacklisted: () => ref
-                                  .read(
-                                    movieSummaryProvider(widget.scope).notifier,
-                                  )
-                                  .removeMovies(<String>[movie.movieNumber]),
-                              onEnterSelection: widget.useMobileSelectionLayout
-                                  ? () {
-                                      enterSelection();
-                                      toggleSelect(movie.movieNumber);
-                                    }
-                                  : null,
-                            ),
-                          );
-                        },
-                        onMovieSubscriptionTap: (movie) =>
-                            _toggleMovieSubscription(movie.movieNumber),
-                        onMovieToggleCollectionType:
-                            _hoverFeatureActions.toggleCollectionType,
-                        onMovieBlacklist: _hoverFeatureActions.blacklist,
-                        isMovieSubscriptionUpdating: (movie) =>
-                            updating.contains(movie.movieNumber),
-                        emptyMessage:
-                            widget.emptyMessage ??
-                            (!filter.hasActiveFilters
-                                ? l10n.moviePageEmptyNoMovies
-                                : l10n.moviePageEmptyNoMatches),
-                        selectionMode: selectionMode,
-                        isMovieSelected: (movie) =>
-                            isSelected(movie.movieNumber),
-                        onMovieSelectedChanged: (movie, _) =>
-                            toggleSelect(movie.movieNumber),
-                      ),
-                    ),
-                  // loadMore 页脚独立订阅：翻页状态翻转只重建它，不重建上面网格。
-                  PagedLoadMoreFooterSliver(
-                    watchFooter: (ref) => ref.watch(
-                      movieSummaryProvider(widget.scope).select(
-                        (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
-                      ),
-                    ),
-                    onLoadMore: (ref) => unawaited(
-                      ref
-                          .read(movieSummaryProvider(widget.scope).notifier)
-                          .loadMore(),
+          ),
+          SizedBox(height: widget.sectionSpacing),
+        ],
+      ),
+      child: AppFilterResultLoadingOverlay(
+        surfaceColor: widget.surfaceColor,
+        // 结果区已经在渲染骨架时，不再叠居中的筛选进度层，避免遮住骨架。
+        isLoading: paged.filterUpdate.isLoading && !isInitialLoading,
+        hasPreviousItems: items.isNotEmpty,
+        child: AppPagedLoadMoreScope(
+          canLoadMore: () =>
+              ref
+                  .read(movieSummaryProvider(widget.scope))
+                  .value
+                  ?.paged
+                  .canAutoLoadMore ??
+              false,
+          onLoadMore: () =>
+              ref.read(movieSummaryProvider(widget.scope).notifier).loadMore(),
+          child: widget.bodyBuilder(
+            context,
+            _scrollController,
+            SliverMainAxisGroup(
+              slivers: [
+                if (!paged.filterUpdate.hasFailed || items.isNotEmpty)
+                  AppSkeletonizer.sliver(
+                    enabled: isInitialLoading,
+                    child: MovieSummarySliver(
+                      items: isInitialLoading
+                          ? movieListItemPlaceholders(count: 24)
+                          : items,
+                      errorMessage: initialErrorMessage,
+                      trailingLabelForMovie: widget.trailingLabelForMovie,
+                      onMovieTap: (movie) =>
+                          widget.onMovieTap(context, movie.movieNumber),
+                      onMovieMenuRequest: (movie, globalPosition) {
+                        unawaited(
+                          showMovieCollectionFeatureActionMenu(
+                            context: context,
+                            movieNumber: movie.movieNumber,
+                            globalPosition: globalPosition,
+                            isSubscribed: movie.isSubscribed,
+                            onBlacklisted: () => ref
+                                .read(
+                                  movieSummaryProvider(widget.scope).notifier,
+                                )
+                                .removeMovies(<String>[movie.movieNumber]),
+                            onEnterSelection: widget.useMobileSelectionLayout
+                                ? () {
+                                    enterSelection();
+                                    toggleSelect(movie.movieNumber);
+                                  }
+                                : null,
+                          ),
+                        );
+                      },
+                      onMovieSubscriptionTap: (movie) =>
+                          _toggleMovieSubscription(movie.movieNumber),
+                      onMovieToggleCollectionType:
+                          _hoverFeatureActions.toggleCollectionType,
+                      onMovieBlacklist: _hoverFeatureActions.blacklist,
+                      isMovieSubscriptionUpdating: (movie) =>
+                          updating.contains(movie.movieNumber),
+                      emptyMessage:
+                          widget.emptyMessage ??
+                          (!filter.hasActiveFilters
+                              ? l10n.moviePageEmptyNoMovies
+                              : l10n.moviePageEmptyNoMatches),
+                      selectionMode: selectionMode,
+                      isMovieSelected: (movie) => isSelected(movie.movieNumber),
+                      onMovieSelectedChanged: (movie, _) =>
+                          toggleSelect(movie.movieNumber),
                     ),
                   ),
-                ],
-              ),
-              widget.enableRefresh ? _handleRefresh : null,
+                // loadMore 页脚独立订阅：翻页状态翻转只重建它，不重建上面网格。
+                PagedLoadMoreFooterSliver(
+                  watchFooter: (ref) => ref.watch(
+                    movieSummaryProvider(widget.scope).select(
+                      (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
+                    ),
+                  ),
+                  onLoadMore: (ref) => unawaited(
+                    ref
+                        .read(movieSummaryProvider(widget.scope).notifier)
+                        .loadMore(),
+                  ),
+                ),
+              ],
             ),
+            widget.enableRefresh ? _handleRefresh : null,
           ),
         ),
       ),

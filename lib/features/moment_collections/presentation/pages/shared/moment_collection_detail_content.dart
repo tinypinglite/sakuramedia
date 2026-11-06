@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/moment_collections/data/dto/moment_collection_dto.dart';
 import 'package:sakuramedia/features/moment_collections/presentation/moment_collection_placeholders.dart';
@@ -126,14 +126,11 @@ class _MomentCollectionDetailContentState
     );
 
     if (_isMobile) {
-      return ColoredBox(color: context.appColors.surfaceCard, child: content);
+      return content;
     }
     return AppPageRefreshScope(
       onRefresh: ref.read(_providerRef.notifier).refresh,
-      child: ColoredBox(
-        color: context.appColors.surfaceElevated,
-        child: content,
-      ),
+      child: content,
     );
   }
 
@@ -504,7 +501,7 @@ class _MomentCollectionDetailContentState
       }
       // 合集封面 / 计数可能变化，广播给上层合集列表（首页横滑区、全部合集页）。
       _mutationBroadcaster.reportChanged(widget.collectionId);
-      showToast(l10n.momentCollectionRemovedToast);
+      showToast(l10n.momentCollectionRemovedToast, tone: AppToastTone.success);
     } catch (error) {
       showToast(
         apiErrorMessage(
@@ -512,6 +509,7 @@ class _MomentCollectionDetailContentState
           fallback: l10n.momentErrorRemoveFromCollectionFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }
@@ -536,7 +534,7 @@ class _MomentCollectionDetailContentState
       return;
     }
     _mutationBroadcaster.reportChanged(widget.collectionId);
-    showToast(l10n.momentDeletedToast);
+    showToast(l10n.momentDeletedToast, tone: AppToastTone.success);
   }
 
   Future<void> _editCollection(BuildContext context) async {
@@ -554,7 +552,7 @@ class _MomentCollectionDetailContentState
     }
     ref.read(_providerRef.notifier).replaceCollection(updated);
     _mutationBroadcaster.reportChanged(widget.collectionId);
-    showToast(l10n.commonSaved);
+    showToast(l10n.commonSaved, tone: AppToastTone.success);
   }
 
   Future<void> _addMoments(BuildContext context) async {

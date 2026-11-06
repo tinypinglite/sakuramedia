@@ -2,7 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/providers/app_shell_providers.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_state.dart';
@@ -312,11 +312,11 @@ class _TopBarActionsState extends ConsumerState<_TopBarActions> {
       );
     } on ImageSearchFilePickerException catch (error) {
       if (mounted) {
-        showToast(error.message);
+        showToast(error.message, tone: AppToastTone.error);
       }
     } catch (_) {
       if (mounted) {
-        showToast(l10n.shellImagePickFailed);
+        showToast(l10n.shellImagePickFailed, tone: AppToastTone.error);
       }
     }
   }

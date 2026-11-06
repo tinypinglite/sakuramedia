@@ -3,7 +3,7 @@ import 'package:sakuramedia/features/discovery/presentation/pages/shared/discove
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 
-/// 移动推荐影片壳：移动语义（pageSize 18 / surfaceCard 背景 / 骨架 6 /
+/// 移动推荐影片壳：移动语义（pageSize 18 / 骨架 6 /
 /// 顶栏下 md 间距 / 下拉刷新）收在壳里，实现在 [DiscoveryMoviesContent]。
 class MobileDiscoverMoviesPage extends StatelessWidget {
   const MobileDiscoverMoviesPage({super.key});
@@ -14,7 +14,6 @@ class MobileDiscoverMoviesPage extends StatelessWidget {
       pageSize: 18,
       keyPrefix: 'mobile-discover-movies',
       headerGap: context.appSpacing.md,
-      backgroundColor: context.appColors.surfaceCard,
       placeholderCount: 6,
       basePath: mobileMoviesPath,
       enablePullToRefresh: true,

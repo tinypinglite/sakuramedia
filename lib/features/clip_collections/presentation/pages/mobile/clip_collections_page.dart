@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/clip_collections/data/dto/clip_collection_dto.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/clip_collection_placeholders.dart';
@@ -170,17 +170,15 @@ class _MobileClipCollectionsPageState
                 gridKey: const Key('mobile-clip-collections-grid'),
                 items: collections,
                 orientation: AppCardGridOrientation.landscape,
-                itemBuilder:
-                    (context, collection, _) => CollectionCard.clip(
-                      key: Key('mobile-clip-collection-card-${collection.id}'),
-                      collection: collection,
-                      onTap:
-                          () => MobileClipCollectionDetailRouteData(
-                            collectionId: collection.id,
-                          ).push(context),
-                      onEdit: () => _editCollection(collection),
-                      onDelete: () => _deleteCollection(collection),
-                    ),
+                itemBuilder: (context, collection, _) => CollectionCard.clip(
+                  key: Key('mobile-clip-collection-card-${collection.id}'),
+                  collection: collection,
+                  onTap: () => MobileClipCollectionDetailRouteData(
+                    collectionId: collection.id,
+                  ).push(context),
+                  onEdit: () => _editCollection(collection),
+                  onDelete: () => _deleteCollection(collection),
+                ),
               ),
             ),
         ],
@@ -199,7 +197,10 @@ class _MobileClipCollectionsPageState
     ref
         .read(clipCollectionsOverviewProvider.notifier)
         .insertCollection(created);
-    showToast(AppLocalizations.of(context).clipCollectionCreatedToast);
+    showToast(
+      AppLocalizations.of(context).clipCollectionCreatedToast,
+      tone: AppToastTone.success,
+    );
   }
 
   Future<void> _editCollection(ClipCollectionDto collection) async {
@@ -214,7 +215,10 @@ class _MobileClipCollectionsPageState
     ref
         .read(clipCollectionsOverviewProvider.notifier)
         .replaceCollection(updated);
-    showToast(AppLocalizations.of(context).commonSaved);
+    showToast(
+      AppLocalizations.of(context).commonSaved,
+      tone: AppToastTone.success,
+    );
   }
 
   Future<void> _deleteCollection(ClipCollectionDto collection) async {
@@ -242,7 +246,7 @@ class _MobileClipCollectionsPageState
           .read(clipCollectionsOverviewProvider.notifier)
           .removeCollection(collection.id);
       if (mounted) {
-        showToast(l10n.clipCollectionDeletedToast);
+        showToast(l10n.clipCollectionDeletedToast, tone: AppToastTone.success);
       }
     } catch (error) {
       showToast(
@@ -251,6 +255,7 @@ class _MobileClipCollectionsPageState
           fallback: l10n.clipCollectionDeleteFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }

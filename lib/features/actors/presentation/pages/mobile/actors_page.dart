@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/page_cache_keys.dart';
 import 'package:sakuramedia/app/providers/riverpod_page_cache_provider.dart';
 import 'package:sakuramedia/app/riverpod_page_cache.dart';
@@ -294,7 +294,10 @@ class _MobileActorsPageState extends ConsumerState<MobileActorsPage> {
         .refresh();
     await ref.read(tasteProfileProvider.notifier).refresh();
     if (error != null && mounted) {
-      showToast(AppLocalizations.of(context).actorRefreshFailed);
+      showToast(
+        AppLocalizations.of(context).actorRefreshFailed,
+        tone: AppToastTone.error,
+      );
     }
   }
 

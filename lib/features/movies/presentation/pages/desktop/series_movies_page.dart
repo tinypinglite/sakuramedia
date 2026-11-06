@@ -19,18 +19,15 @@ class DesktopSeriesMoviesPage extends StatelessWidget {
     return SeriesMoviesContent(
       seriesId: seriesId,
       initialSeriesName: seriesName,
-      surfaceColor: context.appColors.surfaceElevated,
       contentKey: const Key('desktop-series-movies-page'),
       totalKey: const Key('desktop-series-movies-total'),
       sectionSpacing: context.appSpacing.lg,
-      onMovieTap:
-          (context, movieNumber) => context.pushDesktopMovieDetail(
-            movieNumber: movieNumber,
-            fallbackPath: desktopMoviesPath,
-          ),
-      bodyBuilder:
-          (context, scrollController, sliver, _) =>
-              CustomScrollView(controller: scrollController, slivers: [sliver]),
+      onMovieTap: (context, movieNumber) => context.pushDesktopMovieDetail(
+        movieNumber: movieNumber,
+        fallbackPath: desktopMoviesPath,
+      ),
+      bodyBuilder: (context, scrollController, sliver, _) =>
+          CustomScrollView(controller: scrollController, slivers: [sliver]),
     );
   }
 }

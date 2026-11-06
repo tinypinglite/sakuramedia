@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/page_cache_keys.dart';
@@ -267,7 +267,7 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
     return AppPageRefreshScope(
       onRefresh: _handleTopBarRefresh,
       child: Material(
-        color: widget.surfaceColor,
+        color: Colors.transparent,
         child: AppPagedLoadMoreScope(
           canLoadMore: _canAutoLoadMore,
           onLoadMore: _autoLoadMoreForViewport,
@@ -885,7 +885,7 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
     }
     final errorMessage = _searchState.subscribedActorsErrorMessage;
     if (errorMessage != null) {
-      showToast(errorMessage);
+      showToast(errorMessage, tone: AppToastTone.error);
       return null;
     }
     return _searchState.subscribedActors;
@@ -928,11 +928,14 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
       await _runSearch();
     } on ImageSearchFilePickerException catch (error) {
       if (mounted) {
-        showToast(error.message);
+        showToast(error.message, tone: AppToastTone.error);
       }
     } catch (_) {
       if (mounted) {
-        showToast(AppLocalizations.of(context).imageSearchPickImageFailed);
+        showToast(
+          AppLocalizations.of(context).imageSearchPickImageFailed,
+          tone: AppToastTone.error,
+        );
       }
     }
   }
@@ -944,7 +947,10 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
   Future<void> _searchText() async {
     final text = _textController.text.trim();
     if (text.isEmpty) {
-      showToast(AppLocalizations.of(context).imageSearchTextRequired);
+      showToast(
+        AppLocalizations.of(context).imageSearchTextRequired,
+        tone: AppToastTone.warning,
+      );
       return;
     }
     _notifier.setTextSource(text);
@@ -1017,6 +1023,7 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
       if (mounted) {
         showToast(
           AppLocalizations.of(context).imageSearchReadResultImageFailed,
+          tone: AppToastTone.error,
         );
       }
       return false;
@@ -1190,10 +1197,16 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
       return;
     }
     if (result.status == ImageSaveStatus.success) {
-      showToast(result.message ?? l10n.imageSearchImageSaved);
+      showToast(
+        result.message ?? l10n.imageSearchImageSaved,
+        tone: AppToastTone.success,
+      );
     }
     if (result.status == ImageSaveStatus.failed) {
-      showToast(result.message ?? l10n.imageSearchSaveFailed);
+      showToast(
+        result.message ?? l10n.imageSearchSaveFailed,
+        tone: AppToastTone.error,
+      );
     }
   }
 
@@ -1213,17 +1226,26 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
               thumbnailId: item.thumbnailId,
             );
         if (mounted) {
-          showToast(AppLocalizations.of(context).imageSearchMarkAdded);
+          showToast(
+            AppLocalizations.of(context).imageSearchMarkAdded,
+            tone: AppToastTone.success,
+          );
         }
         return;
       }
       await ref.read(mediaApiProvider).deleteMediaPoint(pointId: point.pointId);
       if (mounted) {
-        showToast(AppLocalizations.of(context).imageSearchMarkRemoved);
+        showToast(
+          AppLocalizations.of(context).imageSearchMarkRemoved,
+          tone: AppToastTone.success,
+        );
       }
     } catch (_) {
       if (mounted) {
-        showToast(AppLocalizations.of(context).imageSearchMarkUpdateFailed);
+        showToast(
+          AppLocalizations.of(context).imageSearchMarkUpdateFailed,
+          tone: AppToastTone.error,
+        );
       }
     }
   }

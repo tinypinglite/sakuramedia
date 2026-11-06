@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/clip_collections/data/dto/clip_collection_dto.dart';
@@ -73,7 +73,7 @@ class ClipCollectionMemberActions {
 
 /// 切片合集详情共享实现（桌面 / 移动双端壳收敛的 content 层）。
 ///
-/// 平台差异收在壳参数与钩子里：`surfaceColor` / `keyPrefix` /
+/// 平台差异收在壳参数与钩子里：`keyPrefix` /
 /// `useMobileSelectionLayout` / `hoistTitleToSubpageShell`,
 ///以及动作抽屉（`onMemberTap`）、单集播放（`playSingle`）、来源影片（`onOpenMovie`）、
 /// 确认弹层（`confirm`）、播放全部（`playAllBuilder`）、改名 / 添加切片（`onEditCollection` /
@@ -84,7 +84,6 @@ class ClipCollectionDetailContent extends ConsumerStatefulWidget {
   const ClipCollectionDetailContent({
     super.key,
     required this.collectionId,
-    required this.surfaceColor,
     required this.keyPrefix,
     this.useMobileSelectionLayout = false,
     this.hoistTitleToSubpageShell = false,
@@ -98,7 +97,6 @@ class ClipCollectionDetailContent extends ConsumerStatefulWidget {
   });
 
   final int collectionId;
-  final Color surfaceColor;
   final String keyPrefix;
 
   /// 移动端多选布局：多选态顶栏只留退出/计数/全选，批量动作走贴底
@@ -210,11 +208,11 @@ class _ClipCollectionDetailContentState
     );
 
     if (_isMobile) {
-      return ColoredBox(color: widget.surfaceColor, child: content);
+      return content;
     }
     return AppPageRefreshScope(
       onRefresh: ref.read(_providerRef.notifier).refresh,
-      child: ColoredBox(color: widget.surfaceColor, child: content),
+      child: content,
     );
   }
 
@@ -638,7 +636,10 @@ class _ClipCollectionDetailContentState
         collectionId: widget.collectionId,
       );
     }
-    showToast(error ?? l10n.clipCollectionRemovedToast);
+    showToast(
+      error ?? l10n.clipCollectionRemovedToast,
+      tone: error == null ? AppToastTone.success : AppToastTone.error,
+    );
   }
 
   /// 彻底删除切片本体（含文件，不可恢复，后端从所有合集级联移除）：先确认，再走
@@ -646,9 +647,7 @@ class _ClipCollectionDetailContentState
   Future<void> _deleteClip(MediaClipDto clip) async {
     final l10n = AppLocalizations.of(context);
     final title = clip.displayTitle(l10n).trim();
-    final label = title.isEmpty
-        ? l10n.clipCollectionUnnamedClip
-        : '“$title”';
+    final label = title.isEmpty ? l10n.clipCollectionUnnamedClip : '“$title”';
     final notifier = ref.read(_providerRef.notifier);
     final confirmed = await _confirm(
       title: l10n.clipCollectionDeleteClips,
@@ -662,7 +661,7 @@ class _ClipCollectionDetailContentState
       return;
     }
     _mutationBroadcaster.reportDeleted(clip.clipId);
-    showToast(l10n.clipCollectionClipDeletedToast);
+    showToast(l10n.clipCollectionClipDeletedToast, tone: AppToastTone.success);
   }
 
   Future<bool> _confirm({
@@ -713,7 +712,10 @@ class _ClipCollectionDetailContentState
         clipId: clip.clipId,
         collectionId: target.id,
       );
-      showToast(l10n.clipCollectionAddedToToast(target.name));
+      showToast(
+        l10n.clipCollectionAddedToToast(target.name),
+        tone: AppToastTone.success,
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -724,6 +726,7 @@ class _ClipCollectionDetailContentState
           fallback: l10n.clipCollectionAddFailedRetry,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }
@@ -747,7 +750,7 @@ class _ClipCollectionDetailContentState
     _mutationBroadcaster.reportCollectionMembershipChanged(
       collectionId: widget.collectionId,
     );
-    showToast(l10n.commonSaved);
+    showToast(l10n.commonSaved, tone: AppToastTone.success);
   }
 
   Future<void> _addClips(BuildContext context) async {

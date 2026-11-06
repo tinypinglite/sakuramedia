@@ -6,7 +6,6 @@ import 'package:sakuramedia/features/playlists/presentation/pages/desktop/playli
 import 'package:sakuramedia/features/playlists/presentation/pages/shared/playlist_detail_content.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/system_playlist_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 
 /// 系统播放列表（收藏 / 最近播放）的桌面入口页。
@@ -30,31 +29,25 @@ class DesktopSystemPlaylistPage extends ConsumerWidget {
     final playlist = async.value;
 
     if (async.isLoading && playlist == null) {
-      return ColoredBox(
-        color: context.appColors.surfaceElevated,
-        child: const PlaylistDetailLoadingContent(),
-      );
+      return const PlaylistDetailLoadingContent();
     }
 
     if (playlist == null) {
       final l10n = AppLocalizations.of(context);
-      return ColoredBox(
-        color: context.appColors.surfaceElevated,
-        child: AppEmptyState(
-          icon: _emptyIcon,
-          message: async.hasError
-              ? apiErrorMessage(
-                  async.error!,
-                  fallback: l10n.playlistLoadFailed,
-                  l10n: l10n,
-                )
-              : kind == PlaylistKind.favorites
-              ? l10n.playlistFavoritesNotReady
-              : l10n.playlistNoWatchHistory,
-          onRetry: async.hasError
-              ? () => ref.invalidate(systemPlaylistProvider(kind))
-              : null,
-        ),
+      return AppEmptyState(
+        icon: _emptyIcon,
+        message: async.hasError
+            ? apiErrorMessage(
+                async.error!,
+                fallback: l10n.playlistLoadFailed,
+                l10n: l10n,
+              )
+            : kind == PlaylistKind.favorites
+            ? l10n.playlistFavoritesNotReady
+            : l10n.playlistNoWatchHistory,
+        onRetry: async.hasError
+            ? () => ref.invalidate(systemPlaylistProvider(kind))
+            : null,
       );
     }
 

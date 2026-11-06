@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
@@ -75,34 +75,31 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
               ),
             );
           }
-          return ColoredBox(
-            color: context.appColors.surfaceElevated,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: AppIconButton(
-                    key: const Key('playlists-create-button'),
-                    icon: const Icon(Icons.add_rounded),
-                    tooltip: AppLocalizations.of(context).playlistCreateTooltip,
-                    semanticLabel: AppLocalizations.of(
-                      context,
-                    ).playlistCreateTooltip,
-                    onPressed: _openCreateDialog,
-                    iconColor: context.appTextPalette.primary,
-                  ),
-                ),
-                SizedBox(height: context.appSpacing.sm),
-                Expanded(
-                  child: _buildPlaylistsList(
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Align(
+                alignment: Alignment.centerRight,
+                child: AppIconButton(
+                  key: const Key('playlists-create-button'),
+                  icon: const Icon(Icons.add_rounded),
+                  tooltip: AppLocalizations.of(context).playlistCreateTooltip,
+                  semanticLabel: AppLocalizations.of(
                     context,
-                    overview.playlists,
-                    notifier,
-                  ),
+                  ).playlistCreateTooltip,
+                  onPressed: _openCreateDialog,
+                  iconColor: context.appTextPalette.primary,
                 ),
-              ],
-            ),
+              ),
+              SizedBox(height: context.appSpacing.sm),
+              Expanded(
+                child: _buildPlaylistsList(
+                  context,
+                  overview.playlists,
+                  notifier,
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -272,7 +269,10 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
     if (!mounted) {
       return;
     }
-    showToast(AppLocalizations.of(context).playlistCreatedToast);
+    showToast(
+      AppLocalizations.of(context).playlistCreatedToast,
+      tone: AppToastTone.success,
+    );
   }
 }
 
@@ -285,33 +285,30 @@ class _DesktopPlaylistsLoadingState extends StatelessWidget {
     // loading 用占位播放列表渲染真实横幅，由 [AppSkeletonizer] 灰化。
     return AppSkeletonizer(
       enabled: true,
-      child: ColoredBox(
-        color: context.appColors.surfaceElevated,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Align(
-              alignment: Alignment.centerRight,
-              child: AppSkeletonBlock(
-                width: appCompactIconButtonSize,
-                height: appCompactIconButtonSize,
-                radius: context.appRadius.smBorder,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Align(
+            alignment: Alignment.centerRight,
+            child: AppSkeletonBlock(
+              width: appCompactIconButtonSize,
+              height: appCompactIconButtonSize,
+              radius: context.appRadius.smBorder,
+            ),
+          ),
+          SizedBox(height: spacing.sm),
+          Expanded(
+            child: ListView.separated(
+              key: const Key('playlists-page-loading'),
+              itemCount: 6,
+              separatorBuilder: (_, _) => SizedBox(height: spacing.sm),
+              itemBuilder: (_, _) => PlaylistBannerCard(
+                title: BoneMock.words(2),
+                coverImageUrl: null,
               ),
             ),
-            SizedBox(height: spacing.sm),
-            Expanded(
-              child: ListView.separated(
-                key: const Key('playlists-page-loading'),
-                itemCount: 6,
-                separatorBuilder: (_, _) => SizedBox(height: spacing.sm),
-                itemBuilder: (_, _) => PlaylistBannerCard(
-                  title: BoneMock.words(2),
-                  coverImageUrl: null,
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

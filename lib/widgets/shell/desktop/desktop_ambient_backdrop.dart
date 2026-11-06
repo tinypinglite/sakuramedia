@@ -37,7 +37,7 @@ class DesktopAmbientBackdrop extends StatelessWidget {
       children: <Widget>[
         ColoredBox(
           color: dark
-              ? const Color(0x420C090B)
+              ? colors.surfacePage.withValues(alpha: 0.90)
               : Colors.white.withValues(alpha: 0.20),
         ),
         DecoratedBox(

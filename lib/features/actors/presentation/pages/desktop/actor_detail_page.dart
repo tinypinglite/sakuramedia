@@ -28,7 +28,7 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
   Widget build(BuildContext context) {
     return ActorDetailContent(
       actorId: widget.actorId,
-      surfaceColor: context.appColors.surfaceElevated,
+      surfaceColor: context.appColors.surfacePage,
       contentKey: const Key('actor-detail-page'),
       sectionSpacing: context.appSpacing.lg,
       onMovieTap: (context, movieNumber) => context.pushDesktopMovieDetail(
