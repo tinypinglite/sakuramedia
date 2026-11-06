@@ -1,12 +1,12 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/page_cache_keys.dart';
 import 'package:sakuramedia/app/providers/riverpod_page_cache_provider.dart';
 import 'package:sakuramedia/app/riverpod_page_cache.dart';
+import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/features/actors/presentation/controllers/listing/actor_filter_state.dart';
 import 'package:sakuramedia/features/actors/presentation/pages/mobile/actor_filter_drawer.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_placeholders.dart';
@@ -25,7 +25,8 @@ import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_over
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_list_search_field.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_sort_menu_button.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_summary_grid.dart';
@@ -43,6 +44,7 @@ class _MobileActorsPageState extends ConsumerState<MobileActorsPage> {
   late final RiverpodPageHandle _pageCacheHandle;
   late final ScrollController _scrollController;
   late final TextEditingController _searchController;
+  final _listHeaderKey = GlobalKey();
 
   bool _searchExpanded = false;
 
@@ -135,103 +137,42 @@ class _MobileActorsPageState extends ConsumerState<MobileActorsPage> {
         ? AppLocalizations.of(context).errorActorListLoadFailed
         : null;
 
-    return ColoredBox(
-      color: context.appColors.surfaceCard,
-      child: AppFixedHeaderLayout(
-        header: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            AppListHeader(
-              filterButtonKey: const Key('mobile-actors-filter-button'),
-              filterTooltip: AppLocalizations.of(context).actorFilterTooltip,
-              filterLabel: filter.triggerLabel(AppLocalizations.of(context)),
-              onFilterTap: _openFilterDrawer,
-              filterUpdate: snapshot.filterUpdate,
-              hasPreviousFilterItems: items.isNotEmpty,
-              onRetryFilter: () => unawaited(
-                ref.read(actorSummaryProvider(_scope).notifier).retryFilter(),
-              ),
-              informationSlots: _searchExpanded
-                  ? const <Widget>[]
-                  : <Widget>[
-                      AppListHeaderInfo(
-                        key: const Key('mobile-actors-total'),
-                        label: AppLocalizations.of(
-                          context,
-                        ).actorListTotalCount(snapshot.total),
-                      ),
-                    ],
-              actionSlots: _searchExpanded
-                  ? const <Widget>[]
-                  : <Widget>[
-                      ActorSortMenuButton(
-                        triggerKey: const Key('mobile-actors-sort-trigger'),
-                        drawerKey: const Key('mobile-actors-sort-drawer'),
-                        keyPrefix: 'mobile-actors',
-                        filterState: filter,
-                        onChanged: _applyFilter,
-                        useDrawer: true,
-                      ),
-                      ActorListSearchToggle(
-                        key: const Key('mobile-actors-search-toggle'),
-                        isActive: _searchExpanded || filter.query != null,
-                        tooltip: _searchExpanded
-                            ? AppLocalizations.of(
-                                context,
-                              ).actorSearchCollapseTooltip
-                            : AppLocalizations.of(context).actorSearchTooltip,
-                        onTap: _toggleSearch,
-                      ),
-                    ],
-              center: _searchExpanded
-                  ? Row(
-                      children: [
-                        Expanded(
-                          child: ActorListSearchField(
-                            fieldKey: const Key('mobile-actors-search-field'),
-                            clearButtonKey: const Key(
-                              'mobile-actors-search-clear',
-                            ),
-                            controller: _searchController,
-                            onChanged: _applySearchQuery,
-                          ),
-                        ),
-                        SizedBox(width: context.appSpacing.sm),
-                        ActorListSearchToggle(
-                          key: const Key('mobile-actors-search-toggle'),
-                          isActive: true,
-                          tooltip: AppLocalizations.of(
-                            context,
-                          ).actorSearchCollapseTooltip,
-                          onTap: _toggleSearch,
-                        ),
-                      ],
-                    )
-                  : null,
-            ),
-            SizedBox(height: context.appSpacing.md),
-          ],
-        ),
-        child: AppFilterResultLoadingOverlay(
-          surfaceColor: context.appColors.surfaceCard,
-          isLoading: snapshot.filterUpdate.isLoading,
-          hasPreviousItems: items.isNotEmpty,
-          child: AppPagedLoadMoreScope(
-            canLoadMore: () =>
-                ref
-                    .read(actorSummaryProvider(_scope))
-                    .value
-                    ?.paged
-                    .canAutoLoadMore ??
-                false,
-            onLoadMore: () =>
-                ref.read(actorSummaryProvider(_scope).notifier).loadMore(),
-            child: AppAdaptiveRefreshScrollView(
-              key: const PageStorageKey<String>('mobile:actors:list'),
-              onRefresh: _handleRefresh,
-              controller: _scrollController,
-              physics: const AlwaysScrollableScrollPhysics(),
-              slivers: <Widget>[
+    return AppFilterResultLoadingOverlay(
+      surfaceColor: context.appColors.surfaceCard.withValues(alpha: 0.9),
+      protectedHeaderKey: _listHeaderKey,
+      scrollController: _scrollController,
+      isLoading: snapshot.filterUpdate.isLoading,
+      hasPreviousItems: items.isNotEmpty,
+      child: AppPagedLoadMoreScope(
+        canLoadMore: () =>
+            ref
+                .read(actorSummaryProvider(_scope))
+                .value
+                ?.paged
+                .canAutoLoadMore ??
+            false,
+        onLoadMore: () =>
+            ref.read(actorSummaryProvider(_scope).notifier).loadMore(),
+        child: AppAdaptiveRefreshScrollView(
+          key: const PageStorageKey<String>('mobile:actors:list'),
+          onRefresh: _handleRefresh,
+          controller: _scrollController,
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: <Widget>[
+            AppPinnedSliverSection(
+              key: const Key('mobile-actors-page'),
+              headerKey: _listHeaderKey,
+              before: <Widget>[
+                SliverToBoxAdapter(
+                  child: AppMobilePageTitle(
+                    key: const Key('mobile-actors-large-title'),
+                    title: AppLocalizations.of(context).routeActorsTitle,
+                  ),
+                ),
+              ],
+              header: _buildHeader(context, snapshot, filter, items),
+              headerBottomSpacing: context.appSpacing.md,
+              after: <Widget>[
                 if (!filter.hasActiveFilters)
                   SliverToBoxAdapter(
                     child: ActorTasteRecommendationRail(
@@ -242,7 +183,7 @@ class _MobileActorsPageState extends ConsumerState<MobileActorsPage> {
                   ),
                 SliverMainAxisGroup(
                   key: const Key('mobile-actors-page'),
-                  slivers: [
+                  slivers: <Widget>[
                     if (!snapshot.filterUpdate.hasFailed || items.isNotEmpty)
                       AppSkeletonizer.sliver(
                         enabled: snapshot.isInitialLoading,
@@ -282,8 +223,68 @@ class _MobileActorsPageState extends ConsumerState<MobileActorsPage> {
                 ),
               ],
             ),
-          ),
+          ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(
+    BuildContext context,
+    PagedViewSnapshot<ActorListItemDto> snapshot,
+    ActorFilterState filter,
+    List<ActorListItemDto> items,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    return AppMobileListHeader(
+      leading: _searchExpanded
+          ? ActorListSearchField(
+              fieldKey: const Key('mobile-actors-search-field'),
+              clearButtonKey: const Key('mobile-actors-search-clear'),
+              controller: _searchController,
+              onChanged: _applySearchQuery,
+            )
+          : AppMobileHeaderText(
+              key: const Key('mobile-actors-total'),
+              title: l10n.actorListAllTitle,
+              countLabel: l10n.actorListTotalCount(snapshot.total),
+            ),
+      actions: _searchExpanded
+          ? <Widget>[
+              ActorListSearchToggle(
+                key: const Key('mobile-actors-search-toggle'),
+                isActive: true,
+                tooltip: l10n.actorSearchCollapseTooltip,
+                onTap: _toggleSearch,
+              ),
+            ]
+          : <Widget>[
+              AppGlassFilterIconButton(
+                key: const Key('mobile-actors-filter-button'),
+                summary: filter.triggerLabel(l10n),
+                isActive: filter.hasActiveFilters,
+                onPressed: _openFilterDrawer,
+              ),
+              ActorSortMenuButton(
+                triggerKey: const Key('mobile-actors-sort-trigger'),
+                drawerKey: const Key('mobile-actors-sort-drawer'),
+                keyPrefix: 'mobile-actors',
+                filterState: filter,
+                onChanged: _applyFilter,
+                useDrawer: true,
+                iconOnly: true,
+              ),
+              ActorListSearchToggle(
+                key: const Key('mobile-actors-search-toggle'),
+                isActive: filter.query != null,
+                tooltip: l10n.actorSearchTooltip,
+                onTap: _toggleSearch,
+              ),
+            ],
+      filterUpdate: snapshot.filterUpdate,
+      hasPreviousFilterItems: items.isNotEmpty,
+      onRetryFilter: () => unawaited(
+        ref.read(actorSummaryProvider(_scope).notifier).retryFilter(),
       ),
     );
   }

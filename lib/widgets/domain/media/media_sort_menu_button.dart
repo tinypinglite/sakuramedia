@@ -13,6 +13,8 @@ class MediaSortMenuButton extends StatelessWidget {
     required this.filterState,
     required this.onChanged,
     this.useDrawer = false,
+    this.glassGrouped = false,
+    this.iconOnly = false,
     this.keyPrefix = 'media',
     this.triggerKey,
     this.panelKey,
@@ -22,6 +24,8 @@ class MediaSortMenuButton extends StatelessWidget {
   final MediaBrowseFilterState filterState;
   final ValueChanged<MediaBrowseFilterState> onChanged;
   final bool useDrawer;
+  final bool glassGrouped;
+  final bool iconOnly;
   final String keyPrefix;
   final Key? triggerKey;
   final Key? panelKey;
@@ -43,6 +47,8 @@ class MediaSortMenuButton extends StatelessWidget {
       defaultOptionLabel: l10n.widgetMediaSortDefault,
       directionVisibleWhen: (field) => field != null,
       useDrawer: useDrawer,
+      glassGrouped: glassGrouped,
+      iconOnly: iconOnly,
       triggerKey: triggerKey,
       panelKey: panelKey,
       drawerKey: drawerKey,

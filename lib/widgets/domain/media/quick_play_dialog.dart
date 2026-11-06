@@ -11,6 +11,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/media/video/themed_video_player.dart';
 import 'package:sakuramedia/widgets/base/media/video/throttling_player.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 /// 「点小图 → 弹小窗立刻播」的桌面轻量播放弹窗。
@@ -112,7 +113,8 @@ class _QuickPlayDialogState extends State<QuickPlayDialog> {
   }
 
   String get _errorFallback =>
-      widget.errorFallback ?? AppLocalizations.of(context).widgetMediaLoadFailed;
+      widget.errorFallback ??
+      AppLocalizations.of(context).widgetMediaLoadFailed;
 
   Future<void> _openMedia(Player player, String url) async {
     try {
@@ -234,7 +236,7 @@ Future<void> showVideoQuickPlayDialog(
     return;
   }
   final l10n = AppLocalizations.of(context);
-  return showDialog<void>(
+  return showAppDialog<void>(
     context: context,
     builder: (dialogContext) => QuickPlayDialog(
       title: title,

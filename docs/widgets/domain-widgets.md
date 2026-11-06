@@ -52,7 +52,7 @@
 
 路径：`lib/widgets/domain/collections/`
 
-包含 `CollectionCard`（`.clip` / `.video` / `.moment` 命名构造）、`CollectionCoverCard`、`CollectionHintBox`、`CollectionMemberViews`、`CollectionTargetPicker` 以及 `playback/` 下的合集连播组件。影片合集、视频合集和切片合集的数据适配由各自 feature 完成；`CollectionHintBox` 是合集横滑区空态/加载失败的共用提示条。`showCollectionTargetPicker`（`collection_target_picker.dart`）是切片、时刻、视频三处「加入合集」选择器的共用实现：只负责选中一个目标合集并返回，成员写入由调用方批量执行；各域只提供数据源、行文案（`N 个切片/时刻/视频`）、行 Key 前缀和「新建合集并加入」入口，弹窗/抽屉形态与既有测试锚点由参数保持。选项行是单行卡片：浅灰底 + 细边框，名称过长单行省略，右侧依次是计数和加号；点击整行返回所选合集。`CollectionMemberCard` 由三个合集详情的成员网格共用：整卡即封面、收起态不铺文字，桌面悬停渐显标题/副信息与整行动作按钮（播放 / 影片 / 缩略图 / 加入合集 / 移出合集 / 删除，按回调显隐），移动端信息与动作走点击后的操作面板 / 预览层；时刻来源媒体已删除时隐藏播放键。
+包含 `CollectionCard`（`.clip` / `.video` / `.moment` 命名构造）、`CollectionCoverCard`、`CollectionHintBox`、`CollectionMemberViews`、`CollectionTargetPicker` 以及 `playback/` 下的合集连播组件。影片合集、视频合集和切片合集的数据适配由各自 feature 完成；`CollectionHintBox` 是合集横滑区空态/加载失败的共用提示条。`showCollectionTargetPicker`（`collection_target_picker.dart`）是切片、时刻、视频三处「加入合集」选择器的共用实现：只负责选中一个目标合集并返回，成员写入由调用方批量执行；各域只提供数据源、行文案（`N 个切片/时刻/视频`）、行 Key 前缀和「新建合集并加入」入口，弹窗/抽屉形态与既有测试锚点由参数保持。选项行是单行卡片：浅灰底 + 细边框，名称过长单行省略，右侧依次是计数和加号；点击整行返回所选合集。`CollectionMemberCard` 由三个合集详情的成员网格共用：整卡即封面、收起态不铺文字，桌面悬停渐显标题/副信息与整行动作按钮（播放 / 影片 / 缩略图 / 加入合集 / 移出合集 / 删除，按回调显隐），移动端信息与动作走点击后的操作面板 / 预览层；时刻来源媒体已删除时隐藏播放键。`CollectionCard.video` 固定使用封面内玻璃信息条承载标题和计数，不再渲染封面下方实色标题栏，调用方不需要传玻璃开关；`.clip` / `.moment` 仍使用默认实色标题栏。视频合集卡传 `coverBackdrop: true` 时，`BoxFit.contain` 的竖图两侧铺同图暗底，移动 PornBox 横滑区和合集列表使用。
 
 ## media and preview
 
@@ -87,7 +87,7 @@ moments feature 负责。`MomentCard` 整卡即封面、收起态不铺文字；
 
 ## media import and batch
 
-- `lib/widgets/domain/media_import/`：`MediaImportSourcePicker` 和 `MediaLibrarySelectorField` 由桌面、移动端的 JAV / 视频导入表单共用。移动端路径与目录选择按钮分行显示，文件行支持触摸和长名称；浏览、分页、重试与选择回调保持一致。
+- `lib/widgets/domain/media_import/`：`MediaImportSourcePicker` 和 `MediaLibrarySelectorField` 由桌面、移动端的 JAV / 视频导入表单共用。媒体库列表读取共享的 `mediaLibrariesProvider`；移动端路径与目录选择按钮分行显示，文件行支持触摸和长名称；浏览、分页、重试与选择回调保持一致。视频导入弹窗因额外包含合集字段，可为目录浏览器单独传入较矮的 `browserHeight`。
 - `lib/widgets/base/operations/batch/`：`BatchProgressDialog` 等通用批量任务反馈，不绑定单一业务域。
 
 ## 列表排序入口适配器
@@ -111,6 +111,6 @@ moments feature 负责。`MomentCard` 整卡即封面、收起态不铺文字；
 
 影片筛选面板的分辨率选项仅在“可播放”状态启用，切换到其他状态时清空；与其他条件组合并即时生效。
 
-`MovieFilterChoiceSection` 的选项整组变化（如排行榜切来源后的榜单/周期）以淡入淡出加高度过渡替换，单选态变化不触发动画；`isLoading: true` 时选项区用 `AppSkeletonizer` 骨架显示占位 options 并屏蔽点击，由调用方保证占位文案不暴露真实数据。
+`AppFilterOptionSection` 的选项整组变化（如排行榜切来源后的榜单/周期）以同步高度过渡替换；`isLoading: true` 时选项区用 `AppSkeletonizer` 骨架显示占位 options 并屏蔽点击，由调用方保证占位文案不暴露真实数据。
 
-播放列表分辨率筛选复用 `MovieFilterChoiceSection`，固定展示全部、8K、4K、2K、1080P、720P、480P、360P，不显示数量；桌面浮层与移动抽屉均即时生效。
+播放列表分辨率筛选复用 `AppFilterOptionSection`，固定展示全部、8K、4K、2K、1080P、720P、480P、360P，不显示数量；桌面浮层与移动抽屉均即时生效。

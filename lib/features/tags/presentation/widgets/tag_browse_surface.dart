@@ -11,12 +11,16 @@ import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_s
 import 'package:sakuramedia/features/tags/presentation/tag_placeholders.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/forms/app_glass_search_field.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
 
 /// 标签页的浏览态：页面中心是一块可搜索、可多选的标签墙。
 ///
@@ -144,35 +148,43 @@ class _TagBrowseSurfaceState extends ConsumerState<TagBrowseSurface> {
             constraints: BoxConstraints(
               maxWidth: widget.mobile ? double.infinity : 360,
             ),
-            child: AppTextField(
-              fieldKey: const Key('tags-browse-search'),
-              controller: _searchController,
-              focusNode: _searchFocusNode,
-              enabled: selection.hasLoadedOnce,
-              hintText: l10n.tagSearchHint,
-              prefix: Icon(
-                Icons.search_rounded,
-                size: context.appComponentTokens.iconSizeSm,
-                color: context.appTextPalette.secondary,
-              ),
-              suffix: _query.isEmpty
-                  ? null
-                  : IconButton(
-                      key: const Key('tags-browse-search-clear'),
-                      icon: Icon(
-                        Icons.close_rounded,
-                        size: context.appComponentTokens.iconSizeSm,
-                      ),
-                      splashRadius: 16,
-                      onPressed: _clearQuery,
+            child: widget.mobile
+                ? AppGlassSearchField(
+                    fieldKey: const Key('tags-browse-search'),
+                    controller: _searchController,
+                    hintText: l10n.tagSearchHint,
+                    clearKey: const Key('tags-browse-search-clear'),
+                    onChanged: (value) => setState(() => _query = value),
+                  )
+                : AppTextField(
+                    fieldKey: const Key('tags-browse-search'),
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    enabled: selection.hasLoadedOnce,
+                    hintText: l10n.tagSearchHint,
+                    prefix: Icon(
+                      Icons.search_rounded,
+                      size: context.appComponentTokens.iconSizeSm,
+                      color: context.appTextPalette.secondary,
                     ),
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: spacing.lg,
-                vertical: spacing.md,
-              ),
-              borderRadius: context.appRadius.mdBorder,
-              onChanged: (value) => setState(() => _query = value),
-            ),
+                    suffix: _query.isEmpty
+                        ? null
+                        : IconButton(
+                            key: const Key('tags-browse-search-clear'),
+                            icon: Icon(
+                              Icons.close_rounded,
+                              size: context.appComponentTokens.iconSizeSm,
+                            ),
+                            splashRadius: 16,
+                            onPressed: _clearQuery,
+                          ),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: spacing.lg,
+                      vertical: spacing.md,
+                    ),
+                    borderRadius: context.appRadius.mdBorder,
+                    onChanged: (value) => setState(() => _query = value),
+                  ),
           ),
         ),
       ],
@@ -367,10 +379,12 @@ class _TagBrowseSurfaceState extends ConsumerState<TagBrowseSurface> {
             trailingIcon: const Icon(Icons.close),
             onPressed: () => notifier.remove(tag.tagId),
           ),
-        AppTextButton(
+        AppIconButton(
           key: const Key('tags-browse-clear'),
-          label: l10n.tagClear,
-          size: AppTextButtonSize.xSmall,
+          tooltip: l10n.tagClear,
+          semanticLabel: l10n.tagClear,
+          size: AppIconButtonSize.compact,
+          icon: const Icon(Icons.filter_alt_off_rounded),
           onPressed: notifier.clear,
         ),
       ],
@@ -541,67 +555,63 @@ class _TagBrowseSurfaceState extends ConsumerState<TagBrowseSurface> {
   ) {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    return DecoratedBox(
+    return AppGlassSurface(
       key: const Key('tags-browse-action-bar'),
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceElevated,
-        border: Border(top: BorderSide(color: context.appColors.divider)),
+      tone: AppGlassTone.control,
+      borderRadius: context.appRadius.lgBorder,
+      padding: EdgeInsets.fromLTRB(
+        spacing.lg,
+        spacing.sm,
+        spacing.lg,
+        spacing.md,
       ),
       child: SafeArea(
         top: false,
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            spacing.lg,
-            spacing.sm,
-            spacing.lg,
-            spacing.md,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Row(
-                children: <Widget>[
-                  Text(
-                    l10n.tagSelectedCount(selection.selectedCount),
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s12,
-                      weight: AppTextWeight.regular,
-                      tone: AppTextTone.secondary,
-                    ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Row(
+              children: <Widget>[
+                Text(
+                  l10n.tagSelectedCount(selection.selectedCount),
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.secondary,
                   ),
-                  const Spacer(),
-                  if (selection.selectedCount > 1)
-                    _MatchModeToggle(
-                      selection: selection,
-                      notifier: notifier,
-                      mobile: true,
-                    ),
-                  if (widget.onCancel != null) ...<Widget>[
-                    SizedBox(width: spacing.sm),
-                    AppTextButton(
-                      key: const Key('tags-browse-cancel'),
-                      label: l10n.commonCancel,
-                      size: AppTextButtonSize.xSmall,
-                      onPressed: widget.onCancel,
-                    ),
-                  ],
-                ],
-              ),
-              SizedBox(height: spacing.sm),
-              SizedBox(
-                width: double.infinity,
-                child: AppButton(
-                  key: const Key('tags-browse-confirm'),
-                  label: l10n.tagViewMovies,
-                  variant: AppButtonVariant.primary,
-                  size: AppButtonSize.large,
-                  borderRadius: context.appRadius.pillBorder,
-                  onPressed: widget.onConfirm,
                 ),
+                const Spacer(),
+                if (selection.selectedCount > 1)
+                  _MatchModeToggle(
+                    selection: selection,
+                    notifier: notifier,
+                    mobile: true,
+                  ),
+                if (widget.onCancel != null) ...<Widget>[
+                  SizedBox(width: spacing.sm),
+                  AppGlassIconButton(
+                    key: const Key('tags-browse-cancel'),
+                    tooltip: l10n.commonCancel,
+                    icon: Icons.close_rounded,
+                    onPressed: widget.onCancel,
+                  ),
+                ],
+              ],
+            ),
+            SizedBox(height: spacing.sm),
+            SizedBox(
+              width: double.infinity,
+              child: AppButton(
+                key: const Key('tags-browse-confirm'),
+                label: l10n.tagViewMovies,
+                variant: AppButtonVariant.primary,
+                size: AppButtonSize.large,
+                borderRadius: context.appRadius.pillBorder,
+                onPressed: widget.onConfirm,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

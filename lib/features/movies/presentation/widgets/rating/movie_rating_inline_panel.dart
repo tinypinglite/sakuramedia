@@ -10,6 +10,7 @@ import 'package:sakuramedia/features/movies/presentation/widgets/rating/rating_d
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
 /// 详情信息块内的评分面板：5 分制点星即保存，10/100 分制点数值后编辑保存。
@@ -407,8 +408,8 @@ class _NumericScoreValueState extends State<_NumericScoreValue> {
           SizedBox(
             width: 36,
             height: 28,
-            child: TextField(
-              key: Key('movie-rating-score-${widget.dimension.id}-field'),
+            child: AppTextField(
+              fieldKey: Key('movie-rating-score-${widget.dimension.id}-field'),
               controller: _controller,
               focusNode: _focusNode,
               keyboardType: TextInputType.number,
@@ -420,11 +421,13 @@ class _NumericScoreValueState extends State<_NumericScoreValue> {
                 ),
               ],
               onTapOutside: (_) => _focusNode.unfocus(),
-              onSubmitted: (_) => _focusNode.unfocus(),
-              textAlignVertical: TextAlignVertical.center,
+              onFieldSubmitted: (_) => _focusNode.unfocus(),
               style: resolveAppTextStyle(context, size: AppTextSize.s12),
-              cursorColor: context.appTextPalette.accent,
-              decoration: const InputDecoration.collapsed(hintText: ''),
+              height: 28,
+              borderRadius: context.appRadius.smBorder,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: context.appSpacing.sm - context.appSpacing.xs / 2,
+              ),
             ),
           ),
           SizedBox(width: context.appSpacing.xs / 2),

@@ -53,7 +53,6 @@ class ActivityJobOverviewCard extends StatelessWidget {
     return AppContentCard(
       key: Key('activity-job-overview-${job.taskKey}'),
       title: null,
-      backgroundColor: Colors.transparent,
       borderColor: context.appColors.borderSubtle,
       padding: EdgeInsets.symmetric(
         horizontal: spacing.lg,

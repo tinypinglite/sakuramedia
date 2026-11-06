@@ -53,17 +53,12 @@ class AppGlassToast extends StatelessWidget {
 
   Widget _buildContent(BuildContext context) {
     final tokens = context.appToastTokens;
-    final textStyle =
-        resolveAppTextStyle(
-          context,
-          size: AppTextSize.s16,
-          weight: AppTextWeight.medium,
-          tone: AppTextTone.primary,
-        ).copyWith(
-          fontSize: tokens.textSize,
-          height: 1.35,
-          fontFamily: Theme.of(context).textTheme.bodyMedium?.fontFamily,
-        );
+    final textStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s16,
+      weight: AppTextWeight.medium,
+      tone: AppTextTone.primary,
+    ).copyWith(fontSize: tokens.textSize, height: 1.35);
     final text = Text(
       message,
       textAlign: tone == AppToastTone.neutral
@@ -103,14 +98,13 @@ class AppGlassToast extends StatelessWidget {
     required bool isDark,
     required Widget child,
   }) {
+    final tokens = context.appToastTokens;
     final settings =
         (isDark
                 ? LiquidGlassSettings.ios27Dark
                 : LiquidGlassSettings.ios27Light)
             .copyWith(
-              glassColor: isDark
-                  ? const Color(0xAA181618)
-                  : const Color(0x9AFBFAF8),
+              glassColor: tokens.glassBackground,
               saturation: isDark ? 1.65 : 2,
               frost: 16,
               thickness: 34,
@@ -125,19 +119,15 @@ class AppGlassToast extends StatelessWidget {
                     ],
             );
     final shape = BorderRadius.circular(borderRadius);
-    final highlight = isDark
-        ? const Color(0x26FFFFFF)
-        : const Color(0x6BFFFFFF);
-    final shade = isDark
-        ? const Color(0x24000000)
-        : context.appShadows.color.withValues(alpha: 0.045);
+    final highlight = tokens.glassHighlight;
+    final shade = tokens.glassShade;
 
     return DecoratedBox(
       decoration: BoxDecoration(
         borderRadius: shape,
         boxShadow: <BoxShadow>[
           BoxShadow(
-            color: isDark ? const Color(0x59000000) : const Color(0x1A1F1A18),
+            color: tokens.glassShadow,
             blurRadius: 30,
             offset: const Offset(0, 12),
           ),
@@ -156,11 +146,7 @@ class AppGlassToast extends StatelessWidget {
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     borderRadius: shape,
-                    border: Border.all(
-                      color: isDark
-                          ? const Color(0x2EFFFFFF)
-                          : const Color(0x80FFFFFF),
-                    ),
+                    border: Border.all(color: tokens.glassBorder),
                     gradient: LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,

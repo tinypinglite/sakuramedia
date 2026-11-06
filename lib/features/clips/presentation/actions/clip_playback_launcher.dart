@@ -6,6 +6,7 @@ import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/clips/presentation/pages/mobile/clip_player_page.dart';
 import 'package:sakuramedia/features/external_player/presentation/external_playback_launcher.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/domain/media/quick_play_dialog.dart';
 
 /// 切片播放入口（桌面 / 移动统一）：已配置外部播放器时优先交给它；否则移动端
@@ -36,7 +37,7 @@ Future<void> launchClipPlayback(
     );
     return;
   }
-  await showDialog<void>(
+  await showAppDialog<void>(
     context: context,
     builder: (dialogContext) => QuickPlayDialog(
       title: title,

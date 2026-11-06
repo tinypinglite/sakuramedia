@@ -14,7 +14,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_sort_menu_button.dart';
 import 'package:sakuramedia/widgets/domain/tags/media_tag_filter_section.dart';
 import 'package:sakuramedia/widgets/domain/tags/tag_filter_section.dart';
@@ -72,12 +72,15 @@ class _MobileMoviesPageState extends ConsumerState<MobileMoviesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     ref.listen(tagSelectionProvider(_tagSelectionScope), (_, next) {
       _tagSelectionActive.value = next.hasSelection;
     });
     return MovieSummaryListContent(
       scope: _scope,
-      surfaceColor: context.appColors.surfaceCard,
+      surfaceColor: (MediaQuery.maybeHighContrastOf(context) ?? false)
+          ? context.appColors.surfacePage
+          : context.appColors.surfaceCard.withValues(alpha: 0.9),
       contentKey: const Key('mobile-movies-page'),
       totalKey: const Key('mobile-movies-page-total'),
       tagSelectionScope: _tagSelectionScope,
@@ -85,6 +88,11 @@ class _MobileMoviesPageState extends ConsumerState<MobileMoviesPage> {
       onMovieTap: (context, movieNumber) =>
           MobileMovieDetailRouteData(movieNumber: movieNumber).push(context),
       headerBuilder: _buildMobileHeader,
+      mobileHeaderLeading: AppMobilePageTitle(
+        key: const Key('mobile-movies-large-title'),
+        title: l10n.routeMoviesTitle,
+      ),
+      usePinnedMobileHeader: true,
       useMobileSelectionLayout: true,
       bodyBuilder: (context, scrollController, sliver, onRefresh) =>
           AppAdaptiveRefreshScrollView(
@@ -107,24 +115,29 @@ class _MobileMoviesPageState extends ConsumerState<MobileMoviesPage> {
     MovieSummaryListHeaderArgs args,
   ) {
     final l10n = AppLocalizations.of(context);
-    return AppListHeader(
-      filterButtonKey: const Key('mobile-movies-filter-button'),
-      filterTooltip: l10n.moviePageFilterTooltip,
-      filterLabel: _filterLabel(l10n, args),
-      onFilterTap: () => _openFilterDrawer(context, args),
-      informationSlots: [
-        AppListHeaderInfo(
-          key: const Key('mobile-movies-total'),
-          label: l10n.moviePageMovieCount(args.total),
+    final filterLabel = _filterLabel(l10n, args);
+    return AppMobileListHeader(
+      leading: AppMobileHeaderText(
+        key: const Key('mobile-movies-total'),
+        title: l10n.moviePageAllMoviesTitle,
+        countLabel: l10n.moviePageMovieCount(args.total),
+      ),
+      actions: <Widget>[
+        AppGlassFilterIconButton(
+          key: const Key('mobile-movies-filter-button'),
+          summary: filterLabel,
+          isActive:
+              args.filterState.hasActiveFilters ||
+              (args.tagSelection?.hasSelection ?? false),
+          onPressed: () => _openFilterDrawer(context, args),
         ),
-      ],
-      actionSlots: [
         MovieSortMenuButton(
           triggerKey: const Key('mobile-movies-sort-trigger'),
           drawerKey: const Key('mobile-movies-sort-drawer'),
           filterState: args.filterState,
           onChanged: args.onApply,
           useDrawer: true,
+          iconOnly: true,
         ),
       ],
     );

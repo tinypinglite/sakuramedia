@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/app/language/app_language.dart';
 import 'package:sakuramedia/app/language/providers/language_providers.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/plugins/data/dto/plugin_dto.dart';
@@ -47,6 +48,61 @@ void main() {
     final state = await container.read(pluginsProvider.future);
 
     expect(state.plugins.single.pluginId, 'demo_plugin');
+  });
+
+  test(
+    'refetches after signing in when the signed-out build got 401',
+    () async {
+      api.listHandler = () async {
+        if (!store.hasSession) {
+          throw ApiException.unauthorized(message: '请先登录');
+        }
+        return <PluginSummaryDto>[pluginSummaryDto(id: 'demo_plugin')];
+      };
+      final subscription = container.listen(pluginsProvider, (_, _) {});
+      addTearDown(subscription.close);
+
+      await expectLater(
+        container.read(pluginsProvider.future),
+        throwsA(isA<ApiException>()),
+      );
+      expect(api.listCalls, 1);
+
+      await store.saveTokens(
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+        expiresAt: DateTime.utc(2026, 1, 1),
+      );
+
+      final state = await container.read(pluginsProvider.future);
+      expect(state.plugins.single.pluginId, 'demo_plugin');
+      expect(api.listCalls, 2);
+    },
+  );
+
+  test('does not refetch when tokens rotate without session change', () async {
+    await store.saveTokens(
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: DateTime.utc(2026, 1, 1),
+    );
+    api.listHandler = () async => <PluginSummaryDto>[
+      pluginSummaryDto(id: 'demo_plugin'),
+    ];
+    final subscription = container.listen(pluginsProvider, (_, _) {});
+    addTearDown(subscription.close);
+
+    await container.read(pluginsProvider.future);
+    expect(api.listCalls, 1);
+
+    await store.saveTokens(
+      accessToken: 'rotated-access-token',
+      refreshToken: 'rotated-refresh-token',
+      expiresAt: DateTime.utc(2026, 1, 1),
+    );
+    await container.read(pluginsProvider.future);
+
+    expect(api.listCalls, 1);
   });
 
   test('setEnabled replaces the item and clears busy state', () async {

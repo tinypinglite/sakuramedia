@@ -13,19 +13,27 @@ class PlaylistSortMenuButton extends StatelessWidget {
     required this.filterState,
     required this.onChanged,
     this.useDrawer = false,
+    this.glassGrouped = false,
+    this.iconOnly = false,
     this.keyPrefix = 'playlist',
     this.triggerKey,
     this.panelKey,
     this.drawerKey,
+    this.fieldControlKey,
+    this.directionControlKey,
   });
 
   final PlaylistFilterState filterState;
   final ValueChanged<PlaylistFilterState> onChanged;
   final bool useDrawer;
+  final bool glassGrouped;
+  final bool iconOnly;
   final String keyPrefix;
   final Key? triggerKey;
   final Key? panelKey;
   final Key? drawerKey;
+  final Key? fieldControlKey;
+  final Key? directionControlKey;
 
   @override
   Widget build(BuildContext context) {
@@ -42,6 +50,8 @@ class PlaylistSortMenuButton extends StatelessWidget {
       defaultOptionLabel: AppLocalizations.of(context).playlistSortDefault,
       directionVisibleWhen: (field) => field != null,
       useDrawer: useDrawer,
+      glassGrouped: glassGrouped,
+      iconOnly: iconOnly,
       triggerKey: triggerKey,
       panelKey: panelKey,
       drawerKey: drawerKey,
@@ -49,6 +59,8 @@ class PlaylistSortMenuButton extends StatelessWidget {
       directionKeyBuilder: (value) =>
           Key('$keyPrefix-sort-direction-${value.name}'),
       defaultOptionKey: Key('$keyPrefix-sort-default'),
+      fieldControlKey: fieldControlKey,
+      directionControlKey: directionControlKey,
     );
   }
 }

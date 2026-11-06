@@ -177,6 +177,14 @@
   "commonDelete": "Delete",
   "commonCopy": "Copy",
   "commonDone": "Done",
+  "commonSelectedCount": "Selected {count}",
+  "@commonSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "commonUnknown": "Unknown",
   "accountTitle": "Account",
   "accountProfileTitle": "Account profile",
@@ -1564,7 +1572,6 @@
   },
   "tagEmptyMovieList": "No movies under this tag yet",
   "tagRefreshFailed": "Refresh failed",
-  "tagFilterTooltip": "Filter",
   "tagMovieCountLabel": "{count}",
   "@tagMovieCountLabel": {
     "placeholders": {
@@ -1612,8 +1619,6 @@
   "videoFilterSectionCollection": "Collection",
   "videoFilterSectionCollectionOwnership": "Collection",
   "videoFilterNotInCollection": "Not in a collection",
-  "videoFilterAppliesImmediately": "Filters apply immediately",
-  "videoSortDirectionTitle": "Sort direction",
   "videoFilter": "Filter",
   "videoPlay": "Play",
   "videoPlayAll": "Play all",
@@ -1729,6 +1734,7 @@
     }
   },
   "videoCollectionsTitle": "Video collections",
+  "videoAllVideosTitle": "All videos",
   "videoNewCollection": "New collection",
   "videoNew": "New",
   "videoViewAll": "View all",
@@ -1753,7 +1759,7 @@
   "videoCollectionDeleted": "Collection deleted",
   "videoCollectionsEmpty": "No collections yet. Tap “New collection” to create one.",
   "videoCollectionsNoMatch": "No matching collections",
-  "videoCollectionsEmptyHint": "No collections yet. Tap “New” to group videos into a playlist.",
+  "videoCollectionsEmptyHint": "No collections yet. Tap “New collection” to group videos into a playlist.",
   "videoCollectionsEmptyMobile": "No collections yet. Tap “New collection” below to start.",
   "videoCollectionsLoadFailed": "Failed to load collections. Please try again later.",
   "videoCollectionsLoadFailedShort": "Failed to load collections",
@@ -1764,7 +1770,6 @@
   "videoCollectionNameRequired": "Enter a collection name",
   "videoCollectionDescriptionHint": "Description (optional)",
   "videoCreateCollectionAndAdd": "New collection and add",
-  "videoClose": "Close",
   "videoCollectionsEmptyDialog": "No collections yet. Create one below.",
   "videoSaveFailed": "Failed to save",
   "videoCreateFailed": "Failed to create",
@@ -2067,7 +2072,6 @@
   "overviewImportMedia": "Import media",
   "overviewMediaAssets": "Media assets",
   "overviewNoAssetData": "No media asset data yet",
-  "overviewMovies": "Movies",
   "overviewPlayableMovies": "Playable movies",
   "overviewMovieTotal": "{count} movies total",
   "@overviewMovieTotal": {
@@ -2225,6 +2229,7 @@
     }
   },
   "momentCountLabel": "{count, plural, =1{1 moment} other{{count} moments}}",
+  "momentCollectionAllMomentsTitle": "All moments",
   "@momentCountLabel": {
     "placeholders": {
       "count": {
@@ -2412,6 +2417,7 @@
   "clipCollectionPlayAll": "Play all",
   "clipCollectionPlay": "Play",
   "clipCollectionClipCount": "{count} clips",
+  "clipCollectionAllClipsTitle": "All clips",
   "@clipCollectionClipCount": {
     "placeholders": {
       "count": {
@@ -2588,7 +2594,6 @@
   "playlistPickerLoadFailed": "Failed to load playlists",
   "playlistNoMatch": "No matching playlists",
   "playlistAddToPlaylist": "Add to playlist",
-  "playlistCloseTooltip": "Close",
   "playlistSearchHint": "Search playlists",
   "playlistRemoveFailed": "Failed to remove from the playlist",
   "playlistAddFailed": "Failed to add to the playlist",
@@ -2888,8 +2893,6 @@
   },
   "downloadSearchByMovieNumber": "Search by movie number",
   "downloadFilterAllClients": "All clients",
-  "downloadFilterApplied": "Filtered",
-  "downloadFilterAction": "Filter",
   "downloadFilterTitle": "Filter downloads",
   "downloadMovieNumberLabel": "Movie number",
   "downloadStateFilterLabel": "Download status",
@@ -2985,6 +2988,14 @@
   "clipCollectionsLoadFailedFallback": "Collections are temporarily unavailable. Please try again later.",
   "clipCollectionCreated": "Collection created",
   "clipEmpty": "No clips yet. Select a range in the player to create one.",
+  "clipListTotalCount": "{count} clips",
+  "@clipListTotalCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "clipSortLatest": "Latest",
   "clipSortEarliest": "Earliest",
   "clipEnterSelection": "Select",
@@ -3125,10 +3136,10 @@
   "imageSearchTextSearchFailed": "Text search failed. Please try again later.",
   "imageSearchIndexRebuildRequired": "The embedding space changed. Rebuild the image search index first.",
   "imageSearchNoSubscribedActors": "No subscribed actors",
-  "imageSearchClose": "Close",
   "imageSearchClearSelection": "Clear selection",
   "moviePageRefreshFailed": "Failed to refresh",
   "moviePageFilterTooltip": "Filter",
+  "moviePageAllMoviesTitle": "All movies",
   "moviePageMovieCount": "{count} movies",
   "@moviePageMovieCount": {
     "placeholders": {
@@ -3658,7 +3669,6 @@
     }
   },
   "mediaListEnterSelection": "Select",
-  "mediaListExitSelection": "Exit selection",
   "mediaListRefreshing": "Refreshing",
   "mediaListClearSelection": "Clear",
   "mediaListBatchTransfer": "Transfer ({count})",
@@ -3822,8 +3832,10 @@
   "mediaListDuplicateSelectionHint": "Select the media to delete; at least one copy is kept per group",
   "mediaListDuplicateDescription": "Media records of the same file are grouped by content fingerprint. Make sure at least one usable copy is kept before deleting.",
   "mediaListDuplicateEmpty": "No duplicate files found for this type.",
+  "mediaListDuplicateKindTitle": "Media type",
   "mediaListKeepAtLeastOne": "Keep at least one",
   "mediaListSelectItem": "Select this item",
+  "mediaListVersionsFilterTitle": "Version filters",
   "mediaListVersionsBatchDeleteTitle": "Delete movie versions in batch",
   "mediaListVersionsBatchDeleteMessage": "{count} selected versions and their files will be deleted; at least one version is kept per movie. Continue?",
   "@mediaListVersionsBatchDeleteMessage": {
@@ -4138,7 +4150,6 @@
   "widgetCollectionPickerTitle": "Add to collection",
   "widgetCollectionPickerCreateAndAdd": "Create collection and add",
   "widgetCollectionPickerSearchHint": "Search collections",
-  "widgetCollectionPickerClose": "Close",
   "widgetCollectionPickerLoadFailed": "Failed to load collections",
   "widgetCollectionPickerEmpty": "No collections yet. Create one below.",
   "widgetCollectionPickerNoMatch": "No matching collections",
@@ -4666,6 +4677,7 @@
   "actorSearchTooltip": "Search actors",
   "actorListEmpty": "No actors yet — go search for some",
   "actorListEmptyFiltered": "No actors match the current filters",
+  "actorListAllTitle": "All actors",
   "actorListTotalCount": "{count} actors",
   "@actorListTotalCount": {
     "placeholders": {
@@ -4674,7 +4686,6 @@
       }
     }
   },
-  "actorFilterTooltip": "Filter",
   "actorLocalSubscriptionHint": "Local actors are not synced with new releases; subscribing only keeps them in your favorites.",
   "actorMergeTooltip": "Merge actors",
   "actorEditProfileTooltip": "Edit actor profile",
@@ -4843,6 +4854,7 @@
     }
   },
   "rankingAllBoards": "All boards",
+  "rankingListMoviesTitle": "Ranked movies",
   "@rankingAllBoards": {},
   "rankingNoBoards": "No rankings available",
   "@rankingNoBoards": {},
@@ -4932,7 +4944,6 @@
   },
   "sharedMore": "More",
   "@sharedMore": {},
-  "sharedFilter": "Filter",
   "@sharedFilter": {},
   "sharedRefreshFailed": "Failed to refresh",
   "@sharedRefreshFailed": {},
@@ -5300,8 +5311,7 @@
   "baseClearSearch": "Clear",
   "baseShowPassword": "Show password",
   "baseHidePassword": "Hide password",
-  "baseFilterUsingDefault": "Using the default filters",
-  "baseFilterUpdated": "Filters updated",
+  "baseFilterAppliesImmediately": "Filters apply immediately",
   "baseFilterReset": "Reset",
   "baseClose": "Close",
   "baseConfirm": "Confirm",
@@ -5309,8 +5319,8 @@
   "baseSortDefault": "Default",
   "baseSortTooltip": "Sort",
   "baseSortTitle": "Sort by",
+  "baseSortDirectionTitle": "Sort direction",
   "baseFilterTooltip": "Filter",
-  "baseExitSelection": "Exit selection",
   "baseBatchCompleted": "Done",
   "baseBatchSummary": "{succeeded} succeeded, {failed} failed",
   "@baseBatchSummary": {

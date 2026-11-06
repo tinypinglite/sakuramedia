@@ -18,18 +18,21 @@ import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_c
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
+import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_popover.dart';
 
 class DuplicateMediaSection extends HookConsumerWidget {
   const DuplicateMediaSection({
@@ -234,20 +237,44 @@ class DuplicateMediaSection extends HookConsumerWidget {
       );
     }
 
+    final selectionHeader = mobile
+        ? AppMobileSelectionHeader(
+            selectionLabel: l10n.mediaListSelectedCopies(selected.length),
+            countKey: Key('$keyPrefix-duplicates-selected-count'),
+            selectAllTooltip: l10n.mediaListClearSelection,
+            selectAllKey: Key('$keyPrefix-duplicates-clear-selection'),
+            onToggleAll: deleting.value || selected.isEmpty
+                ? null
+                : () => selectedIds.value = {},
+            exitKey: Key('$keyPrefix-duplicates-exit-selection'),
+            onExitSelection: deleting.value ? null : exitSelection,
+          )
+        : AppGlassSelectionHeader(
+            selectionLabel: l10n.mediaListSelectedCopies(selected.length),
+            countKey: Key('$keyPrefix-duplicates-selected-count'),
+            selectAllLabel: l10n.mediaListClearSelection,
+            selectAllKey: Key('$keyPrefix-duplicates-clear-selection'),
+            onToggleAll: deleting.value || selected.isEmpty
+                ? null
+                : () => selectedIds.value = {},
+            exitKey: Key('$keyPrefix-duplicates-exit-selection'),
+            onExitSelection: deleting.value ? null : exitSelection,
+            actions: <AppGlassSelectionAction>[
+              AppGlassSelectionAction(
+                key: Key('$keyPrefix-duplicates-batch-delete'),
+                label: l10n.mediaListBatchDeleteSelected,
+                icon: Icons.delete_outline_rounded,
+                foregroundColor: context.appTextPalette.error,
+                onTap: selected.isEmpty || deleting.value
+                    ? null
+                    : () => unawaited(deleteSelected()),
+              ),
+            ],
+          );
+
     final content = AppFixedHeaderLayout(
       header: selectionMode.value
-          ? AppSelectionHeaderToolbar(
-              countLabel: l10n.mediaListSelectedCopies(selected.length),
-              countKey: Key('$keyPrefix-duplicates-selected-count'),
-              selectAllLabel: l10n.mediaListClearSelection,
-              selectAllKey: Key('$keyPrefix-duplicates-clear-selection'),
-              onToggleAll: deleting.value || selected.isEmpty
-                  ? null
-                  : () => selectedIds.value = {},
-              actions: mobile ? [] : [deleteButton],
-              exitKey: Key('$keyPrefix-duplicates-exit-selection'),
-              onExit: deleting.value ? null : exitSelection,
-            )
+          ? selectionHeader
           : _DuplicateMediaHeader(
               mobile: mobile,
               kind: kind,
@@ -261,6 +288,7 @@ class DuplicateMediaSection extends HookConsumerWidget {
                   ? null
                   : () => selectionMode.value = true,
             ),
+      headerBottomSpacing: context.appSpacing.lg,
       child: CustomScrollView(
         key: Key('$keyPrefix-duplicate-scroll-view'),
         controller: scrollController,
@@ -380,25 +408,25 @@ class _DuplicateMediaHeader extends HookConsumerWidget {
       onKindChanged(next);
     }
 
-    Widget filterOptions(BuildContext context) => HookBuilder(
+    Widget filterSection(BuildContext context) => HookBuilder(
       builder: (context) {
         useListenable(selectedKind);
-        return Wrap(
-          spacing: context.appSpacing.sm,
-          runSpacing: context.appSpacing.sm,
-          children: [
+        return AppFilterChoiceSection<MediaListItemKind>(
+          title: l10n.mediaListDuplicateKindTitle,
+          controlKey: Key('$keyPrefix-duplicates-kind-filter'),
+          items: <AppSegmentedItem<MediaListItemKind>>[
             for (final option in [
               MediaListItemKind.jav,
               MediaListItemKind.video,
             ])
-              AppTextButton(
-                key: Key('$keyPrefix-duplicate-kind-${option.name}'),
+              AppSegmentedItem(
+                value: option,
                 label: option.labelWith(l10n: l10n),
-                size: AppTextButtonSize.xSmall,
-                isSelected: selectedKind.value == option,
-                onPressed: () => applyKind(option),
+                key: Key('$keyPrefix-duplicate-kind-${option.name}'),
               ),
           ],
+          selected: selectedKind.value,
+          onChanged: applyKind,
         );
       },
     );
@@ -406,47 +434,83 @@ class _DuplicateMediaHeader extends HookConsumerWidget {
     Widget filterFooter() => HookBuilder(
       builder: (context) {
         useListenable(selectedKind);
-        return AppFilterPanelFooter(
+        return AppGlassFilterFooter(
           isDefault: selectedKind.value == MediaListItemKind.jav,
           onReset: () => applyKind(MediaListItemKind.jav),
         );
       },
     );
 
-    return AppListHeader(
-      filterButtonKey: Key('$keyPrefix-duplicates-filter'),
-      filterLabel: kind.labelWith(l10n: l10n),
-      filterPanelKey: Key('$keyPrefix-duplicates-filter-panel'),
-      filterPanelBuilder: mobile ? null : filterOptions,
-      filterPanelFooter: mobile ? null : filterFooter(),
-      onFilterTap: mobile
-          ? () => showAppBottomDrawer(
-              context: context,
-              drawerKey: Key('$keyPrefix-duplicates-filter-drawer'),
-              maxHeightFactor: 0.8,
-              builder: (context) => AppMobileFilterDrawerScaffold(
-                footer: filterFooter(),
-                child: filterOptions(context),
-              ),
-            )
-          : null,
-      informationSlots: [
-        AppListHeaderInfo(
-          key: Key('$keyPrefix-duplicate-total-text'),
-          label: l10n.mediaListTotalGroups(total),
+    if (!mobile) {
+      return AppGlassListHeader(
+        leading: AppGlassFilterPopover(
+          panelKey: Key('$keyPrefix-duplicates-filter-panel'),
+          footerBuilder: (context, close) => filterFooter(),
+          triggerKey: Key('$keyPrefix-duplicates-filter'),
+          label: selectedKind.value.labelWith(l10n: l10n),
+          info: <Widget>[
+            AppGlassHeaderText(
+              key: Key('$keyPrefix-duplicate-total-text'),
+              label: l10n.mediaListTotalGroups(total),
+            ),
+          ],
+          panelBuilder: filterSection,
         ),
-      ],
-      actionSlots: [
-        AppSelectionEntryButton(
+        trailing: AppGlassHeaderGroup(
+          children: <Widget>[
+            AppGlassHeaderButton(
+              key: Key('$keyPrefix-duplicates-select'),
+              icon: Icons.check_circle_outline,
+              label: l10n.baseSelect,
+              enabled: onSelect != null,
+              onTap: onSelect ?? () {},
+            ),
+            AppGlassHeaderButton(
+              key: Key('$keyPrefix-duplicate-refresh-button'),
+              icon: Icons.refresh_rounded,
+              label: isInitialLoading
+                  ? l10n.mediaListRefreshing
+                  : l10n.commonRefresh,
+              enabled: !isInitialLoading,
+              onTap: isInitialLoading ? () {} : () => unawaited(onRefresh()),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return AppMobileListHeader(
+      leading: AppMobileHeaderText(
+        key: Key('$keyPrefix-duplicate-total-text'),
+        countLabel: l10n.mediaListTotalGroups(total),
+      ),
+      actions: <Widget>[
+        AppGlassFilterIconButton(
+          key: Key('$keyPrefix-duplicates-filter'),
+          summary: selectedKind.value.labelWith(l10n: l10n),
+          isActive: selectedKind.value != MediaListItemKind.jav,
+          onPressed: () => showAppBottomDrawer(
+            context: context,
+            drawerKey: Key('$keyPrefix-duplicates-filter-drawer'),
+            maxHeightFactor: 0.8,
+            builder: (context) => AppMobileFilterDrawerScaffold(
+              footer: filterFooter(),
+              child: filterSection(context),
+            ),
+          ),
+        ),
+        AppGlassIconButton(
           key: Key('$keyPrefix-duplicates-select'),
+          tooltip: l10n.baseSelect,
+          icon: Icons.check_circle_outline,
           onPressed: onSelect,
         ),
-        AppIconButton(
+        AppGlassIconButton(
           key: Key('$keyPrefix-duplicate-refresh-button'),
           tooltip: isInitialLoading
               ? l10n.mediaListRefreshing
               : l10n.commonRefresh,
-          icon: const Icon(Icons.refresh_rounded),
+          icon: Icons.refresh_rounded,
           onPressed: isInitialLoading ? null : onRefresh,
         ),
       ],

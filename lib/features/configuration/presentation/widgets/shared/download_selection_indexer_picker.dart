@@ -1,8 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/forms/app_picker_option_tile.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_header.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 Future<List<String>?> showDownloadSelectionIndexerPicker(
@@ -17,8 +17,8 @@ Future<List<String>?> showDownloadSelectionIndexerPicker(
     context: context,
     modalKey: const Key('download-selection-indexer-picker'),
     desktopWidth: context.appLayoutTokens.dialogWidthMd,
-    desktopHeight: 560,
     mobileHeightFactor: 0.82,
+    showDesktopCloseButton: false,
     builder: (_) => _DownloadSelectionIndexerPicker(
       title: title,
       description: description,
@@ -91,89 +91,75 @@ class _DownloadSelectionIndexerPickerState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final spacing = context.appSpacing;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          widget.title,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s16,
-            weight: AppTextWeight.semibold,
-            tone: AppTextTone.primary,
-          ),
-        ),
-        SizedBox(height: spacing.xs),
-        Text(
-          widget.description,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            tone: AppTextTone.muted,
-          ),
-        ),
-        SizedBox(height: spacing.lg),
-        Expanded(
-          child: _options.isEmpty
-              ? Center(
-                  child: Text(
-                    l10n.downloadSelectionNoIndexers,
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s14,
-                      tone: AppTextTone.muted,
+    final isDrawer = AppAdaptiveModalShellScope.maybeIsDrawer(context);
+    final body = _options.isEmpty
+        ? AppPickerIosState(message: l10n.downloadSelectionNoIndexers)
+        : SingleChildScrollView(
+            child: AppPickerIosSection(
+              header: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.commonSelectedCount(_selected.length),
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s12,
+                        tone: AppTextTone.muted,
+                      ),
                     ),
                   ),
-                )
-              : ListView.separated(
-                  itemCount: _options.length,
-                  separatorBuilder: (_, _) => SizedBox(height: spacing.sm),
-                  itemBuilder: (context, index) {
-                    final name = _options[index];
-                    final selectedIndex = _selected.indexWhere(
-                      (item) => item.toLowerCase() == name.toLowerCase(),
-                    );
-                    final available = widget.availableNames.any(
-                      (item) => item.toLowerCase() == name.toLowerCase(),
-                    );
-                    return AppPickerOptionTile.text(
-                      optionKey: Key('download-selection-indexer-option-$name'),
-                      selected: selectedIndex >= 0,
-                      onTap: () => _toggle(name),
-                      title: available
-                          ? name
-                          : l10n.downloadSelectionIndexerUnavailable(name),
-                      trailingText: widget.ordered && selectedIndex >= 0
-                          ? '${selectedIndex + 1}'
-                          : null,
-                    );
-                  },
-                ),
+                  AppPickerIosActionButton(
+                    key: const Key('download-selection-indexer-picker-clear'),
+                    label: l10n.downloadSelectionClearSelection,
+                    onPressed: _selected.isEmpty
+                        ? null
+                        : () => setState(_selected.clear),
+                  ),
+                ],
+              ),
+              children: [
+                for (final name in _options)
+                  Builder(
+                    builder: (context) {
+                      final selectedIndex = _selected.indexWhere(
+                        (item) => item.toLowerCase() == name.toLowerCase(),
+                      );
+                      final available = widget.availableNames.any(
+                        (item) => item.toLowerCase() == name.toLowerCase(),
+                      );
+                      return AppPickerIosRow(
+                        optionKey: Key(
+                          'download-selection-indexer-option-$name',
+                        ),
+                        selected: selectedIndex >= 0,
+                        showCheckmark: true,
+                        onTap: () => _toggle(name),
+                        title: available
+                            ? name
+                            : l10n.downloadSelectionIndexerUnavailable(name),
+                        trailingText: widget.ordered && selectedIndex >= 0
+                            ? '${selectedIndex + 1}'
+                            : null,
+                      );
+                    },
+                  ),
+              ],
+            ),
+          );
+    return Column(
+      mainAxisSize: isDrawer ? MainAxisSize.max : MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AppPickerHeader(
+          title: widget.title,
+          description: widget.description,
+          onClose: () => Navigator.of(context).pop(),
+          closeKey: const Key('download-selection-indexer-picker-close'),
+          onDone: () => Navigator.of(context).pop(List<String>.from(_selected)),
+          doneKey: const Key('download-selection-indexer-picker-done'),
         ),
         SizedBox(height: spacing.lg),
-        Row(
-          children: [
-            Expanded(
-              child: AppButton(
-                key: const Key('download-selection-indexer-picker-clear'),
-                label: l10n.downloadSelectionClearSelection,
-                onPressed: _selected.isEmpty
-                    ? null
-                    : () => setState(_selected.clear),
-              ),
-            ),
-            SizedBox(width: spacing.sm),
-            Expanded(
-              child: AppButton(
-                key: const Key('download-selection-indexer-picker-done'),
-                label: l10n.commonDone,
-                variant: AppButtonVariant.primary,
-                onPressed: () =>
-                    Navigator.of(context).pop(List<String>.from(_selected)),
-              ),
-            ),
-          ],
-        ),
+        AppPickerListFrame(isDrawer: isDrawer, child: body),
       ],
     );
   }

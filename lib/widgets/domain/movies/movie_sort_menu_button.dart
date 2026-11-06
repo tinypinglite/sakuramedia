@@ -13,6 +13,8 @@ class MovieSortMenuButton extends StatelessWidget {
     required this.filterState,
     required this.onChanged,
     this.useDrawer = false,
+    this.glassGrouped = false,
+    this.iconOnly = false,
     this.triggerKey,
     this.panelKey,
     this.drawerKey,
@@ -21,6 +23,8 @@ class MovieSortMenuButton extends StatelessWidget {
   final MovieFilterState filterState;
   final ValueChanged<MovieFilterState> onChanged;
   final bool useDrawer;
+  final bool glassGrouped;
+  final bool iconOnly;
   final Key? triggerKey;
   final Key? panelKey;
   final Key? drawerKey;
@@ -39,6 +43,8 @@ class MovieSortMenuButton extends StatelessWidget {
       onDirectionChanged: (value) =>
           onChanged(filterState.copyWith(sortDirection: value)),
       useDrawer: useDrawer,
+      glassGrouped: glassGrouped,
+      iconOnly: iconOnly,
       triggerKey: triggerKey,
       panelKey: panelKey,
       drawerKey: drawerKey,

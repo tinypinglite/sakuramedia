@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_glass_surface.dart';
 
 class AppDesktopDialog extends StatelessWidget {
   const AppDesktopDialog({
@@ -22,6 +23,7 @@ class AppDesktopDialog extends StatelessWidget {
     this.closeButtonBackgroundColor,
     this.closeButtonIconColor,
     this.onClose,
+    this.glassStrength = kAppModalGlassStrength,
     required this.child,
   }) : assert(
          constraints == null || (width == null && height == null),
@@ -44,12 +46,14 @@ class AppDesktopDialog extends StatelessWidget {
   final Color? closeButtonBackgroundColor;
   final Color? closeButtonIconColor;
   final VoidCallback? onClose;
+  final AppModalGlassStrength glassStrength;
   final Widget child;
 
   @override
   Widget build(BuildContext context) {
     final l10n = appL10n(context);
     final spacing = context.appSpacing;
+    final useGlass = backgroundColor == null && shape == null;
     final closeInset = closeButtonInset ?? EdgeInsets.all(spacing.sm);
     final resolvedContentPadding = EdgeInsets.all(spacing.xl);
 
@@ -60,32 +64,44 @@ class AppDesktopDialog extends StatelessWidget {
       content = SizedBox(width: width, height: height, child: content);
     }
 
+    final dialogContent = Stack(
+      children: [
+        KeyedSubtree(key: contentKey, child: content),
+        if (showCloseButton)
+          Positioned(
+            top: closeInset.top,
+            right: closeInset.right,
+            child: AppIconButton(
+              key: closeButtonKey,
+              tooltip: closeButtonTooltip ?? l10n.baseClose,
+              onPressed: onClose ?? () => Navigator.of(context).pop(),
+              backgroundColor: closeButtonBackgroundColor,
+              iconColor: closeButtonIconColor,
+              icon: const Icon(Icons.close_rounded),
+            ),
+          ),
+      ],
+    );
     return Dialog(
       key: dialogKey,
       insetPadding: insetPadding,
-      backgroundColor: backgroundColor ?? context.appColors.surfaceCard,
+      backgroundColor: useGlass
+          ? Colors.transparent
+          : backgroundColor ?? context.appColors.surfaceCard,
+      surfaceTintColor: Colors.transparent,
+      shadowColor: useGlass ? Colors.transparent : null,
+      elevation: useGlass ? 0 : null,
       shape:
           shape ??
-          RoundedRectangleBorder(borderRadius: context.appRadius.lgBorder),
-      clipBehavior: clipBehavior,
-      child: Stack(
-        children: [
-          KeyedSubtree(key: contentKey, child: content),
-          if (showCloseButton)
-            Positioned(
-              top: closeInset.top,
-              right: closeInset.right,
-              child: AppIconButton(
-                key: closeButtonKey,
-                tooltip: closeButtonTooltip ?? l10n.baseClose,
-                onPressed: onClose ?? () => Navigator.of(context).pop(),
-                backgroundColor: closeButtonBackgroundColor,
-                iconColor: closeButtonIconColor,
-                icon: const Icon(Icons.close_rounded),
-              ),
-            ),
-        ],
-      ),
+          RoundedRectangleBorder(
+            borderRadius: useGlass
+                ? context.appRadius.xlBorder
+                : context.appRadius.lgBorder,
+          ),
+      clipBehavior: useGlass ? Clip.none : clipBehavior,
+      child: useGlass
+          ? AppModalGlassSurface(strength: glassStrength, child: dialogContent)
+          : dialogContent,
     );
   }
 }

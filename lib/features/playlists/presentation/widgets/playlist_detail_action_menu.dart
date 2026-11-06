@@ -22,7 +22,6 @@ Future<PlaylistDetailActionType?> showPlaylistDetailActionMenu({
     context: context,
     globalPosition: position,
     presentation: presentation,
-    useRootNavigator: !isDrawer,
     drawerKey: const Key('playlist-detail-actions-drawer'),
     title: isDrawer ? l10n.playlistActionsTooltip : null,
     items: <AppMenuItem<PlaylistDetailActionType>>[

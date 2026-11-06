@@ -32,6 +32,7 @@ class TagMovieSummaryContent extends ConsumerStatefulWidget {
     this.headerBuilder,
     this.headerLeading,
     this.useMobileSelectionLayout = false,
+    this.usePinnedMobileHeader = false,
   });
 
   final TagSelectionState selection;
@@ -48,6 +49,7 @@ class TagMovieSummaryContent extends ConsumerStatefulWidget {
   final MovieSummaryListHeaderBuilder? headerBuilder;
   final Widget? headerLeading;
   final bool useMobileSelectionLayout;
+  final bool usePinnedMobileHeader;
 
   @override
   ConsumerState<TagMovieSummaryContent> createState() =>
@@ -111,6 +113,7 @@ class _TagMovieSummaryContentState
       headerBuilder: widget.headerBuilder,
       headerLeading: widget.headerLeading,
       useMobileSelectionLayout: widget.useMobileSelectionLayout,
+      usePinnedMobileHeader: widget.usePinnedMobileHeader,
       onMovieTap: widget.onMovieTap,
       bodyBuilder: widget.bodyBuilder,
     );

@@ -6,7 +6,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 
 /// 弹出移动端播放列表影片筛选底部抽屉。
 ///
-/// 内容与桌面 `AppListHeader` 的就地浮层面板**完全一致**（同一个
+/// 内容与桌面玻璃筛选浮层面板**完全一致**（同一个
 /// [PlaylistFilterSectionGroup]），行为也一致：即时生效、重置在 footer 里。
 /// 两端只有外层容器不同。
 Future<void> showMobilePlaylistFilterDrawer(

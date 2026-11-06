@@ -6,6 +6,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 /// 决定 [showAppConfirmDialog] 用哪种壳显示。
@@ -79,8 +80,9 @@ Future<bool> showAppConfirmDialog(
     return confirmed ?? false;
   }
 
-  final confirmed = await showDialog<bool>(
+  final confirmed = await showAppDialog<bool>(
     context: context,
+    barrierColor: context.appColors.modalBarrier,
     builder: (dialogContext) {
       return AppDesktopDialog(
         dialogKey: dialogKey,

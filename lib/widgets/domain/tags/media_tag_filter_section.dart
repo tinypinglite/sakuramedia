@@ -6,6 +6,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_chip.dart';
 import 'package:sakuramedia/widgets/domain/tags/app_tag_match_mode_toggle.dart';
 
 /// 影片列表与女优详情作品区共用的「媒体文件标签」筛选分节。
@@ -57,8 +58,9 @@ class MediaTagFilterSection extends ConsumerWidget {
                 l10n.movieMediaTagFilterTitle,
                 style: resolveAppTextStyle(
                   context,
-                  size: AppTextSize.s14,
-                  tone: AppTextTone.primary,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.medium,
+                  tone: AppTextTone.secondary,
                 ),
               ),
             ),
@@ -110,11 +112,10 @@ class MediaTagFilterSection extends ConsumerWidget {
             runSpacing: spacing.sm,
             children: [
               for (final tag in tags)
-                AppTextButton(
+                AppFilterChip(
                   key: Key('movie-media-tag-filter-${tag.id}'),
                   label: tag.name,
-                  size: AppTextButtonSize.xSmall,
-                  isSelected: filter.mediaTagIds.contains(tag.id),
+                  selected: filter.mediaTagIds.contains(tag.id),
                   onPressed: () => _toggleTag(tag.id),
                 ),
             ],

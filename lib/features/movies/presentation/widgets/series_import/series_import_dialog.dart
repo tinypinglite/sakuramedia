@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/search/data/catalog_search_stream_stats.dar
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 Future<bool> showSeriesImportDialog(BuildContext context, int seriesId) async {
@@ -32,7 +33,7 @@ Future<bool> showSeriesImportDialog(BuildContext context, int seriesId) async {
     );
     return result ?? false;
   } else {
-    final result = await showDialog<bool>(
+    final result = await showAppDialog<bool>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => _SeriesImportDesktopDialog(seriesId: seriesId),

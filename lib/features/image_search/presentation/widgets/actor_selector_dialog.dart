@@ -2,9 +2,11 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_header.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
 
 /// 桌面端以图搜图「选择女优」弹窗。
 Future<void> showActorSelectorDialog(
@@ -13,7 +15,7 @@ Future<void> showActorSelectorDialog(
   required List<ActorListItemDto> initialSelectedActors,
   required ValueChanged<List<ActorListItemDto>> onSelectionChanged,
 }) {
-  return showDialog<void>(
+  return showAppDialog<void>(
     context: context,
     builder: (dialogContext) => AppDesktopDialog(
       dialogKey: const Key('image-search-actor-picker-dialog'),
@@ -73,123 +75,67 @@ class _ImageSearchActorSelectorBodyState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final spacing = context.appSpacing;
-    final actorList = Scrollbar(
-      controller: _scrollController,
-      thumbVisibility: !widget.isBottomDrawer,
-      child: ListView.builder(
-        key: const Key('image-search-actor-list'),
-        controller: _scrollController,
-        itemCount: widget.actors.length,
-        itemBuilder: (context, index) {
-          final actor = widget.actors[index];
-          final selected = _selectedActorIds.contains(actor.id);
-          return Material(
-            color: context.appColors.surfaceCard,
-            clipBehavior: Clip.hardEdge,
-            // 保留原生 InkWell：演员选项需要 hover/highlight 底色反馈，
-            // AppInteractiveSurface 明确不做 hover 底色（见其类注释）。
-            child: InkWell(
-              mouseCursor: SystemMouseCursors.click,
-              key: Key('image-search-actor-option-${actor.id}'),
-              hoverColor: context.appColors.surfaceMuted.withValues(
-                alpha: 0.45,
-              ),
-              highlightColor: context.appColors.surfaceMuted.withValues(
-                alpha: 0.6,
-              ),
-              splashFactory: NoSplash.splashFactory,
-              onTap: () => _toggleActor(actor),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: spacing.sm,
-                  vertical: spacing.xs,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        actor.displayName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s14,
-                        ),
+    final body = widget.actors.isEmpty
+        ? AppPickerIosState(message: l10n.imageSearchNoSubscribedActors)
+        : SingleChildScrollView(
+            key: const Key('image-search-actor-list'),
+            controller: _scrollController,
+            child: AppPickerIosSection(
+              dividerIndent: 68,
+              header: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      l10n.commonSelectedCount(_selectedActorIds.length),
+                      key: const Key('image-search-actor-selected-count'),
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s12,
+                        tone: AppTextTone.muted,
                       ),
                     ),
-                    SizedBox(width: spacing.sm),
-                    Checkbox(
-                      key: Key('image-search-actor-checkbox-${actor.id}'),
-                      value: selected,
-                      onChanged: (_) => _toggleActor(actor),
-                    ),
-                  ],
-                ),
+                  ),
+                  AppPickerIosActionButton(
+                    key: const Key('image-search-actor-clear-button'),
+                    label: l10n.imageSearchClearSelection,
+                    onPressed: _selectedActorIds.isEmpty
+                        ? null
+                        : _clearSelection,
+                  ),
+                ],
               ),
+              children: [
+                for (final actor in widget.actors)
+                  AppPickerIosRow(
+                    selected: _selectedActorIds.contains(actor.id),
+                    showCheckmark: true,
+                    onTap: () => _toggleActor(actor),
+                    title: actor.displayName,
+                    leading: ActorAvatar(
+                      imageUrl: actor.profileImage?.origin,
+                      size: context.appComponentTokens.iconSize2xl,
+                      placeholderKey: Key(
+                        'image-search-actor-avatar-placeholder-${actor.id}',
+                      ),
+                    ),
+                    optionKey: Key('image-search-actor-option-${actor.id}'),
+                  ),
+              ],
             ),
           );
-        },
-      ),
-    );
-    final body = widget.actors.isEmpty
-        ? Center(
-            child: Text(
-              l10n.imageSearchNoSubscribedActors,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                tone: AppTextTone.muted,
-              ),
-            ),
-          )
-        : actorList;
 
     return Column(
       mainAxisSize: widget.isBottomDrawer ? MainAxisSize.max : MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                l10n.imageSearchSelectSubscribedActors,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s16,
-                  weight: AppTextWeight.medium,
-                ),
-              ),
-            ),
-            AppIconButton(
-              key: const Key('image-search-actor-close-button'),
-              tooltip: l10n.imageSearchClose,
-              onPressed: widget.onClose,
-              icon: const Icon(Icons.close_rounded),
-            ),
-          ],
+        AppPickerHeader(
+          title: l10n.imageSearchSelectSubscribedActors,
+          onClose: widget.onClose,
+          closeKey: const Key('image-search-actor-close-button'),
+          doneKey: const Key('image-search-actor-done-button'),
         ),
-        SizedBox(height: spacing.sm),
-        if (widget.isBottomDrawer)
-          Expanded(child: body)
-        else
-          Flexible(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.5,
-              ),
-              child: SizedBox(
-                height: widget.actors.isEmpty ? 160 : null,
-                child: body,
-              ),
-            ),
-          ),
-        Divider(color: context.appColors.divider, height: spacing.lg),
-        AppTextButton(
-          key: const Key('image-search-actor-clear-button'),
-          label: l10n.imageSearchClearSelection,
-          icon: const Icon(Icons.clear_all_rounded),
-          onPressed: _selectedActorIds.isEmpty ? null : _clearSelection,
-        ),
+        SizedBox(height: spacing.lg),
+        AppPickerListFrame(isDrawer: widget.isBottomDrawer, child: body),
       ],
     );
   }

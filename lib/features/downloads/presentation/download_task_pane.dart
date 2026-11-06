@@ -21,26 +21,28 @@ import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/domain/downloads/download_task_delete_dialog.dart';
 import 'package:sakuramedia/widgets/domain/downloads/download_task_files_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
-import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
+import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_left_cover_card.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_popover.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 
 /// 构建「下载任务」页的头部。
@@ -69,6 +71,60 @@ Widget buildDownloadTaskHeader({
     }),
   );
   final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
+  if (!isMobile && !header.selectionMode) {
+    final l10n = AppLocalizations.of(context);
+    final notifier = ref.read(downloadTaskCenterProvider.notifier);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AppGlassListHeader(
+          leading: AppGlassFilterPopover(
+            panelKey: const Key('download-filter-panel'),
+            scrollable: true,
+            isDefault: header.filter.isDefault,
+            onReset: () => unawaited(
+              notifier.applyFilter(DownloadTaskFilterState.initial),
+            ),
+            resetKey: const Key('download-filter-reset'),
+            triggerKey: const Key('download-filter-button'),
+            label: _downloadFilterSummary(
+              header.filter,
+              header.clientOptions,
+              l10n,
+            ),
+            tooltip: l10n.downloadFilterTitle,
+            panelBuilder: (context) => _DesktopDownloadFilterPanel(
+              filter: header.filter,
+              clientOptions: header.clientOptions,
+            ),
+          ),
+          trailing: AppGlassHeaderGroup(
+            children: <Widget>[
+              AppGlassHeaderButton(
+                key: const Key('download-tasks-manual-add'),
+                icon: Icons.add_rounded,
+                label: l10n.downloadManualAddAction,
+                onTap: onManualAdd,
+              ),
+              AppGlassHeaderButton(
+                key: const Key('download-tasks-selection-entry'),
+                icon: Icons.check_circle_outline,
+                label: l10n.baseSelect,
+                enabled: header.loadedCount > 0,
+                onTap: header.loadedCount > 0
+                    ? () => notifier.enterSelectionMode()
+                    : () {},
+              ),
+            ],
+          ),
+          filterUpdate: header.filterUpdate,
+          hasPreviousFilterItems: header.hasItems,
+          onRetryFilter: () => unawaited(notifier.retryFilter()),
+        ),
+        SizedBox(height: context.appSpacing.lg),
+      ],
+    );
+  }
   // 首次加载也渲染初始筛选栏：骨架列表与数据回来后的最终布局保持一致，
   // 避免头部突然多出一行导致内容下跳。
   return Column(
@@ -84,37 +140,12 @@ Widget buildDownloadTaskHeader({
                 selectionCount: header.selectionCount,
                 loadedCount: header.loadedCount,
               )
-      else if (isMobile)
-        _DownloadFilterBar(
+      else
+        _MobileDownloadFilterEntry(
           filter: header.filter,
           clientOptions: header.clientOptions,
           hasItems: header.hasItems,
           onManualAdd: onManualAdd,
-        )
-      else
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _DownloadFilterBar(
-                filter: header.filter,
-                clientOptions: header.clientOptions,
-                hasItems: header.hasItems,
-                onManualAdd: onManualAdd,
-              ),
-            ),
-            SizedBox(width: context.appSpacing.md),
-            _buildManualAddAction(context, onManualAdd, isMobile: false),
-            SizedBox(width: context.appSpacing.sm),
-            AppSelectionEntryButton(
-              key: const Key('download-tasks-selection-entry'),
-              onPressed: header.loadedCount == 0
-                  ? null
-                  : () => ref
-                        .read(downloadTaskCenterProvider.notifier)
-                        .enterSelectionMode(),
-            ),
-          ],
         ),
       AppFilterUpdateBar(
         key: const Key('download-tasks-reloading-indicator'),
@@ -126,30 +157,6 @@ Widget buildDownloadTaskHeader({
       ),
       SizedBox(height: context.appSpacing.lg),
     ],
-  );
-}
-
-Widget _buildManualAddAction(
-  BuildContext context,
-  VoidCallback onManualAdd, {
-  required bool isMobile,
-}) {
-  final l10n = AppLocalizations.of(context);
-  if (isMobile) {
-    return AppIconButton(
-      key: const Key('download-tasks-manual-add'),
-      tooltip: l10n.downloadManualAddTitle,
-      icon: const Icon(Icons.add_rounded),
-      onPressed: onManualAdd,
-    );
-  }
-  return AppButton(
-    key: const Key('download-tasks-manual-add'),
-    label: l10n.downloadManualAddAction,
-    icon: const Icon(Icons.add_rounded),
-    size: AppButtonSize.small,
-    variant: AppButtonVariant.primary,
-    onPressed: onManualAdd,
   );
 }
 
@@ -193,9 +200,12 @@ class _DesktopSelectionHeader extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final notifier = ref.read(downloadTaskCenterProvider.notifier);
     final allSelected = loadedCount > 0 && selectionCount >= loadedCount;
-    return AppSelectionHeaderToolbar(
+    final submitting = watchBatchOperationSubmitting(ref, const [
+      BatchOperationType.downloadTaskDelete,
+    ]);
+    return AppGlassSelectionHeader(
       key: const Key('download-tasks-selection-header'),
-      countLabel: l10n.downloadSelectionCount(selectionCount),
+      selectionLabel: l10n.downloadSelectionCount(selectionCount),
       countKey: const Key('download-tasks-selection-count'),
       selectAllLabel: allSelected
           ? l10n.downloadSelectionClearAll
@@ -203,20 +213,23 @@ class _DesktopSelectionHeader extends ConsumerWidget {
       selectAllKey: const Key('download-tasks-select-all-button'),
       onToggleAll: loadedCount == 0 ? null : notifier.toggleSelectAllLoaded,
       exitKey: const Key('download-tasks-selection-exit'),
-      onExit: notifier.exitSelectionMode,
-      actions: <Widget>[
-        _buildBatchDeleteButton(
-          context,
-          ref,
-          selectionCount,
-          size: AppButtonSize.small,
+      onExitSelection: notifier.exitSelectionMode,
+      actions: <AppGlassSelectionAction>[
+        AppGlassSelectionAction(
+          key: const Key('download-tasks-batch-delete-button'),
+          label: l10n.downloadSelectionDelete(selectionCount),
+          icon: Icons.delete_outline_rounded,
+          foregroundColor: context.appTextPalette.error,
+          onTap: selectionCount > 0 && !submitting
+              ? () => unawaited(_deleteSelectedTasks(context, ref))
+              : null,
         ),
       ],
     );
   }
 }
 
-/// 移动端多选态顶栏：与订阅管理 / PornBox 的 `AppListHeader.selection` 同一套，
+/// 移动端多选态顶栏：与订阅管理 / PornBox 共用紧凑玻璃多选头，
 /// 危险动作下沉到贴底条 [_MobileSelectionBar]。
 class _MobileSelectionHeader extends ConsumerWidget {
   const _MobileSelectionHeader({
@@ -232,21 +245,16 @@ class _MobileSelectionHeader extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final notifier = ref.read(downloadTaskCenterProvider.notifier);
     final allSelected = loadedCount > 0 && selectionCount >= loadedCount;
-    return AppListHeader.selection(
+    return AppMobileSelectionHeader(
       key: const Key('download-tasks-selection-header'),
       selectionLabel: l10n.downloadSelectionCount(selectionCount),
-      selectionExitButtonKey: const Key('download-tasks-selection-exit'),
+      exitKey: const Key('download-tasks-selection-exit'),
       onExitSelection: notifier.exitSelectionMode,
-      actionSlots: <Widget>[
-        AppTextButton(
-          key: const Key('download-tasks-select-all-button'),
-          label: allSelected
-              ? l10n.downloadSelectionClearAll
-              : l10n.downloadSelectionSelectAll(loadedCount),
-          size: AppTextButtonSize.small,
-          onPressed: loadedCount == 0 ? null : notifier.toggleSelectAllLoaded,
-        ),
-      ],
+      selectAllKey: const Key('download-tasks-select-all-button'),
+      selectAllTooltip: allSelected
+          ? l10n.downloadSelectionClearAll
+          : l10n.downloadSelectionSelectAll(loadedCount),
+      onToggleAll: loadedCount == 0 ? null : notifier.toggleSelectAllLoaded,
     );
   }
 }
@@ -890,42 +898,12 @@ AppBadgeTone _toneForImportStatus(String state) {
   };
 }
 
-/// 下载任务筛选栏：番号搜索（回车提交）+ 状态下拉 + 客户端下拉（仅在客户端 ≥2 时显示）。
+/// 桌面下载任务筛选面板：番号搜索（回车提交）+ 状态/客户端玻璃分段。
 ///
 /// 遵循「筛选状态驱动」范式：所有变更走 `notifier.applyFilter(...)`。
-/// 搜索输入沿用项目其它筛选栏习惯——**不做打字 debounce**，仅回车/失焦提交。
-class _DownloadFilterBar extends StatelessWidget {
-  const _DownloadFilterBar({
-    required this.filter,
-    required this.clientOptions,
-    required this.hasItems,
-    required this.onManualAdd,
-  });
-
-  final DownloadTaskFilterState filter;
-  final List<DownloadClientOption> clientOptions;
-  final bool hasItems;
-  final VoidCallback onManualAdd;
-
-  @override
-  Widget build(BuildContext context) {
-    if (AppPlatformScope.maybeOf(context) == AppPlatform.mobile) {
-      return _MobileDownloadFilterEntry(
-        filter: filter,
-        clientOptions: clientOptions,
-        hasItems: hasItems,
-        onManualAdd: onManualAdd,
-      );
-    }
-    return _DesktopDownloadFilterBar(
-      filter: filter,
-      clientOptions: clientOptions,
-    );
-  }
-}
-
-class _DesktopDownloadFilterBar extends HookConsumerWidget {
-  const _DesktopDownloadFilterBar({
+/// 搜索输入沿用项目其它筛选栏习惯——**不做打字 debounce**，仅回车提交。
+class _DesktopDownloadFilterPanel extends HookConsumerWidget {
+  const _DesktopDownloadFilterPanel({
     required this.filter,
     required this.clientOptions,
   });
@@ -950,13 +928,15 @@ class _DesktopDownloadFilterBar extends HookConsumerWidget {
     }, [filter.search]);
 
     final l10n = AppLocalizations.of(context);
-    final layoutTokens = context.appLayoutTokens;
-    final filterTextStyle = resolveAppTextStyle(
-      context,
-      size: AppTextSize.s12,
-      weight: AppTextWeight.regular,
-      tone: AppTextTone.tertiary,
-    );
+    final spacing = context.appSpacing;
+    final clientNames = <int, String>{
+      for (final option in clientOptions) option.id: option.name,
+    };
+    final clientIds = <int?>{
+      null,
+      ...clientNames.keys,
+      if (filter.clientId != null) filter.clientId,
+    }.toList(growable: false);
 
     Future<void> submitSearch(String value) async {
       final next = filter.copyWith(search: value.trim());
@@ -964,70 +944,53 @@ class _DesktopDownloadFilterBar extends HookConsumerWidget {
       await ref.read(downloadTaskCenterProvider.notifier).applyFilter(next);
     }
 
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: context.appSpacing.md,
-      runSpacing: context.appSpacing.md,
+    void apply(DownloadTaskFilterState next) {
+      unawaited(
+        ref.read(downloadTaskCenterProvider.notifier).applyFilter(next),
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          width: layoutTokens.filterFieldWidthLg,
-          child: AppTextField(
-            fieldKey: const Key('download-filter-search'),
-            controller: searchController,
-            hintText: l10n.downloadSearchByMovieNumber,
-            textInputAction: TextInputAction.search,
-            onFieldSubmitted: submitSearch,
-            enabled: true,
-          ),
+        AppTextField(
+          fieldKey: const Key('download-filter-search'),
+          controller: searchController,
+          hintText: l10n.downloadSearchByMovieNumber,
+          textInputAction: TextInputAction.search,
+          onFieldSubmitted: submitSearch,
+          enabled: true,
         ),
-        SizedBox(
-          width: layoutTokens.filterFieldWidthMd,
-          child: AppSelectField<DownloadTaskStateFilter>(
-            key: const Key('download-filter-state'),
-            value: filter.stateFilter,
-            size: AppSelectFieldSize.compact,
-            textStyle: filterTextStyle,
-            items: DownloadTaskStateFilter.values
-                .map(
-                  (value) => DropdownMenuItem<DownloadTaskStateFilter>(
-                    value: value,
-                    child: Text(value.label(l10n)),
-                  ),
-                )
-                .toList(growable: false),
-            onChanged: (value) => ref
-                .read(downloadTaskCenterProvider.notifier)
-                .applyFilter(
-                  filter.copyWith(
-                    stateFilter: value ?? DownloadTaskStateFilter.downloading,
-                  ),
-                ),
-          ),
+        SizedBox(height: spacing.lg),
+        AppFilterChoiceSection<DownloadTaskStateFilter>(
+          title: l10n.downloadStateFilterLabel,
+          controlKey: const Key('download-filter-state'),
+          items: <AppSegmentedItem<DownloadTaskStateFilter>>[
+            for (final value in DownloadTaskStateFilter.values)
+              AppSegmentedItem(value: value, label: value.label(l10n)),
+          ],
+          selected: filter.stateFilter,
+          onChanged: (value) => apply(filter.copyWith(stateFilter: value)),
         ),
-        if (clientOptions.length >= 2)
-          SizedBox(
-            width: layoutTokens.filterFieldWidthMd,
-            child: AppSelectField<int?>(
-              key: const Key('download-filter-client'),
-              value: filter.clientId,
-              size: AppSelectFieldSize.compact,
-              textStyle: filterTextStyle,
-              items: <DropdownMenuItem<int?>>[
-                DropdownMenuItem<int?>(
-                  value: null,
-                  child: Text(l10n.downloadFilterAllClients),
+        if (clientOptions.length >= 2) ...[
+          SizedBox(height: spacing.lg),
+          AppFilterChoiceSection<int?>(
+            title: l10n.downloadClientFilterLabel,
+            controlKey: const Key('download-filter-client'),
+            items: <AppSegmentedItem<int?>>[
+              for (final id in clientIds)
+                AppSegmentedItem(
+                  value: id,
+                  label: id == null
+                      ? l10n.downloadFilterAllClients
+                      : clientNames[id] ?? l10n.downloadFilterClientSpecified,
                 ),
-                for (final option in clientOptions)
-                  DropdownMenuItem<int?>(
-                    value: option.id,
-                    child: Text(option.name, overflow: TextOverflow.ellipsis),
-                  ),
-              ],
-              onChanged: (value) => ref
-                  .read(downloadTaskCenterProvider.notifier)
-                  .applyFilter(filter.copyWith(clientId: value)),
-            ),
+            ],
+            selected: filter.clientId,
+            onChanged: (value) => apply(filter.copyWith(clientId: value)),
           ),
+        ],
       ],
     );
   }
@@ -1050,41 +1013,30 @@ class _MobileDownloadFilterEntry extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final isSelected = !filter.isDefault;
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            _downloadFilterSummary(filter, clientOptions, l10n),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.muted,
-            ),
-          ),
+    final summary = _downloadFilterSummary(filter, clientOptions, l10n);
+    return AppMobileListHeader(
+      leading: AppMobileHeaderText(countLabel: summary),
+      actions: <Widget>[
+        AppGlassIconButton(
+          key: const Key('download-tasks-manual-add'),
+          tooltip: l10n.downloadManualAddTitle,
+          icon: Icons.add_rounded,
+          onPressed: onManualAdd,
         ),
-        SizedBox(width: context.appSpacing.md),
-        _buildManualAddAction(context, onManualAdd, isMobile: true),
-        SizedBox(width: context.appSpacing.xs),
-        AppSelectionEntryButton(
+        AppGlassIconButton(
           key: const Key('download-tasks-selection-entry'),
+          tooltip: l10n.baseSelect,
+          icon: Icons.check_circle_outline,
           onPressed: hasItems
               ? () => ref
                     .read(downloadTaskCenterProvider.notifier)
                     .enterSelectionMode()
               : null,
         ),
-        SizedBox(width: context.appSpacing.sm),
-        AppButton(
+        AppGlassFilterIconButton(
           key: const Key('mobile-download-filter-button'),
-          label: isSelected
-              ? l10n.downloadFilterApplied
-              : l10n.downloadFilterAction,
-          icon: const Icon(Icons.tune_rounded),
-          size: AppButtonSize.small,
-          isSelected: isSelected,
+          summary: summary,
+          isActive: isSelected,
           onPressed: () => _showMobileDownloadFilterDrawer(
             context,
             current: filter,
@@ -1161,7 +1113,7 @@ class _MobileDownloadFilterDrawerContentState
     final l10n = AppLocalizations.of(context);
     return AppMobileFilterDrawerScaffold(
       scrollViewKey: const Key('mobile-download-filter-scroll-view'),
-      footer: AppFilterPanelFooter(
+      footer: AppGlassFilterFooter(
         isDefault: _local.isDefault,
         onReset: () {
           _searchController.clear();
@@ -1191,41 +1143,34 @@ class _MobileDownloadFilterDrawerContentState
                 _apply(_local.copyWith(search: value.trim())),
           ),
           SizedBox(height: context.appSpacing.md),
-          AppSelectField<DownloadTaskStateFilter>(
-            key: const Key('mobile-download-filter-state'),
-            label: l10n.downloadStateFilterLabel,
-            value: _local.stateFilter,
+          AppFilterChoiceSection<DownloadTaskStateFilter>(
+            title: l10n.downloadStateFilterLabel,
+            controlKey: const Key('mobile-download-filter-state'),
             items: DownloadTaskStateFilter.values
                 .map(
-                  (value) => DropdownMenuItem<DownloadTaskStateFilter>(
+                  (value) => AppSegmentedItem<DownloadTaskStateFilter>(
                     value: value,
-                    child: Text(value.label(l10n)),
+                    label: value.label(l10n),
                   ),
                 )
                 .toList(growable: false),
-            onChanged: (value) => _apply(
-              _local.copyWith(
-                stateFilter: value ?? DownloadTaskStateFilter.downloading,
-              ),
-            ),
+            selected: _local.stateFilter,
+            onChanged: (value) => _apply(_local.copyWith(stateFilter: value)),
           ),
           if (widget.clientOptions.length >= 2) ...[
-            SizedBox(height: context.appSpacing.md),
-            AppSelectField<int?>(
-              key: const Key('mobile-download-filter-client'),
-              label: l10n.downloadClientFilterLabel,
-              value: _local.clientId,
-              items: <DropdownMenuItem<int?>>[
-                DropdownMenuItem<int?>(
+            SizedBox(height: context.appSpacing.lg),
+            AppFilterChoiceSection<int?>(
+              title: l10n.downloadClientFilterLabel,
+              controlKey: const Key('mobile-download-filter-client'),
+              items: <AppSegmentedItem<int?>>[
+                AppSegmentedItem<int?>(
                   value: null,
-                  child: Text(l10n.downloadFilterAllClients),
+                  label: l10n.downloadFilterAllClients,
                 ),
                 for (final option in widget.clientOptions)
-                  DropdownMenuItem<int?>(
-                    value: option.id,
-                    child: Text(option.name),
-                  ),
+                  AppSegmentedItem<int?>(value: option.id, label: option.name),
               ],
+              selected: _local.clientId,
               onChanged: (value) => _apply(_local.copyWith(clientId: value)),
             ),
           ],

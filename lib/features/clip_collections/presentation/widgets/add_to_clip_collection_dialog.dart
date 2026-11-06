@@ -9,12 +9,11 @@ import 'package:sakuramedia/features/clip_collections/data/dto/clip_collection_d
 import 'package:sakuramedia/features/clip_collections/presentation/widgets/create_clip_collection_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
-import 'package:sakuramedia/widgets/base/forms/app_picker_option_tile.dart';
-import 'package:sakuramedia/widgets/base/forms/app_search_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_header.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
 
 /// 「加入合集」选择器的呈现形态：桌面弹窗 / 移动端底部抽屉。
 enum AddToClipCollectionPresentation { dialog, bottomDrawer }
@@ -30,7 +29,7 @@ Future<void> showAddToClipCollectionDialog(
 }) {
   switch (presentation) {
     case AddToClipCollectionPresentation.dialog:
-      return showDialog<void>(
+      return showAppDialog<void>(
         context: context,
         builder: (dialogContext) => AddToClipCollectionDialog(clipId: clipId),
       );
@@ -96,7 +95,13 @@ class _AddToClipCollectionDialogState
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool showLoading = false}) async {
+    if (showLoading && mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
     final clipsApi = ref.read(clipsApiProvider);
     try {
       // 与合集列表页 / 批量选择器共享 overview 缓存，避免每次打开重复全量拉取。
@@ -134,140 +139,122 @@ class _AddToClipCollectionDialogState
 
   @override
   Widget build(BuildContext context) {
-    final maxListHeight = _isBottomDrawer
-        ? MediaQuery.sizeOf(context).height * 0.5
-        : 320.0;
-    final content = _buildContent(context, maxListHeight: maxListHeight);
+    final content = _buildContent(context);
     if (_isBottomDrawer) {
       return content;
     }
     return AppDesktopDialog(
       dialogKey: const Key('add-to-clip-collection-dialog'),
       width: context.appComponentTokens.playlistDialogWidth,
+      showCloseButton: false,
       child: content,
     );
   }
 
-  Widget _buildContent(BuildContext context, {required double maxListHeight}) {
+  Widget _buildContent(BuildContext context) {
     final spacing = context.appSpacing;
     final isAnyUpdating = _updatingIds.isNotEmpty;
     final l10n = AppLocalizations.of(context);
 
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        AbsorbPointer(
-          absorbing: isAnyUpdating,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      l10n.clipCollectionAddToCollection,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s16,
-                        weight: AppTextWeight.medium,
-                        tone: AppTextTone.secondary,
-                      ),
-                    ),
-                  ),
-                  AppIconButton(
-                    key: const Key('add-to-clip-collection-create-button'),
-                    tooltip: l10n.clipCollectionCreate,
-                    onPressed: _createCollection,
-                    icon: const Icon(Icons.add_rounded),
-                  ),
-                ],
-              ),
-              SizedBox(height: spacing.sm),
-              AppSearchField(
-                fieldKey: const Key('add-to-clip-collection-search-field'),
-                controller: _searchController,
-                hintText: l10n.clipCollectionSearchHint,
-                onChanged: (value) =>
-                    setState(() => _keyword = value.trim().toLowerCase()),
-                clearKey: const Key('add-to-clip-collection-search-clear'),
-              ),
-              SizedBox(height: spacing.lg),
-              _buildList(context, maxListHeight: maxListHeight),
-            ],
+    return AbsorbPointer(
+      absorbing: isAnyUpdating,
+      child: Column(
+        mainAxisSize: _isBottomDrawer ? MainAxisSize.max : MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppPickerHeader(
+            title: l10n.clipCollectionAddToCollection,
+            searchController: _searchController,
+            searchFieldKey: const Key('add-to-clip-collection-search-field'),
+            searchHintText: l10n.clipCollectionSearchHint,
+            onSearchChanged: (value) =>
+                setState(() => _keyword = value.trim().toLowerCase()),
+            clearSearchKey: const Key('add-to-clip-collection-search-clear'),
+            onClose: () => Navigator.of(context).pop(),
+            closeKey: const Key('add-to-clip-collection-close-button'),
+            doneKey: const Key('add-to-clip-collection-done-button'),
           ),
-        ),
-        if (isAnyUpdating)
-          const SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator.adaptive(strokeWidth: 2),
+          SizedBox(height: spacing.lg),
+          AppPickerListFrame(
+            isDrawer: _isBottomDrawer,
+            child: _buildList(context),
           ),
-      ],
+        ],
+      ),
     );
   }
 
-  Widget _buildList(BuildContext context, {required double maxListHeight}) {
+  Widget _buildList(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_isLoading) {
-      return const SizedBox(
+      return const AppPickerIosState(
         key: Key('add-to-clip-collection-loading'),
-        height: 160,
-        child: Center(child: CircularProgressIndicator.adaptive()),
+        loading: true,
       );
     }
     if (_errorMessage != null) {
-      return SizedBox(
-        height: 160,
-        child: AppEmptyState(message: _errorMessage!),
+      return AppPickerIosStateWithAction(
+        state: AppPickerIosState(
+          message: _errorMessage!,
+          onRetry: () => _load(showLoading: true),
+          retryKey: const Key('add-to-clip-collection-retry'),
+        ),
+        action: _buildCreateRow(l10n),
       );
     }
     if (_collections.isEmpty) {
-      return SizedBox(
-        height: 160,
-        child: Center(
-          child: Text(
-            AppLocalizations.of(context).clipCollectionEmptyCreateHint,
-          ),
-        ),
+      return AppPickerIosStateWithAction(
+        state: AppPickerIosState(message: l10n.clipCollectionEmptyCreateHint),
+        action: _buildCreateRow(l10n),
       );
     }
     final visibleCollections = _visibleCollections;
     if (visibleCollections.isEmpty) {
-      return SizedBox(
-        height: 160,
-        child: Center(
-          child: Text(AppLocalizations.of(context).clipCollectionNoMatch),
-        ),
+      return AppPickerIosStateWithAction(
+        state: AppPickerIosState(message: l10n.clipCollectionNoMatch),
+        action: _buildCreateRow(l10n),
       );
     }
 
-    final spacing = context.appSpacing;
     final isAnyUpdating = _updatingIds.isNotEmpty;
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: maxListHeight),
-      child: ListView.separated(
-        key: const Key('add-to-clip-collection-list'),
-        shrinkWrap: true,
-        itemCount: visibleCollections.length,
-        separatorBuilder: (context, index) => SizedBox(height: spacing.sm),
-        itemBuilder: (context, index) {
-          final collection = visibleCollections[index];
-          final selected = _selectedIds.contains(collection.id);
-          return AppPickerOptionTile.text(
-            selected: selected,
-            enabled: !isAnyUpdating,
-            onTap: () => _toggle(collection),
-            title: collection.name,
-            trailingText: collection.clipCount > 0
-                ? '${collection.clipCount}'
-                : null,
-            optionKey: Key('add-to-clip-collection-option-${collection.id}'),
-            checkboxKey: Key(
-              'add-to-clip-collection-checkbox-${collection.id}',
+    return SingleChildScrollView(
+      key: const Key('add-to-clip-collection-list'),
+      child: AppPickerIosSection(
+        header: Text(
+          l10n.commonSelectedCount(_selectedIds.length),
+          key: const Key('add-to-clip-collection-selected-count'),
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            tone: AppTextTone.muted,
+          ),
+        ),
+        children: [
+          _buildCreateRow(l10n),
+          for (final collection in visibleCollections)
+            AppPickerIosRow(
+              selected: _selectedIds.contains(collection.id),
+              showCheckmark: true,
+              enabled: !isAnyUpdating,
+              busy: _updatingIds.contains(collection.id),
+              busyKey: Key('add-to-clip-collection-updating-${collection.id}'),
+              onTap: () => _toggle(collection),
+              title: collection.name,
+              trailingText: collection.clipCount > 0
+                  ? '${collection.clipCount}'
+                  : null,
+              optionKey: Key('add-to-clip-collection-option-${collection.id}'),
             ),
-          );
-        },
+        ],
       ),
+    );
+  }
+
+  Widget _buildCreateRow(AppLocalizations l10n) {
+    return AppPickerIosActionRow(
+      label: l10n.clipCollectionCreate,
+      onTap: _createCollection,
+      optionKey: const Key('add-to-clip-collection-create-button'),
     );
   }
 

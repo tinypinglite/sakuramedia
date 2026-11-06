@@ -30,6 +30,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
@@ -40,7 +41,7 @@ import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_stat
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_actions_panel.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_cover_card.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
@@ -152,27 +153,34 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
                 controller: _scrollController,
                 onRefresh: _refresh,
                 slivers: <Widget>[
-                  SliverToBoxAdapter(
-                    child: _buildCollectionsSection(context, collectionsAsync),
-                  ),
-                  AppPinnedListHeader(
-                    key: _listHeaderKey,
-                    color: context.appColors.surfaceCard,
-                    child: _buildClipsHeader(context, clips),
-                  ),
-                  _buildClipsSliver(context, clipsView),
-                  // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
-                  // 隐藏时保留 lg 底部边距（原语义）。
-                  PagedLoadMoreFooterSliver(
-                    hiddenSpacing: PagedFooterSpacing.lg,
-                    watchFooter: (ref) => ref.watch(
-                      clipsOverviewProvider.select(
-                        (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
+                  AppPinnedSliverSection(
+                    headerKey: _listHeaderKey,
+                    before: <Widget>[
+                      SliverToBoxAdapter(
+                        child: _buildCollectionsSection(
+                          context,
+                          collectionsAsync,
+                        ),
                       ),
-                    ),
-                    onLoadMore: (ref) => unawaited(
-                      ref.read(clipsOverviewProvider.notifier).loadMore(),
-                    ),
+                    ],
+                    header: _buildClipsHeader(context, clips),
+                    headerBottomSpacing: context.appSpacing.md,
+                    after: <Widget>[
+                      _buildClipsSliver(context, clipsView),
+                      // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
+                      // 隐藏时保留 lg 底部边距（原语义）。
+                      PagedLoadMoreFooterSliver(
+                        hiddenSpacing: PagedFooterSpacing.lg,
+                        watchFooter: (ref) => ref.watch(
+                          clipsOverviewProvider.select(
+                            (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
+                          ),
+                        ),
+                        onLoadMore: (ref) => unawaited(
+                          ref.read(clipsOverviewProvider.notifier).loadMore(),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -310,55 +318,39 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
         if (selectionMode)
           _buildSelectionHeader(context, clips)
         else
-          AppListHeader(
+          AppMobileListHeader(
+            leading: AppMobileHeaderText(
+              title: l10n.clipCollectionAllClipsTitle,
+              countLabel: l10n.clipListTotalCount(clips.length),
+            ),
+            actions: <Widget>[
+              AppGlassIconButton(
+                key: const Key('mobile-clips-sort-trigger'),
+                tooltip: currentSort == 'created_at:desc'
+                    ? l10n.clipSortLatest
+                    : l10n.clipSortEarliest,
+                icon: Icons.swap_vert_rounded,
+                onPressed: () => _applySort(
+                  currentSort == 'created_at:desc'
+                      ? 'created_at:asc'
+                      : 'created_at:desc',
+                ),
+              ),
+              if (hasClips)
+                AppGlassIconButton(
+                  key: const Key('mobile-clips-enter-selection-button'),
+                  tooltip: l10n.clipEnterSelection,
+                  icon: Icons.check_circle_outline,
+                  onPressed: enterSelection,
+                ),
+            ],
             filterUpdate: summary.filterUpdate,
             hasPreviousFilterItems: hasClips,
             onRetryFilter: () => unawaited(
               ref.read(clipsOverviewProvider.notifier).retryFilter(),
             ),
-            actionSlots: [
-              _buildSortAction(
-                context,
-                actionKey: const Key('mobile-clips-sort-latest'),
-                label: l10n.clipSortLatest,
-                sort: 'created_at:desc',
-                currentSort: currentSort,
-              ),
-              _buildSortAction(
-                context,
-                actionKey: const Key('mobile-clips-sort-earliest'),
-                label: l10n.clipSortEarliest,
-                sort: 'created_at:asc',
-                currentSort: currentSort,
-              ),
-              if (hasClips)
-                AppTextButton(
-                  key: const Key('mobile-clips-enter-selection-button'),
-                  label: l10n.clipEnterSelection,
-                  size: AppTextButtonSize.xSmall,
-                  icon: const Icon(Icons.check_circle_outline, size: 14),
-                  onPressed: enterSelection,
-                ),
-            ],
           ),
       ],
-    );
-  }
-
-  Widget _buildSortAction(
-    BuildContext context, {
-    required Key actionKey,
-    required String label,
-    required String sort,
-    required String currentSort,
-  }) {
-    return AppTextButton(
-      key: actionKey,
-      label: label,
-      size: AppTextButtonSize.xSmall,
-      isSelected: currentSort == sort,
-      selectedStyle: AppTextButtonSelectedStyle.plain,
-      onPressed: () => _applySort(sort),
     );
   }
 
@@ -434,26 +426,18 @@ class _MobileOverviewClipsTabState extends ConsumerState<MobileOverviewClipsTab>
 
   // ----------------------------------------------------------- 选择栏
 
-  /// 选择模式下的顶栏：退出 / 计数 / 全选。批量动作下沉到贴底的
-  /// [AppSelectionBottomBar]；与 [AppListHeader] 等高，原地替换不跳版。
+  /// 选择模式下的顶栏：退出 / 计数 / 全选。批量动作下沉到底部操作条。
   Widget _buildSelectionHeader(BuildContext context, List<MediaClipDto> clips) {
     final l10n = AppLocalizations.of(context);
     final clipIds = clips.map((c) => c.clipId);
     final allSelected = isAllSelected(clipIds);
-    return AppListHeader.selection(
+    return AppMobileSelectionHeader(
       selectionLabel: l10n.clipSelectionCount(selectedCount),
-      selectionExitButtonKey: const Key('mobile-clips-exit-selection-button'),
+      exitKey: const Key('mobile-clips-exit-selection-button'),
       onExitSelection: exitSelection,
-      actionSlots: [
-        AppButton(
-          key: const Key('mobile-clips-select-all-button'),
-          label: allSelected ? l10n.clipDeselectAll : l10n.clipSelectAll,
-          variant: AppButtonVariant.ghost,
-          size: AppButtonSize.xSmall,
-          isSelected: allSelected,
-          onPressed: () => toggleSelectAll(clipIds),
-        ),
-      ],
+      selectAllKey: const Key('mobile-clips-select-all-button'),
+      selectAllTooltip: allSelected ? l10n.clipDeselectAll : l10n.clipSelectAll,
+      onToggleAll: () => toggleSelectAll(clipIds),
     );
   }
 

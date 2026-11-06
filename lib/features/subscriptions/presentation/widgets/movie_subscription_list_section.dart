@@ -35,24 +35,24 @@ import 'package:sakuramedia/features/shared/presentation/widgets/paged_async_sec
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_popover.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_magnet_search_launcher.dart';
 
 /// 订阅管理页的列表主体：顶栏（筛选 / 计数 / 操作）+ 行卡片列表。
 ///
 /// 双端分流只发生在容器层：筛选桌面走就地浮层、移动走底部抽屉；多选态桌面用
-/// [AppSelectionHeaderToolbar] 原地改写整行，移动用 `AppListHeader.selection`
+/// 玻璃多选头原地改写整行，移动用 `AppMobileSelectionHeader`
 /// （顶）+ [AppSelectionBottomBar]（底）。列表体、行卡片、空态完全共用。
 ///
 /// 状态分段签不在这里——它归页面，固定在滚动区之上。
@@ -112,6 +112,7 @@ class MovieSubscriptionListSection extends HookConsumerWidget {
         batchDeleting: batchDeleting.value,
         batchImporting: batchImporting.value,
       ),
+      headerBottomSpacing: context.appSpacing.lg,
       child: AppFilterResultLoadingOverlay(
         surfaceColor: mobile
             ? context.appColors.surfaceCard
@@ -126,7 +127,6 @@ class MovieSubscriptionListSection extends HookConsumerWidget {
             key: PageStorageKey(managerProvider),
             controller: effectiveScrollController,
             slivers: [
-              SliverToBoxAdapter(child: SizedBox(height: spacing.lg)),
               SliverToBoxAdapter(
                 child: _queryExplanationTip(AppLocalizations.of(context)),
               ),
@@ -218,73 +218,118 @@ class _ListHeader extends ConsumerWidget {
       unawaited(ref.read(managerProvider.notifier).applyFilterState(next));
     }
 
-    Widget buildPanel(BuildContext panelContext) {
-      return MovieSubscriptionFilterSectionGroup(
-        filterState: filter,
-        onChanged: applyFilter,
+    if (!mobile) {
+      return AppGlassListHeader(
+        leading: AppGlassFilterPopover(
+          panelKey: const Key('movie-subscriptions-filter-panel'),
+          scrollable: true,
+          isDefault: filter.isPanelDefault,
+          onReset: () => applyFilter(filter.resetPanel()),
+          resetKey: const Key('movie-subscriptions-filter-reset'),
+          triggerKey: const Key('movie-subscriptions-filter-button'),
+          label: filter.triggerLabel(l10n),
+          tooltip: l10n.baseFilterTooltip,
+          info: <Widget>[
+            AppGlassHeaderText(
+              key: const Key('movie-subscriptions-total-info'),
+              label: l10n.subscriptionListTotalCount(total),
+            ),
+          ],
+          panelBuilder: (context) => MovieSubscriptionFilterSectionGroup(
+            filterState: filter,
+            onChanged: applyFilter,
+          ),
+        ),
+        trailing: AppGlassHeaderGroup(
+          children: <Widget>[
+            MovieSubscriptionSortMenuButton(
+              triggerKey: const Key('movie-subscriptions-sort-trigger'),
+              panelKey: const Key('movie-subscriptions-sort-panel'),
+              keyPrefix: 'movie-subscriptions',
+              filterState: filter,
+              onChanged: applyFilter,
+              glassGrouped: true,
+            ),
+            AppGlassHeaderButton(
+              key: const Key('movie-subscriptions-enter-selection-button'),
+              icon: Icons.check_circle_outline,
+              label: l10n.baseSelect,
+              enabled: hasItems,
+              onTap: hasItems
+                  ? () =>
+                        ref.read(managerProvider.notifier).enterSelectionMode()
+                  : () {},
+            ),
+            AppGlassHeaderButton(
+              key: const Key('movie-subscriptions-refresh-button'),
+              icon: Icons.refresh_rounded,
+              label: isInitialLoading
+                  ? l10n.subscriptionListRefreshing
+                  : l10n.commonRefresh,
+              enabled: !isInitialLoading,
+              onTap: isInitialLoading ? () {} : () => _refresh(ref),
+            ),
+          ],
+        ),
+        filterUpdate:
+            current?.paged.filterUpdate ?? const FilterUpdateState.idle(),
+        hasPreviousFilterItems: hasItems,
+        onRetryFilter: () =>
+            unawaited(ref.read(managerProvider.notifier).retryFilter()),
       );
     }
 
-    final panelFooter = AppFilterPanelFooter(
-      isDefault: filter.isPanelDefault,
-      onReset: () => applyFilter(filter.resetPanel()),
-    );
-
-    return AppListHeader(
+    return AppMobileListHeader(
       key: const Key('movie-subscriptions-list-header'),
-      onFilterTap: mobile
-          ? () => _openMobileFilterDrawer(context, ref, filter)
-          : null,
-      filterButtonKey: const Key('movie-subscriptions-filter-button'),
-      filterLabel: filter.triggerLabel(l10n),
-      filterPanelKey: mobile
-          ? null
-          : const Key('movie-subscriptions-filter-panel'),
-      filterPanelBuilder: mobile ? null : buildPanel,
-      filterPanelFooter: mobile ? null : panelFooter,
-      filterUpdate:
-          current?.paged.filterUpdate ?? const FilterUpdateState.idle(),
-      hasPreviousFilterItems: hasItems,
-      onRetryFilter: () =>
-          unawaited(ref.read(managerProvider.notifier).retryFilter()),
-      informationSlots: <Widget>[
-        AppListHeaderInfo(
-          key: const Key('movie-subscriptions-total-info'),
-          label: l10n.subscriptionListTotalCount(total),
+      leading: AppMobileHeaderText(
+        key: const Key('movie-subscriptions-total-info'),
+        countLabel: l10n.subscriptionListTotalCount(total),
+      ),
+      actions: <Widget>[
+        AppGlassFilterIconButton(
+          key: const Key('movie-subscriptions-filter-button'),
+          summary: filter.triggerLabel(l10n),
+          isActive: !filter.isPanelDefault,
+          onPressed: () => _openMobileFilterDrawer(context, ref, filter),
         ),
-      ],
-      actionSlots: <Widget>[
         MovieSubscriptionSortMenuButton(
           triggerKey: const Key('movie-subscriptions-sort-trigger'),
           panelKey: const Key('movie-subscriptions-sort-panel'),
           drawerKey: const Key('mobile-movie-subscriptions-sort-drawer'),
-          keyPrefix: mobile
-              ? 'mobile-movie-subscriptions'
-              : 'movie-subscriptions',
+          keyPrefix: 'mobile-movie-subscriptions',
           filterState: filter,
           onChanged: applyFilter,
-          useDrawer: mobile,
+          useDrawer: true,
+          iconOnly: true,
         ),
-        AppSelectionEntryButton(
+        AppGlassIconButton(
+          key: const Key('movie-subscriptions-enter-selection-button'),
+          tooltip: l10n.baseSelect,
+          icon: Icons.check_circle_outline,
           onPressed: hasItems
               ? () => ref.read(managerProvider.notifier).enterSelectionMode()
               : null,
         ),
-        AppIconButton(
+        AppGlassIconButton(
           key: const Key('movie-subscriptions-refresh-button'),
-          icon: const Icon(Icons.refresh_rounded),
+          icon: Icons.refresh_rounded,
           tooltip: isInitialLoading
               ? l10n.subscriptionListRefreshing
               : l10n.commonRefresh,
           onPressed: isInitialLoading ? null : () => _refresh(ref),
         ),
       ],
+      filterUpdate:
+          current?.paged.filterUpdate ?? const FilterUpdateState.idle(),
+      hasPreviousFilterItems: hasItems,
+      onRetryFilter: () =>
+          unawaited(ref.read(managerProvider.notifier).retryFilter()),
     );
   }
 }
 
 /// 移动端筛选底部抽屉：与桌面浮层共用 [MovieSubscriptionFilterSectionGroup] 和
-/// [AppFilterPanelFooter]，只有外壳不同。本地态 + 即时外发，与其它移动抽屉一致。
+/// [AppGlassFilterFooter]，只有外壳不同。本地态 + 即时外发，与其它移动抽屉一致。
 Future<void> _openMobileFilterDrawer(
   BuildContext context,
   WidgetRef ref,
@@ -296,60 +341,20 @@ Future<void> _openMobileFilterDrawer(
     drawerKey: const Key('movie-subscriptions-filter-drawer'),
     // 内容自适应高度（最多 60% 屏高），避免「搜索」的短面板拖一大片空白。
     maxHeightFactor: 0.6,
-    builder: (_) => _MobileFilterDrawerContent(
-      initial: filter,
+    builder: (_) => AppMobileFilterDrawer<MovieSubscriptionFilterState>(
+      current: filter,
+      initial: filter.resetPanel(),
+      isDefault: (value) => value.isPanelDefault,
       onChanged: (next) =>
           unawaited(ref.read(managerProvider.notifier).applyFilterState(next)),
       scrollViewKey: const Key('movie-subscriptions-filter-scroll-view'),
+      contentBuilder: (context, local, onApply) =>
+          MovieSubscriptionFilterSectionGroup(
+            filterState: local,
+            onChanged: onApply,
+          ),
     ),
   );
-}
-
-class _MobileFilterDrawerContent extends StatefulWidget {
-  const _MobileFilterDrawerContent({
-    required this.initial,
-    required this.onChanged,
-    required this.scrollViewKey,
-  });
-
-  final MovieSubscriptionFilterState initial;
-  final ValueChanged<MovieSubscriptionFilterState> onChanged;
-  final Key scrollViewKey;
-
-  @override
-  State<_MobileFilterDrawerContent> createState() =>
-      _MobileFilterDrawerContentState();
-}
-
-class _MobileFilterDrawerContentState
-    extends State<_MobileFilterDrawerContent> {
-  late MovieSubscriptionFilterState _local;
-
-  @override
-  void initState() {
-    super.initState();
-    _local = widget.initial;
-  }
-
-  void _apply(MovieSubscriptionFilterState next) {
-    setState(() => _local = next);
-    widget.onChanged(next);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AppMobileFilterDrawerScaffold(
-      scrollViewKey: widget.scrollViewKey,
-      footer: AppFilterPanelFooter(
-        isDefault: _local.isPanelDefault,
-        onReset: () => _apply(_local.resetPanel()),
-      ),
-      child: MovieSubscriptionFilterSectionGroup(
-        filterState: _local,
-        onChanged: _apply,
-      ),
-    );
-  }
 }
 
 void _refresh(WidgetRef ref) {
@@ -387,9 +392,9 @@ class _SelectionHeader extends HookConsumerWidget {
         ? l10n.subscriptionSelectionClearAll
         : l10n.subscriptionSelectionSelectAll(loadedCount);
 
-    return AppSelectionHeaderToolbar(
+    return AppGlassSelectionHeader(
       key: const Key('movie-subscriptions-selection-header'),
-      countLabel: l10n.subscriptionSelectionCount(state.selectionCount),
+      selectionLabel: l10n.subscriptionSelectionCount(state.selectionCount),
       countKey: const Key('movie-subscriptions-selection-count'),
       selectAllLabel: selectAllLabel,
       selectAllKey: const Key('movie-subscriptions-select-all-button'),
@@ -397,36 +402,56 @@ class _SelectionHeader extends HookConsumerWidget {
           ? null
           : notifier.toggleSelectAllLoaded,
       exitKey: const Key('movie-subscriptions-selection-exit'),
-      onExit: busy ? null : notifier.exitSelectionMode,
-      actions: _buildBatchActions(
-        context,
-        ref,
-        state,
-        size: AppButtonSize.small,
-        loadingDownloads: loadingDownloads.value,
-        loadingImports: loadingImports.value,
-        onRetriggerImports: () => unawaited(
-          _retriggerSelectedImports(
-            context,
-            ref,
-            state,
-            onLoadingChanged: (value) => loadingImports.value = value,
-          ),
+      onExitSelection: busy ? null : notifier.exitSelectionMode,
+      actions: <AppGlassSelectionAction>[
+        AppGlassSelectionAction(
+          key: const Key('movie-subscriptions-batch-retrigger-imports-button'),
+          label: l10n.subscriptionActionRetriggerImport,
+          icon: Icons.refresh_rounded,
+          onTap: busy || !state.hasSelection
+              ? null
+              : () => unawaited(
+                  _retriggerSelectedImports(
+                    context,
+                    ref,
+                    state,
+                    onLoadingChanged: (value) => loadingImports.value = value,
+                  ),
+                ),
         ),
-        onDeleteDownloads: () => unawaited(
-          _deleteSelectedDownloads(
-            context,
-            ref,
-            state,
-            onLoadingChanged: (value) => loadingDownloads.value = value,
-          ),
+        AppGlassSelectionAction(
+          key: const Key('movie-subscriptions-batch-delete-downloads-button'),
+          label: l10n.subscriptionActionDeleteDownloads,
+          icon: Icons.delete_outline_rounded,
+          foregroundColor: context.appTextPalette.error,
+          onTap: busy || !state.hasSelection
+              ? null
+              : () => unawaited(
+                  _deleteSelectedDownloads(
+                    context,
+                    ref,
+                    state,
+                    onLoadingChanged: (value) => loadingDownloads.value = value,
+                  ),
+                ),
         ),
-      ),
+        AppGlassSelectionAction(
+          key: const Key('movie-subscriptions-batch-unsubscribe-button'),
+          label: l10n.subscriptionBatchUnsubscribeWithCount(
+            state.selectionCount,
+          ),
+          icon: Icons.bookmark_remove_outlined,
+          foregroundColor: context.appTextPalette.error,
+          onTap: busy || !state.hasSelection
+              ? null
+              : () => unawaited(_confirmBatchUnsubscribe(context, ref, state)),
+        ),
+      ],
     );
   }
 }
 
-/// 移动端多选态顶栏：与 PornBox / 媒体管理的 `AppListHeader.selection` 同一套。
+/// 移动端多选态顶栏：与 PornBox / 媒体管理共用紧凑玻璃多选头。
 class _MobileSelectionHeader extends ConsumerWidget {
   const _MobileSelectionHeader({
     required this.state,
@@ -449,23 +474,18 @@ class _MobileSelectionHeader extends ConsumerWidget {
     final allSelected = loadedCount > 0 && state.selectionCount >= loadedCount;
     final l10n = AppLocalizations.of(context);
 
-    return AppListHeader.selection(
+    return AppMobileSelectionHeader(
       key: const Key('movie-subscriptions-selection-header'),
       selectionLabel: l10n.subscriptionSelectionCount(state.selectionCount),
-      selectionExitButtonKey: const Key('movie-subscriptions-selection-exit'),
+      exitKey: const Key('movie-subscriptions-selection-exit'),
       onExitSelection: busy ? null : notifier.exitSelectionMode,
-      actionSlots: <Widget>[
-        AppTextButton(
-          key: const Key('movie-subscriptions-select-all-button'),
-          label: allSelected
-              ? l10n.subscriptionSelectionClearAll
-              : l10n.subscriptionSelectionSelectAll(loadedCount),
-          size: AppTextButtonSize.small,
-          onPressed: busy || loadedCount == 0
-              ? null
-              : notifier.toggleSelectAllLoaded,
-        ),
-      ],
+      selectAllKey: const Key('movie-subscriptions-select-all-button'),
+      selectAllTooltip: allSelected
+          ? l10n.subscriptionSelectionClearAll
+          : l10n.subscriptionSelectionSelectAll(loadedCount),
+      onToggleAll: busy || loadedCount == 0
+          ? null
+          : notifier.toggleSelectAllLoaded,
     );
   }
 }
@@ -520,7 +540,7 @@ class _MobileSelectionBar extends ConsumerWidget {
   }
 }
 
-/// 多选态的批量操作按钮。桌面放进 `AppSelectionHeaderToolbar.actions`（small），
+/// 多选态的批量操作按钮。桌面放进 `AppGlassSelectionHeader.actions`（small），
 /// 移动贴底 `AppSelectionBottomBar` 用默认 medium 撑满等宽。
 ///
 /// 移动端三个按钮平分宽度，图标 + 长标签会省略；[compactLabels] 用不带图标的

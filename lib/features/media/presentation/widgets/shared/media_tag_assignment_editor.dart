@@ -13,6 +13,7 @@ import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 Future<MediaTagAssignmentDto?> showMediaTagAssignmentEditor(
@@ -29,7 +30,7 @@ Future<MediaTagAssignmentDto?> showMediaTagAssignmentEditor(
       builder: (_) => editor,
     );
   }
-  return showDialog<MediaTagAssignmentDto>(
+  return showAppDialog<MediaTagAssignmentDto>(
     context: context,
     builder: (_) => AppDesktopDialog(
       dialogKey: const Key('media-tag-assignment-dialog'),

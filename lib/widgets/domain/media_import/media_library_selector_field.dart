@@ -3,23 +3,20 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.dart';
-import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/media_libraries_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 
-/// 媒体导入弹窗顶部的媒体库选择器：自管媒体库加载、错误/空态/重试、下拉渲染。
-///
-/// ⚠️ **胶水层例外（与 `MediaPreviewDialog` 同类）**：
-/// 本组件位于 `widgets/domain/`，但会自行 `ref.read(mediaLibrariesApiProvider)`
-/// 发起真实 HTTP 请求并自持 loading/error state。复用时 caller 无需再包一层控制器。
+/// 媒体导入弹窗顶部的媒体库选择器：读取共享的媒体库 provider，渲染
+/// loading/error/empty 状态和下拉选项。
 ///
 /// 边界：
-/// - **自管** 媒体库列表 + loading/error state，caller 只持有 [selectedLibraryId]。
+/// - 列表与加载/错误状态来自 [mediaLibrariesProvider]，caller 只持有
+///   [selectedLibraryId]。
 /// - 首次成功加载后，若 caller 未指定选中值，自动通过 [onLibraryChanged] 上抛
 ///   列表首项；若 caller 已指定但该 id 在新列表里找不到，会回退到首项。
 /// - dropdown 条目标签使用 `名称 · provider_key`，不暴露任何 provider 专属分支。
@@ -42,26 +39,42 @@ class MediaLibrarySelectorField extends ConsumerStatefulWidget {
 
 class _MediaLibrarySelectorFieldState
     extends ConsumerState<MediaLibrarySelectorField> {
-  late final MediaLibrariesApi _librariesApi;
-
   List<MediaLibraryDto> _libraries = const <MediaLibraryDto>[];
   bool _isLoading = true;
-  String? _error;
+  Object? _loadError;
 
   @override
   void initState() {
     super.initState();
-    _librariesApi = ref.read(mediaLibrariesApiProvider);
-    unawaited(_load());
+    final cached = ref.read(mediaLibrariesProvider);
+    if (cached.hasValue) {
+      _libraries = cached.requireValue;
+      _isLoading = false;
+      _syncSelection(_libraries);
+    } else if (cached.hasError && !cached.isLoading) {
+      _isLoading = false;
+      _loadError = cached.error;
+    } else {
+      unawaited(_load());
+    }
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool forceReload = false}) async {
+    if (!mounted) {
+      return;
+    }
     setState(() {
       _isLoading = true;
-      _error = null;
+      _loadError = null;
     });
     try {
-      final libraries = await _librariesApi.getLibraries();
+      if (forceReload) {
+        await ref.read(mediaLibrariesProvider.notifier).reload();
+        if (!mounted) {
+          return;
+        }
+      }
+      final libraries = await ref.read(mediaLibrariesProvider.future);
       if (!mounted) {
         return;
       }
@@ -69,32 +82,30 @@ class _MediaLibrarySelectorFieldState
         _libraries = libraries;
         _isLoading = false;
       });
-      // 让 caller 与列表状态对齐：若当前选中不再存在，回落到首项。
-      final currentId = widget.selectedLibraryId;
-      final matches = libraries.any((library) => library.id == currentId);
-      if (!matches) {
-        scheduleMicrotask(() {
-          if (!mounted) {
-            return;
-          }
-          widget.onLibraryChanged(libraries.isEmpty ? null : libraries.first);
-        });
-      }
+      _syncSelection(libraries);
     } catch (error) {
       if (!mounted) {
         return;
       }
       setState(() {
         _isLoading = false;
-        _error = apiErrorMessage(
-          error,
-          fallback: AppLocalizations.of(
-            context,
-          ).widgetMediaImportLibraryLoadFailed,
-          l10n: AppLocalizations.of(context),
-        );
+        _loadError = error;
       });
     }
+  }
+
+  /// 让 caller 与列表状态对齐：若当前选中不再存在，回落到首项。
+  void _syncSelection(List<MediaLibraryDto> libraries) {
+    final currentId = widget.selectedLibraryId;
+    final matches = libraries.any((library) => library.id == currentId);
+    if (matches) {
+      return;
+    }
+    scheduleMicrotask(() {
+      if (mounted) {
+        widget.onLibraryChanged(libraries.isEmpty ? null : libraries.first);
+      }
+    });
   }
 
   MediaLibraryDto? _libraryById(int? id) {
@@ -112,19 +123,26 @@ class _MediaLibrarySelectorFieldState
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final errorMessage = _loadError == null
+        ? null
+        : apiErrorMessage(
+            _loadError!,
+            fallback: l10n.widgetMediaImportLibraryLoadFailed,
+            l10n: l10n,
+          );
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator.adaptive());
     }
-    if (_error != null) {
+    if (errorMessage != null) {
       return Column(
         children: [
-          AppEmptyState(message: _error!),
+          AppEmptyState(message: errorMessage),
           SizedBox(height: context.appSpacing.sm),
           AppButton(
             key: const Key('media-import-library-retry-button'),
             label: l10n.widgetMediaImportReloadLibraries,
             size: AppButtonSize.small,
-            onPressed: () => unawaited(_load()),
+            onPressed: () => unawaited(_load(forceReload: true)),
           ),
         ],
       );

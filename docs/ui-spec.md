@@ -36,12 +36,12 @@ SakuraMedia 是桌面优先的媒体管理工作台。桌面端使用工作台�
 
 列表页通常由页面标题/筛选操作、结果信息、响应式网格或列表、分页加载和刷新组成。优先组合：
 
-- `AppListHeader`：标题、筛选入口、总数和操作槽；
+- `AppMobileListHeader`：玻璃外标题/计数与图标操作行，标题或前置内容可随列表滚走；
 - `AppAdaptiveCardGrid`：卡片列数和四态内容区；
 - `AppPagedLoadMoreFooter`：分页加载、失败重试和完成状态；
 - `AppPullToRefresh` / `AppAdaptiveRefreshScrollView`：平台自适应刷新。
 
-桌面筛选使用页面已有的 popover 或浮层；移动筛选使用底部抽屉。筛选条件由 feature Provider 管理，页面不要维护另一份远端列表状态。
+桌面筛选使用页面已有的玻璃 popover；移动筛选使用玻璃底部抽屉。移动端头部实用操作只显示图标，标题、计数和贴底批量动作保留文字。筛选条件由 feature Provider 管理，页面不要维护另一份远端列表状态。
 
 ### 详情页
 

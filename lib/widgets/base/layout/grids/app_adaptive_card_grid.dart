@@ -1,9 +1,9 @@
-
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/app_sliver_width_builder.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
 
 /// 布局模式：等宽 tile(固定 aspect ratio) vs 瀑布流(逐 tile aspect)。
@@ -156,11 +156,10 @@ class AppAdaptiveCardGrid<T> extends StatelessWidget {
               mainAxisSpacing: spacing,
               crossAxisSpacing: spacing,
               itemCount: itemCount,
-              itemBuilder:
-                  (context, index) => AspectRatio(
-                    aspectRatio: tileAspect!(index),
-                    child: tileBuilder(context, index),
-                  ),
+              itemBuilder: (context, index) => AspectRatio(
+                aspectRatio: tileAspect!(index),
+                child: tileBuilder(context, index),
+              ),
             );
         }
       },
@@ -255,28 +254,29 @@ class AppAdaptiveCardSliver<T> extends StatelessWidget {
     }
 
     final itemCount = items.length;
-    return SliverLayoutBuilder(
-      builder: (context, constraints) {
-        final spacing = context.appSpacing.md;
-        final componentTokens = context.appComponentTokens;
-        final target =
-            targetColumnWidth ??
-            resolveAppCardGridTargetWidth(
-              context,
-              resolveAppCardGridOrientation(
-                layout: layout,
-                orientation: orientation,
-                childAspectRatio: childAspectRatio,
-                mainAxisExtent: mainAxisExtent,
-                tokens: componentTokens,
-              ),
-            );
+    final spacing = context.appSpacing.md;
+    final componentTokens = context.appComponentTokens;
+    final target =
+        targetColumnWidth ??
+        resolveAppCardGridTargetWidth(
+          context,
+          resolveAppCardGridOrientation(
+            layout: layout,
+            orientation: orientation,
+            childAspectRatio: childAspectRatio,
+            mainAxisExtent: mainAxisExtent,
+            tokens: componentTokens,
+          ),
+        );
+    final resolvedMaxColumns = maxColumns ?? componentTokens.cardGridMaxColumns;
+    return AppSliverWidthBuilder(
+      builder: (context, width) {
         final columns = resolveGridColumnCount(
-          width: constraints.crossAxisExtent,
+          width: width,
           spacing: spacing,
           targetWidth: target,
           minColumns: minColumns,
-          maxColumns: maxColumns ?? componentTokens.cardGridMaxColumns,
+          maxColumns: resolvedMaxColumns,
         );
         Widget buildTile(BuildContext context, int index) {
           return itemBuilder(context, items[index], index);
@@ -308,11 +308,10 @@ class AppAdaptiveCardSliver<T> extends StatelessWidget {
               mainAxisSpacing: spacing,
               crossAxisSpacing: spacing,
               childCount: itemCount,
-              itemBuilder:
-                  (context, index) => AspectRatio(
-                    aspectRatio: tileAspect!(index),
-                    child: buildTile(context, index),
-                  ),
+              itemBuilder: (context, index) => AspectRatio(
+                aspectRatio: tileAspect!(index),
+                child: buildTile(context, index),
+              ),
             );
         }
       },

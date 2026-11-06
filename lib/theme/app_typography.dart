@@ -379,6 +379,11 @@ TextStyle resolveAppTextStyle(
   );
 }
 
+/// 当前主题的默认字体族；供需要自己构造 TextField / 编辑器的玻璃控件继承。
+String? resolveAppFontFamily(BuildContext context) {
+  return Theme.of(context).textTheme.bodyMedium?.fontFamily;
+}
+
 extension AppTextScaleThemeDataX on ThemeData {
   AppTextScale get appTextScale =>
       extension<AppTextScale>() ?? const AppTextScale.defaults();

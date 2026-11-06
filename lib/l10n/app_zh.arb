@@ -177,6 +177,14 @@
   "commonDelete": "删除",
   "commonCopy": "复制",
   "commonDone": "完成",
+  "commonSelectedCount": "已选 {count}",
+  "@commonSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "commonUnknown": "未知",
   "accountTitle": "账号",
   "accountProfileTitle": "账号资料",
@@ -1564,7 +1572,6 @@
   },
   "tagEmptyMovieList": "该标签下暂无影片",
   "tagRefreshFailed": "刷新失败",
-  "tagFilterTooltip": "筛选",
   "tagMovieCountLabel": "{count} 部",
   "@tagMovieCountLabel": {
     "placeholders": {
@@ -1612,8 +1619,6 @@
   "videoFilterSectionCollection": "合集",
   "videoFilterSectionCollectionOwnership": "合集归属",
   "videoFilterNotInCollection": "未加入合集",
-  "videoFilterAppliesImmediately": "筛选会立即生效",
-  "videoSortDirectionTitle": "排序方向",
   "videoFilter": "筛选",
   "videoPlay": "播放",
   "videoPlayAll": "播放全部",
@@ -1729,6 +1734,7 @@
     }
   },
   "videoCollectionsTitle": "视频合集",
+  "videoAllVideosTitle": "全部视频",
   "videoNewCollection": "新建合集",
   "videoNew": "新建",
   "videoViewAll": "查看全部",
@@ -1753,7 +1759,7 @@
   "videoCollectionDeleted": "已删除合集",
   "videoCollectionsEmpty": "暂无合集，点击「新建合集」创建",
   "videoCollectionsNoMatch": "没有匹配的合集",
-  "videoCollectionsEmptyHint": "还没有合集，点「新建」把视频攒成一个连播合集吧",
+  "videoCollectionsEmptyHint": "还没有合集，点「新建合集」把视频攒成一个连播合集吧",
   "videoCollectionsEmptyMobile": "还没有合集，点下方「新建合集」开始吧",
   "videoCollectionsLoadFailed": "合集加载失败，请稍后重试",
   "videoCollectionsLoadFailedShort": "合集加载失败",
@@ -1764,7 +1770,6 @@
   "videoCollectionNameRequired": "请输入合集名称",
   "videoCollectionDescriptionHint": "描述（可选）",
   "videoCreateCollectionAndAdd": "新建合集并加入",
-  "videoClose": "关闭",
   "videoCollectionsEmptyDialog": "暂无合集，点击下方新建",
   "videoSaveFailed": "保存失败",
   "videoCreateFailed": "创建失败",
@@ -2067,7 +2072,6 @@
   "overviewImportMedia": "导入媒体",
   "overviewMediaAssets": "媒体资产",
   "overviewNoAssetData": "暂无媒体资产数据",
-  "overviewMovies": "影片",
   "overviewPlayableMovies": "可播放影片",
   "overviewMovieTotal": "共 {count} 部影片",
   "@overviewMovieTotal": {
@@ -2225,6 +2229,7 @@
     }
   },
   "momentCountLabel": "{count} 个时刻",
+  "momentCollectionAllMomentsTitle": "全部时刻",
   "@momentCountLabel": {
     "placeholders": {
       "count": {
@@ -2412,6 +2417,7 @@
   "clipCollectionPlayAll": "播放全部",
   "clipCollectionPlay": "播放",
   "clipCollectionClipCount": "{count} 个切片",
+  "clipCollectionAllClipsTitle": "全部切片",
   "@clipCollectionClipCount": {
     "placeholders": {
       "count": {
@@ -2588,7 +2594,6 @@
   "playlistPickerLoadFailed": "播放列表加载失败",
   "playlistNoMatch": "没有匹配的播放列表",
   "playlistAddToPlaylist": "加入播放列表",
-  "playlistCloseTooltip": "关闭",
   "playlistSearchHint": "搜索播放列表",
   "playlistRemoveFailed": "移出播放列表失败",
   "playlistAddFailed": "加入播放列表失败",
@@ -2888,8 +2893,6 @@
   },
   "downloadSearchByMovieNumber": "按番号搜索",
   "downloadFilterAllClients": "全部客户端",
-  "downloadFilterApplied": "已筛选",
-  "downloadFilterAction": "筛选",
   "downloadFilterTitle": "筛选下载任务",
   "downloadMovieNumberLabel": "番号",
   "downloadStateFilterLabel": "下载状态",
@@ -2985,6 +2988,14 @@
   "clipCollectionsLoadFailedFallback": "合集暂时无法加载，请稍后重试",
   "clipCollectionCreated": "已创建合集",
   "clipEmpty": "还没有切片，去播放器圈选生成吧",
+  "clipListTotalCount": "{count} 个切片",
+  "@clipListTotalCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "clipSortLatest": "最新",
   "clipSortEarliest": "最早",
   "clipEnterSelection": "选择",
@@ -3125,10 +3136,10 @@
   "imageSearchTextSearchFailed": "文字搜索失败，请稍后重试",
   "imageSearchIndexRebuildRequired": "嵌入空间已变更，请先重建图搜索索引",
   "imageSearchNoSubscribedActors": "暂无已订阅女优",
-  "imageSearchClose": "关闭",
   "imageSearchClearSelection": "清空已选",
   "moviePageRefreshFailed": "刷新失败",
   "moviePageFilterTooltip": "筛选",
+  "moviePageAllMoviesTitle": "全部影片",
   "moviePageMovieCount": "{count} 部",
   "@moviePageMovieCount": {
     "placeholders": {
@@ -3658,7 +3669,6 @@
     }
   },
   "mediaListEnterSelection": "选择",
-  "mediaListExitSelection": "退出选择",
   "mediaListRefreshing": "刷新中",
   "mediaListClearSelection": "清空",
   "mediaListBatchTransfer": "迁移（{count}）",
@@ -3822,8 +3832,10 @@
   "mediaListDuplicateSelectionHint": "请选择要删除的媒体，每组至少保留一个副本",
   "mediaListDuplicateDescription": "按文件内容指纹聚合同一文件的媒体记录。删除前请确认至少保留一个可用副本。",
   "mediaListDuplicateEmpty": "当前类型没有发现重复文件。",
+  "mediaListDuplicateKindTitle": "媒体类型",
   "mediaListKeepAtLeastOne": "至少保留一个",
   "mediaListSelectItem": "选择此项",
+  "mediaListVersionsFilterTitle": "版本筛选",
   "mediaListVersionsBatchDeleteTitle": "批量删除影片版本",
   "mediaListVersionsBatchDeleteMessage": "将删除选中的 {count} 个版本及对应文件，每部影片至少保留一个版本。确认继续？",
   "@mediaListVersionsBatchDeleteMessage": {
@@ -4270,7 +4282,6 @@
   "widgetCollectionPickerTitle": "加入合集",
   "widgetCollectionPickerCreateAndAdd": "新建合集并加入",
   "widgetCollectionPickerSearchHint": "搜索合集",
-  "widgetCollectionPickerClose": "关闭",
   "widgetCollectionPickerLoadFailed": "合集加载失败",
   "widgetCollectionPickerEmpty": "暂无合集，点击下方新建",
   "widgetCollectionPickerNoMatch": "没有匹配的合集",
@@ -4819,6 +4830,7 @@
   "actorSearchTooltip": "搜索女优",
   "actorListEmpty": "暂无女优，去搜索看看吧",
   "actorListEmptyFiltered": "当前筛选条件下暂无匹配女优",
+  "actorListAllTitle": "全部女优",
   "actorListTotalCount": "{count} 位",
   "@actorListTotalCount": {
     "placeholders": {
@@ -4827,7 +4839,6 @@
       }
     }
   },
-  "actorFilterTooltip": "筛选",
   "actorLocalSubscriptionHint": "本地女优不会同步新作品，订阅仅作为收藏。",
   "actorMergeTooltip": "合并女优",
   "actorEditProfileTooltip": "编辑女优资料",
@@ -4996,6 +5007,7 @@
     }
   },
   "rankingAllBoards": "全部榜单",
+  "rankingListMoviesTitle": "榜单影片",
   "@rankingAllBoards": {},
   "rankingNoBoards": "暂无可用排行榜",
   "@rankingNoBoards": {},
@@ -5085,7 +5097,6 @@
   },
   "sharedMore": "更多",
   "@sharedMore": {},
-  "sharedFilter": "筛选",
   "@sharedFilter": {},
   "sharedRefreshFailed": "刷新失败",
   "@sharedRefreshFailed": {},
@@ -5453,8 +5464,7 @@
   "baseClearSearch": "清空",
   "baseShowPassword": "显示密码",
   "baseHidePassword": "隐藏密码",
-  "baseFilterUsingDefault": "当前使用默认筛选",
-  "baseFilterUpdated": "筛选条件已更新",
+  "baseFilterAppliesImmediately": "筛选会立即生效",
   "baseFilterReset": "重置",
   "baseClose": "关闭",
   "baseConfirm": "确认",
@@ -5462,8 +5472,8 @@
   "baseSortDefault": "默认",
   "baseSortTooltip": "排序",
   "baseSortTitle": "排序方式",
+  "baseSortDirectionTitle": "排序方向",
   "baseFilterTooltip": "筛选",
-  "baseExitSelection": "退出选择",
   "baseBatchCompleted": "已完成",
   "baseBatchSummary": "成功 {succeeded} 个，失败 {failed} 个",
   "@baseBatchSummary": {

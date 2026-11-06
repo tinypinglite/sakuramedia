@@ -18,6 +18,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_inline_action_button.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
@@ -221,7 +222,7 @@ class _IndexerSettingsSectionState
     if (_isSaving) {
       return;
     }
-    final result = await showDialog<IndexerEntryDto>(
+    final result = await showAppDialog<IndexerEntryDto>(
       context: context,
       builder: (dialogContext) => IndexerEntryDialog(
         title: AppLocalizations.of(context).indexerAdd,
@@ -241,7 +242,7 @@ class _IndexerSettingsSectionState
     if (_isSaving) {
       return;
     }
-    final result = await showDialog<IndexerEntryDto>(
+    final result = await showAppDialog<IndexerEntryDto>(
       context: context,
       builder: (dialogContext) => IndexerEntryDialog(
         title: AppLocalizations.of(context).indexerEditTitle,

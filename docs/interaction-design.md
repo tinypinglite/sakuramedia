@@ -18,7 +18,7 @@
 桌面与移动使用同一套组件与 token，不做平台差异。
 
 已接入 `AppInteractiveSurface`：`AppButton`、`AppTextButton`、`AppIconButton`、
-`AppSwitch`、`AppFilterEntryButton`、`AppLeftCoverCard`、`ActorSummaryCard`、
+`AppSwitch`、`AppLeftCoverCard`、`ActorSummaryCard`、
 封面网格卡（切片 / 时刻 / 视频 / 合集成员 / 合集封面 / 图片搜索）与
 `MovieSummaryCard`（多选态；普通点击经 `AppImageActionTrigger`，按下反馈与其一致）。
 封面悬停动作按钮（`AppCoverHoverActionButton`）同样走它。

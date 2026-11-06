@@ -26,11 +26,11 @@ import 'package:sakuramedia/features/playlists/presentation/providers/playlists_
 import 'package:sakuramedia/features/playlists/presentation/widgets/edit_playlist_dialog.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_detail_action_menu.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_filter_drawer.dart';
-import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_filter_sections.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
@@ -41,9 +41,12 @@ import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_sc
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pull_to_refresh.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
+import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
 import 'package:sakuramedia/widgets/domain/playlists/playlist_sort_menu_button.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
@@ -158,85 +161,97 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
           }
           final canManage = playlist.isMutable || playlist.isDeletable;
           final slivers = <Widget>[
-            SliverToBoxAdapter(
-              child: Stack(
-                children: [
-                  PlaylistBannerCard(
-                    key: Key('playlist-banner-card-${playlist.id}'),
-                    title: playlist.name,
-                    coverImageUrl: view.items.firstOrNull?.coverImage?.origin,
-                  ),
-                  if (canManage)
-                    Positioned(
-                      top: context.appSpacing.sm,
-                      right: context.appSpacing.sm,
-                      child: _PlaylistDetailMoreButton(
-                        onTap: (position) =>
-                            unawaited(_openActionMenu(playlist, position)),
-                      ),
+            AppPinnedSliverSection(
+              headerKey: _listHeaderKey,
+              before: <Widget>[
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: context.appSpacing.lg),
+                    child: Stack(
+                      children: [
+                        PlaylistBannerCard(
+                          key: Key('playlist-banner-card-${playlist.id}'),
+                          title: playlist.name,
+                          coverImageUrl:
+                              view.items.firstOrNull?.coverImage?.origin,
+                        ),
+                        if (canManage)
+                          Positioned(
+                            top: context.appSpacing.sm,
+                            right: context.appSpacing.sm,
+                            child: _PlaylistDetailMoreButton(
+                              onTap: (position) => unawaited(
+                                _openActionMenu(playlist, position),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                ],
-              ),
-            ),
-            AppPinnedListHeader(
-              key: _listHeaderKey,
-              color: Colors.transparent,
-              child: Padding(
-                padding: EdgeInsets.only(bottom: context.appSpacing.sm),
-                child: selectionMode
-                    ? buildBatchSelectionToolbar()
-                    : _buildListHeader(
-                        context,
-                        playlist.movieCount,
-                        view.filterUpdate,
-                        view.items.isNotEmpty,
-                      ),
-              ),
-            ),
-            if (!view.filterUpdate.hasFailed || view.items.isNotEmpty)
-              AppSkeletonizer.sliver(
-                enabled: view.isInitialLoading,
-                child: MovieSummarySliver(
-                  items: view.isInitialLoading
-                      ? movieListItemPlaceholders(count: 24)
-                      : view.items,
-                  errorMessage: view.initialError != null
-                      ? _scope.errorText(AppLocalizations.of(context))
-                      : null,
-                  onMovieTap: widget.onMovieTap,
-                  onMovieMenuRequest: (movie, globalPosition) =>
-                      requestMovieCollectionMenu(
-                        context,
-                        movie.movieNumber,
-                        globalPosition,
-                        isSubscribed: movie.isSubscribed,
-                      ),
-                  onMovieSubscriptionTap: (movie) =>
-                      _toggleMovieSubscription(movie.movieNumber),
-                  onMovieToggleCollectionType:
-                      _hoverFeatureActions.toggleCollectionType,
-                  onMovieBlacklist: _hoverFeatureActions.blacklist,
-                  isMovieSubscriptionUpdating: (movie) =>
-                      subscriptionUpdating.contains(movie.movieNumber),
-                  emptyMessage: !_filterState.hasActiveFilters
-                      ? AppLocalizations.of(context).playlistNoMovies
-                      : AppLocalizations.of(context).playlistNoMatchingMovies,
-                  selectionMode: selectionMode,
-                  isMovieSelected: (movie) => isSelected(movie.movieNumber),
-                  onMovieSelectedChanged: (movie, _) =>
-                      toggleSelect(movie.movieNumber),
+                  ),
                 ),
-              ),
-            PagedLoadMoreFooterSliver(
-              topSpacing: PagedFooterSpacing.md,
-              watchFooter: (ref) => ref.watch(
-                movieSummaryProvider(
-                  _scope,
-                ).select((s) => pagedLoadMoreFooterSnapshot(s.value?.paged)),
-              ),
-              onLoadMore: (ref) => unawaited(
-                ref.read(movieSummaryProvider(_scope).notifier).loadMore(),
-              ),
+              ],
+              header: selectionMode
+                  ? (_isMobile
+                        ? buildMobileBatchSelectionHeader()
+                        : buildGlassBatchSelectionToolbar())
+                  : _buildListHeader(
+                      context,
+                      playlist.movieCount,
+                      view.filterUpdate,
+                      view.items.isNotEmpty,
+                    ),
+              headerBottomSpacing: _isMobile
+                  ? context.appSpacing.md
+                  : context.appSpacing.lg,
+              after: <Widget>[
+                if (!view.filterUpdate.hasFailed || view.items.isNotEmpty)
+                  AppSkeletonizer.sliver(
+                    enabled: view.isInitialLoading,
+                    child: MovieSummarySliver(
+                      items: view.isInitialLoading
+                          ? movieListItemPlaceholders(count: 24)
+                          : view.items,
+                      errorMessage: view.initialError != null
+                          ? _scope.errorText(AppLocalizations.of(context))
+                          : null,
+                      onMovieTap: widget.onMovieTap,
+                      onMovieMenuRequest: (movie, globalPosition) =>
+                          requestMovieCollectionMenu(
+                            context,
+                            movie.movieNumber,
+                            globalPosition,
+                            isSubscribed: movie.isSubscribed,
+                          ),
+                      onMovieSubscriptionTap: (movie) =>
+                          _toggleMovieSubscription(movie.movieNumber),
+                      onMovieToggleCollectionType:
+                          _hoverFeatureActions.toggleCollectionType,
+                      onMovieBlacklist: _hoverFeatureActions.blacklist,
+                      isMovieSubscriptionUpdating: (movie) =>
+                          subscriptionUpdating.contains(movie.movieNumber),
+                      emptyMessage: !_filterState.hasActiveFilters
+                          ? AppLocalizations.of(context).playlistNoMovies
+                          : AppLocalizations.of(
+                              context,
+                            ).playlistNoMatchingMovies,
+                      selectionMode: selectionMode,
+                      isMovieSelected: (movie) => isSelected(movie.movieNumber),
+                      onMovieSelectedChanged: (movie, _) =>
+                          toggleSelect(movie.movieNumber),
+                    ),
+                  ),
+                PagedLoadMoreFooterSliver(
+                  topSpacing: PagedFooterSpacing.md,
+                  watchFooter: (ref) => ref.watch(
+                    movieSummaryProvider(_scope).select(
+                      (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
+                    ),
+                  ),
+                  onLoadMore: (ref) => unawaited(
+                    ref.read(movieSummaryProvider(_scope).notifier).loadMore(),
+                  ),
+                ),
+              ],
             ),
           ];
           final scrollView = CustomScrollView(
@@ -270,7 +285,7 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
             );
           }
 
-          return AppFilterResultLoadingOverlay(
+          final content = AppFilterResultLoadingOverlay(
             surfaceColor: widget.surfaceColor,
             protectedHeaderKey: _listHeaderKey,
             scrollController: _scrollController,
@@ -288,6 +303,15 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
                   ref.read(movieSummaryProvider(_scope).notifier).loadMore(),
               child: listContent,
             ),
+          );
+          if (!_isMobile) {
+            return content;
+          }
+          return Column(
+            children: <Widget>[
+              Expanded(child: content),
+              if (selectionMode) buildMobileBatchSelectionBottomBar(),
+            ],
           );
         },
       ),
@@ -375,8 +399,7 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
     context.go(widget.fallbackPath);
   }
 
-  /// 列表顶栏：与影片 / 女优列表共用同一条 `AppListHeader`。
-  /// 差别只在筛选面板的容器——桌面就地浮层，移动底部抽屉。
+  /// 列表顶栏：桌面使用 `AppGlassListHeader`，移动使用紧凑玻璃控制行。
   Widget _buildListHeader(
     BuildContext context,
     int totalMovies,
@@ -385,44 +408,114 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
   ) {
     final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
     final l10n = AppLocalizations.of(context);
-    return AppListHeader(
-      filterButtonKey: const Key('playlist-detail-filter-trigger'),
-      filterLabel: _filterState.triggerLabel(l10n),
-      filterPanelKey: const Key('playlist-detail-filter-panel'),
+    if (!isMobile) {
+      return _buildGlassListHeader(
+        context,
+        l10n,
+        totalMovies,
+        filterUpdate,
+        hasPreviousFilterItems,
+      );
+    }
+    return AppMobileListHeader(
+      leading: AppMobileHeaderText(
+        key: const Key('playlist-detail-total'),
+        countLabel: l10n.playlistMovieCount(totalMovies),
+      ),
+      actions: <Widget>[
+        AppGlassFilterIconButton(
+          key: const Key('playlist-detail-filter-trigger'),
+          summary: _filterState.triggerLabel(l10n),
+          isActive: _filterState.hasActiveFilters,
+          onPressed: () => unawaited(_openFilterDrawer()),
+        ),
+        PlaylistSortMenuButton(
+          triggerKey: const Key('playlist-detail-sort-trigger'),
+          panelKey: const Key('playlist-detail-sort-panel'),
+          drawerKey: const Key('mobile-playlist-detail-sort-drawer'),
+          keyPrefix: 'mobile-playlist',
+          filterState: _filterState,
+          onChanged: _applyFilter,
+          useDrawer: true,
+          iconOnly: true,
+        ),
+        AppGlassIconButton(
+          key: const Key('playlist-detail-enter-selection-button'),
+          tooltip: l10n.baseSelect,
+          icon: Icons.check_circle_outline,
+          onPressed: batchSelectableNumbers.isEmpty ? null : enterSelection,
+        ),
+      ],
       filterUpdate: filterUpdate,
       hasPreviousFilterItems: hasPreviousFilterItems,
       onRetryFilter: () => unawaited(
         ref.read(movieSummaryProvider(_scope).notifier).retryFilter(),
       ),
-      onFilterTap: isMobile ? () => unawaited(_openFilterDrawer()) : null,
-      filterPanelBuilder: isMobile
-          ? null
-          : (_) => PlaylistFilterSectionGroup(
-              filterState: _filterState,
-              onChanged: _applyFilter,
-            ),
-      filterPanelFooter: AppFilterPanelFooter(
-        isDefault: !_filterState.hasActiveFilters,
+    );
+  }
+
+  Widget _buildGlassListHeader(
+    BuildContext context,
+    AppLocalizations l10n,
+    int totalMovies,
+    FilterUpdateState filterUpdate,
+    bool hasPreviousFilterItems,
+  ) {
+    final filter = _filterState;
+    return AppGlassListHeader(
+      leading: AppGlassFilterPopover(
+        panelKey: const Key('playlist-detail-filter-panel'),
+        isDefault: !filter.hasActiveFilters,
         onReset: _resetFilters,
+        resetKey: const Key('playlist-detail-filter-reset'),
+        triggerKey: const Key('playlist-detail-filter-trigger'),
+        label: filter.triggerLabel(l10n),
+        tooltip: l10n.baseFilterTooltip,
+        info: <Widget>[
+          AppGlassHeaderText(
+            key: const Key('playlist-detail-total'),
+            label: l10n.playlistMovieCount(totalMovies),
+          ),
+        ],
+        panelBuilder: (context) =>
+            AppFilterChoiceSection<PlaylistResolutionFilter?>(
+              title: l10n.playlistFilterResolution,
+              controlKey: const Key('playlist-detail-filter-resolution'),
+              items: <AppSegmentedItem<PlaylistResolutionFilter?>>[
+                AppSegmentedItem(value: null, label: l10n.playlistFilterAll),
+                for (final resolution in PlaylistResolutionFilter.values)
+                  AppSegmentedItem(value: resolution, label: resolution.label),
+              ],
+              selected: filter.resolution,
+              onChanged: (resolution) =>
+                  _applyFilter(filter.copyWith(resolution: resolution)),
+            ),
       ),
-      informationSlots: [
-        AppListHeaderInfo(
-          key: const Key('playlist-detail-total'),
-          label: l10n.playlistMovieCount(totalMovies),
-        ),
-      ],
-      actionSlots: [
-        PlaylistSortMenuButton(
-          triggerKey: const Key('playlist-detail-sort-trigger'),
-          panelKey: const Key('playlist-detail-sort-panel'),
-          drawerKey: const Key('mobile-playlist-detail-sort-drawer'),
-          keyPrefix: isMobile ? 'mobile-playlist' : 'playlist',
-          filterState: _filterState,
-          onChanged: _applyFilter,
-          useDrawer: isMobile,
-        ),
-        buildEnterSelectionButton(),
-      ],
+      trailing: AppGlassHeaderGroup(
+        children: <Widget>[
+          PlaylistSortMenuButton(
+            triggerKey: const Key('playlist-detail-sort-trigger'),
+            panelKey: const Key('playlist-detail-sort-panel'),
+            filterState: filter,
+            onChanged: _applyFilter,
+            glassGrouped: true,
+            fieldControlKey: const Key('playlist-detail-sort-field'),
+            directionControlKey: const Key('playlist-detail-sort-direction'),
+          ),
+          AppGlassHeaderButton(
+            key: const Key('playlist-detail-enter-selection-button'),
+            icon: Icons.check_circle_outline,
+            label: l10n.baseSelect,
+            enabled: batchSelectableNumbers.isNotEmpty,
+            onTap: enterSelection,
+          ),
+        ],
+      ),
+      filterUpdate: filterUpdate,
+      hasPreviousFilterItems: hasPreviousFilterItems,
+      onRetryFilter: () => unawaited(
+        ref.read(movieSummaryProvider(_scope).notifier).retryFilter(),
+      ),
     );
   }
 

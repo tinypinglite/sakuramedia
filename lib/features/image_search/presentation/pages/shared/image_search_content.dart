@@ -31,7 +31,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_mobile_section_error.dart'
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
 import 'package:sakuramedia/features/image_search/presentation/widgets/actor_selector_dialog.dart';
 import 'package:sakuramedia/features/image_search/presentation/widgets/image_search_filter_panel.dart';
 import 'package:sakuramedia/features/image_search/presentation/widgets/image_search_result_grid.dart';
@@ -110,7 +110,6 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
   late final RiverpodPageHandle _pageCacheHandle;
   late final ScrollController _scrollController;
   late final TextEditingController _textController;
-  final AppPopoverController _filterPopoverController = AppPopoverController();
   ImageSearchFilterState? _desktopFilterDraft;
   int _autoLoadNoGrowthStreak = 0;
   bool _autoLoadHalted = false;
@@ -404,16 +403,12 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
     }
 
     final draft = _desktopFilterDraft ?? searchState.filterState;
-    return AppFilterPopover(
+    return AppGlassFilterPopover(
       key: const Key('desktop-image-search-filter-control'),
-      controller: _filterPopoverController,
-      triggerLabel: l10n.imageSearchAdvancedFilter,
       panelKey: const Key('desktop-image-search-filter-panel'),
       scrollViewKey: const Key('desktop-image-search-filter-scroll-view'),
+      scrollable: true,
       enabled: isEnabled,
-      isSelected: hasActiveFilter,
-      panelExtraWidth:
-          context.appLayoutTokens.dialogWidthSm - context.appSpacing.xxl * 2,
       onOpened: () => setState(() {
         _desktopFilterDraft = searchState.filterState;
       }),
@@ -423,21 +418,24 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
         onChanged: _updateDesktopFilterDraft,
         onSelectActors: () => unawaited(_selectDesktopActors()),
       ),
-      footer: ImageSearchFilterFooter(
+      footerBuilder: (context, close) => ImageSearchFilterFooter(
         filterState: draft,
         isSearching: isBusy,
         onReset: () =>
             _updateDesktopFilterDraft(const ImageSearchFilterState()),
-        onApply: () => unawaited(_applyDesktopFilter(draft)),
+        onApply: () {
+          close();
+          unawaited(_applyDesktopFilter(draft));
+        },
       ),
-      triggerBuilder: (context, isOpen, toggle) => AppIconButton(
+      triggerBuilder: (context, toggle) => AppIconButton(
         key: const Key('desktop-image-search-toggle-filter'),
         tooltip: isEnabled
             ? l10n.imageSearchAdvancedFilter
             : l10n.imageSearchFilterDisabledHint,
         semanticLabel: l10n.imageSearchAdvancedFilter,
         icon: icon,
-        isSelected: hasActiveFilter || isOpen,
+        isSelected: hasActiveFilter,
         onPressed: isEnabled ? toggle : null,
       ),
     );
@@ -858,7 +856,6 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
 
   Future<void> _applyDesktopFilter(ImageSearchFilterState filter) async {
     _notifier.updateFilter(filter);
-    _filterPopoverController.close();
     await _runSearch();
   }
 

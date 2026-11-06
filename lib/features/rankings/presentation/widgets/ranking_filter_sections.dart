@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/rankings/presentation/rankings_placeholders
 import 'package:sakuramedia/features/shared/data/movie_interaction_filter.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_filter_sections.dart';
 
 /// 榜单筛选 section 锚点——chip 点击后定位到对应 section。
@@ -81,7 +82,7 @@ class RankingFilterSectionGroup extends StatelessWidget {
       children: [
         KeyedSubtree(
           key: sectionKeys?.source,
-          child: MovieFilterChoiceSection<RankingSourceDto>(
+          child: AppFilterOptionSection<RankingSourceDto>(
             title: l10n.rankingFilterSource,
             options: sources,
             selectedValue: selectedSource,
@@ -94,7 +95,7 @@ class RankingFilterSectionGroup extends StatelessWidget {
         SizedBox(height: context.appSpacing.lg),
         KeyedSubtree(
           key: sectionKeys?.board,
-          child: MovieFilterChoiceSection<RankingBoardDto>(
+          child: AppFilterOptionSection<RankingBoardDto>(
             title: l10n.rankingFilterBoard,
             options: boardOptions,
             selectedValue: selectedBoard,
@@ -108,7 +109,7 @@ class RankingFilterSectionGroup extends StatelessWidget {
         SizedBox(height: context.appSpacing.lg),
         KeyedSubtree(
           key: sectionKeys?.period,
-          child: MovieFilterChoiceSection<String>(
+          child: AppFilterOptionSection<String>(
             title: l10n.rankingFilterPeriod,
             options: periodOptions,
             selectedValue: selectedPeriod,

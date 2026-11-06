@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
 /// 女优列表的搜索入口：只占一个图标位，点击就地展开搜索框。
@@ -21,11 +22,11 @@ class ActorListSearchToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppIconButton(
-      icon: const Icon(Icons.search_rounded),
+    return AppGlassIconButton(
+      icon: Icons.search_rounded,
       tooltip: tooltip,
       semanticLabel: tooltip,
-      isSelected: isActive,
+      foregroundColor: isActive ? Theme.of(context).colorScheme.primary : null,
       onPressed: onTap,
     );
   }

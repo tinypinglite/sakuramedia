@@ -26,8 +26,12 @@ import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_media_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 const double _desktopBreakpoint = 980;
+const double _wideViewportMinHeight = 700;
+const double _scrollFallbackMinHeight = 560;
+const double _largeTextThreshold = 1.25;
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key, required this.platform});
@@ -201,6 +205,58 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     setState(() => _showFirstRunNotice = false);
   }
 
+  Future<void> _showFirstRunDetails() async {
+    if (_isSubmitting) {
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    await showAppAdaptiveModal<void>(
+      context: context,
+      modalKey: const Key('login-first-run-modal'),
+      desktopWidth: 440,
+      mobileMaxHeightFactor: 0.8,
+      variant: widget.platform == AppPlatform.mobile
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
+      builder: (modalContext) {
+        final spacing = modalContext.appSpacing;
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            AppNoticeCard(
+              leadingIcon: Icons.dns_outlined,
+              title: l10n.loginFirstRunTitle,
+              description: l10n.loginFirstRunDescription,
+            ),
+            SizedBox(height: spacing.lg),
+            SizedBox(
+              width: double.infinity,
+              child: AppButton(
+                key: const Key('login-open-deploy-guide'),
+                label: l10n.loginViewDeployGuide,
+                variant: AppButtonVariant.primary,
+                icon: const Icon(Icons.open_in_new_rounded),
+                onPressed: _isSubmitting ? null : _openDeployGuide,
+              ),
+            ),
+            SizedBox(height: spacing.sm),
+            AppTextButton(
+              key: const Key('login-dismiss-first-run-modal'),
+              label: l10n.loginHaveServer,
+              onPressed: () {
+                Navigator.of(modalContext).pop();
+                if (mounted) {
+                  _dismissFirstRunNotice();
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   String? _validateBaseUrl(AppLocalizations l10n, String? value) {
     final host = value?.trim() ?? '';
     if (host.isEmpty) {
@@ -263,7 +319,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     return null;
   }
 
-  static const double _shortViewportBreakpoint = 560;
+  double _fieldHeight(BuildContext context) {
+    final largeText =
+        MediaQuery.textScalerOf(context).scale(14) / 14 > _largeTextThreshold;
+    return context.appComponentTokens.buttonHeightLg + (largeText ? 8 : 0);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -291,145 +351,146 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final largeText =
-                    MediaQuery.textScalerOf(context).scale(14) / 14 > 1.25;
-                final stacked =
-                    constraints.maxWidth < _desktopBreakpoint ||
-                    constraints.maxHeight < _shortViewportBreakpoint ||
-                    largeText;
-                final horizontalPadding = stacked
-                    ? spacing.lg
-                    : spacing.xxxl + spacing.xl;
-                final topPadding = stacked
-                    ? spacing.lg
-                    : spacing.xxl + spacing.md;
-                final bottomPadding =
-                    (stacked ? spacing.xl : spacing.xxl) + viewInsets.bottom;
+                    MediaQuery.textScalerOf(context).scale(14) / 14 >
+                    _largeTextThreshold;
+                final wideLayout =
+                    constraints.maxWidth >= _desktopBreakpoint &&
+                    constraints.maxHeight >= _wideViewportMinHeight &&
+                    !largeText;
+                final scrollFallback =
+                    viewInsets.bottom > 0 ||
+                    largeText ||
+                    constraints.maxHeight < _scrollFallbackMinHeight;
+                final horizontalPadding = wideLayout
+                    ? spacing.xxxl + spacing.xl
+                    : spacing.lg;
+                final topPadding = wideLayout
+                    ? spacing.xxl + spacing.md
+                    : spacing.lg;
+                final bottomPadding = wideLayout ? spacing.xxl : spacing.lg;
                 final availableHeight = math.max(
                   0.0,
                   constraints.maxHeight - topPadding - bottomPadding,
                 );
                 final heroWidth = math.min(540.0, constraints.maxWidth * 0.46);
 
+                final content = ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: availableHeight),
+                  child: Form(
+                    key: _formKey,
+                    autovalidateMode: _hasAttemptedSubmit
+                        ? AutovalidateMode.onUserInteraction
+                        : AutovalidateMode.disabled,
+                    child: wideLayout
+                        ? _buildWideLayout(
+                            context,
+                            l10n,
+                            currentLanguage: currentLanguage,
+                            heroWidth: heroWidth,
+                          )
+                        : _buildCompactLayout(
+                            context,
+                            l10n,
+                            currentLanguage: currentLanguage,
+                          ),
+                  ),
+                );
+                final padding = EdgeInsets.fromLTRB(
+                  horizontalPadding,
+                  topPadding,
+                  horizontalPadding,
+                  bottomPadding,
+                );
+
+                if (!scrollFallback) {
+                  return Padding(padding: padding, child: content);
+                }
+
                 return SingleChildScrollView(
+                  key: const Key('login-page-scroll'),
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: EdgeInsets.fromLTRB(
-                    horizontalPadding,
-                    topPadding,
-                    horizontalPadding,
-                    bottomPadding,
-                  ),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: availableHeight),
-                    child: Form(
-                      key: _formKey,
-                      autovalidateMode: _hasAttemptedSubmit
-                          ? AutovalidateMode.onUserInteraction
-                          : AutovalidateMode.disabled,
-                      child: stacked
-                          ? Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: <Widget>[
-                                _buildTopBar(
-                                  context,
-                                  currentLanguage: currentLanguage,
-                                ),
-                                SizedBox(
-                                  height:
-                                      constraints.maxHeight <
-                                          _shortViewportBreakpoint
-                                      ? spacing.lg
-                                      : spacing.xxxl + spacing.md,
-                                ),
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 540,
-                                    ),
-                                    child: _buildHero(
-                                      context,
-                                      l10n,
-                                      compact: true,
-                                    ),
-                                  ),
-                                ),
-                                if (_showFirstRunNotice) ...<Widget>[
-                                  SizedBox(height: spacing.lg),
-                                  ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 540,
-                                    ),
-                                    child: _buildFirstRunNotice(context, l10n),
-                                  ),
-                                ],
-                                SizedBox(height: spacing.xl),
-                                Center(
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(
-                                      maxWidth: 560,
-                                    ),
-                                    child: _buildCompactFormPanel(
-                                      context,
-                                      l10n,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            )
-                          : Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: <Widget>[
-                                Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: <Widget>[
-                                    _buildTopBar(
-                                      context,
-                                      currentLanguage: currentLanguage,
-                                    ),
-                                    SizedBox(height: spacing.xxl + spacing.md),
-                                    Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: SizedBox(
-                                        width: heroWidth,
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.stretch,
-                                          children: <Widget>[
-                                            _buildHero(
-                                              context,
-                                              l10n,
-                                              compact: false,
-                                            ),
-                                            if (_showFirstRunNotice) ...[
-                                              SizedBox(height: spacing.xl),
-                                              _buildFirstRunNotice(
-                                                context,
-                                                l10n,
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Padding(
-                                  padding: EdgeInsets.only(top: spacing.xxl),
-                                  child: _buildDesktopFormDock(context, l10n),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
+                  physics: const ClampingScrollPhysics(),
+                  padding: padding,
+                  child: content,
                 );
               },
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildCompactLayout(
+    BuildContext context,
+    AppLocalizations l10n, {
+    required AppLanguage currentLanguage,
+  }) {
+    final spacing = context.appSpacing;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        _buildTopBar(context, currentLanguage: currentLanguage),
+        SizedBox(height: spacing.lg),
+        if (_showFirstRunNotice) ...<Widget>[
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 480),
+              child: _buildCompactFirstRunEntry(context, l10n),
+            ),
+          ),
+          SizedBox(height: spacing.md),
+        ],
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: _buildCompactFormPanel(context, l10n),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWideLayout(
+    BuildContext context,
+    AppLocalizations l10n, {
+    required AppLanguage currentLanguage,
+    required double heroWidth,
+  }) {
+    final spacing = context.appSpacing;
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: <Widget>[
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            _buildTopBar(context, currentLanguage: currentLanguage),
+            SizedBox(height: spacing.xxl + spacing.md),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: SizedBox(
+                width: heroWidth,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    _buildHero(context, l10n, compact: false),
+                    if (_showFirstRunNotice) ...[
+                      SizedBox(height: spacing.xl),
+                      _buildFirstRunNotice(context, l10n),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        Padding(
+          padding: EdgeInsets.only(top: spacing.xxl),
+          child: _buildDesktopFormDock(context, l10n),
+        ),
+      ],
     );
   }
 
@@ -539,6 +600,48 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     );
   }
 
+  Widget _buildCompactFirstRunEntry(
+    BuildContext context,
+    AppLocalizations l10n,
+  ) {
+    final spacing = context.appSpacing;
+    return Row(
+      key: const Key('login-first-run-notice'),
+      children: <Widget>[
+        Expanded(
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: AppTextButton(
+              key: const Key('login-first-run-details'),
+              label: l10n.loginFirstRunTitle,
+              icon: Icon(
+                Icons.dns_outlined,
+                size: context.appComponentTokens.iconSizeSm,
+              ),
+              trailingIcon: Icon(
+                Icons.chevron_right_rounded,
+                size: context.appComponentTokens.iconSizeSm,
+              ),
+              size: AppTextButtonSize.small,
+              emphasis: AppTextButtonEmphasis.accent,
+              onPressed: _isSubmitting ? null : _showFirstRunDetails,
+            ),
+          ),
+        ),
+        SizedBox(width: spacing.xs),
+        AppIconButton(
+          key: const Key('login-dismiss-first-run'),
+          tooltip: l10n.commonClose,
+          icon: Icon(
+            Icons.close_rounded,
+            size: context.appComponentTokens.iconSizeSm,
+          ),
+          onPressed: _isSubmitting ? null : _dismissFirstRunNotice,
+        ),
+      ],
+    );
+  }
+
   Widget _buildDesktopFormDock(BuildContext context, AppLocalizations l10n) {
     final spacing = context.appSpacing;
     final radius = context.appRadius;
@@ -633,6 +736,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     final spacing = context.appSpacing;
     final radius = context.appRadius;
     final dark = Theme.of(context).brightness == Brightness.dark;
+    final cardPadding = spacing.lg;
 
     return DecoratedBox(
       decoration: BoxDecoration(
@@ -646,21 +750,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         key: const Key('login-main-card'),
         tone: AppGlassTone.control,
         borderRadius: radius.xlBorder,
-        padding: EdgeInsets.all(spacing.xl),
+        padding: EdgeInsets.all(cardPadding),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
-            Text(
-              l10n.loginWelcomeEyebrow,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s10,
-                weight: AppTextWeight.medium,
-                tone: AppTextTone.muted,
-              ).copyWith(letterSpacing: 2.1),
-            ),
-            SizedBox(height: spacing.xs),
             Text(
               l10n.loginWelcomeTitle,
               style: resolveAppTextStyle(
@@ -670,16 +764,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 tone: AppTextTone.primary,
               ).copyWith(height: 1.12),
             ),
-            SizedBox(height: spacing.xs),
-            Text(
-              l10n.loginWelcomeDescription,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                tone: AppTextTone.secondary,
-              ).copyWith(height: 1.4),
-            ),
-            SizedBox(height: spacing.xl),
+            SizedBox(height: spacing.lg),
             _buildServerField(context, l10n, compact: true),
             SizedBox(height: spacing.md),
             _buildUsernameField(context, l10n),
@@ -689,9 +774,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               SizedBox(height: spacing.md),
               _buildErrorBlock(context, l10n),
             ],
-            SizedBox(height: spacing.xl),
-            _buildSubmitButton(context, l10n),
             SizedBox(height: spacing.lg),
+            _buildSubmitButton(context, l10n),
+            SizedBox(height: spacing.md),
             _buildTrustLine(context, l10n, centered: true),
           ],
         ),
@@ -736,6 +821,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       ),
       fillColor: _fieldFillColor(context),
       borderRadius: context.appRadius.mdBorder,
+      height: _fieldHeight(context),
     );
   }
 
@@ -757,6 +843,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       ),
       fillColor: _fieldFillColor(context),
       borderRadius: context.appRadius.mdBorder,
+      height: _fieldHeight(context),
     );
   }
 
@@ -799,6 +886,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       ),
       fillColor: _fieldFillColor(context),
       borderRadius: context.appRadius.mdBorder,
+      height: _fieldHeight(context),
     );
   }
 

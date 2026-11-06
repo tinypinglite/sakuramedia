@@ -41,6 +41,8 @@ void main() {
 
     await tester.tap(find.byKey(const Key('movies-sort-trigger')));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('热度'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('热度'));
     await tester.pumpAndSettle();
 

@@ -33,7 +33,7 @@ import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
@@ -43,10 +43,9 @@ import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_hint_box.dart';
 import 'package:sakuramedia/widgets/domain/videos/video_sort_menu_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_summary_card.dart';
@@ -318,74 +317,82 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
       }
     });
 
-    return ColoredBox(
-      color: context.appColors.surfaceCard,
-      child: Column(
-        children: [
-          Expanded(
-            child: AppFilterResultLoadingOverlay(
-              surfaceColor: context.appColors.surfaceCard,
-              protectedHeaderKey: _listHeaderKey,
-              scrollController: _scrollController,
-              isLoading: paged.filterUpdate.isLoading,
-              hasPreviousItems: paged.items.isNotEmpty,
-              child: AppPagedLoadMoreScope(
-                canLoadMore: () =>
-                    ref
-                        .read(videoSummaryProvider(_scope))
-                        .value
-                        ?.paged
-                        .canAutoLoadMore ??
-                    false,
-                onLoadMore: () =>
-                    ref.read(videoSummaryProvider(_scope).notifier).loadMore(),
-                child: AppAdaptiveRefreshScrollView(
-                  key: const PageStorageKey<String>('mobile:pornbox:list'),
-                  controller: _scrollController,
-                  onRefresh: _refresh,
-                  slivers: <Widget>[
-                    SliverToBoxAdapter(
-                      child: _buildCollectionsSection(context),
-                    ),
-                    AppPinnedListHeader(
-                      key: _listHeaderKey,
-                      color: context.appColors.surfaceCard,
-                      child: _buildVideosHeader(
-                        context,
-                        paged: paged,
-                        filter: filter,
-                      ),
-                    ),
-                    _buildVideosSliver(
-                      context,
-                      paged: paged,
-                      initialErrorMessage: paged.initialError != null
-                          ? l10n.errorVideoListLoadFailed
-                          : null,
-                    ),
-                    // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
-                    // 隐藏时保留 lg 底部边距（原语义）。
-                    PagedLoadMoreFooterSliver(
-                      hiddenSpacing: PagedFooterSpacing.lg,
-                      watchFooter: (ref) => ref.watch(
-                        videoSummaryProvider(_scope).select(
-                          (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
+    final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
+    return Column(
+      children: [
+        Expanded(
+          child: AppFilterResultLoadingOverlay(
+            surfaceColor: highContrast
+                ? context.appColors.surfacePage
+                : context.appColors.surfaceCard.withValues(alpha: 0.9),
+            protectedHeaderKey: _listHeaderKey,
+            scrollController: _scrollController,
+            isLoading: paged.filterUpdate.isLoading,
+            hasPreviousItems: paged.items.isNotEmpty,
+            child: AppPagedLoadMoreScope(
+              canLoadMore: () =>
+                  ref
+                      .read(videoSummaryProvider(_scope))
+                      .value
+                      ?.paged
+                      .canAutoLoadMore ??
+                  false,
+              onLoadMore: () =>
+                  ref.read(videoSummaryProvider(_scope).notifier).loadMore(),
+              child: AppAdaptiveRefreshScrollView(
+                key: const PageStorageKey<String>('mobile:pornbox:list'),
+                controller: _scrollController,
+                onRefresh: _refresh,
+                slivers: <Widget>[
+                  AppPinnedSliverSection(
+                    headerKey: _listHeaderKey,
+                    before: <Widget>[
+                      SliverToBoxAdapter(
+                        child: AppMobilePageTitle(
+                          key: const Key('mobile-pornbox-large-title'),
+                          title: l10n.routeVideosTitle,
                         ),
                       ),
-                      onLoadMore: (ref) => unawaited(
-                        ref
-                            .read(videoSummaryProvider(_scope).notifier)
-                            .loadMore(),
+                      SliverToBoxAdapter(
+                        child: _buildCollectionsSection(context),
                       ),
+                    ],
+                    header: _buildVideosHeader(
+                      context,
+                      paged: paged,
+                      filter: filter,
                     ),
-                  ],
-                ),
+                    headerBottomSpacing: context.appSpacing.md,
+                    after: <Widget>[
+                      _buildVideosSliver(
+                        context,
+                        paged: paged,
+                        initialErrorMessage: paged.initialError != null
+                            ? l10n.errorVideoListLoadFailed
+                            : null,
+                      ),
+                      PagedLoadMoreFooterSliver(
+                        hiddenSpacing: PagedFooterSpacing.lg,
+                        watchFooter: (ref) => ref.watch(
+                          videoSummaryProvider(_scope).select(
+                            (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
+                          ),
+                        ),
+                        onLoadMore: (ref) => unawaited(
+                          ref
+                              .read(videoSummaryProvider(_scope).notifier)
+                              .loadMore(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
-          if (selectionMode) _buildBatchBar(context),
-        ],
-      ),
+        ),
+        if (selectionMode) _buildBatchBar(context),
+      ],
     );
   }
 
@@ -393,60 +400,49 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
 
   Widget _buildCollectionsSection(BuildContext context) {
     final spacing = context.appSpacing;
-    final componentTokens = context.appComponentTokens;
     final l10n = AppLocalizations.of(context);
     return Consumer(
       builder: (context, ref, _) {
         final async = ref.watch(videoCollectionsOverviewProvider);
         final collections = async.value ?? const <VideoCollectionDto>[];
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 与 _buildVideosHeader 的 AppListHeader 对齐：top: xs + 固定
-            // mobileTopTabHeight 容器，标题行垂直居中。
-            Padding(
-              padding: EdgeInsets.only(top: spacing.xs),
-              child: SizedBox(
-                height: componentTokens.mobileTopTabHeight,
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: spacing.sm),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.only(top: spacing.sm),
                 child: Row(
                   children: [
                     Text(
                       l10n.videoCollectionsTitle,
                       style: resolveAppTextStyle(
                         context,
-                        size: AppTextSize.s16,
+                        size: AppTextSize.s18,
                         weight: AppTextWeight.semibold,
                         tone: AppTextTone.primary,
                       ),
                     ),
                     const Spacer(),
-                    AppIconButton(
-                      key: const Key('mobile-pornbox-create-collection-button'),
-                      tooltip: l10n.videoNewCollection,
-                      onPressed: _createCollection,
-                      icon: const Icon(Icons.add_rounded),
-                    ),
-                    if (collections.isNotEmpty) ...[
-                      SizedBox(width: spacing.xs),
-                      AppTextButton(
+                    if (collections.isNotEmpty)
+                      AppGlassIconButton(
                         key: const Key(
                           'mobile-pornbox-view-all-collections-button',
                         ),
-                        label: l10n.videoViewAll,
-                        size: AppTextButtonSize.xSmall,
+                        tooltip: l10n.videoViewAll,
+                        icon: Icons.chevron_right_rounded,
                         onPressed: _viewAllCollections,
                       ),
-                    ],
                   ],
                 ),
               ),
-            ),
-            Padding(
-              padding: EdgeInsets.only(top: spacing.md),
-              child: _buildCollectionsRow(context, async, collections),
-            ),
-            SizedBox(height: spacing.sm),
-          ],
+              Padding(
+                padding: EdgeInsets.only(top: spacing.md),
+                child: _buildCollectionsRow(context, async, collections),
+              ),
+              SizedBox(height: spacing.sm),
+            ],
+          ),
         );
       },
     );
@@ -478,9 +474,7 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
     return AppSkeletonizer(
       enabled: isLoading,
       child: SizedBox(
-        // CollectionCoverCard 内容下限：16:9 封面 + sm padding + s14 标题 + 边框 ≈ 105，
-        // 故 height 不能低于 ~110。保持 116（原值），只收紧宽度 132 → 116 已减少占用。
-        height: 116,
+        height: 88,
         child: ListView.separated(
           key: const Key('mobile-pornbox-collections-row'),
           scrollDirection: Axis.horizontal,
@@ -490,17 +484,14 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
           itemBuilder: (context, index) {
             final collection = display[index];
             return SizedBox(
-              width: 116, // L2 收紧：132 → 116
-              // 卡片按内容自然高度渲染，避免被固定行高拉伸后在标题下方留白。
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: CollectionCard.video(
-                  key: Key('mobile-video-collection-card-${collection.id}'),
-                  collection: collection,
-                  onTap: () => MobileVideoCollectionDetailRouteData(
-                    collectionId: collection.id,
-                  ).push(context),
-                ),
+              width: 156,
+              child: CollectionCard.video(
+                key: Key('mobile-video-collection-card-${collection.id}'),
+                collection: collection,
+                coverBackdrop: true,
+                onTap: () => MobileVideoCollectionDetailRouteData(
+                  collectionId: collection.id,
+                ).push(context),
               ),
             );
           },
@@ -521,45 +512,33 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
       final l10n = AppLocalizations.of(context);
       final videoIds = videos.map((video) => video.id);
       final allSelected = isAllSelected(videoIds);
-      return AppListHeader.selection(
+      return AppMobileSelectionHeader(
         selectionLabel: l10n.videoSelectedCount(selectedCount),
-        selectionExitButtonKey: const Key(
-          'mobile-pornbox-exit-selection-button',
-        ),
+        countKey: const Key('mobile-pornbox-selection-count'),
+        exitKey: const Key('mobile-pornbox-exit-selection-button'),
         onExitSelection: exitSelection,
-        actionSlots: [
-          AppButton(
-            key: const Key('mobile-pornbox-select-all-button'),
-            label: allSelected
-                ? l10n.videoDeselectAll
-                : l10n.videoSelectAllCount(videos.length),
-            variant: AppButtonVariant.ghost,
-            size: AppButtonSize.xSmall,
-            isSelected: allSelected,
-            onPressed: videos.isEmpty ? null : () => toggleSelectAll(videoIds),
-          ),
-        ],
+        selectAllKey: const Key('mobile-pornbox-select-all-button'),
+        selectAllTooltip: allSelected
+            ? l10n.videoDeselectAll
+            : l10n.videoSelectAllCount(videos.length),
+        onToggleAll: videos.isEmpty ? null : () => toggleSelectAll(videoIds),
       );
     }
 
     final l10n = AppLocalizations.of(context);
-    return AppListHeader(
-      filterButtonKey: const Key('mobile-pornbox-filter-button'),
-      filterTooltip: l10n.videoFilter,
-      filterLabel: filter.triggerLabel(l10n),
-      onFilterTap: _openFilterDrawer,
-      filterUpdate: paged.filterUpdate,
-      hasPreviousFilterItems: videos.isNotEmpty,
-      onRetryFilter: () => unawaited(
-        ref.read(videoSummaryProvider(_scope).notifier).retryFilter(),
+    return AppMobileListHeader(
+      leading: AppMobileHeaderText(
+        key: const Key('mobile-pornbox-total'),
+        title: l10n.videoAllVideosTitle,
+        countLabel: l10n.videoTotalCount(paged.total),
       ),
-      informationSlots: [
-        AppListHeaderInfo(
-          key: const Key('mobile-pornbox-total'),
-          label: l10n.videoTotalCount(paged.total),
+      actions: <Widget>[
+        AppGlassFilterIconButton(
+          key: const Key('mobile-pornbox-filter-button'),
+          summary: filter.triggerLabel(l10n),
+          isActive: filter.hasActiveFilters,
+          onPressed: _openFilterDrawer,
         ),
-      ],
-      actionSlots: [
         VideoSortMenuButton(
           triggerKey: const Key('mobile-pornbox-sort-trigger'),
           drawerKey: const Key('mobile-pornbox-sort-drawer'),
@@ -567,8 +546,20 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
           filterState: filter,
           onChanged: _applyFilter,
           useDrawer: true,
+          iconOnly: true,
+        ),
+        AppGlassIconButton(
+          key: const Key('mobile-pornbox-create-collection-button'),
+          tooltip: l10n.videoNewCollection,
+          icon: Icons.add_rounded,
+          onPressed: _createCollection,
         ),
       ],
+      filterUpdate: paged.filterUpdate,
+      hasPreviousFilterItems: videos.isNotEmpty,
+      onRetryFilter: () => unawaited(
+        ref.read(videoSummaryProvider(_scope).notifier).retryFilter(),
+      ),
     );
   }
 
@@ -610,40 +601,42 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
         ),
       );
     }
-    // 网格横向缩进由 shell 提供；用 Sliver 瀑布流直接消费外层 CustomScrollView，
-    // 自带懒构建（按视口构建 tile），避免 SliverToBoxAdapter+Stack 一次性 build N 张卡。
-    return AppSkeletonizer.sliver(
-      enabled: isLoading,
-      child: AppAdaptiveCardSliver<VideoItemListItemDto>(
-        gridKey: const Key('mobile-pornbox-grid'),
-        items: videos,
-        layout: AppAdaptiveCardGridLayout.masonry,
-        tileAspect: (index) => _resolveCoverAspect(
-          videos[index].coverWidth,
-          videos[index].coverHeight,
+    // shell 已给 8px 外框，网格再内收 8px，与标题和控制条的 16px 内容线对齐。
+    return SliverPadding(
+      padding: EdgeInsets.symmetric(horizontal: context.appSpacing.sm),
+      sliver: AppSkeletonizer.sliver(
+        enabled: isLoading,
+        child: AppAdaptiveCardSliver<VideoItemListItemDto>(
+          gridKey: const Key('mobile-pornbox-grid'),
+          items: videos,
+          layout: AppAdaptiveCardGridLayout.masonry,
+          tileAspect: (index) => _resolveCoverAspect(
+            videos[index].coverWidth,
+            videos[index].coverHeight,
+          ),
+          itemBuilder: (context, video, index) {
+            // Builder 是为了拿到**这一张卡自己**的 RenderBox，长按浮层要盖住它。
+            return Builder(
+              builder: (cardContext) {
+                final card = VideoSummaryCard(
+                  video: video,
+                  onTap: selectionMode ? null : () => _openSheet(video),
+                  selectionMode: selectionMode,
+                  isSelected: isSelected(video.id),
+                  onSelectedChanged: (_) => toggleSelect(video.id),
+                );
+                if (selectionMode) {
+                  return card;
+                }
+                return AppContextMenuTrigger(
+                  onRequestMenu: (position) =>
+                      _openCardMenu(cardContext, video, position),
+                  child: card,
+                );
+              },
+            );
+          },
         ),
-        itemBuilder: (context, video, index) {
-          // Builder 是为了拿到**这一张卡自己**的 RenderBox，长按浮层要盖住它。
-          return Builder(
-            builder: (cardContext) {
-              final card = VideoSummaryCard(
-                video: video,
-                onTap: selectionMode ? null : () => _openSheet(video),
-                selectionMode: selectionMode,
-                isSelected: isSelected(video.id),
-                onSelectedChanged: (_) => toggleSelect(video.id),
-              );
-              if (selectionMode) {
-                return card;
-              }
-              return AppContextMenuTrigger(
-                onRequestMenu: (position) =>
-                    _openCardMenu(cardContext, video, position),
-                child: card,
-              );
-            },
-          );
-        },
       ),
     );
   }

@@ -12,12 +12,13 @@ import 'package:sakuramedia/features/moment_collections/presentation/providers/m
 import 'package:sakuramedia/features/moment_collections/presentation/widgets/moment_collection_editor.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_search_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_glass_search_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_wrap.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
@@ -68,33 +69,33 @@ class _MomentCollectionsContentState
         children: [
           Padding(
             padding: EdgeInsets.only(top: context.appSpacing.sm),
-            child: AppSearchField(
-              fieldKey: const Key('mobile-moment-collections-search-field'),
-              controller: _searchController,
-              hintText: l10n.momentCollectionSearchHint,
-              onChanged: (value) =>
-                  setState(() => _keyword = value.trim().toLowerCase()),
-              clearKey: const Key('mobile-moment-collections-search-clear'),
+            child: Row(
+              children: [
+                Expanded(
+                  child: AppGlassSearchField(
+                    fieldKey: const Key(
+                      'mobile-moment-collections-search-field',
+                    ),
+                    controller: _searchController,
+                    hintText: l10n.momentCollectionSearchHint,
+                    onChanged: (value) =>
+                        setState(() => _keyword = value.trim().toLowerCase()),
+                    clearKey: const Key(
+                      'mobile-moment-collections-search-clear',
+                    ),
+                  ),
+                ),
+                SizedBox(width: context.appSpacing.sm),
+                AppGlassIconButton(
+                  key: const Key('mobile-moment-collections-create-button'),
+                  tooltip: l10n.momentCollectionCreateTitle,
+                  icon: Icons.add_rounded,
+                  onPressed: () => _edit(context, ref),
+                ),
+              ],
             ),
           ),
           Expanded(child: _buildMobileBody(context, ref, async)),
-          Container(
-            padding: EdgeInsets.all(context.appSpacing.md),
-            decoration: BoxDecoration(
-              color: context.appColors.surfaceCard,
-              border: Border(top: BorderSide(color: context.appColors.divider)),
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              child: AppButton(
-                key: const Key('mobile-moment-collections-create-button'),
-                label: l10n.momentCollectionCreateTitle,
-                variant: AppButtonVariant.primary,
-                icon: const Icon(Icons.add_rounded),
-                onPressed: () => _edit(context, ref),
-              ),
-            ),
-          ),
         ],
       );
     }

@@ -13,6 +13,8 @@ class ActorSortMenuButton extends StatelessWidget {
     required this.filterState,
     required this.onChanged,
     this.useDrawer = false,
+    this.glassGrouped = false,
+    this.iconOnly = false,
     this.keyPrefix = 'actors',
     this.triggerKey,
     this.panelKey,
@@ -22,6 +24,8 @@ class ActorSortMenuButton extends StatelessWidget {
   final ActorFilterState filterState;
   final ValueChanged<ActorFilterState> onChanged;
   final bool useDrawer;
+  final bool glassGrouped;
+  final bool iconOnly;
   final String keyPrefix;
   final Key? triggerKey;
   final Key? panelKey;
@@ -42,14 +46,15 @@ class ActorSortMenuButton extends StatelessWidget {
       onDirectionChanged: (value) =>
           onChanged(filterState.copyWith(sortDirection: value)),
       useDrawer: useDrawer,
+      glassGrouped: glassGrouped,
+      iconOnly: iconOnly,
       enabled: !searching,
       triggerLabel: relevance ? l10n.widgetActorSortRelevance : null,
-      tooltip:
-          relevance
-              ? l10n.widgetActorSortRelevanceTooltip
-              : (searching
-                  ? l10n.widgetActorSortDisabledWhileSearching
-                  : l10n.widgetActorSort),
+      tooltip: relevance
+          ? l10n.widgetActorSortRelevanceTooltip
+          : (searching
+                ? l10n.widgetActorSortDisabledWhileSearching
+                : l10n.widgetActorSort),
       triggerKey: triggerKey,
       panelKey: panelKey,
       drawerKey: drawerKey,

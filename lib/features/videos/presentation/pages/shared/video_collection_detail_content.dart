@@ -24,20 +24,22 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_member_views.dart';
 import 'package:sakuramedia/widgets/domain/videos/video_collection_sort_menu_button.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
-import 'package:skeletonizer/skeletonizer.dart';
 
 typedef VideoCollectionPlaySingle =
     Future<void> Function(BuildContext context, int videoId, String title);
@@ -140,6 +142,7 @@ class _VideoCollectionDetailContentState
     extends ConsumerState<VideoCollectionDetailContent>
     with MultiSelectStateMixin<VideoCollectionDetailContent, int> {
   late final ScrollController _itemsScrollController;
+  final _listHeaderKey = GlobalKey();
 
   VideoCollectionDetailProvider get _providerRef =>
       videoCollectionDetailProvider(widget.collectionId);
@@ -184,42 +187,21 @@ class _VideoCollectionDetailContentState
         final displayState = isLoading
             ? videoCollectionDetailPlaceholder()
             : state!;
+        final hasListHeader =
+            displayState.items.isNotEmpty || !displayState.filterUpdate.isIdle;
         return AppSkeletonizer(
           enabled: isLoading,
-          child: Column(
-            key: Key('${widget.keyPrefix}-detail-page'),
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 移动端标题报到返回栏，页面内不再写第二遍大标题。
-              if (!widget.hoistTitleToSubpageShell)
-                _buildTitleBlock(context, displayState),
-              // 空合集没什么可排序 / 可选择的，顶栏整条省掉。
-              if (displayState.items.isNotEmpty ||
-                  !displayState.filterUpdate.isIdle) ...[
-                if (!widget.hoistTitleToSubpageShell)
-                  SizedBox(height: context.appSpacing.md),
-                if (selectionMode)
-                  _buildSelectionHeader(context, displayState)
-                else
-                  _buildListHeader(context, displayState),
-              ],
-              SizedBox(
-                height: _isMobile
-                    ? context.appSpacing.md
-                    : context.appSpacing.lg,
-              ),
-              Expanded(
-                child: AppFilterResultLoadingOverlay(
-                  surfaceColor: widget.surfaceColor,
-                  isLoading: displayState.filterUpdate.isLoading,
-                  hasPreviousItems: displayState.items.isNotEmpty,
-                  child: _buildBody(context, displayState),
+          child: _isMobile
+              ? _buildMobileLayout(
+                  context,
+                  displayState,
+                  hasListHeader: hasListHeader,
+                )
+              : _buildDesktopLayout(
+                  context,
+                  displayState,
+                  hasListHeader: hasListHeader,
                 ),
-              ),
-              if (_isMobile && selectionMode)
-                _buildBatchBar(context, displayState),
-            ],
-          ),
         );
       },
     );
@@ -228,6 +210,130 @@ class _VideoCollectionDetailContentState
       return content;
     }
     return AppPageRefreshScope(onRefresh: notifier.refresh, child: content);
+  }
+
+  Widget _buildDesktopLayout(
+    BuildContext context,
+    VideoCollectionDetailState state, {
+    required bool hasListHeader,
+  }) {
+    final description = state.collection.description.trim();
+    return Column(
+      key: Key('${widget.keyPrefix}-detail-page'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!widget.hoistTitleToSubpageShell && !hasListHeader)
+          _buildTitleBlock(context, state),
+        if (hasListHeader)
+          selectionMode
+              ? _buildSelectionHeader(context, state)
+              : _buildListHeader(context, state),
+        if (!widget.hoistTitleToSubpageShell &&
+            hasListHeader &&
+            !selectionMode &&
+            description.isNotEmpty) ...[
+          SizedBox(height: context.appSpacing.sm),
+          Text(
+            description,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.secondary,
+            ),
+          ),
+        ],
+        SizedBox(height: context.appSpacing.lg),
+        Expanded(
+          child: AppFilterResultLoadingOverlay(
+            surfaceColor: widget.surfaceColor,
+            isLoading: state.filterUpdate.isLoading,
+            hasPreviousItems: state.items.isNotEmpty,
+            child: _buildBody(context, state),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout(
+    BuildContext context,
+    VideoCollectionDetailState state, {
+    required bool hasListHeader,
+  }) {
+    final description = state.collection.description.trim();
+    return Column(
+      key: Key('${widget.keyPrefix}-detail-page'),
+      children: [
+        Expanded(
+          child: AppFilterResultLoadingOverlay(
+            surfaceColor: widget.surfaceColor,
+            isLoading: state.filterUpdate.isLoading,
+            hasPreviousItems: state.items.isNotEmpty,
+            child: CustomScrollView(
+              key: Key('${widget.keyPrefix}-detail-scroll'),
+              controller: _itemsScrollController,
+              slivers: <Widget>[
+                if (hasListHeader)
+                  AppPinnedSliverSection(
+                    headerKey: _listHeaderKey,
+                    before: <Widget>[
+                      if (widget.hoistTitleToSubpageShell) ...[
+                        SliverToBoxAdapter(
+                          child: _buildMobileHero(context, state),
+                        ),
+                        SliverToBoxAdapter(
+                          child: SizedBox(height: context.appSpacing.md),
+                        ),
+                      ],
+                    ],
+                    header: selectionMode
+                        ? _buildSelectionHeader(context, state)
+                        : _buildListHeader(context, state),
+                    headerBottomSpacing: context.appSpacing.md,
+                    after: <Widget>[
+                      if (!widget.hoistTitleToSubpageShell &&
+                          !selectionMode &&
+                          description.isNotEmpty)
+                        SliverToBoxAdapter(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              bottom: context.appSpacing.md,
+                            ),
+                            child: Text(
+                              description,
+                              style: resolveAppTextStyle(
+                                context,
+                                size: AppTextSize.s14,
+                                weight: AppTextWeight.regular,
+                                tone: AppTextTone.secondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ..._buildMobileBodySlivers(context, state),
+                    ],
+                  )
+                else ...[
+                  if (widget.hoistTitleToSubpageShell) ...[
+                    SliverToBoxAdapter(child: _buildMobileHero(context, state)),
+                    SliverToBoxAdapter(
+                      child: SizedBox(height: context.appSpacing.md),
+                    ),
+                  ] else
+                    SliverToBoxAdapter(child: _buildTitleBlock(context, state)),
+                  SliverToBoxAdapter(
+                    child: SizedBox(height: context.appSpacing.md),
+                  ),
+                  ..._buildMobileBodySlivers(context, state),
+                ],
+              ],
+            ),
+          ),
+        ),
+        if (selectionMode) _buildBatchBar(context, state),
+      ],
+    );
   }
 
   // --------------------------------------------------------- 状态三态
@@ -258,47 +364,27 @@ class _VideoCollectionDetailContentState
 
   // --------------------------------------------------------- 标题块
 
-  /// 标题块（仅桌面）：合集名 + 简介 + 「播放全部」主行动。
-  /// 「选择 / 视图切换」在下面那条 [AppListHeader] 的操作槽里，成员数在它的信息槽里。
+  /// 空合集标题块：有成员时合集名和「播放全部」收进筛选栏，不再单独占行。
   Widget _buildTitleBlock(
     BuildContext context,
     VideoCollectionDetailState state,
   ) {
     final collection = state.collection;
-    final items = state.items;
     final description = collection.description.trim();
-    final playAllBuilder = widget.playAllBuilder;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(
-              child: Text(
-                collection.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: resolveAppTextStyle(
-                  context,
-                  // 与切片合集详情统一 s18——两个合集详情是姊妹页。
-                  size: AppTextSize.s18,
-                  weight: AppTextWeight.semibold,
-                  tone: AppTextTone.primary,
-                ),
-              ),
-            ),
-            // 多选态隐藏主行动，避免和批量操作混在一起误触。
-            if (!selectionMode && playAllBuilder != null)
-              // 主行动保留品牌底色会显得「加载中也可用」，用 shade 随骨架一起灰化。
-              Skeleton.shade(
-                child: playAllBuilder(
-                  context,
-                  enabled: items.isNotEmpty,
-                  onPlayFrom: () => _playFrom(0),
-                ),
-              ),
-          ],
+        Text(
+          collection.name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: resolveAppTextStyle(
+            context,
+            // 与切片合集详情统一 s18——两个合集详情是姊妹页。
+            size: AppTextSize.s18,
+            weight: AppTextWeight.semibold,
+            tone: AppTextTone.primary,
+          ),
         ),
         if (description.isNotEmpty) ...[
           SizedBox(height: context.appSpacing.sm),
@@ -313,6 +399,116 @@ class _VideoCollectionDetailContentState
           ),
         ],
       ],
+    );
+  }
+
+  Widget _buildMobileHero(
+    BuildContext context,
+    VideoCollectionDetailState state,
+  ) {
+    final collection = state.collection;
+    final description = collection.description.trim();
+    final coverUrl = collection.coverImage?.origin.trim();
+    final l10n = AppLocalizations.of(context);
+    final spacing = context.appSpacing;
+    final overlay = context.appColors.mediaOverlayStrong;
+
+    return ClipRRect(
+      key: const Key('mobile-video-collection-hero'),
+      borderRadius: context.appRadius.lgBorder,
+      child: AspectRatio(
+        aspectRatio: 16 / 9,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            ColoredBox(color: context.appColors.surfaceMuted),
+            if (coverUrl != null && coverUrl.isNotEmpty)
+              MaskedImage(url: coverUrl, fit: BoxFit.cover)
+            else
+              Center(
+                child: Icon(
+                  Icons.video_collection_outlined,
+                  size: context.appComponentTokens.iconSizeXl,
+                  color: context.appTextPalette.muted,
+                ),
+              ),
+            DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: <Color>[
+                    overlay.withValues(alpha: 0.08),
+                    overlay.withValues(alpha: 0.18),
+                    overlay.withValues(alpha: 0.9),
+                  ],
+                  stops: const <double>[0, 0.45, 1],
+                ),
+              ),
+            ),
+            Positioned(
+              left: spacing.lg,
+              right: spacing.md,
+              bottom: spacing.md,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          collection.name,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: resolveAppTextStyle(
+                            context,
+                            size: AppTextSize.s24,
+                            weight: AppTextWeight.semibold,
+                            tone: AppTextTone.onMedia,
+                            height: 1.08,
+                          ),
+                        ),
+                        if (description.isNotEmpty) ...[
+                          SizedBox(height: spacing.xs),
+                          Text(
+                            description,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style:
+                                resolveAppTextStyle(
+                                  context,
+                                  size: AppTextSize.s12,
+                                  weight: AppTextWeight.regular,
+                                  tone: AppTextTone.onMedia,
+                                  height: 1.35,
+                                ).copyWith(
+                                  color: context.appTextPalette.onMedia
+                                      .withValues(alpha: 0.78),
+                                ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: spacing.md),
+                  AppGlassIconButton(
+                    key: const Key('mobile-video-collection-hero-play-button'),
+                    tooltip: l10n.videoPlayAll,
+                    icon: Icons.play_arrow_rounded,
+                    foregroundColor: Theme.of(context).colorScheme.primary,
+                    size: 48,
+                    iconSize: 26,
+                    prominent: true,
+                    onPressed: state.items.isEmpty ? null : () => _playFrom(0),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -336,29 +532,24 @@ class _VideoCollectionDetailContentState
 
   // --------------------------------------------------------- 顶栏
 
-  /// 成员列表顶栏：与影片 / PornBox 列表页共用同一条 `AppListHeader`。
-  /// 筛选入口收排序，信息槽放成员数，右侧操作槽放「播放全部（移动）/ 选择 / 视图切换」。
+  /// 移动成员列表顶栏：玻璃外标题/计数 + 图标操作。
   Widget _buildListHeader(
     BuildContext context,
     VideoCollectionDetailState state,
   ) {
+    if (!_isMobile) {
+      return _buildDesktopGlassListHeader(context, state);
+    }
     final count = state.collection.itemCount == 0
         ? state.items.length
         : state.collection.itemCount;
-    final playAllBuilder = widget.playAllBuilder;
     final l10n = AppLocalizations.of(context);
-    return AppListHeader(
-      filterUpdate: state.filterUpdate,
-      hasPreviousFilterItems: state.items.isNotEmpty,
-      onRetryFilter: () =>
-          unawaited(ref.read(_providerRef.notifier).retrySort()),
-      informationSlots: [
-        AppListHeaderInfo(
-          key: Key('${widget.keyPrefix}-total'),
-          label: l10n.videoCollectionVideoCount(count),
-        ),
-      ],
-      actionSlots: [
+    return AppMobileListHeader(
+      leading: AppMobileHeaderText(
+        key: Key('${widget.keyPrefix}-total'),
+        countLabel: l10n.videoCollectionVideoCount(count),
+      ),
+      actions: <Widget>[
         VideoCollectionSortMenuButton(
           triggerKey: Key('${widget.keyPrefix}-sort-trigger'),
           panelKey: Key('${widget.keyPrefix}-sort-panel'),
@@ -367,28 +558,105 @@ class _VideoCollectionDetailContentState
           sort: state.sort,
           onChanged: _applySort,
           useDrawer: widget.useMobileSortDrawer,
+          iconOnly: true,
         ),
-        // 移动端「播放」入口在顶栏；桌面端在标题块。
-        if (_isMobile && playAllBuilder != null)
-          playAllBuilder(
-            context,
-            enabled: state.items.isNotEmpty,
-            onPlayFrom: () => _playFrom(0),
+        if (widget.playAllBuilder != null && state.items.isNotEmpty)
+          AppGlassIconButton(
+            key: const Key('mobile-video-collection-play-all-button'),
+            tooltip: l10n.videoPlayAll,
+            icon: Icons.play_arrow_rounded,
+            onPressed: () => _playFrom(0),
           ),
-        if (_isMobile)
-          AppTextButton(
-            key: Key('${widget.keyPrefix}-enter-selection-button'),
-            label: l10n.videoSelect,
-            size: AppTextButtonSize.xSmall,
-            icon: const Icon(Icons.check_circle_outline, size: 14),
-            onPressed: enterSelection,
-          )
-        else
-          AppSelectionEntryButton(
-            key: Key('${widget.keyPrefix}-enter-selection-button'),
-            onPressed: enterSelection,
-          ),
+        AppGlassIconButton(
+          key: Key('${widget.keyPrefix}-enter-selection-button'),
+          tooltip: l10n.videoSelect,
+          icon: Icons.check_circle_outline,
+          onPressed: enterSelection,
+        ),
       ],
+      filterUpdate: state.filterUpdate,
+      hasPreviousFilterItems: state.items.isNotEmpty,
+      onRetryFilter: () =>
+          unawaited(ref.read(_providerRef.notifier).retrySort()),
+    );
+  }
+
+  /// 桌面端把合集名、排序、成员数和「播放全部 / 选择」收进同一条筛选栏。
+  /// 外层 [AppGlassListHeader] 横向可滚动，窗口变窄时操作不会被截断。
+  Widget _buildDesktopGlassListHeader(
+    BuildContext context,
+    VideoCollectionDetailState state,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    final collection = state.collection;
+    final count = state.collection.itemCount == 0
+        ? state.items.length
+        : state.collection.itemCount;
+    final playAllBuilder = widget.playAllBuilder;
+    return AppGlassListHeader(
+      leading: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Tooltip(
+            message: collection.name,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: context.appLayoutTokens.filterFieldWidthXl,
+              ),
+              child: Text(
+                collection.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s18,
+                  weight: AppTextWeight.semibold,
+                  tone: AppTextTone.primary,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: context.appSpacing.md),
+          AppGlassHeaderGroup(
+            children: <Widget>[
+              VideoCollectionSortMenuButton(
+                triggerKey: Key('${widget.keyPrefix}-sort-trigger'),
+                panelKey: Key('${widget.keyPrefix}-sort-panel'),
+                keyPrefix: widget.keyPrefix,
+                sort: state.sort,
+                onChanged: _applySort,
+                glassGrouped: true,
+                fieldControlKey: Key('${widget.keyPrefix}-sort-field'),
+                directionControlKey: Key('${widget.keyPrefix}-sort-direction'),
+              ),
+              AppGlassHeaderText(
+                key: Key('${widget.keyPrefix}-total'),
+                label: l10n.videoCollectionVideoCount(count),
+              ),
+            ],
+          ),
+        ],
+      ),
+      trailing: AppGlassHeaderGroup(
+        children: <Widget>[
+          if (playAllBuilder != null)
+            playAllBuilder(
+              context,
+              enabled: state.items.isNotEmpty,
+              onPlayFrom: () => _playFrom(0),
+            ),
+          AppGlassHeaderButton(
+            key: Key('${widget.keyPrefix}-enter-selection-button'),
+            icon: Icons.check_circle_outline,
+            label: l10n.videoSelect,
+            onTap: enterSelection,
+          ),
+        ],
+      ),
+      filterUpdate: state.filterUpdate,
+      hasPreviousFilterItems: state.items.isNotEmpty,
+      onRetryFilter: () =>
+          unawaited(ref.read(_providerRef.notifier).retrySort()),
     );
   }
 
@@ -417,60 +685,49 @@ class _VideoCollectionDetailContentState
       BatchOperationType.videoDelete,
     ]);
     if (_isMobile) {
-      return AppListHeader.selection(
+      return AppMobileSelectionHeader(
         selectionLabel: l10n.videoSelectedCount(selectedCount),
-        selectionExitButtonKey: Key(
-          '${widget.keyPrefix}-exit-selection-button',
-        ),
+        countKey: Key('${widget.keyPrefix}-selection-count-text'),
+        exitKey: Key('${widget.keyPrefix}-exit-selection-button'),
         onExitSelection: exitSelection,
-        actionSlots: [
-          AppButton(
-            key: Key('${widget.keyPrefix}-select-all-button'),
-            label: allSelected ? l10n.videoDeselectAll : l10n.videoSelectAll,
-            variant: AppButtonVariant.ghost,
-            size: AppButtonSize.xSmall,
-            isSelected: allSelected,
-            onPressed: () => toggleSelectAll(videoIds),
-          ),
-        ],
+        selectAllKey: Key('${widget.keyPrefix}-select-all-button'),
+        selectAllTooltip: allSelected
+            ? l10n.videoDeselectAll
+            : l10n.videoSelectAll,
+        onToggleAll: () => toggleSelectAll(videoIds),
       );
     }
-    return AppSelectionHeaderToolbar(
-      countLabel: l10n.videoSelectedCount(selectedCount),
+    return AppGlassSelectionHeader(
+      selectionLabel: l10n.videoSelectedCount(selectedCount),
+      countKey: Key('${widget.keyPrefix}-selection-count-text'),
       selectAllLabel: allSelected ? l10n.videoDeselectAll : l10n.videoSelectAll,
       selectAllKey: Key('${widget.keyPrefix}-select-all-button'),
       onToggleAll: () => toggleSelectAll(videoIds),
-      actions: [
-        AppButton(
+      actions: <AppGlassSelectionAction>[
+        AppGlassSelectionAction(
           key: Key('${widget.keyPrefix}-batch-add-collection-button'),
           label: l10n.videoAddToCollection,
-          variant: AppButtonVariant.secondary,
-          size: AppButtonSize.small,
-          onPressed: hasSelection && !submitting
+          icon: Icons.playlist_add_rounded,
+          onTap: hasSelection && !submitting
               ? () => _batchAddToOtherCollection(state)
               : null,
         ),
-        AppButton(
+        AppGlassSelectionAction(
           key: Key('${widget.keyPrefix}-batch-remove-button'),
           label: l10n.videoRemoveFromCollectionTitle,
-          variant: AppButtonVariant.secondary,
-          size: AppButtonSize.small,
-          onPressed: hasSelection && !submitting
-              ? () => _batchRemove(state)
-              : null,
+          icon: Icons.playlist_remove_rounded,
+          onTap: hasSelection && !submitting ? () => _batchRemove(state) : null,
         ),
-        AppButton(
+        AppGlassSelectionAction(
           key: Key('${widget.keyPrefix}-batch-delete-button'),
           label: l10n.videoDeleteTitle,
-          variant: AppButtonVariant.danger,
-          size: AppButtonSize.small,
-          onPressed: hasSelection && !submitting
-              ? () => _batchDelete(state)
-              : null,
+          icon: Icons.delete_outline_rounded,
+          foregroundColor: context.appTextPalette.error,
+          onTap: hasSelection && !submitting ? () => _batchDelete(state) : null,
         ),
       ],
       exitKey: Key('${widget.keyPrefix}-exit-selection-button'),
-      onExit: exitSelection,
+      onExitSelection: exitSelection,
     );
   }
 
@@ -518,6 +775,43 @@ class _VideoCollectionDetailContentState
 
   // --------------------------------------------------------- body
 
+  List<Widget> _buildMobileBodySlivers(
+    BuildContext context,
+    VideoCollectionDetailState state,
+  ) {
+    if (state.items.isEmpty && state.filterUpdate.hasFailed) {
+      return const <Widget>[SliverToBoxAdapter(child: SizedBox.shrink())];
+    }
+    if (state.items.isEmpty) {
+      return <Widget>[
+        SliverFillRemaining(
+          hasScrollBody: false,
+          child: AppEmptyState(
+            message: AppLocalizations.of(context).videoCollectionEmptyHint,
+          ),
+        ),
+      ];
+    }
+    final items = state.items;
+    return <Widget>[
+      SliverPadding(
+        padding: EdgeInsets.only(
+          bottom: context.appSpacing.lg + MediaQuery.paddingOf(context).bottom,
+        ),
+        sliver: AppAdaptiveCardSliver<VideoCollectionItemDto>(
+          gridKey: Key('${widget.keyPrefix}-detail-grid'),
+          items: items,
+          layout: AppAdaptiveCardGridLayout.masonry,
+          tileAspect: (index) => _resolveCoverAspect(
+            items[index].video.coverWidth,
+            items[index].video.coverHeight,
+          ),
+          itemBuilder: (context, item, _) => _buildMemberCard(context, item),
+        ),
+      ),
+    ];
+  }
+
   Widget _buildBody(BuildContext context, VideoCollectionDetailState state) {
     if (state.items.isEmpty && state.filterUpdate.hasFailed) {
       return const SizedBox.shrink();
@@ -563,64 +857,60 @@ class _VideoCollectionDetailContentState
               item.video.coverWidth,
               item.video.coverHeight,
             );
-            final playSingle = widget.playSingle;
             return AspectRatio(
               aspectRatio: aspect,
-              child: CollectionMemberCard(
-                key: ValueKey<int>(item.video.id),
-                onLongPress: _isMobile && !selectionMode
-                    ? () {
-                        enterSelection();
-                        toggleSelect(item.video.id);
-                      }
-                    : null,
-                coverUrl: item.video.coverImage?.origin,
-                // expandToParent 模式下 coverAspectRatio 仅在 cover placeholder 时
-                // 影响占位比例；瀑布流 tile 已按真实比例分配高度，传 16:9 兜底即可。
-                coverAspectRatio: 16 / 9,
-                title: item.video.displayTitle(AppLocalizations.of(context)),
-                // 副信息只在桌面悬停面板渲染；移动端无 hover，收起态不铺文字。
-                subtitle: _formatReleaseDate(item.video.releaseDate),
-                onTap: selectionMode
-                    ? () => toggleSelect(item.video.id)
-                    : () => _openMemberActions(context, item),
-                menuKey: Key('${widget.keyPrefix}-grid-menu-${item.video.id}'),
-                onPlay: _isMobile || playSingle == null
-                    ? null
-                    : () => playSingle(
-                        context,
-                        item.video.id,
-                        item.video.displayTitle(AppLocalizations.of(context)),
-                      ),
-                playButtonKey: Key(
-                  '${widget.keyPrefix}-grid-play-${item.video.id}',
-                ),
-                onThumbnails: _isMobile ? null : () => _openThumbnails(item),
-                thumbnailsButtonKey: Key(
-                  '${widget.keyPrefix}-grid-thumbnails-${item.video.id}',
-                ),
-                onAddToCollection: _isMobile
-                    ? null
-                    : () => _addToOtherCollection(item),
-                addToCollectionButtonKey: Key(
-                  '${widget.keyPrefix}-grid-add-collection-${item.video.id}',
-                ),
-                onRemove: _isMobile ? null : () => _removeVideo(item.video.id),
-                removeButtonKey: Key(
-                  '${widget.keyPrefix}-grid-remove-${item.video.id}',
-                ),
-                onDelete: _isMobile ? null : () => _deleteVideo(item.video.id),
-                deleteButtonKey: Key(
-                  '${widget.keyPrefix}-grid-delete-${item.video.id}',
-                ),
-                expandToParent: true,
-                selectionMode: selectionMode,
-                isSelected: isSelected(item.video.id),
-              ),
+              child: _buildMemberCard(context, item),
             );
           },
         );
       },
+    );
+  }
+
+  Widget _buildMemberCard(BuildContext context, VideoCollectionItemDto item) {
+    final playSingle = widget.playSingle;
+    return CollectionMemberCard(
+      key: ValueKey<int>(item.video.id),
+      onLongPress: _isMobile && !selectionMode
+          ? () {
+              enterSelection();
+              toggleSelect(item.video.id);
+            }
+          : null,
+      coverUrl: item.video.coverImage?.origin,
+      // expandToParent 模式下 coverAspectRatio 仅在 cover placeholder 时
+      // 影响占位比例；瀑布流 tile 已按真实比例分配高度，传 16:9 兜底即可。
+      coverAspectRatio: 16 / 9,
+      title: item.video.displayTitle(AppLocalizations.of(context)),
+      // 副信息只在桌面悬停面板渲染；移动端无 hover，收起态不铺文字。
+      subtitle: _formatReleaseDate(item.video.releaseDate),
+      onTap: selectionMode
+          ? () => toggleSelect(item.video.id)
+          : () => _openMemberActions(context, item),
+      menuKey: Key('${widget.keyPrefix}-grid-menu-${item.video.id}'),
+      onPlay: _isMobile || playSingle == null
+          ? null
+          : () => playSingle(
+              context,
+              item.video.id,
+              item.video.displayTitle(AppLocalizations.of(context)),
+            ),
+      playButtonKey: Key('${widget.keyPrefix}-grid-play-${item.video.id}'),
+      onThumbnails: _isMobile ? null : () => _openThumbnails(item),
+      thumbnailsButtonKey: Key(
+        '${widget.keyPrefix}-grid-thumbnails-${item.video.id}',
+      ),
+      onAddToCollection: _isMobile ? null : () => _addToOtherCollection(item),
+      addToCollectionButtonKey: Key(
+        '${widget.keyPrefix}-grid-add-collection-${item.video.id}',
+      ),
+      onRemove: _isMobile ? null : () => _removeVideo(item.video.id),
+      removeButtonKey: Key('${widget.keyPrefix}-grid-remove-${item.video.id}'),
+      onDelete: _isMobile ? null : () => _deleteVideo(item.video.id),
+      deleteButtonKey: Key('${widget.keyPrefix}-grid-delete-${item.video.id}'),
+      expandToParent: true,
+      selectionMode: selectionMode,
+      isSelected: isSelected(item.video.id),
     );
   }
 

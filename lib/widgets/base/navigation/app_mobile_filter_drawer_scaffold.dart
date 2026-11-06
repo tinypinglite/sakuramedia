@@ -1,11 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_popover.dart';
 
 /// 移动端筛选底部抽屉的通用壳层：可滚动内容区 + 可选 footer。
 ///
-/// **刻意与桌面 `AppFilterPopover` 的面板结构逐行对齐**——同样是
+/// **刻意与桌面 `AppGlassFilterPopover` 的面板结构逐行对齐**——同样是
 /// `Flexible(SingleChildScrollView)` 包内容、footer 留在滚动区之外。两端筛选
 /// 面板因此是同一套内容 + 同一套行为（条件即时更新、footer 里重置），只有外层容器
 /// 不同：桌面浮层、移动底抽屉。
@@ -22,7 +22,7 @@ class AppMobileFilterDrawerScaffold extends StatelessWidget {
 
   final Widget child;
 
-  /// 通常是 `AppFilterPanelFooter`（与桌面面板同一个组件）。
+  /// 通常是 `AppGlassFilterFooter`。
   final Widget? footer;
 
   final Key? scrollViewKey;
@@ -69,6 +69,7 @@ class AppMobileFilterDrawer<T> extends StatefulWidget {
     required this.contentBuilder,
     this.extraActive,
     this.onExtraReset,
+    this.showResetFooter = true,
   });
 
   final T current;
@@ -89,6 +90,9 @@ class AppMobileFilterDrawer<T> extends StatefulWidget {
 
   /// 重置时额外要清掉的条件（如女优页筛选面板里的标签选择）。
   final VoidCallback? onExtraReset;
+
+  /// 为 false 时只保留筛选内容，不显示标准重置 footer。
+  final bool showResetFooter;
 
   @override
   State<AppMobileFilterDrawer<T>> createState() =>
@@ -118,7 +122,7 @@ class _AppMobileFilterDrawerState<T> extends State<AppMobileFilterDrawer<T>> {
   Widget build(BuildContext context) {
     Widget buildFooter() {
       final extra = widget.extraActive?.value ?? false;
-      return AppFilterPanelFooter(
+      return AppGlassFilterFooter(
         isDefault: widget.isDefault(_local) && !extra,
         onReset: _reset,
       );
@@ -127,11 +131,13 @@ class _AppMobileFilterDrawerState<T> extends State<AppMobileFilterDrawer<T>> {
     final extraActive = widget.extraActive;
     return AppMobileFilterDrawerScaffold(
       scrollViewKey: widget.scrollViewKey,
-      footer: extraActive == null
+      footer: !widget.showResetFooter
+          ? null
+          : extraActive == null
           ? buildFooter()
           : ListenableBuilder(
               listenable: extraActive,
-              builder: (_, __) => buildFooter(),
+              builder: (_, _) => buildFooter(),
             ),
       child: widget.contentBuilder(context, _local, _apply),
     );

@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_glass_surface.dart';
 
 Future<T?> showAppBottomDrawer<T>({
   required BuildContext context,
@@ -14,6 +15,7 @@ Future<T?> showAppBottomDrawer<T>({
   bool isDismissible = true,
   bool showHandle = true,
   EdgeInsetsGeometry? contentPadding,
+  AppModalGlassStrength glassStrength = kAppModalGlassStrength,
 }) {
   final shouldUseRouteSafeArea = useSafeArea && !ignoreTopSafeArea;
 
@@ -25,21 +27,25 @@ Future<T?> showAppBottomDrawer<T>({
     showDragHandle: false,
     enableDrag: enableDrag,
     isDismissible: isDismissible,
-    backgroundColor: context.appColors.surfaceCard,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.vertical(
-        top: Radius.circular(context.appRadius.lg),
-      ),
-    ),
-    clipBehavior: Clip.antiAlias,
+    barrierColor: context.appColors.modalBarrier,
+    backgroundColor: Colors.transparent,
+    elevation: 0,
+    shape: const RoundedRectangleBorder(),
+    clipBehavior: Clip.none,
     builder: (sheetContext) {
-      Widget drawer = AppBottomDrawerSurface(
-        key: drawerKey,
-        heightFactor: heightFactor,
-        maxHeightFactor: maxHeightFactor,
-        showHandle: showHandle,
-        contentPadding: contentPadding,
-        child: builder(sheetContext),
+      final spacing = sheetContext.appSpacing;
+      Widget drawer = Padding(
+        padding: EdgeInsets.all(spacing.sm),
+        child: AppBottomDrawerSurface(
+          key: drawerKey,
+          heightFactor: heightFactor,
+          maxHeightFactor: maxHeightFactor,
+          showHandle: showHandle,
+          contentPadding: contentPadding,
+          glassStrength: glassStrength,
+          verticalMargin: spacing.sm,
+          child: builder(sheetContext),
+        ),
       );
 
       if (useSafeArea && ignoreTopSafeArea) {
@@ -51,7 +57,6 @@ Future<T?> showAppBottomDrawer<T>({
           child: drawer,
         );
       }
-
       return drawer;
     },
   );
@@ -65,37 +70,54 @@ class AppBottomDrawerSurface extends StatelessWidget {
     this.maxHeightFactor,
     this.showHandle = true,
     this.contentPadding,
+    this.glassStrength = kAppModalGlassStrength,
+    this.verticalMargin = 0,
   });
 
-  static const double _handleWidth = 28;
-  static const double _handleHeight = 3;
-  static const double _handleTopSpacing = 6;
+  static const double _handleWidth = 36;
+  static const double _handleHeight = 5;
+  static const double _handleTopSpacing = 9;
 
   final Widget child;
   final double heightFactor;
   final double? maxHeightFactor;
   final bool showHandle;
   final EdgeInsetsGeometry? contentPadding;
+  final AppModalGlassStrength glassStrength;
+
+  /// 外層浮动边距的上下部分，只参与高度预算，不在这里实际绘制。
+  final double verticalMargin;
 
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.sizeOf(context).height;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final availableHeight = (screenHeight - bottomInset).clamp(
-      0.0,
-      screenHeight,
-    );
+    final availableHeight = (screenHeight - bottomInset - verticalMargin * 2)
+        .clamp(0.0, screenHeight);
     final colors = context.appColors;
+    final spacing = context.appSpacing;
     final resolvedContentPadding =
-        contentPadding ?? EdgeInsets.all(context.appSpacing.lg);
+        (contentPadding ?? EdgeInsets.all(spacing.lg)).resolve(
+          Directionality.of(context),
+        );
+    final handleSpace = showHandle
+        ? _handleTopSpacing + _handleHeight + spacing.sm
+        : spacing.sm;
+    final contentInsets = EdgeInsets.fromLTRB(
+      resolvedContentPadding.left,
+      resolvedContentPadding.top + handleSpace,
+      resolvedContentPadding.right,
+      resolvedContentPadding.bottom + spacing.sm,
+    );
 
-    final content = Material(
-      color: colors.surfaceCard,
+    final content = AppModalGlassSurface(
+      strength: glassStrength,
       child: Stack(
+        fit: StackFit.passthrough,
         children: [
           Padding(
             key: const Key('app-bottom-drawer-content'),
-            padding: resolvedContentPadding,
+            padding: contentInsets,
             child: child,
           ),
           if (showHandle)
@@ -107,7 +129,7 @@ class AppBottomDrawerSurface extends StatelessWidget {
                 child: DecoratedBox(
                   key: const Key('app-bottom-drawer-handle'),
                   decoration: BoxDecoration(
-                    color: colors.borderStrong,
+                    color: colors.borderStrong.withValues(alpha: 0.90),
                     borderRadius: context.appRadius.pillBorder,
                   ),
                   child: const SizedBox(

@@ -8,6 +8,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
@@ -44,7 +45,7 @@ Future<ClipCollectionDto?> _showClipCollectionEditDialog(
 }) {
   switch (presentation) {
     case ClipCollectionEditPresentation.dialog:
-      return showDialog<ClipCollectionDto>(
+      return showAppDialog<ClipCollectionDto>(
         context: context,
         builder: (dialogContext) =>
             ClipCollectionEditDialog(collection: collection),

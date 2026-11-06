@@ -16,10 +16,12 @@ enum AppTextButtonSelectedStyle { tinted, plain }
 
 /// 文字按钮的强调级别。
 ///
-/// [normal] 为默认的 muted 文字；[accent] 用主色文字 + 淡主色底，
-/// 适合「新建 / 添加 / 播放」这类需要突出的动作按钮。视觉同 [AppTextButtonSelectedStyle.tinted]，
-/// 但语义独立于 `isSelected`（后者表达「当前选中」，如排序的最新/最早）。
-enum AppTextButtonEmphasis { normal, accent }
+/// [normal] 为默认的 muted 文字；[secondary] 用 secondary 文字、无底色，
+/// 适合「查看全部」这类可交互但不应抢主操作的导航链接；[accent] 用主色文字
+/// + 淡主色底，适合「新建 / 添加 / 播放」这类需要突出的动作按钮。视觉同
+/// [AppTextButtonSelectedStyle.tinted]，但语义独立于 `isSelected`（后者表达
+/// 「当前选中」，如排序的最新/最早）。
+enum AppTextButtonEmphasis { normal, secondary, accent }
 
 class AppTextButton extends StatelessWidget {
   const AppTextButton({
@@ -101,8 +103,13 @@ class AppTextButton extends StatelessWidget {
     final borderRadius = context.appRadius.smBorder;
     final isPlainSelected =
         isSelected && selectedStyle == AppTextButtonSelectedStyle.plain;
-    final isAccent = isSelected || emphasis == AppTextButtonEmphasis.accent;
-    final tone = isAccent ? AppTextTone.accent : AppTextTone.muted;
+    final tone = isSelected
+        ? AppTextTone.accent
+        : switch (emphasis) {
+            AppTextButtonEmphasis.accent => AppTextTone.accent,
+            AppTextButtonEmphasis.secondary => AppTextTone.secondary,
+            AppTextButtonEmphasis.normal => AppTextTone.muted,
+          };
     final foregroundColor = resolveAppTextToneColor(context, tone);
     final usesAccentBackground =
         (isSelected && selectedStyle == AppTextButtonSelectedStyle.tinted) ||

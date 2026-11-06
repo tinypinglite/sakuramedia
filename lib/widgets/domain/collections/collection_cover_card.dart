@@ -1,3 +1,4 @@
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
@@ -31,6 +32,8 @@ class CollectionCoverCard extends StatelessWidget {
     this.placeholderIcon = Icons.video_library_outlined,
     this.onEdit,
     this.onDelete,
+    this.glassChrome = false,
+    this.coverBackdrop = false,
   });
 
   /// 合集名称（底部单行标题）。
@@ -66,6 +69,12 @@ class CollectionCoverCard extends StatelessWidget {
   /// 右键 / 长按菜单的「删除」动作。
   final VoidCallback? onDelete;
 
+  /// 封面内浮玻璃信息条；为 `true` 时不再渲染封面下方的实色标题栏。
+  final bool glassChrome;
+
+  /// contain 封面两侧是否铺一层同图暗底，避免竖图在 16:9 框里露出两块空色。
+  final bool coverBackdrop;
+
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
@@ -82,9 +91,18 @@ class CollectionCoverCard extends StatelessWidget {
           children: [
             // muted 底色：cover 时被封面盖满，contain 时填充留白。
             ColoredBox(color: colors.surfaceMuted),
-            if (cover != null && cover.isNotEmpty)
-              MaskedImage(url: cover, fit: coverFit)
-            else
+            if (cover != null && cover.isNotEmpty) ...[
+              if (coverBackdrop && coverFit != BoxFit.cover) ...[
+                Opacity(
+                  opacity: 0.42,
+                  child: MaskedImage(url: cover, fit: BoxFit.cover),
+                ),
+                ColoredBox(
+                  color: colors.mediaOverlayStrong.withValues(alpha: 0.22),
+                ),
+              ],
+              MaskedImage(url: cover, fit: coverFit),
+            ] else
               Center(
                 child: Icon(
                   placeholderIcon,
@@ -94,27 +112,42 @@ class CollectionCoverCard extends StatelessWidget {
               ),
           ],
         ),
-        overlays: [
-          Positioned(
-            right: spacing.xs,
-            bottom: spacing.xs,
-            child: _CountBadge(count: count, icon: countIcon),
-          ),
-        ],
-        footer: Padding(
-          padding: EdgeInsets.all(spacing.sm),
-          child: Text(
-            title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s14,
-              weight: AppTextWeight.semibold,
-              tone: AppTextTone.primary,
-            ),
-          ),
-        ),
+        overlays: glassChrome
+            ? <Widget>[
+                Positioned(
+                  left: spacing.xs,
+                  right: spacing.xs,
+                  bottom: spacing.xs,
+                  child: _GlassCollectionInfoBar(
+                    title: title,
+                    count: count,
+                    countIcon: countIcon,
+                  ),
+                ),
+              ]
+            : <Widget>[
+                Positioned(
+                  right: spacing.xs,
+                  bottom: spacing.xs,
+                  child: _CountBadge(count: count, icon: countIcon),
+                ),
+              ],
+        footer: glassChrome
+            ? null
+            : Padding(
+                padding: EdgeInsets.all(spacing.sm),
+                child: Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s14,
+                    weight: AppTextWeight.semibold,
+                    tone: AppTextTone.primary,
+                  ),
+                ),
+              ),
       ),
     );
 
@@ -160,6 +193,91 @@ class CollectionCoverCard extends StatelessWidget {
       case _CollectionMenuAction.delete:
         delete?.call();
     }
+  }
+}
+
+class _GlassCollectionInfoBar extends StatelessWidget {
+  const _GlassCollectionInfoBar({
+    required this.title,
+    required this.count,
+    required this.countIcon,
+  });
+
+  final String title;
+  final int count;
+  final IconData countIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
+    final content = Row(
+      children: <Widget>[
+        Expanded(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              weight: AppTextWeight.semibold,
+              tone: AppTextTone.onMedia,
+            ),
+          ),
+        ),
+        SizedBox(width: spacing.sm),
+        Icon(
+          countIcon,
+          color: context.appTextPalette.onMedia,
+          size: context.appComponentTokens.iconSize3xs,
+        ),
+        SizedBox(width: spacing.xs),
+        Text(
+          '$count',
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            weight: AppTextWeight.medium,
+            tone: AppTextTone.onMedia,
+          ),
+        ),
+      ],
+    );
+    final padding = EdgeInsets.symmetric(
+      horizontal: spacing.sm,
+      vertical: spacing.xs,
+    );
+    if (highContrast) {
+      return DecoratedBox(
+        decoration: BoxDecoration(
+          color: context.appColors.mediaOverlayStrong.withValues(alpha: 0.86),
+          borderRadius: context.appRadius.mdBorder,
+        ),
+        child: Padding(padding: padding, child: content),
+      );
+    }
+    return GlassContainer(
+      shape: LiquidRoundedSuperellipse(borderRadius: context.appRadius.md),
+      padding: padding,
+      settings: LiquidGlassSettings(
+        thickness: 16,
+        blur: 10,
+        saturation: 1.3,
+        chromaticAberration: 0.01,
+        lightIntensity: 0.6,
+        glassColor: context.appColors.mediaOverlayStrong.withValues(
+          alpha: 0.34,
+        ),
+        shadowElevation: 0,
+      ),
+      // 卡片网格可能同时出现十几条玻璃信息条；用 minimal 档共享 BackdropFilter
+      // 路径，避免每张卡都创建一条 premium/standard 玻璃纹理。
+      quality: GlassQuality.minimal,
+      useOwnLayer: true,
+      clipBehavior: Clip.antiAlias,
+      child: content,
+    );
   }
 }
 

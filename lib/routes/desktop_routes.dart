@@ -438,6 +438,19 @@ class DesktopShellRouteData extends ShellRouteData {
       desktopShellNavigatorKey;
 
   @override
+  Page<void> pageBuilder(
+    BuildContext context,
+    GoRouterState state,
+    Widget navigator,
+  ) {
+    return NoTransitionPage<void>(
+      key: state.pageKey,
+      name: state.name ?? state.path,
+      child: builder(context, state, navigator),
+    );
+  }
+
+  @override
   Widget builder(BuildContext context, GoRouterState state, Widget navigator) {
     return _DesktopShellScope(
       currentPath: state.uri.path,
@@ -505,6 +518,21 @@ class DesktopPrimaryShellRouteData extends StatefulShellRouteData {
     currentIndex: navigationShell.currentIndex,
     children: children,
   );
+
+  /// 桌面壳层同样走无转场：深链直达顶层页后再切回分支时，本页会重新入栈，
+  /// 不能落到 MaterialPage 的平台默认转场。
+  @override
+  Page<void> pageBuilder(
+    BuildContext context,
+    GoRouterState state,
+    StatefulNavigationShell navigationShell,
+  ) {
+    return NoTransitionPage<void>(
+      key: state.pageKey,
+      name: state.name ?? state.path,
+      child: navigationShell,
+    );
+  }
 
   @override
   Widget builder(

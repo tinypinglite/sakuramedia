@@ -11,6 +11,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 Future<void> showMovieDetailInspectorDialog({
@@ -21,7 +22,7 @@ Future<void> showMovieDetailInspectorDialog({
   String? movieTitle,
   String? movieCoverUrl,
 }) {
-  return showDialog<void>(
+  return showAppDialog<void>(
     context: context,
     // 挂在 shell navigator 上，搜索页才能 push 到弹窗之上；弹窗在搜索期间
     // 保持 mounted，返回时评论列表的滚动位置和分页状态都原样保留。

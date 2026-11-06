@@ -9,11 +9,14 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_chip.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_range_section.dart';
 
 /// 影片筛选的所有 section（状态 / 分辨率 / 合集类型 / 番号来源 / 互动数范围 /
 /// 出演年龄 / 年份 / 可选标签）的纵向 Column。
 ///
-/// 桌面 `AppListHeader` 的就地浮层 panel 和移动 `MobileMovieFilterDrawer` 都用它，
+/// 桌面玻璃筛选浮层和移动 `MobileMovieFilterDrawer` 都用它，
 /// 避免双份维护。底栏/重置按钮由调用方自己附加。
 class MovieFilterSectionGroup extends StatelessWidget {
   const MovieFilterSectionGroup({
@@ -64,7 +67,7 @@ class MovieFilterSectionGroup extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        MovieFilterChoiceSection<MovieStatusFilter>(
+        AppFilterOptionSection<MovieStatusFilter>(
           title: l10n.widgetMovieFilterStatusTitle,
           options: MovieStatusFilter.values,
           selectedValue: filterState.status,
@@ -72,7 +75,7 @@ class MovieFilterSectionGroup extends StatelessWidget {
           onSelected: (value) => onChanged(filterState.copyWith(status: value)),
         ),
         SizedBox(height: context.appSpacing.lg),
-        MovieFilterChoiceSection<PlaylistResolutionFilter?>(
+        AppFilterOptionSection<PlaylistResolutionFilter?>(
           title: l10n.widgetMovieFilterResolutionTitle,
           options: const [null, ...PlaylistResolutionFilter.values],
           selectedValue: filterState.resolution,
@@ -82,7 +85,7 @@ class MovieFilterSectionGroup extends StatelessWidget {
               onChanged(filterState.copyWith(resolution: value)),
         ),
         SizedBox(height: context.appSpacing.lg),
-        MovieFilterChoiceSection<MovieCollectionTypeFilter>(
+        AppFilterOptionSection<MovieCollectionTypeFilter>(
           title: l10n.widgetMovieFilterCollectionTypeTitle,
           options: MovieCollectionTypeFilter.values,
           selectedValue: filterState.collectionType,
@@ -91,7 +94,7 @@ class MovieFilterSectionGroup extends StatelessWidget {
               onChanged(filterState.copyWith(collectionType: value)),
         ),
         SizedBox(height: context.appSpacing.lg),
-        MovieFilterChoiceSection<MovieNumberSourceFilter>(
+        AppFilterOptionSection<MovieNumberSourceFilter>(
           title: l10n.widgetMovieFilterNumberSourceTitle,
           options: MovieNumberSourceFilter.values,
           selectedValue: filterState.numberSource,
@@ -142,132 +145,6 @@ class MovieFilterSectionGroup extends StatelessWidget {
   }
 }
 
-class MovieFilterChoiceSection<T> extends StatelessWidget {
-  const MovieFilterChoiceSection({
-    super.key,
-    required this.title,
-    required this.options,
-    required this.selectedValue,
-    required this.labelBuilder,
-    required this.onSelected,
-    this.optionKeyBuilder,
-    this.enabled = true,
-    this.isLoading = false,
-  });
-
-  static const Duration _optionsSwitchDuration = Duration(milliseconds: 180);
-  static const Duration _optionsResizeDuration = Duration(milliseconds: 200);
-
-  /// 加载态 options 的固定切换 key：占位文案会变，不能拿它当动画签名。
-  static const ValueKey<String> _loadingOptionsKey = ValueKey<String>(
-    '__movie-filter-choice-loading__',
-  );
-
-  final String title;
-  final bool enabled;
-  final List<T> options;
-
-  /// 可为空：`null` 表示「全选 / 默认」没有任何选项被选中（如榜单周期未选）。
-  final T? selectedValue;
-  final String Function(T value) labelBuilder;
-  final ValueChanged<T> onSelected;
-
-  /// 给每个选项 chip 生成稳定 Key（测试锚点）。不传则不挂 Key。
-  final Key Function(T value)? optionKeyBuilder;
-
-  /// options 是否正在加载。为 `true` 时应传入占位 options，选项区以
-  /// [AppSkeletonizer] 骨架显示，并屏蔽点击；就绪后与真实选项交叉淡入。
-  final bool isLoading;
-
-  /// 选项集合的动画签名。只改选中态时签名不变，不会触发整组切换动画。
-  ValueKey<String> get _optionsKey {
-    if (isLoading) {
-      return _loadingOptionsKey;
-    }
-    return ValueKey<String>(options.map(labelBuilder).join('\u0001'));
-  }
-
-  static Widget _optionsSwitcherLayout(
-    Widget? currentChild,
-    List<Widget> previousChildren,
-  ) {
-    return Stack(
-      alignment: Alignment.topLeft,
-      children: [...previousChildren, ?currentChild],
-    );
-  }
-
-  static Widget _optionsSwitcherTransition(
-    Widget child,
-    Animation<double> animation,
-  ) {
-    return FadeTransition(
-      opacity: animation,
-      child: SlideTransition(
-        position: Tween<Offset>(
-          begin: const Offset(0, 0.08),
-          end: Offset.zero,
-        ).animate(animation),
-        child: child,
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s14,
-            weight: AppTextWeight.regular,
-            tone: enabled ? AppTextTone.primary : AppTextTone.muted,
-          ),
-        ),
-        SizedBox(height: context.appSpacing.sm),
-        AnimatedSize(
-          duration: _optionsResizeDuration,
-          curve: Curves.easeOutCubic,
-          alignment: Alignment.topLeft,
-          child: AnimatedSwitcher(
-            duration: _optionsSwitchDuration,
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            layoutBuilder: _optionsSwitcherLayout,
-            transitionBuilder: _optionsSwitcherTransition,
-            child: KeyedSubtree(
-              key: _optionsKey,
-              // AppSkeletonizer 放在 AnimatedSwitcher 内部：骨架淡出期间
-              // 旧子树仍持有 enabled=true，不会露出占位文案。
-              child: AppSkeletonizer(
-                enabled: isLoading,
-                child: Wrap(
-                  spacing: context.appSpacing.sm,
-                  runSpacing: context.appSpacing.sm,
-                  children: options
-                      .map(
-                        (value) => AppTextButton(
-                          key: optionKeyBuilder?.call(value),
-                          label: labelBuilder(value),
-                          size: AppTextButtonSize.xSmall,
-                          isSelected: value == selectedValue,
-                          onPressed: enabled ? () => onSelected(value) : null,
-                        ),
-                      )
-                      .toList(growable: false),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 /// 6 个互动数字段的平铺式范围筛选：每个字段一个标题 + 双滑块。
 ///
 /// 左滑块拖到 0 = 下限不限；右滑块拖到顶 = 无上界；两者都映射为接口参数的
@@ -298,9 +175,9 @@ class MovieInteractionRangeFilterSectionGroup extends ConsumerWidget {
               key: const Key('movie-filter-interaction-group-title'),
               style: resolveAppTextStyle(
                 context,
-                size: AppTextSize.s14,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.primary,
+                size: AppTextSize.s12,
+                weight: AppTextWeight.medium,
+                tone: AppTextTone.secondary,
               ),
             ),
             if (!filter.isDefault)
@@ -401,7 +278,7 @@ class MovieInteractionRangeFilterSectionGroup extends ConsumerWidget {
   }
 }
 
-class MovieInteractionRangeFilterSection extends StatefulWidget {
+class MovieInteractionRangeFilterSection extends StatelessWidget {
   const MovieInteractionRangeFilterSection({
     super.key,
     required this.metric,
@@ -415,137 +292,37 @@ class MovieInteractionRangeFilterSection extends StatefulWidget {
   final MovieInteractionRange? range;
   final void Function(num? min, num? max) onChanged;
 
-  @override
-  State<MovieInteractionRangeFilterSection> createState() =>
-      _MovieInteractionRangeFilterSectionState();
-}
-
-class _MovieInteractionRangeFilterSectionState
-    extends State<MovieInteractionRangeFilterSection> {
-  late RangeValues _values;
-
-  @override
-  void initState() {
-    super.initState();
-    _values = _valuesFrom(widget.range);
-  }
-
-  @override
-  void didUpdateWidget(covariant MovieInteractionRangeFilterSection oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.range?.min != widget.range?.min ||
-        oldWidget.range?.max != widget.range?.max ||
-        oldWidget.metric != widget.metric ||
-        oldWidget.maxValue != widget.maxValue) {
-      // 外部状态变化（重置筛选 / 其他入口改条件）时同步滑块位置；
-      // onChangeEnd 应用后回传的值与此处推导一致，不会闪烁。
-      _values = _valuesFrom(widget.range);
-    }
-  }
-
-  RangeValues _valuesFrom(MovieInteractionRange? range) => RangeValues(
-    (range?.min?.toDouble() ?? 0).clamp(0.0, widget.maxValue),
-    (range?.max?.toDouble() ?? widget.maxValue).clamp(0.0, widget.maxValue),
+  RangeValues get _values => RangeValues(
+    (range?.min?.toDouble() ?? 0).clamp(0.0, maxValue),
+    (range?.max?.toDouble() ?? maxValue).clamp(0.0, maxValue),
   );
-
-  void _apply(RangeValues values) {
-    final min = widget.metric.minFromSlider(values.start);
-    final max = widget.metric.maxFromSlider(values.end, widget.maxValue);
-    if (min != widget.range?.min || max != widget.range?.max) {
-      widget.onChanged(min, max);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final min = widget.metric.minFromSlider(_values.start);
-    final max = widget.metric.maxFromSlider(_values.end, widget.maxValue);
-    final colorScheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              widget.metric.localizedLabel(l10n),
-              key: Key('movie-filter-${widget.metric.apiValue}-section-title'),
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.primary,
-              ),
-            ),
-            Text(
-              movieInteractionRangeLabel(widget.metric, min, max, l10n),
-              key: Key('movie-filter-${widget.metric.apiValue}-range-label'),
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.muted,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: context.appSpacing.xs),
-        // 桌面筛选面板内的滑块保持克制的体量：3px 细轨道 + 小扁平 thumb，
-        // 拖动反馈用 10% 品牌色的浅晕圈。
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            trackHeight: 3,
-            activeTrackColor: colorScheme.primary,
-            inactiveTrackColor: context.appColors.divider,
-            rangeThumbShape: const RoundRangeSliderThumbShape(
-              enabledThumbRadius: 7,
-              disabledThumbRadius: 7,
-              elevation: 0,
-            ),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-            overlayColor: colorScheme.primary.withValues(alpha: 0.10),
-          ),
-          child: RangeSlider(
-            key: Key('movie-filter-${widget.metric.apiValue}-slider'),
-            min: 0,
-            max: widget.maxValue,
-            divisions: widget.metric.isDecimal
-                ? (widget.maxValue * 10).round()
-                : null,
-            values: _values,
-            onChanged: (values) => setState(() => _values = values),
-            onChangeEnd: _apply,
-          ),
-        ),
-        // 两端刻度与 thumb 中心对齐（轨道两端各内缩一个 overlay 半径）。
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: context.appSpacing.lg),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '0',
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s10,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.muted,
-                ),
-              ),
-              Text(
-                widget.metric.sliderMaxLabel(widget.maxValue),
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s10,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.muted,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+    return AppFilterRangeSection(
+      title: metric.localizedLabel(l10n),
+      titleKey: Key('movie-filter-${metric.apiValue}-section-title'),
+      valueLabelBuilder: (values) {
+        final min = metric.minFromSlider(values.start);
+        final max = metric.maxFromSlider(values.end, maxValue);
+        return movieInteractionRangeLabel(metric, min, max, l10n);
+      },
+      valueLabelKey: Key('movie-filter-${metric.apiValue}-range-label'),
+      values: _values,
+      min: 0,
+      max: maxValue,
+      divisions: metric.isDecimal ? (maxValue * 10).round() : null,
+      minLabel: '0',
+      maxLabel: metric.sliderMaxLabel(maxValue),
+      sliderKey: Key('movie-filter-${metric.apiValue}-slider'),
+      onChangeEnd: (values) {
+        final min = metric.minFromSlider(values.start);
+        final max = metric.maxFromSlider(values.end, maxValue);
+        if (min != range?.min || max != range?.max) {
+          onChanged(min, max);
+        }
+      },
     );
   }
 }
@@ -556,7 +333,7 @@ class _MovieInteractionRangeFilterSectionState
 /// - 左滑块拖到 18 = 下限不限（数据域最小 18 岁）；右滑块拖到顶 = 无上界
 ///   （50 岁及以上都包含），两者都映射为接口参数的 `null`（不传）。
 /// - 拖动中只更新面板内的值显示，松手（onChangeEnd）才应用请求。
-class MovieActorAgeRangeFilterSection extends StatefulWidget {
+class MovieActorAgeRangeFilterSection extends StatelessWidget {
   const MovieActorAgeRangeFilterSection({
     super.key,
     required this.actorAgeMin,
@@ -568,136 +345,37 @@ class MovieActorAgeRangeFilterSection extends StatefulWidget {
   final int? actorAgeMax;
   final ValueChanged<(int?, int?)> onChanged;
 
-  @override
-  State<MovieActorAgeRangeFilterSection> createState() =>
-      _MovieActorAgeRangeFilterSectionState();
-}
-
-class _MovieActorAgeRangeFilterSectionState
-    extends State<MovieActorAgeRangeFilterSection> {
-  late RangeValues _values;
-
-  @override
-  void initState() {
-    super.initState();
-    _values = _valuesFrom(widget.actorAgeMin, widget.actorAgeMax);
-  }
-
-  @override
-  void didUpdateWidget(covariant MovieActorAgeRangeFilterSection oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.actorAgeMin != widget.actorAgeMin ||
-        oldWidget.actorAgeMax != widget.actorAgeMax) {
-      // 外部状态变化（重置筛选 / 其他入口改条件）时同步滑块位置；
-      // onChangeEnd 应用后回传的值与此处推导一致，不会闪烁。
-      _values = _valuesFrom(widget.actorAgeMin, widget.actorAgeMax);
-    }
-  }
-
-  static RangeValues _valuesFrom(int? actorAgeMin, int? actorAgeMax) =>
-      RangeValues(
-        (actorAgeMin ?? movieFilterActorAgeSliderMin).toDouble(),
-        (actorAgeMax ?? movieFilterActorAgeSliderMax).toDouble(),
-      );
-
-  void _apply(RangeValues values) {
-    final actorAgeMin = movieActorAgeMinFromSlider(values.start.round());
-    final actorAgeMax = movieActorAgeMaxFromSlider(values.end.round());
-    if (actorAgeMin != widget.actorAgeMin ||
-        actorAgeMax != widget.actorAgeMax) {
-      widget.onChanged((actorAgeMin, actorAgeMax));
-    }
-  }
+  RangeValues get _values => RangeValues(
+    (actorAgeMin ?? movieFilterActorAgeSliderMin).toDouble(),
+    (actorAgeMax ?? movieFilterActorAgeSliderMax).toDouble(),
+  );
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final actorAgeMin = movieActorAgeMinFromSlider(_values.start.round());
-    final actorAgeMax = movieActorAgeMaxFromSlider(_values.end.round());
-    final colorScheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              l10n.widgetMovieFilterActorAgeTitle,
-              key: const Key('movie-filter-actor-age-section-title'),
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.primary,
-              ),
-            ),
-            Text(
-              movieActorAgeRangeLabel(actorAgeMin, actorAgeMax, l10n),
-              key: const Key('movie-filter-actor-age-range-label'),
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.muted,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: context.appSpacing.xs),
-        // 与热度条同款的克制体量：3px 细轨道 + 小扁平 thumb，
-        // 拖动反馈用 10% 品牌色的浅晕圈；年龄按整数年吸附。
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            trackHeight: 3,
-            activeTrackColor: colorScheme.primary,
-            inactiveTrackColor: context.appColors.divider,
-            rangeThumbShape: const RoundRangeSliderThumbShape(
-              enabledThumbRadius: 7,
-              disabledThumbRadius: 7,
-              elevation: 0,
-            ),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-            overlayColor: colorScheme.primary.withValues(alpha: 0.10),
-          ),
-          child: RangeSlider(
-            key: const Key('movie-filter-actor-age-slider'),
-            min: movieFilterActorAgeSliderMin.toDouble(),
-            max: movieFilterActorAgeSliderMax.toDouble(),
-            divisions:
-                movieFilterActorAgeSliderMax - movieFilterActorAgeSliderMin,
-            values: _values,
-            onChanged: (values) => setState(() => _values = values),
-            onChangeEnd: _apply,
-          ),
-        ),
-        // 两端刻度与 thumb 中心对齐（轨道两端各内缩一个 overlay 半径）。
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: context.appSpacing.lg),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '18',
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s10,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.muted,
-                ),
-              ),
-              Text(
-                '50+',
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s10,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.muted,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+    return AppFilterRangeSection(
+      title: l10n.widgetMovieFilterActorAgeTitle,
+      titleKey: const Key('movie-filter-actor-age-section-title'),
+      valueLabelBuilder: (values) => movieActorAgeRangeLabel(
+        movieActorAgeMinFromSlider(values.start.round()),
+        movieActorAgeMaxFromSlider(values.end.round()),
+        l10n,
+      ),
+      valueLabelKey: const Key('movie-filter-actor-age-range-label'),
+      values: _values,
+      min: movieFilterActorAgeSliderMin.toDouble(),
+      max: movieFilterActorAgeSliderMax.toDouble(),
+      divisions: movieFilterActorAgeSliderMax - movieFilterActorAgeSliderMin,
+      minLabel: '18',
+      maxLabel: '50+',
+      sliderKey: const Key('movie-filter-actor-age-slider'),
+      onChangeEnd: (values) {
+        final nextMin = movieActorAgeMinFromSlider(values.start.round());
+        final nextMax = movieActorAgeMaxFromSlider(values.end.round());
+        if (nextMin != actorAgeMin || nextMax != actorAgeMax) {
+          onChanged((nextMin, nextMax));
+        }
+      },
     );
   }
 }
@@ -765,8 +443,8 @@ class _MovieYearFilterSectionState extends State<MovieYearFilterSection> {
       return choices.length;
     }
 
-    final componentTokens = context.appComponentTokens;
     final gap = context.appSpacing.sm;
+    final horizontalPadding = context.appSpacing.md * 2 + 2;
     final labelStyle = resolveAppTextStyle(
       context,
       size: AppTextSize.s12,
@@ -785,10 +463,9 @@ class _MovieYearFilterSectionState extends State<MovieYearFilterSection> {
         textScaler: textScaler,
         maxLines: 1,
       )..layout();
-      final choiceWidth =
-          (painter.width + componentTokens.buttonHorizontalPaddingXs * 2)
-              .clamp(0.0, maxWidth)
-              .toDouble();
+      final choiceWidth = (painter.width + horizontalPadding)
+          .clamp(0.0, maxWidth)
+          .toDouble();
       final nextWidth = rowWidth == 0
           ? choiceWidth
           : rowWidth + gap + choiceWidth;
@@ -816,9 +493,9 @@ class _MovieYearFilterSectionState extends State<MovieYearFilterSection> {
           l10n.widgetMovieFilterYearTitle,
           style: resolveAppTextStyle(
             context,
-            size: AppTextSize.s14,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.primary,
+            size: AppTextSize.s12,
+            weight: AppTextWeight.medium,
+            tone: AppTextTone.secondary,
           ),
         ),
         SizedBox(height: context.appSpacing.sm),
@@ -902,20 +579,20 @@ class _MovieYearFilterSectionState extends State<MovieYearFilterSection> {
           runSpacing: context.appSpacing.sm,
           children: [
             for (final choice in visibleChoices)
-              AppTextButton(
+              AppFilterChip(
                 key: Key(
                   choice.value == null
                       ? 'movie-filter-year-all'
                       : 'movie-filter-year-${choice.value}',
                 ),
                 label: choice.label,
-                size: AppTextButtonSize.xSmall,
-                isSelected: choice.value == null
+                selected: choice.value == null
                     ? widget.selectedYears.isEmpty
                     : widget.selectedYears.contains(choice.value),
                 onPressed: interactive
                     ? () => _toggleChoice(choice.value)
                     : null,
+                enabled: interactive,
               ),
           ],
         ),

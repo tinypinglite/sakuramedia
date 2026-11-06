@@ -59,7 +59,25 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
   /// 避免其中一条路径绕过对方的 debounce。
   bool _isRefreshing = false;
 
+  /// 路由切换 [AppShellLayout] 时，内容边距必须和页面一起瞬时切换；
+  /// 只有侧栏折叠造成的边距变化才需要过渡。
+  bool _isLayoutTransitioning = false;
+
   AppPageRefreshCallback? get _current => _stack.isEmpty ? null : _stack.last;
+
+  @override
+  void didUpdateWidget(covariant AppDesktopShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.layout == widget.layout) {
+      return;
+    }
+    _isLayoutTransitioning = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _isLayoutTransitioning = false;
+      }
+    });
+  }
 
   void _register(AppPageRefreshCallback callback) {
     _stack.add(callback);
@@ -124,6 +142,28 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
     _runRefresh(callback);
   }
 
+  Widget _buildTopBar(
+    BuildContext context, {
+    required AppPageRefreshCallback? current,
+    required bool immersive,
+    required bool ambientSurface,
+    required bool sidebarCollapsed,
+  }) {
+    return AppTopBar(
+      currentPath: widget.currentPath,
+      config: widget.topBarConfig,
+      shellNavigatorKey: widget.shellNavigatorKey,
+      onRefresh: current == null ? null : () => _runRefresh(current),
+      isRefreshing: current != null && _isRefreshing,
+      overlay: immersive,
+      translucent: ambientSurface,
+      contentLeadingInset: ambientSurface && !sidebarCollapsed
+          ? context.appSpacing.lg
+          : AppPageInsets.desktop,
+      hideActions: immersive,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final useDesktopSidebarGlass =
@@ -134,11 +174,11 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
     final current = _current;
     final immersive = widget.layout == AppShellLayout.immersive;
     final ambientSurface = useDesktopSidebarGlass && !immersive;
+    final titleBarHeight = context.appComponentTokens.desktopTitleBarHeight;
+    final showTopBar = widget.showTopBar;
     // 内容区在 standard / fullscreen / immersive 三态共用**同一棵树**：只改内边距
     // 数值与顶栏的悬浮开关。navigator 因此不换父级——换父级会让整条路由栈
     // （含背后已缓存的列表页）在切布局那一帧被重新激活并重排，进详情页会明显变慢。
-    final titleBarHeight = context.appComponentTokens.desktopTitleBarHeight;
-    final showTopBar = widget.showTopBar;
     final sidebarCollapsed = ref.watch(appShellSidebarCollapsedProvider);
     final glassSidebarExpanded = useDesktopSidebarGlass && !sidebarCollapsed;
     final EdgeInsets contentPadding;
@@ -148,11 +188,12 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
     } else if (widget.layout == AppShellLayout.standard) {
       // 顶栏在流内占位：内容整体下移一个顶栏高度，四周保留桌面标准内边距。
       // 隐藏顶栏时同样保留这段高度，避免内容贴住窗口顶部和窗口按钮。
+      final horizontalInset = glassSidebarExpanded
+          ? context.appSpacing.lg
+          : AppPageInsets.desktop;
       contentPadding = EdgeInsets.only(
         top: titleBarHeight,
-        left: glassSidebarExpanded
-            ? context.appSpacing.lg
-            : AppPageInsets.desktop,
+        left: horizontalInset,
         right: AppPageInsets.desktop,
         bottom: AppPageInsets.desktop,
       );
@@ -199,7 +240,7 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
                           children: [
                             Positioned.fill(
                               child: AnimatedPadding(
-                                duration: immersive
+                                duration: immersive || _isLayoutTransitioning
                                     ? Duration.zero
                                     : const Duration(milliseconds: 180),
                                 curve: Curves.easeOutCubic,
@@ -212,22 +253,12 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
                                 top: 0,
                                 left: 0,
                                 right: 0,
-                                child: AppTopBar(
-                                  currentPath: widget.currentPath,
-                                  config: widget.topBarConfig,
-                                  shellNavigatorKey: widget.shellNavigatorKey,
-                                  onRefresh: current == null
-                                      ? null
-                                      : () => _runRefresh(current),
-                                  isRefreshing:
-                                      current != null && _isRefreshing,
-                                  overlay: immersive,
-                                  translucent: ambientSurface,
-                                  contentLeadingInset:
-                                      ambientSurface && !sidebarCollapsed
-                                      ? context.appSpacing.lg
-                                      : AppPageInsets.desktop,
-                                  hideActions: immersive,
+                                child: _buildTopBar(
+                                  context,
+                                  current: current,
+                                  immersive: immersive,
+                                  ambientSurface: ambientSurface,
+                                  sidebarCollapsed: sidebarCollapsed,
                                 ),
                               )
                             else if (usesAppWindowsCaption) ...[

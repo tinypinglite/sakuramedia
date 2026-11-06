@@ -8,7 +8,10 @@ class AppColors extends ThemeExtension<AppColors> {
     required this.surfaceCard,
     required this.surfaceElevated,
     required this.surfaceMuted,
+    required this.modalBarrier,
     required this.noticeSurface,
+    required this.highlight,
+    required this.overviewSurfaceHighlight,
     required this.desktopSidebarGlassTint,
     required this.windowsSidebarGlassTint,
     required this.desktopSidebarGlassHover,
@@ -54,7 +57,10 @@ class AppColors extends ThemeExtension<AppColors> {
       surfaceCard = const Color(0xFFFFFFFF),
       surfaceElevated = const Color(0xFFFFFFFF),
       surfaceMuted = const Color(0xFFF1F1F1),
+      modalBarrier = const Color(0x3D000000),
       noticeSurface = const Color(0xFFF3F3F3),
+      highlight = const Color(0xFFFFFFFF),
+      overviewSurfaceHighlight = const Color.fromRGBO(255, 255, 255, 0.22),
       desktopSidebarGlassTint = const Color(0x33F7F3F0),
       windowsSidebarGlassTint = const Color(0xEBEFEFEF),
       desktopSidebarGlassHover = const Color(0x80FFFFFF),
@@ -100,7 +106,10 @@ class AppColors extends ThemeExtension<AppColors> {
       surfaceCard = const Color(0xFF1E1E1E),
       surfaceElevated = const Color(0xFF262626),
       surfaceMuted = const Color(0xFF2A2A2A),
+      modalBarrier = const Color(0x52000000),
       noticeSurface = const Color(0xFF232323),
+      highlight = const Color(0xFFFFFFFF),
+      overviewSurfaceHighlight = const Color.fromRGBO(255, 255, 255, 0.035),
       desktopSidebarGlassTint = const Color(0x4D181315),
       windowsSidebarGlassTint = const Color(0xEB1E1E1E),
       desktopSidebarGlassHover = const Color(0x14FFFFFF),
@@ -159,7 +168,10 @@ class AppColors extends ThemeExtension<AppColors> {
   final Color surfaceCard;
   final Color surfaceElevated;
   final Color surfaceMuted;
+  final Color modalBarrier;
   final Color noticeSurface;
+  final Color highlight;
+  final Color overviewSurfaceHighlight;
   final Color desktopSidebarGlassTint;
 
   /// Windows 的系统模糊比 macOS vibrancy 更透明，tint 需要更实，
@@ -210,7 +222,10 @@ class AppColors extends ThemeExtension<AppColors> {
     Color? surfaceCard,
     Color? surfaceElevated,
     Color? surfaceMuted,
+    Color? modalBarrier,
     Color? noticeSurface,
+    Color? highlight,
+    Color? overviewSurfaceHighlight,
     Color? desktopSidebarGlassTint,
     Color? windowsSidebarGlassTint,
     Color? desktopSidebarGlassHover,
@@ -255,7 +270,11 @@ class AppColors extends ThemeExtension<AppColors> {
       surfaceCard: surfaceCard ?? this.surfaceCard,
       surfaceElevated: surfaceElevated ?? this.surfaceElevated,
       surfaceMuted: surfaceMuted ?? this.surfaceMuted,
+      modalBarrier: modalBarrier ?? this.modalBarrier,
       noticeSurface: noticeSurface ?? this.noticeSurface,
+      highlight: highlight ?? this.highlight,
+      overviewSurfaceHighlight:
+          overviewSurfaceHighlight ?? this.overviewSurfaceHighlight,
       desktopSidebarGlassTint:
           desktopSidebarGlassTint ?? this.desktopSidebarGlassTint,
       windowsSidebarGlassTint:
@@ -334,7 +353,14 @@ class AppColors extends ThemeExtension<AppColors> {
       surfaceCard: Color.lerp(surfaceCard, other.surfaceCard, t)!,
       surfaceElevated: Color.lerp(surfaceElevated, other.surfaceElevated, t)!,
       surfaceMuted: Color.lerp(surfaceMuted, other.surfaceMuted, t)!,
+      modalBarrier: Color.lerp(modalBarrier, other.modalBarrier, t)!,
       noticeSurface: Color.lerp(noticeSurface, other.noticeSurface, t)!,
+      highlight: Color.lerp(highlight, other.highlight, t)!,
+      overviewSurfaceHighlight: Color.lerp(
+        overviewSurfaceHighlight,
+        other.overviewSurfaceHighlight,
+        t,
+      )!,
       desktopSidebarGlassTint: Color.lerp(
         desktopSidebarGlassTint,
         other.desktopSidebarGlassTint,

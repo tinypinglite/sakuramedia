@@ -25,34 +25,59 @@ void main() {
   testWidgets('desktop login keeps the complete form available', (
     tester,
   ) async {
+    const size = Size(1200, 800);
     await _pumpLogin(
       tester,
       platform: AppPlatform.desktop,
-      size: const Size(1200, 800),
+      size: size,
       theme: buildSakuraDesktopThemeData(),
     );
 
-    expect(find.byKey(const Key('login-form-base-url')), findsOneWidget);
-    expect(find.byKey(const Key('login-form-username')), findsOneWidget);
-    expect(find.byKey(const Key('login-form-password')), findsOneWidget);
-    expect(find.byKey(const Key('login-submit-button')), findsOneWidget);
+    _expectLoginFitsWithoutScrolling(tester, size);
     expect(find.byKey(const Key('login-language-switcher')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('mobile login remains usable on a narrow viewport', (
+  testWidgets('pad landscape login fits on one screen', (tester) async {
+    const size = Size(1024, 768);
+    await _pumpLogin(
+      tester,
+      platform: AppPlatform.desktop,
+      size: size,
+      theme: buildSakuraDesktopThemeData(),
+    );
+
+    _expectLoginFitsWithoutScrolling(tester, size);
+    expect(find.byKey(const Key('login-first-run-notice')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('mobile login fits on one screen without scrolling', (
     tester,
   ) async {
+    const size = Size(390, 844);
     await _pumpLogin(
       tester,
       platform: AppPlatform.mobile,
-      size: const Size(390, 844),
+      size: size,
       theme: buildSakuraMobileThemeData(),
     );
 
-    expect(find.byKey(const Key('login-main-card')), findsOneWidget);
-    expect(find.byKey(const Key('login-form-base-url')), findsOneWidget);
-    expect(find.byKey(const Key('login-submit-button')), findsOneWidget);
+    _expectLoginFitsWithoutScrolling(tester, size);
+    expect(find.byKey(const Key('login-first-run-details')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('360x640 mobile login still fits on one screen', (tester) async {
+    const size = Size(360, 640);
+    await _pumpLogin(
+      tester,
+      platform: AppPlatform.mobile,
+      size: size,
+      theme: buildSakuraMobileThemeData(),
+    );
+
+    _expectLoginFitsWithoutScrolling(tester, size);
     expect(tester.takeException(), isNull);
   });
 
@@ -95,6 +120,31 @@ void main() {
     expect(find.byKey(const Key('login-first-run-notice')), findsNothing);
   });
 
+  testWidgets(
+    'compact first-run entry opens full details and can be dismissed',
+    (tester) async {
+      await _pumpLogin(
+        tester,
+        platform: AppPlatform.mobile,
+        size: const Size(390, 844),
+        theme: buildSakuraMobileThemeData(),
+      );
+
+      await tester.tap(find.byKey(const Key('login-first-run-details')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('login-first-run-modal')), findsOneWidget);
+      expect(find.byKey(const Key('login-open-deploy-guide')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('login-dismiss-first-run-modal')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const Key('login-first-run-modal')), findsNothing);
+      expect(find.byKey(const Key('login-first-run-notice')), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('desktop login reflows at large text sizes', (tester) async {
     final sessionStore = SessionStore.inMemory();
     final bundle = await createTestApiBundle(sessionStore);
@@ -116,8 +166,31 @@ void main() {
 
     expect(find.byKey(const Key('login-main-card')), findsOneWidget);
     expect(find.byKey(const Key('login-submit-button')), findsOneWidget);
+    expect(find.byKey(const Key('login-page-scroll')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'short viewport keeps the form reachable through scroll fallback',
+    (tester) async {
+      await _pumpLogin(
+        tester,
+        platform: AppPlatform.mobile,
+        size: const Size(390, 500),
+        theme: buildSakuraMobileThemeData(),
+      );
+
+      expect(find.byKey(const Key('login-page-scroll')), findsOneWidget);
+      await tester.ensureVisible(find.byKey(const Key('login-submit-button')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('login-submit-button')).hitTestable(),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('login failure stays on the page and shows an inline error', (
     tester,
@@ -191,4 +264,23 @@ Future<void> _pumpLogin(
     physicalSize: size,
   );
   await tester.pumpAndSettle();
+}
+
+void _expectLoginFitsWithoutScrolling(WidgetTester tester, Size size) {
+  expect(find.byKey(const Key('login-page-scroll')), findsNothing);
+  for (final key in <Key>[
+    const Key('login-main-card'),
+    const Key('login-form-base-url'),
+    const Key('login-form-username'),
+    const Key('login-form-password'),
+    const Key('login-submit-button'),
+  ]) {
+    final finder = find.byKey(key);
+    expect(finder, findsOneWidget);
+    final rect = tester.getRect(finder);
+    expect(rect.left, greaterThanOrEqualTo(0));
+    expect(rect.top, greaterThanOrEqualTo(0));
+    expect(rect.right, lessThanOrEqualTo(size.width));
+    expect(rect.bottom, lessThanOrEqualTo(size.height));
+  }
 }

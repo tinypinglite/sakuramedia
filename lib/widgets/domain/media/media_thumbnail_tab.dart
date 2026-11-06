@@ -6,11 +6,12 @@ import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_pl
 import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_thumbnail_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_filter_entry_button.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_selection_status_bar.dart';
 import 'package:sakuramedia/widgets/domain/media/movie_media_thumbnail_grid.dart';
@@ -34,6 +35,7 @@ class MediaThumbnailTab extends ConsumerWidget {
     this.onThumbnailMenuRequested,
     this.onCreateClip,
     this.keyPrefix = 'movie-detail-thumbnail',
+    this.glassChrome = false,
   });
 
   final int? mediaId;
@@ -42,6 +44,9 @@ class MediaThumbnailTab extends ConsumerWidget {
   onThumbnailMenuRequested;
   final VoidCallback? onCreateClip;
   final String keyPrefix;
+
+  /// 移动端 PornBox 缩略图页：时间间隔、列数和剪刀入口使用液态玻璃分组。
+  final bool glassChrome;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -89,6 +94,7 @@ class MediaThumbnailTab extends ConsumerWidget {
                   onToggleClipSelectionMode: onCreateClip == null
                       ? null
                       : controller.toggleClipSelectionMode,
+                  glassChrome: glassChrome,
                 )
               else
                 Wrap(
@@ -262,7 +268,7 @@ class _MediaThumbnailColumnsSelector extends StatelessWidget {
 
 /// 窄屏工具条：两个「图标 + 当前值 + 下拉箭头」入口 + 右对齐的剪刀按钮。
 ///
-/// 入口复用列表页筛选栏的 [AppFilterEntryButton]（常驻无底色），点击开小号
+/// 入口复用移动筛选图标钮（常驻无底色），点击开小号
 /// 底部抽屉选择，即时生效；比一行 chips 少一行高度，选项再多也不变高。
 class _MediaThumbnailCompactToolbar extends StatelessWidget {
   const _MediaThumbnailCompactToolbar({
@@ -274,6 +280,7 @@ class _MediaThumbnailCompactToolbar extends StatelessWidget {
     required this.onSelectColumns,
     required this.clipSelectionMode,
     this.onToggleClipSelectionMode,
+    this.glassChrome = false,
   });
 
   final String keyPrefix;
@@ -283,6 +290,7 @@ class _MediaThumbnailCompactToolbar extends StatelessWidget {
   final ValueChanged<int> onSelectColumns;
   final bool clipSelectionMode;
   final VoidCallback? onToggleClipSelectionMode;
+  final bool glassChrome;
 
   Future<void> _pickInterval(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
@@ -321,26 +329,73 @@ class _MediaThumbnailCompactToolbar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    if (glassChrome) {
+      return SizedBox(
+        height: AppGlassHeaderGroup.height,
+        child: Row(
+          children: [
+            AppGlassHeaderGroup(
+              children: <Widget>[
+                AppGlassHeaderButton(
+                  key: Key('$keyPrefix-interval-trigger'),
+                  icon: Icons.schedule_rounded,
+                  label: l10n.widgetMediaThumbnailSecondsCompact(
+                    selectedIntervalSeconds,
+                  ),
+                  trailingIcon: Icons.expand_more_rounded,
+                  tooltip: l10n.widgetMediaThumbnailInterval,
+                  onTap: () => unawaited(_pickInterval(context)),
+                ),
+                AppGlassHeaderButton(
+                  key: Key('$keyPrefix-columns-trigger'),
+                  icon: Icons.grid_view_rounded,
+                  label: l10n.widgetMediaThumbnailColumnCountCompact(
+                    selectedColumns,
+                  ),
+                  trailingIcon: Icons.expand_more_rounded,
+                  tooltip: l10n.widgetMediaThumbnailColumns,
+                  onTap: () => unawaited(_pickColumns(context)),
+                ),
+              ],
+            ),
+            const Spacer(),
+            if (onToggleClipSelectionMode != null)
+              AppGlassIconButton(
+                key: Key('$keyPrefix-clip-toggle'),
+                tooltip: clipSelectionMode
+                    ? l10n.widgetMediaClipSelectionExit
+                    : l10n.widgetMediaClipSelectionEnter,
+                icon: Icons.content_cut_rounded,
+                iconSize: context.appComponentTokens.iconSizeMd,
+                foregroundColor: clipSelectionMode
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+                onPressed: onToggleClipSelectionMode,
+              ),
+          ],
+        ),
+      );
+    }
     return SizedBox(
       height: context.appComponentTokens.buttonHeightXs,
       child: Row(
         children: [
-          AppFilterEntryButton(
+          AppTextButton(
             key: Key('$keyPrefix-interval-trigger'),
-            icon: Icons.schedule_rounded,
             label: l10n.widgetMediaThumbnailSecondsCompact(
               selectedIntervalSeconds,
             ),
-            tooltip: l10n.widgetMediaThumbnailInterval,
-            onTap: () => unawaited(_pickInterval(context)),
+            icon: const Icon(Icons.schedule_rounded),
+            size: AppTextButtonSize.xSmall,
+            onPressed: () => unawaited(_pickInterval(context)),
           ),
           SizedBox(width: context.appSpacing.sm),
-          AppFilterEntryButton(
+          AppTextButton(
             key: Key('$keyPrefix-columns-trigger'),
-            icon: Icons.grid_view_rounded,
             label: l10n.widgetMediaThumbnailColumnCountCompact(selectedColumns),
-            tooltip: l10n.widgetMediaThumbnailColumns,
-            onTap: () => unawaited(_pickColumns(context)),
+            icon: const Icon(Icons.grid_view_rounded),
+            size: AppTextButtonSize.xSmall,
+            onPressed: () => unawaited(_pickColumns(context)),
           ),
           const Spacer(),
           if (onToggleClipSelectionMode != null)

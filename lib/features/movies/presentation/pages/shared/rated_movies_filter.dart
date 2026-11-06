@@ -2,9 +2,9 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/domain/movies/movie_filter_sections.dart';
 
 bool ratedMovieFilterIsDefault(MovieFilterState filter) {
   return filter.status == MovieStatusFilter.all &&
@@ -48,7 +48,7 @@ class RatedMovieFilterSections extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        MovieFilterChoiceSection<MovieStatusFilter>(
+        AppFilterOptionSection<MovieStatusFilter>(
           title: l10n.widgetMovieFilterStatusTitle,
           options: MovieStatusFilter.values,
           selectedValue: filterState.status,
@@ -58,7 +58,7 @@ class RatedMovieFilterSections extends StatelessWidget {
           onSelected: (value) => onChanged(filterState.copyWith(status: value)),
         ),
         SizedBox(height: context.appSpacing.lg),
-        MovieFilterChoiceSection<MovieCollectionTypeFilter>(
+        AppFilterOptionSection<MovieCollectionTypeFilter>(
           title: l10n.widgetMovieFilterCollectionTypeTitle,
           options: MovieCollectionTypeFilter.values,
           selectedValue: filterState.collectionType,
@@ -69,7 +69,7 @@ class RatedMovieFilterSections extends StatelessWidget {
               onChanged(filterState.copyWith(collectionType: value)),
         ),
         SizedBox(height: context.appSpacing.lg),
-        MovieFilterChoiceSection<MovieNumberSourceFilter>(
+        AppFilterOptionSection<MovieNumberSourceFilter>(
           title: l10n.widgetMovieFilterNumberSourceTitle,
           options: MovieNumberSourceFilter.values,
           selectedValue: filterState.numberSource,

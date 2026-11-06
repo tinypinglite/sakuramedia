@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
@@ -24,10 +26,22 @@ class AppSegmentedItem<T> {
 
 enum AppSegmentedSize { compact, regular }
 
+/// 分段控件的表面语气。
+///
+/// [standard] 保留项目原有的玻璃轨道；[neutral] 用于玻璃弹层内部，轨道透明，
+/// 选中项只浮起一枚中性胶囊。
+enum AppSegmentedTone { standard, neutral }
+
+/// 分段控件的布局方式。
+///
+/// [auto] 在 2–6 项时使用等宽分段，超过 6 项时横向滚动；[fixed] 强制等宽
+/// （超出库的 2–6 项限制时回退滚动）；[scrollable] 始终保持自然宽度并滚动。
+enum AppSegmentedLayout { auto, fixed, scrollable }
+
 /// 单选分段控件。
 ///
-/// - 内部使用 `liquid_glass_widgets` 的 [GlassSegmentedControl.scrollable]，
-///   保持自然宽度；空间不足时横向滚动。
+/// - 内部使用 `liquid_glass_widgets` 的 [GlassSegmentedControl]；[layout]
+///   控制等宽分段或自然宽度滚动。
 /// - 由库组件负责轨道、选中指示器和交互动画；这里只做泛型值、主题和尺寸适配。
 /// - 不再外包 `AppGlassSurface`，避免玻璃控件嵌在玻璃容器里降级折射。
 class AppSegmentedControl<T> extends StatefulWidget {
@@ -37,12 +51,20 @@ class AppSegmentedControl<T> extends StatefulWidget {
     required this.selected,
     required this.onChanged,
     this.size = AppSegmentedSize.regular,
+    this.tone = AppSegmentedTone.standard,
+    this.layout = AppSegmentedLayout.scrollable,
+    this.enabled = true,
   });
 
   final List<AppSegmentedItem<T>> items;
   final T selected;
   final ValueChanged<T> onChanged;
   final AppSegmentedSize size;
+  final AppSegmentedTone tone;
+  final AppSegmentedLayout layout;
+
+  /// 为 `false` 时所有分段降级为不可点击，视觉由库的 disabled segment 处理。
+  final bool enabled;
 
   @override
   State<AppSegmentedControl<T>> createState() => _AppSegmentedControlState<T>();
@@ -80,14 +102,39 @@ class _AppSegmentedControlState<T> extends State<AppSegmentedControl<T>> {
     final resolvedSelectedIndex = selectedIndex < 0 ? 0 : selectedIndex;
 
     final spec = _AppSegmentedSizeSpec.resolve(context, widget.size);
-    final selectedColors = resolveAppPillColors(context, AppPillTone.selected);
+    final isNeutral = widget.tone == AppSegmentedTone.neutral;
+    final isFixed = switch (widget.layout) {
+      AppSegmentedLayout.scrollable => false,
+      AppSegmentedLayout.fixed || AppSegmentedLayout.auto =>
+        widget.items.length >= 2 && widget.items.length <= 6,
+    };
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final neutralIndicatorColor = isDark
+        ? context.appColors.mediaOverlayBorder.withValues(alpha: 0.18)
+        : context.appColors.surfaceElevated;
+    final neutralTrackColor = isDark
+        ? context.appColors.mediaOverlaySoft
+        : context.appColors.surfaceMuted.withValues(alpha: 0.45);
+    final selectedColors = isNeutral
+        ? AppPillColors(
+            background: neutralIndicatorColor,
+            foreground: context.appTextPalette.primary,
+          )
+        : resolveAppPillColors(context, AppPillTone.selected);
     final inheritedFontFamily = DefaultTextStyle.of(context).style.fontFamily;
-    final resolvedTextStyle = resolveAppTextStyle(
-      context,
-      size: spec.textSize,
-      weight: AppTextWeight.regular,
-      tone: AppTextTone.primary,
-    );
+    final resolvedTextStyle = isNeutral
+        ? resolveAppTextStyle(
+            context,
+            size: spec.textSize,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.secondary,
+          )
+        : resolveAppTextStyle(
+            context,
+            size: spec.textSize,
+            weight: AppTextWeight.regular,
+            tone: AppTextTone.primary,
+          );
     final baseTextStyle = resolvedTextStyle.copyWith(
       fontFamily: resolvedTextStyle.fontFamily ?? inheritedFontFamily,
     );
@@ -98,20 +145,37 @@ class _AppSegmentedControlState<T> extends State<AppSegmentedControl<T>> {
           label: item.label,
           icon: item.icon,
           semanticLabel: item.label,
+          enabled: widget.enabled,
         ),
     ];
 
     final pillRadius = context.appRadius.pill >= GlassDefaults.capsuleRadius
         ? GlassDefaults.capsuleRadius
         : context.appRadius.pill;
-    final selectedTextStyle = baseTextStyle.copyWith(
-      color: selectedColors.foreground,
+    final textScale = MediaQuery.textScalerOf(context);
+    final scaledTextHeight = textScale.scale(
+      context.appTextScale.sizeOf(spec.textSize),
     );
-    final unselectedTextStyle = baseTextStyle.copyWith(
-      color: context.appTextPalette.secondary,
+    final minimumControlHeight = isNeutral ? 34.0 : spec.height;
+    final controlHeight = math.max(
+      minimumControlHeight,
+      scaledTextHeight + (isNeutral ? 20.0 : 14.0),
     );
+    final selectedTextStyle = isNeutral
+        ? resolveAppTextStyle(
+            context,
+            size: spec.textSize,
+            weight: AppTextWeight.semibold,
+            tone: AppTextTone.primary,
+          ).copyWith(
+            fontFamily: resolvedTextStyle.fontFamily ?? inheritedFontFamily,
+          )
+        : baseTextStyle.copyWith(color: selectedColors.foreground);
+    final unselectedTextStyle = isNeutral
+        ? baseTextStyle
+        : baseTextStyle.copyWith(color: context.appTextPalette.secondary);
     void selectSegment(int index) {
-      if (index < 0 || index >= widget.items.length) {
+      if (!widget.enabled || index < 0 || index >= widget.items.length) {
         return;
       }
       final value = widget.items[index].value;
@@ -123,21 +187,54 @@ class _AppSegmentedControlState<T> extends State<AppSegmentedControl<T>> {
       widget.onChanged(value);
     }
 
+    final controlRadius = isNeutral ? controlHeight / 2 : pillRadius;
+    if (isFixed) {
+      return GlassSegmentedControl(
+        segments: segments,
+        selectedIndex: resolvedSelectedIndex,
+        onSegmentSelected: selectSegment,
+        height: controlHeight,
+        borderRadius: controlRadius,
+        indicatorBorderRadius: controlRadius,
+        padding: isNeutral
+            ? EdgeInsets.zero
+            : EdgeInsets.all(context.appSpacing.xs / 2),
+        selectedTextStyle: selectedTextStyle,
+        unselectedTextStyle: unselectedTextStyle,
+        indicatorColor: selectedColors.background,
+        indicatorExpansion: EdgeInsets.zero,
+        labelPadding: EdgeInsets.symmetric(
+          horizontal: isNeutral ? 12 : spec.horizontalPadding,
+        ),
+        iconSize: spec.iconSize,
+        backgroundColor: isNeutral ? neutralTrackColor : null,
+        indicatorShadow: isNeutral ? context.appShadows.indicator : null,
+        settings: isNeutral ? null : _trackSettings(context),
+        useOwnLayer: !isNeutral,
+        quality: GlassQuality.standard,
+      );
+    }
     return GlassSegmentedControl.scrollable(
       segments: segments,
       selectedIndex: resolvedSelectedIndex,
       onSegmentSelected: selectSegment,
-      height: spec.height,
-      borderRadius: pillRadius,
-      indicatorBorderRadius: pillRadius,
-      padding: EdgeInsets.all(context.appSpacing.xs / 2),
+      height: controlHeight,
+      borderRadius: controlRadius,
+      indicatorBorderRadius: controlRadius,
+      padding: isNeutral
+          ? EdgeInsets.zero
+          : EdgeInsets.all(context.appSpacing.xs / 2),
       selectedTextStyle: selectedTextStyle,
       unselectedTextStyle: unselectedTextStyle,
       indicatorColor: selectedColors.background,
-      labelPadding: EdgeInsets.symmetric(horizontal: spec.horizontalPadding),
+      labelPadding: EdgeInsets.symmetric(
+        horizontal: isNeutral ? 12 : spec.horizontalPadding,
+      ),
       iconSize: spec.iconSize,
-      settings: _trackSettings(context),
-      useOwnLayer: true,
+      backgroundColor: isNeutral ? neutralTrackColor : null,
+      indicatorShadow: isNeutral ? context.appShadows.indicator : null,
+      settings: isNeutral ? null : _trackSettings(context),
+      useOwnLayer: !isNeutral,
       quality: GlassQuality.standard,
     );
   }

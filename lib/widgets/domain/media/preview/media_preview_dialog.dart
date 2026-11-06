@@ -18,6 +18,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
 import 'package:sakuramedia/widgets/domain/media/media_center_play_button.dart';
@@ -100,7 +101,7 @@ Future<MediaPreviewAction?> showMediaPreviewOverlay({
       builder: builder,
     );
   }
-  return showDialog<MediaPreviewAction>(context: context, builder: builder);
+  return showAppDialog<MediaPreviewAction>(context: context, builder: builder);
 }
 
 class MediaPreviewDialog extends ConsumerStatefulWidget {

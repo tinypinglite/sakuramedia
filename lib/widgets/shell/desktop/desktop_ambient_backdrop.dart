@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_ambient_glow.dart';
 
 /// macOS / Windows 桌面壳层的环境光背景。
 ///
@@ -24,10 +25,14 @@ class DesktopAmbientBackdrop extends StatelessWidget {
     }
 
     final scheme = Theme.of(context).colorScheme;
-    final light = Color.lerp(scheme.primary, Colors.white, dark ? 0.28 : 0.52)!;
+    final light = Color.lerp(
+      scheme.primary,
+      colors.highlight,
+      dark ? 0.28 : 0.52,
+    )!;
     final warm = Color.lerp(
       scheme.secondary,
-      Colors.white,
+      colors.highlight,
       dark ? 0.24 : 0.46,
     )!;
 
@@ -38,7 +43,7 @@ class DesktopAmbientBackdrop extends StatelessWidget {
         ColoredBox(
           color: dark
               ? colors.surfacePage.withValues(alpha: 0.90)
-              : Colors.white.withValues(alpha: 0.20),
+              : colors.highlight.withValues(alpha: 0.20),
         ),
         DecoratedBox(
           decoration: BoxDecoration(
@@ -57,7 +62,7 @@ class DesktopAmbientBackdrop extends StatelessWidget {
         Positioned(
           left: -180,
           top: -220,
-          child: _AmbientGlow(
+          child: AppAmbientGlow(
             size: 560,
             color: light.withValues(alpha: dark ? 0.26 : 0.23),
           ),
@@ -65,37 +70,12 @@ class DesktopAmbientBackdrop extends StatelessWidget {
         Positioned(
           right: -220,
           bottom: -260,
-          child: _AmbientGlow(
+          child: AppAmbientGlow(
             size: 600,
             color: warm.withValues(alpha: dark ? 0.17 : 0.13),
           ),
         ),
       ],
-    );
-  }
-}
-
-class _AmbientGlow extends StatelessWidget {
-  const _AmbientGlow({required this.size, required this.color});
-
-  final double size;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: RadialGradient(
-              colors: <Color>[color, color.withValues(alpha: 0)],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

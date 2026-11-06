@@ -11,7 +11,7 @@ import 'package:sakuramedia/features/activity/presentation/activity_placeholders
 import 'package:sakuramedia/features/activity/presentation/notification_card.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
@@ -227,12 +227,20 @@ class _MobileNotificationsPageState
           ),
         ),
         SizedBox(width: context.appSpacing.md),
-        AppButton(
+        AppGlassIconButton(
           key: const Key('mobile-notifications-mark-all-read'),
-          label: l10n.activityMarkAllRead,
-          size: AppButtonSize.small,
-          variant: AppButtonVariant.secondary,
-          isLoading: isMarkingAllRead,
+          tooltip: l10n.activityMarkAllRead,
+          icon: Icons.done_all_rounded,
+          iconWidget: isMarkingAllRead
+              ? SizedBox(
+                  width: context.appComponentTokens.iconSizeSm,
+                  height: context.appComponentTokens.iconSizeSm,
+                  child: CircularProgressIndicator.adaptive(
+                    strokeWidth:
+                        context.appComponentTokens.movieCardLoaderStrokeWidth,
+                  ),
+                )
+              : null,
           onPressed: unreadCount > 0 && !isMarkingAllRead
               ? _handleMarkAllRead
               : null,

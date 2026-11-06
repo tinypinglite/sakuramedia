@@ -7,6 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
@@ -251,27 +252,30 @@ Future<GlobalKey> pumpPreviewApp(
 
   final boundaryKey = GlobalKey();
   await tester.pumpWidget(
-    ProviderScope(
-      overrides: <Override>[
-        ...bundle.riverpodOverrides(pageStateCache: pageStateCache),
-        ...extraOverrides,
-      ],
-      child: AppPlatformScope(
-        platform: appPlatform,
-        child: RepaintBoundary(
-          key: boundaryKey,
-          child: MaterialApp(
-            debugShowCheckedModeBanner: false,
-            locale: locale,
-            localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-              AppLocalizations.delegate,
-              ...GlobalMaterialLocalizations.delegates,
-            ],
-            supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
-            theme: previewTheme(theme, platform),
-            builder: (context, child) =>
-                OKToast(child: child ?? const SizedBox.shrink()),
-            home: wrap?.call(home) ?? Scaffold(body: home),
+    LiquidGlassWidgets.wrap(
+      brightnessResolver: Theme.maybeBrightnessOf,
+      child: ProviderScope(
+        overrides: <Override>[
+          ...bundle.riverpodOverrides(pageStateCache: pageStateCache),
+          ...extraOverrides,
+        ],
+        child: AppPlatformScope(
+          platform: appPlatform,
+          child: RepaintBoundary(
+            key: boundaryKey,
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              locale: locale,
+              localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+                AppLocalizations.delegate,
+                ...GlobalMaterialLocalizations.delegates,
+              ],
+              supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+              theme: previewTheme(theme, platform),
+              builder: (context, child) =>
+                  OKToast(child: child ?? const SizedBox.shrink()),
+              home: wrap?.call(home) ?? Scaffold(body: home),
+            ),
           ),
         ),
       ),

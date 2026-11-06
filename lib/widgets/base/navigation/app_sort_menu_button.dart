@@ -1,19 +1,19 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/shared/data/sort_direction.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_filter_entry_button.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_popover.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_glass_surface.dart';
 
 /// 列表的独立排序入口。
 ///
 /// 排序是视图偏好，不属于筛选条件：桌面在顶栏右侧展开锚定浮层，移动端用底部
 /// 抽屉。两端按钮长得一样（桌面带摘要，移动仅图标），排序内容都由内部
-/// [_AppSortSection] 渲染，选中即应用并关闭。
+/// [AppGlassSortSection] 渲染。桌面浮层选中即应用并关闭；移动抽屉只即时应用，
+/// 选中态留在抽屉内继续可见，由用户点遮罩或下拉关闭。
 ///
 /// 字段类型由调用方提供；方向使用跨 feature 共享的 [SortDirection]，本组件不
 /// 依赖具体业务域的排序枚举。
@@ -31,6 +31,8 @@ class AppSortMenuButton<F> extends StatefulWidget {
     this.defaultOptionLabel,
     this.triggerLabel,
     this.useDrawer = false,
+    this.glassGrouped = false,
+    this.iconOnly = false,
     this.enabled = true,
     this.triggerKey,
     this.panelKey,
@@ -38,6 +40,9 @@ class AppSortMenuButton<F> extends StatefulWidget {
     this.fieldKeyBuilder,
     this.directionKeyBuilder,
     this.defaultOptionKey,
+    this.fieldControlKey,
+    this.directionControlKey,
+    this.closeOnSelect = true,
     this.tooltip,
   });
 
@@ -62,6 +67,13 @@ class AppSortMenuButton<F> extends StatefulWidget {
   /// 移动端传 `true`，点击弹底部抽屉。
   final bool useDrawer;
 
+  /// 桌面玻璃入口由调用方放进 [AppGlassHeaderGroup] 时置为 true，避免再包一层
+  /// 玻璃分组。
+  final bool glassGrouped;
+
+  /// 移动端抽屉入口只显示图标；只在 [useDrawer] 时生效。
+  final bool iconOnly;
+
   /// 为 false 时入口不可点（例如女优搜索中按相关度排序）。
   final bool enabled;
 
@@ -72,6 +84,11 @@ class AppSortMenuButton<F> extends StatefulWidget {
   final Key? Function(F field)? fieldKeyBuilder;
   final Key? Function(SortDirection direction)? directionKeyBuilder;
   final Key? defaultOptionKey;
+  final Key? fieldControlKey;
+  final Key? directionControlKey;
+
+  /// 桌面浮层选中后是否自动关闭；移动抽屉始终即时应用且不自动关闭。
+  final bool closeOnSelect;
   final String? tooltip;
 
   @override
@@ -79,8 +96,6 @@ class AppSortMenuButton<F> extends StatefulWidget {
 }
 
 class _AppSortMenuButtonState<F> extends State<AppSortMenuButton<F>> {
-  final AppPopoverController _popoverController = AppPopoverController();
-
   String _label(AppLocalizations l10n) {
     final override = widget.triggerLabel;
     if (override != null) {
@@ -97,188 +112,148 @@ class _AppSortMenuButtonState<F> extends State<AppSortMenuButton<F>> {
         : fieldLabel;
   }
 
-  Widget _buildSection({
-    required ValueChanged<F?> onFieldChanged,
-    required ValueChanged<SortDirection> onDirectionChanged,
-  }) {
-    return _AppSortSection<F>(
-      fields: widget.fields,
-      selectedField: widget.selectedField,
-      fieldLabelBuilder: widget.fieldLabelBuilder,
-      onFieldChanged: onFieldChanged,
-      selectedDirection: widget.selectedDirection,
-      onDirectionChanged: onDirectionChanged,
-      directionVisibleWhen: widget.directionVisibleWhen,
-      allowDefaultOption: widget.allowDefaultOption,
-      defaultOptionLabel: widget.defaultOptionLabel,
-      fieldKeyBuilder: widget.fieldKeyBuilder,
-      directionKeyBuilder: widget.directionKeyBuilder,
-      defaultOptionKey: widget.defaultOptionKey,
-    );
-  }
-
-  void _applyField(F? value) {
-    widget.onFieldChanged(value);
-    _popoverController.close();
-  }
-
-  void _applyDirection(SortDirection value) {
-    widget.onDirectionChanged(value);
-    _popoverController.close();
-  }
-
   Future<void> _showDrawer(BuildContext context) {
     return showAppBottomDrawer<void>(
       context: context,
       drawerKey: widget.drawerKey ?? const Key('app-sort-drawer'),
       maxHeightFactor: 0.75,
-      builder: (sheetContext) => AppMobileFilterDrawerScaffold(
-        child: _buildSection(
-          onFieldChanged: (value) {
-            widget.onFieldChanged(value);
-            Navigator.of(sheetContext).pop();
-          },
-          onDirectionChanged: (value) {
-            widget.onDirectionChanged(value);
-            Navigator.of(sheetContext).pop();
-          },
-        ),
+      glassStrength: AppModalGlassStrength.solid,
+      builder: (_) => _AppSortDrawer<F>(
+        config: widget,
+        onFieldChanged: _applyDrawerField,
+        onDirectionChanged: _applyDrawerDirection,
       ),
     );
+  }
+
+  void _applyDrawerField(F? value) {
+    widget.onFieldChanged(value);
+  }
+
+  void _applyDrawerDirection(SortDirection value) {
+    widget.onDirectionChanged(value);
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = appL10n(context);
+    final tooltip =
+        widget.tooltip ?? '${l10n.baseSortTooltip} · ${_label(l10n)}';
     if (widget.useDrawer) {
-      return AppFilterEntryButton(
-        key: widget.triggerKey,
-        icon: Icons.swap_vert_rounded,
-        tooltip: widget.tooltip ?? l10n.baseSortTooltip,
-        onTap: widget.enabled ? () => _showDrawer(context) : null,
-      );
-    }
-    return AppFilterPopover(
-      triggerLabel: _label(l10n),
-      panelKey: widget.panelKey ?? const Key('app-sort-panel'),
-      controller: _popoverController,
-      panelExtraWidth: 300,
-      enabled: widget.enabled,
-      triggerBuilder: (context, isOpen, toggle) => AppFilterEntryButton(
+      if (widget.iconOnly) {
+        return AppGlassIconButton(
+          key: widget.triggerKey,
+          tooltip: tooltip,
+          semanticLabel: tooltip,
+          icon: Icons.swap_vert_rounded,
+          onPressed: widget.enabled ? () => _showDrawer(context) : null,
+        );
+      }
+      return AppGlassHeaderButton(
         key: widget.triggerKey,
         icon: Icons.swap_vert_rounded,
         label: _label(l10n),
-        tooltip: widget.tooltip ?? l10n.baseSortTooltip,
-        trailingIcon: isOpen
-            ? Icons.expand_less_rounded
-            : Icons.expand_more_rounded,
-        onTap: widget.enabled ? toggle : null,
-      ),
-      panelBuilder: (context) => _buildSection(
-        onFieldChanged: _applyField,
-        onDirectionChanged: _applyDirection,
+        trailingIcon: Icons.expand_more_rounded,
+        tooltip: tooltip,
+        enabled: widget.enabled,
+        onTap: widget.enabled ? () => _showDrawer(context) : () {},
+      );
+    }
+    return AppGlassPopover(
+      panelKey: widget.panelKey ?? const Key('app-sort-panel'),
+      triggerBuilder: (context, toggle) {
+        final trigger = AppGlassHeaderButton(
+          key: widget.triggerKey,
+          icon: Icons.swap_vert_rounded,
+          label: _label(l10n),
+          trailingIcon: Icons.expand_more_rounded,
+          tooltip: tooltip,
+          enabled: widget.enabled,
+          onTap: widget.enabled ? toggle : () {},
+        );
+        return widget.glassGrouped
+            ? trigger
+            : AppGlassHeaderGroup(children: <Widget>[trigger]);
+      },
+      contentBuilder: (context, close) => AppGlassSortSection<F>(
+        fields: widget.fields,
+        selectedField: widget.selectedField,
+        fieldLabelBuilder: widget.fieldLabelBuilder,
+        onFieldChanged: (value) {
+          widget.onFieldChanged(value);
+          if (widget.closeOnSelect) {
+            close();
+          }
+        },
+        selectedDirection: widget.selectedDirection,
+        onDirectionChanged: (value) {
+          widget.onDirectionChanged(value);
+          if (widget.closeOnSelect) {
+            close();
+          }
+        },
+        directionVisibleWhen: widget.directionVisibleWhen,
+        allowDefaultOption: widget.allowDefaultOption,
+        defaultOptionLabel: widget.defaultOptionLabel,
+        fieldKeyBuilder: widget.fieldKeyBuilder,
+        directionKeyBuilder: widget.directionKeyBuilder,
+        defaultOptionKey: widget.defaultOptionKey,
+        fieldControlKey: widget.fieldControlKey,
+        directionControlKey: widget.directionControlKey,
       ),
     );
   }
 }
 
-/// 排序面板的标准内容：标题 + 字段 chips +（可选）方向 chips。
-///
-/// 桌面浮层与移动抽屉共用同一份内容，只有外层容器不同。
-class _AppSortSection<F> extends StatelessWidget {
-  const _AppSortSection({
-    required this.fields,
-    required this.selectedField,
-    required this.fieldLabelBuilder,
+class _AppSortDrawer<F> extends StatefulWidget {
+  const _AppSortDrawer({
+    required this.config,
     required this.onFieldChanged,
-    required this.selectedDirection,
     required this.onDirectionChanged,
-    this.directionVisibleWhen,
-    this.allowDefaultOption = false,
-    this.defaultOptionLabel,
-    this.fieldKeyBuilder,
-    this.directionKeyBuilder,
-    this.defaultOptionKey,
   });
 
-  final List<F> fields;
-  final F? selectedField;
-  final String Function(F field) fieldLabelBuilder;
+  final AppSortMenuButton<F> config;
   final ValueChanged<F?> onFieldChanged;
-
-  final SortDirection selectedDirection;
   final ValueChanged<SortDirection> onDirectionChanged;
 
-  /// 更细的方向显示条件，参数是当前字段。为空时始终显示。
-  final bool Function(F? field)? directionVisibleWhen;
+  @override
+  State<_AppSortDrawer<F>> createState() => _AppSortDrawerState<F>();
+}
 
-  /// 是否在字段前渲染「默认」选项；选中时回调 `null`。
-  final bool allowDefaultOption;
-  final String? defaultOptionLabel;
+class _AppSortDrawerState<F> extends State<_AppSortDrawer<F>> {
+  late F? _selectedField = widget.config.selectedField;
+  late SortDirection _selectedDirection = widget.config.selectedDirection;
 
-  final Key? Function(F field)? fieldKeyBuilder;
-  final Key? Function(SortDirection direction)? directionKeyBuilder;
-  final Key? defaultOptionKey;
+  void _applyField(F? value) {
+    setState(() => _selectedField = value);
+    widget.onFieldChanged(value);
+  }
 
-  bool get _showDirection => directionVisibleWhen?.call(selectedField) ?? true;
+  void _applyDirection(SortDirection value) {
+    setState(() => _selectedDirection = value);
+    widget.onDirectionChanged(value);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final l10n = appL10n(context);
-    final spacing = context.appSpacing;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          l10n.baseSortTitle,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s14,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.primary,
-          ),
-        ),
-        SizedBox(height: spacing.sm),
-        Wrap(
-          spacing: spacing.sm,
-          runSpacing: spacing.sm,
-          children: [
-            if (allowDefaultOption)
-              AppTextButton(
-                key: defaultOptionKey,
-                label: defaultOptionLabel ?? l10n.baseSortDefault,
-                size: AppTextButtonSize.xSmall,
-                isSelected: selectedField == null,
-                onPressed: () => onFieldChanged(null),
-              ),
-            for (final field in fields)
-              AppTextButton(
-                key: fieldKeyBuilder?.call(field),
-                label: fieldLabelBuilder(field),
-                size: AppTextButtonSize.xSmall,
-                isSelected: field == selectedField,
-                onPressed: () => onFieldChanged(field),
-              ),
-          ],
-        ),
-        if (_showDirection) ...[
-          SizedBox(height: spacing.md),
-          Wrap(
-            spacing: spacing.sm,
-            runSpacing: spacing.sm,
-            children: [
-              for (final direction in SortDirection.values)
-                AppTextButton(
-                  key: directionKeyBuilder?.call(direction),
-                  label: direction.label(AppLocalizations.of(context)),
-                  size: AppTextButtonSize.xSmall,
-                  isSelected: direction == selectedDirection,
-                  onPressed: () => onDirectionChanged(direction),
-                ),
-            ],
-          ),
-        ],
-      ],
+    final config = widget.config;
+    return AppMobileFilterDrawerScaffold(
+      child: AppGlassSortSection<F>(
+        fields: config.fields,
+        selectedField: _selectedField,
+        fieldLabelBuilder: config.fieldLabelBuilder,
+        onFieldChanged: _applyField,
+        selectedDirection: _selectedDirection,
+        onDirectionChanged: _applyDirection,
+        directionVisibleWhen: config.directionVisibleWhen,
+        allowDefaultOption: config.allowDefaultOption,
+        defaultOptionLabel: config.defaultOptionLabel,
+        fieldKeyBuilder: config.fieldKeyBuilder,
+        directionKeyBuilder: config.directionKeyBuilder,
+        defaultOptionKey: config.defaultOptionKey,
+        fieldControlKey: config.fieldControlKey,
+        directionControlKey: config.directionControlKey,
+      ),
     );
   }
 }

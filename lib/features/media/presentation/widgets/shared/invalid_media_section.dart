@@ -21,17 +21,15 @@ import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 
 /// 「失效媒体」列表：后端只提供列表和删除，因此每条记录直接允许删除。
 ///
@@ -71,6 +69,7 @@ class _InvalidMediaSectionState extends ConsumerState<InvalidMediaSection>
         onToggleAll: toggleSelectAll,
         onBatchDelete: _batchDelete,
       ),
+      headerBottomSpacing: context.appSpacing.lg,
       child: CustomScrollView(
         key: const Key('invalid-media-scroll-view'),
         controller: widget.scrollController,
@@ -205,23 +204,16 @@ class _InvalidMediaHeader extends ConsumerWidget {
     final allSelected = isAllSelected(loadedIds);
 
     if (mobile && selectionMode) {
-      return AppListHeader.selection(
+      return AppMobileSelectionHeader(
         key: const Key('invalid-media-selection-header'),
         selectionLabel: l10n.mediaListSelectedItems(selectedCount),
-        selectionExitButtonKey: const Key(
-          'invalid-media-exit-selection-button',
-        ),
+        exitKey: const Key('invalid-media-exit-selection-button'),
         onExitSelection: onExitSelection,
-        actionSlots: [
-          AppTextButton(
-            key: const Key('invalid-media-select-all-button'),
-            label: allSelected
-                ? l10n.mediaListClearSelectAllLoaded
-                : l10n.mediaListSelectAllLoaded,
-            size: AppTextButtonSize.small,
-            onPressed: loadedIds.isEmpty ? null : () => onToggleAll(loadedIds),
-          ),
-        ],
+        selectAllKey: const Key('invalid-media-select-all-button'),
+        selectAllTooltip: allSelected
+            ? l10n.mediaListClearSelectAllLoaded
+            : l10n.mediaListSelectAllLoaded,
+        onToggleAll: loadedIds.isEmpty ? null : () => onToggleAll(loadedIds),
       );
     }
 
@@ -229,24 +221,23 @@ class _InvalidMediaHeader extends ConsumerWidget {
       final submitting = watchBatchOperationSubmitting(ref, const [
         BatchOperationType.mediaDelete,
       ]);
-      return AppSelectionHeaderToolbar(
+      return AppGlassSelectionHeader(
+        selectionLabel: l10n.mediaListSelectedRecords(selectedCount),
         countKey: const Key('invalid-media-selection-count'),
         selectAllKey: const Key('invalid-media-select-all-button'),
         exitKey: const Key('invalid-media-exit-selection-button'),
-        countLabel: l10n.mediaListSelectedRecords(selectedCount),
         selectAllLabel: allSelected
             ? l10n.mediaListClearSelectAllLoaded
             : l10n.mediaListSelectAllLoaded,
         onToggleAll: loadedIds.isEmpty ? null : () => onToggleAll(loadedIds),
-        onExit: onExitSelection,
-        actions: [
-          AppButton(
+        onExitSelection: onExitSelection,
+        actions: <AppGlassSelectionAction>[
+          AppGlassSelectionAction(
             key: const Key('invalid-media-batch-delete-button'),
             label: l10n.mediaListBatchDelete(selectedCount),
-            variant: AppButtonVariant.danger,
-            size: AppButtonSize.small,
-            icon: const Icon(Icons.delete_outline_rounded),
-            onPressed: selectedCount == 0 || submitting
+            icon: Icons.delete_outline_rounded,
+            foregroundColor: context.appTextPalette.error,
+            onTap: selectedCount == 0 || submitting
                 ? null
                 : () => onBatchDelete(selectedIds.toList(growable: false)),
           ),
@@ -268,71 +259,86 @@ class _InvalidMediaHeader extends ConsumerWidget {
     );
     final totalText = l10n.mediaListTotalInvalidItems(state.total);
     final canEnterSelection = loadedIds.isNotEmpty && !state.isInitialLoading;
-    final enterSelectionButton = mobile
-        ? AppTextButton(
-            key: const Key('invalid-media-enter-selection-button'),
-            label: l10n.mediaListEnterSelection,
-            size: AppTextButtonSize.xSmall,
-            icon: const Icon(Icons.check_circle_outline, size: 14),
-            onPressed: canEnterSelection ? onEnterSelection : null,
-          )
-        : AppSelectionEntryButton(
-            key: const Key('invalid-media-enter-selection-button'),
-            label: l10n.mediaListEnterSelection,
-            onPressed: canEnterSelection ? onEnterSelection : null,
-          );
-    final refreshButton = AppIconButton(
-      key: const Key('invalid-media-refresh-button'),
-      tooltip: state.isInitialLoading
-          ? l10n.mediaListRefreshing
-          : l10n.commonRefresh,
-      icon: const Icon(Icons.refresh_rounded),
-      onPressed: state.isInitialLoading
-          ? null
-          : () async {
-              final message = await ref
-                  .read(invalidMediaProvider.notifier)
-                  .refresh();
-              if (message != null) showToast(message);
-            },
-    );
-
-    // 移动端文案一行放不下：说明独立成最多两行，计数、选择与刷新单独一行，
-    // 避免和这些操作挤在一起被截断。
-    if (mobile) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          description,
-          SizedBox(height: context.appSpacing.sm),
-          AppFilterTotalHeader(
-            leading: const SizedBox.shrink(),
-            totalText: totalText,
-            totalKey: const Key('invalid-media-total-text'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                enterSelectionButton,
-                SizedBox(width: context.appSpacing.xs),
-                refreshButton,
-              ],
+    if (!mobile) {
+      return AppGlassListHeader(
+        leading: AppGlassHeaderGroup(
+          children: <Widget>[
+            AppGlassHeaderText(
+              key: const Key('invalid-media-total-text'),
+              label: totalText,
             ),
-          ),
-        ],
+            AppGlassHeaderText(
+              key: const Key('invalid-media-section-description'),
+              label: l10n.mediaListInvalidDescription,
+            ),
+          ],
+        ),
+        trailing: AppGlassHeaderGroup(
+          children: <Widget>[
+            AppGlassHeaderButton(
+              key: const Key('invalid-media-enter-selection-button'),
+              icon: Icons.check_circle_outline,
+              label: l10n.mediaListEnterSelection,
+              enabled: canEnterSelection,
+              onTap: canEnterSelection ? onEnterSelection : () {},
+            ),
+            AppGlassHeaderButton(
+              key: const Key('invalid-media-refresh-button'),
+              icon: Icons.refresh_rounded,
+              label: state.isInitialLoading
+                  ? l10n.mediaListRefreshing
+                  : l10n.commonRefresh,
+              enabled: !state.isInitialLoading,
+              onTap: state.isInitialLoading
+                  ? () {}
+                  : () async {
+                      final message = await ref
+                          .read(invalidMediaProvider.notifier)
+                          .refresh();
+                      if (message != null && context.mounted) {
+                        showToast(message);
+                      }
+                    },
+            ),
+          ],
+        ),
       );
     }
-    return AppFilterTotalHeader(
-      leading: description,
-      totalText: totalText,
-      totalKey: const Key('invalid-media-total-text'),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          enterSelectionButton,
-          SizedBox(width: context.appSpacing.xs),
-          refreshButton,
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        description,
+        SizedBox(height: context.appSpacing.sm),
+        AppMobileListHeader(
+          leading: AppMobileHeaderText(
+            key: const Key('invalid-media-total-text'),
+            countLabel: totalText,
+          ),
+          actions: <Widget>[
+            AppGlassIconButton(
+              key: const Key('invalid-media-enter-selection-button'),
+              tooltip: l10n.mediaListEnterSelection,
+              icon: Icons.check_circle_outline,
+              onPressed: canEnterSelection ? onEnterSelection : null,
+            ),
+            AppGlassIconButton(
+              key: const Key('invalid-media-refresh-button'),
+              tooltip: state.isInitialLoading
+                  ? l10n.mediaListRefreshing
+                  : l10n.commonRefresh,
+              icon: Icons.refresh_rounded,
+              onPressed: state.isInitialLoading
+                  ? null
+                  : () async {
+                      final message = await ref
+                          .read(invalidMediaProvider.notifier)
+                          .refresh();
+                      if (message != null) showToast(message);
+                    },
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

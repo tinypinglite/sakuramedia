@@ -28,8 +28,12 @@ class AppAdaptiveRefreshScrollView extends StatelessWidget {
     final isIosRefresh = defaultTargetPlatform == TargetPlatform.iOS;
     // 底部安全区在这里补：外层移动子页外壳不吞底部安全区，滚动内容铺到屏幕
     // 物理底边，尾部留出等高留白，最后一块内容不会被 home indicator 压住。
-    // 桌面、tab 壳内（Scaffold 已 removeBottomPadding）和抽屉里读到的都是 0。
-    final paddedSlivers = <Widget>[...slivers, ...bottomSafeAreaSliver(context)];
+    // 根 Tab 壳的玻璃底栏开启 extendBody 后，这里还会包含 Dock 高度，让内容
+    // 能穿过底栏并在滚到底时停在 Dock 上方；桌面和抽屉里读到的是 0。
+    final paddedSlivers = <Widget>[
+      ...slivers,
+      ...bottomSafeAreaSliver(context),
+    ];
     final scrollView = CustomScrollView(
       key: key,
       controller: controller,

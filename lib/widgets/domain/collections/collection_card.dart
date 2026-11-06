@@ -27,6 +27,8 @@ class CollectionCard extends StatelessWidget {
     required this.onTap,
     this.onEdit,
     this.onDelete,
+    this.glassChrome = false,
+    this.coverBackdrop = false,
   });
 
   /// 视频合集卡。封面取自某个视频的首帧、可能是竖图，故 `fit: contain` 完整展示。
@@ -36,6 +38,7 @@ class CollectionCard extends StatelessWidget {
     required VoidCallback onTap,
     VoidCallback? onEdit,
     VoidCallback? onDelete,
+    bool coverBackdrop = false,
   }) {
     return CollectionCard._(
       key: key,
@@ -50,6 +53,8 @@ class CollectionCard extends StatelessWidget {
       onTap: onTap,
       onEdit: onEdit,
       onDelete: onDelete,
+      glassChrome: true,
+      coverBackdrop: coverBackdrop,
     );
   }
 
@@ -113,6 +118,12 @@ class CollectionCard extends StatelessWidget {
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
 
+  /// 封面内浮玻璃信息条；桌面玻璃合集页使用。
+  final bool glassChrome;
+
+  /// contain 封面两侧是否铺同图暗底；移动端竖图合集卡使用。
+  final bool coverBackdrop;
+
   @override
   Widget build(BuildContext context) {
     return CollectionCoverCard(
@@ -127,6 +138,8 @@ class CollectionCard extends StatelessWidget {
       onTap: onTap,
       onEdit: onEdit,
       onDelete: onDelete,
+      glassChrome: glassChrome,
+      coverBackdrop: coverBackdrop,
     );
   }
 }

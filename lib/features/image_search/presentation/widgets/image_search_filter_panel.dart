@@ -6,6 +6,8 @@ import 'package:sakuramedia/features/image_search/presentation/widgets/actor_sel
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
+import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 
@@ -141,67 +143,51 @@ class ImageSearchFilterPanel extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _FilterSection(
+        AppFilterChoiceSection<ImageSearchTarget>(
           title: l10n.imageSearchMaterialTitle,
-          child: Wrap(
-            spacing: spacing.sm,
-            runSpacing: spacing.sm,
-            children: [
-              for (final target in ImageSearchTarget.values)
-                AppButton(
-                  key: Key('image-search-filter-target-${target.name}'),
-                  label: target.label(l10n),
-                  size: AppButtonSize.xSmall,
-                  variant: AppButtonVariant.secondary,
-                  isSelected: filterState.searchTarget == target,
-                  onPressed: () =>
-                      onChanged(filterState.copyWith(searchTarget: target)),
-                ),
-            ],
-          ),
+          items: [
+            for (final target in ImageSearchTarget.values)
+              AppSegmentedItem<ImageSearchTarget>(
+                value: target,
+                label: target.label(l10n),
+                key: Key('image-search-filter-target-${target.name}'),
+              ),
+          ],
+          selected: filterState.searchTarget,
+          onChanged: (target) =>
+              onChanged(filterState.copyWith(searchTarget: target)),
         ),
         if (hasCurrentMovie) ...[
           SizedBox(height: spacing.md),
-          _FilterSection(
+          AppFilterChoiceSection<ImageSearchCurrentMovieScope>(
             title: l10n.imageSearchMovieScopeTitle,
-            child: Wrap(
-              spacing: spacing.sm,
-              runSpacing: spacing.sm,
-              children: [
-                for (final scope in ImageSearchCurrentMovieScope.values)
-                  AppButton(
-                    key: Key('image-search-filter-movie-${scope.name}'),
-                    label: scope.label(l10n),
-                    size: AppButtonSize.xSmall,
-                    variant: AppButtonVariant.secondary,
-                    isSelected: filterState.currentMovieScope == scope,
-                    onPressed: () => onChanged(
-                      filterState.copyWith(currentMovieScope: scope),
-                    ),
-                  ),
-              ],
-            ),
+            items: [
+              for (final scope in ImageSearchCurrentMovieScope.values)
+                AppSegmentedItem<ImageSearchCurrentMovieScope>(
+                  value: scope,
+                  label: scope.label(l10n),
+                  key: Key('image-search-filter-movie-${scope.name}'),
+                ),
+            ],
+            selected: filterState.currentMovieScope,
+            onChanged: (scope) =>
+                onChanged(filterState.copyWith(currentMovieScope: scope)),
           ),
         ],
         SizedBox(height: spacing.md),
-        _FilterSection(
+        AppFilterChoiceSection<ImageSearchActorFilterMode>(
           title: l10n.imageSearchActorScopeTitle,
-          child: Wrap(
-            spacing: spacing.sm,
-            runSpacing: spacing.sm,
-            children: [
-              for (final mode in ImageSearchActorFilterMode.values)
-                AppButton(
-                  key: Key('image-search-filter-actor-${mode.name}'),
-                  label: mode.label(l10n),
-                  size: AppButtonSize.xSmall,
-                  variant: AppButtonVariant.secondary,
-                  isSelected: filterState.actorFilterMode == mode,
-                  onPressed: () =>
-                      onChanged(filterState.copyWith(actorFilterMode: mode)),
-                ),
-            ],
-          ),
+          items: [
+            for (final mode in ImageSearchActorFilterMode.values)
+              AppSegmentedItem<ImageSearchActorFilterMode>(
+                value: mode,
+                label: mode.label(l10n),
+                key: Key('image-search-filter-actor-${mode.name}'),
+              ),
+          ],
+          selected: filterState.actorFilterMode,
+          onChanged: (mode) =>
+              onChanged(filterState.copyWith(actorFilterMode: mode)),
         ),
         if (filterState.requiresActorSelection) ...[
           SizedBox(height: spacing.md),
@@ -277,33 +263,6 @@ class ImageSearchFilterFooter extends StatelessWidget {
               ? null
               : onApply,
         ),
-      ],
-    );
-  }
-}
-
-class _FilterSection extends StatelessWidget {
-  const _FilterSection({required this.title, required this.child});
-
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            tone: AppTextTone.muted,
-          ),
-        ),
-        SizedBox(height: context.appSpacing.sm),
-        child,
       ],
     );
   }

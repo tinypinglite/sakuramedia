@@ -7,10 +7,13 @@ import 'package:sakuramedia/features/activity/presentation/providers/activity_ce
 import 'package:sakuramedia/features/activity/presentation/widgets/activity_task_run_card.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
+import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
 import 'package:sakuramedia/widgets/domain/activity/activity_task_sort_menu_button.dart';
 
 /// 「任务历史」的筛选条：状态、任务、触发来源与排序。
@@ -36,101 +39,98 @@ class ActivityTaskFilterBar extends StatelessWidget {
       return _MobileTaskFilterEntry(controller: controller);
     }
     final l10n = AppLocalizations.of(context);
-    final layoutTokens = context.appLayoutTokens;
     final taskKeyLabels = controller.knownTaskKeyLabels;
-    final filterTextStyle = resolveAppTextStyle(
-      context,
-      size: AppTextSize.s12,
-      weight: AppTextWeight.regular,
-      tone: AppTextTone.tertiary,
-    );
-    return Wrap(
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: context.appSpacing.md,
-      runSpacing: context.appSpacing.md,
-      children: [
-        SizedBox(
-          width: layoutTokens.filterFieldWidthMd,
-          child: AppSelectField<String?>(
-            key: const Key('activity-task-state-filter'),
-            value: controller.taskFilter.state,
-            size: AppSelectFieldSize.compact,
-            textStyle: filterTextStyle,
-            items: <DropdownMenuItem<String?>>[
-              DropdownMenuItem<String?>(
-                value: null,
-                child: Text(l10n.activityFilterAllStates),
-              ),
-              ...states.map(
-                (value) => DropdownMenuItem<String?>(
-                  value: value,
-                  child: Text(activityTaskStateLabel(value, l10n)),
+    final filter = controller.taskFilter;
+    final taskKeyOptions = <String>{
+      ...controller.knownTaskKeys,
+      if (filter.taskKey != null) filter.taskKey!,
+    }.toList(growable: false);
+    final stateOptions = <String>{
+      ...ActivityTaskFilterBar.states,
+      if (filter.state != null) filter.state!,
+    }.toList(growable: false);
+    final triggerOptions = <String>{
+      ...ActivityTaskFilterBar.triggerTypes,
+      if (filter.triggerType != null) filter.triggerType!,
+    }.toList(growable: false);
+
+    void apply(ActivityTaskFilterState next) {
+      unawaited(controller.applyTaskFilter(next));
+    }
+
+    return AppGlassListHeader(
+      leading: AppGlassFilterPopover(
+        panelKey: const Key('activity-task-filter-panel'),
+        scrollable: true,
+        isDefault: !filter.hasActiveFilters,
+        onReset: () => apply(filter.resetFilters()),
+        resetKey: const Key('activity-task-filter-reset'),
+        triggerKey: const Key('activity-task-filter-trigger'),
+        label: _taskFilterSummary(filter, taskKeyLabels, l10n),
+        tooltip: l10n.activityTaskFilterTitle,
+        panelBuilder: (context) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            AppFilterChoiceSection<String?>(
+              title: l10n.activityTaskStateLabel,
+              controlKey: const Key('activity-task-state-filter'),
+              items: <AppSegmentedItem<String?>>[
+                AppSegmentedItem(
+                  value: null,
+                  label: l10n.activityFilterAllStates,
                 ),
-              ),
-            ],
-            onChanged: (value) => controller.applyTaskFilter(
-              controller.taskFilter.copyWith(state: value),
+                for (final value in stateOptions)
+                  AppSegmentedItem(
+                    value: value,
+                    label: activityTaskStateLabel(value, l10n),
+                  ),
+              ],
+              selected: filter.state,
+              onChanged: (value) => apply(filter.copyWith(state: value)),
             ),
-          ),
-        ),
-        SizedBox(
-          width: layoutTokens.filterFieldWidthLg,
-          child: AppSelectField<String?>(
-            key: const Key('activity-task-key-filter'),
-            value: controller.taskFilter.taskKey,
-            size: AppSelectFieldSize.compact,
-            textStyle: filterTextStyle,
-            items: <DropdownMenuItem<String?>>[
-              DropdownMenuItem<String?>(
-                value: null,
-                child: Text(l10n.activityFilterAllTaskTypes),
-              ),
-              ...controller.knownTaskKeys.map(
-                (value) => DropdownMenuItem<String?>(
-                  value: value,
-                  child: Text(taskKeyLabels[value] ?? value),
+            SizedBox(height: context.appSpacing.lg),
+            AppFilterChoiceSection<String?>(
+              title: l10n.activityTaskTypeLabel,
+              controlKey: const Key('activity-task-key-filter'),
+              items: <AppSegmentedItem<String?>>[
+                AppSegmentedItem(
+                  value: null,
+                  label: l10n.activityFilterAllTaskTypes,
                 ),
-              ),
-            ],
-            onChanged: (value) => controller.applyTaskFilter(
-              controller.taskFilter.copyWith(taskKey: value),
+                for (final value in taskKeyOptions)
+                  AppSegmentedItem(
+                    value: value,
+                    label: taskKeyLabels[value] ?? value,
+                  ),
+              ],
+              selected: filter.taskKey,
+              onChanged: (value) => apply(filter.copyWith(taskKey: value)),
             ),
-          ),
-        ),
-        SizedBox(
-          width: layoutTokens.filterFieldWidthMd,
-          child: AppSelectField<String?>(
-            key: const Key('activity-task-trigger-filter'),
-            value: controller.taskFilter.triggerType,
-            size: AppSelectFieldSize.compact,
-            textStyle: filterTextStyle,
-            items: <DropdownMenuItem<String?>>[
-              DropdownMenuItem<String?>(
-                value: null,
-                child: Text(l10n.activityFilterAllTriggers),
-              ),
-              ...triggerTypes.map(
-                (value) => DropdownMenuItem<String?>(
-                  value: value,
-                  child: Text(activityTriggerTypeLabel(value, l10n)),
-                ),
-              ),
-            ],
-            onChanged: (value) => controller.applyTaskFilter(
-              controller.taskFilter.copyWith(triggerType: value),
+            SizedBox(height: context.appSpacing.lg),
+            AppFilterChoiceSection<String?>(
+              title: l10n.activityTaskTriggerLabel,
+              controlKey: const Key('activity-task-trigger-filter'),
+              items: <AppSegmentedItem<String?>>[
+                AppSegmentedItem(value: null, label: l10n.activityAll),
+                for (final value in triggerOptions)
+                  AppSegmentedItem(
+                    value: value,
+                    label: activityTriggerTypeLabel(value, l10n),
+                  ),
+              ],
+              selected: filter.triggerType,
+              onChanged: (value) => apply(filter.copyWith(triggerType: value)),
             ),
-          ),
+          ],
         ),
-        SizedBox(
-          height: context.appComponentTokens.mobileTopTabHeight,
-          child: ActivityTaskSortMenuButton(
-            triggerKey: const Key('activity-task-sort-trigger'),
-            panelKey: const Key('activity-task-sort-panel'),
-            filterState: controller.taskFilter,
-            onChanged: controller.applyTaskFilter,
-          ),
-        ),
-      ],
+      ),
+      trailing: ActivityTaskSortMenuButton(
+        triggerKey: const Key('activity-task-sort-trigger'),
+        panelKey: const Key('activity-task-sort-panel'),
+        filterState: filter,
+        onChanged: apply,
+      ),
     );
   }
 }
@@ -145,19 +145,26 @@ class _MobileTaskFilterEntry extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final filter = controller.taskFilter;
     final taskKeyLabels = controller.knownTaskKeyLabels;
-    return AppListHeader(
-      filterButtonKey: const Key('mobile-activity-task-filter-button'),
-      filterLabel: _taskFilterSummary(filter, taskKeyLabels, l10n),
-      filterTooltip: l10n.activityTaskFilterTitle,
-      onFilterTap: () => unawaited(
-        _showMobileActivityTaskFilterDrawer(
-          context,
-          current: filter,
-          taskKeyLabels: taskKeyLabels,
-          onChanged: (next) => unawaited(controller.applyTaskFilter(next)),
-        ),
+    final summary = _taskFilterSummary(filter, taskKeyLabels, l10n);
+    return AppMobileListHeader(
+      leading: AppMobileHeaderText(
+        title: l10n.activityTaskRunHistoryTitle,
+        countLabel: summary,
       ),
-      actionSlots: [
+      actions: <Widget>[
+        AppGlassFilterIconButton(
+          key: const Key('mobile-activity-task-filter-button'),
+          summary: summary,
+          isActive: filter.hasActiveFilters,
+          onPressed: () => unawaited(
+            _showMobileActivityTaskFilterDrawer(
+              context,
+              current: filter,
+              taskKeyLabels: taskKeyLabels,
+              onChanged: (next) => unawaited(controller.applyTaskFilter(next)),
+            ),
+          ),
+        ),
         ActivityTaskSortMenuButton(
           triggerKey: const Key('mobile-activity-task-sort-trigger'),
           drawerKey: const Key('mobile-activity-task-sort-drawer'),
@@ -165,6 +172,7 @@ class _MobileTaskFilterEntry extends StatelessWidget {
           filterState: filter,
           onChanged: (next) => unawaited(controller.applyTaskFilter(next)),
           useDrawer: true,
+          iconOnly: true,
         ),
       ],
     );
@@ -223,60 +231,60 @@ class _MobileTaskFilterSections extends StatelessWidget {
           ),
         ),
         SizedBox(height: context.appSpacing.lg),
-        AppSelectField<String?>(
-          key: const Key('mobile-activity-task-state-filter'),
-          label: l10n.activityTaskStateLabel,
-          value: filter.state,
-          items: <DropdownMenuItem<String?>>[
-            DropdownMenuItem<String?>(
+        AppFilterChoiceSection<String?>(
+          title: l10n.activityTaskStateLabel,
+          controlKey: const Key('mobile-activity-task-state-filter'),
+          items: <AppSegmentedItem<String?>>[
+            AppSegmentedItem<String?>(
               value: null,
-              child: Text(l10n.activityFilterAllStates),
+              label: l10n.activityFilterAllStates,
             ),
             ...ActivityTaskFilterBar.states.map(
-              (value) => DropdownMenuItem<String?>(
+              (value) => AppSegmentedItem<String?>(
                 value: value,
-                child: Text(activityTaskStateLabel(value, l10n)),
+                label: activityTaskStateLabel(value, l10n),
               ),
             ),
           ],
+          selected: filter.state,
           onChanged: (value) => onChanged(filter.copyWith(state: value)),
         ),
-        SizedBox(height: context.appSpacing.md),
-        AppSelectField<String?>(
-          key: const Key('mobile-activity-task-key-filter'),
-          label: l10n.activityTaskTypeLabel,
-          value: filter.taskKey,
-          items: <DropdownMenuItem<String?>>[
-            DropdownMenuItem<String?>(
+        SizedBox(height: context.appSpacing.lg),
+        AppFilterChoiceSection<String?>(
+          title: l10n.activityTaskTypeLabel,
+          controlKey: const Key('mobile-activity-task-key-filter'),
+          items: <AppSegmentedItem<String?>>[
+            AppSegmentedItem<String?>(
               value: null,
-              child: Text(l10n.activityFilterAllTaskTypes),
+              label: l10n.activityFilterAllTaskTypes,
             ),
             ...taskKeyLabels.entries.map(
-              (entry) => DropdownMenuItem<String?>(
+              (entry) => AppSegmentedItem<String?>(
                 value: entry.key,
-                child: Text(entry.value),
+                label: entry.value,
               ),
             ),
           ],
+          selected: filter.taskKey,
           onChanged: (value) => onChanged(filter.copyWith(taskKey: value)),
         ),
-        SizedBox(height: context.appSpacing.md),
-        AppSelectField<String?>(
-          key: const Key('mobile-activity-task-trigger-filter'),
-          label: l10n.activityTaskTriggerLabel,
-          value: filter.triggerType,
-          items: <DropdownMenuItem<String?>>[
-            DropdownMenuItem<String?>(
+        SizedBox(height: context.appSpacing.lg),
+        AppFilterChoiceSection<String?>(
+          title: l10n.activityTaskTriggerLabel,
+          controlKey: const Key('mobile-activity-task-trigger-filter'),
+          items: <AppSegmentedItem<String?>>[
+            AppSegmentedItem<String?>(
               value: null,
-              child: Text(l10n.activityFilterAllTriggers),
+              label: l10n.activityFilterAllTriggers,
             ),
             ...ActivityTaskFilterBar.triggerTypes.map(
-              (value) => DropdownMenuItem<String?>(
+              (value) => AppSegmentedItem<String?>(
                 value: value,
-                child: Text(activityTriggerTypeLabel(value, l10n)),
+                label: activityTriggerTypeLabel(value, l10n),
               ),
             ),
           ],
+          selected: filter.triggerType,
           onChanged: (value) => onChanged(filter.copyWith(triggerType: value)),
         ),
       ],

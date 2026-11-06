@@ -28,7 +28,8 @@ import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_sc
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
 import 'package:sakuramedia/widgets/domain/rankings/ranking_sort_menu_button.dart';
 import 'package:sakuramedia/features/rankings/presentation/widgets/ranked_movie_summary_grid.dart';
@@ -133,72 +134,82 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
       withPrefix: false,
     );
 
-    return AppListHeader(
-      filterButtonKey: const Key('desktop-rankings-filter-trigger'),
-      filterIcon: Icons.leaderboard_outlined,
-      filterLabel: boardLabel,
-      filterEnabled: filters.sources.isNotEmpty,
+    return AppGlassListHeader(
+      leading: AppGlassFilterPopover(
+        panelKey: const Key('rankings-filter-panel'),
+        scrollable: true,
+        showResetFooter: false,
+        enabled: filters.sources.isNotEmpty,
+        triggerKey: const Key('desktop-rankings-filter-trigger'),
+        label: boardLabel,
+        info: <Widget>[
+          AppGlassHeaderText(
+            key: const Key('desktop-rankings-page-total'),
+            label: l10n.sharedMovieCount(paged.total),
+          ),
+          if (syncedAtLabel != null)
+            AppGlassHeaderText(
+              key: const Key('desktop-rankings-synced-at'),
+              label: syncedAtLabel,
+            ),
+        ],
+        panelBuilder: (context) => RankingFilterSectionGroup(
+          sources: filters.sources,
+          selectedSource: filters.selectedSource,
+          boards: filters.boards,
+          selectedBoard: filters.selectedBoard,
+          selectedPeriod: filters.selectedPeriod,
+          isBoardLoading: filters.isLoading,
+          onSourceChanged: (value) => _applyFilterChange(
+            () => ref
+                .read(rankingSummaryProvider(_scope).notifier)
+                .selectSource(value),
+          ),
+          onBoardChanged: (value) => _applyFilterChange(
+            () => ref
+                .read(rankingSummaryProvider(_scope).notifier)
+                .selectBoard(value),
+          ),
+          onPeriodChanged: (value) => _applyFilterChange(
+            () => ref
+                .read(rankingSummaryProvider(_scope).notifier)
+                .selectPeriod(value),
+          ),
+          interaction: filters.interaction,
+          onInteractionChanged: (value) => _applyFilterChange(
+            () => ref
+                .read(rankingSummaryProvider(_scope).notifier)
+                .selectInteraction(value),
+          ),
+        ),
+      ),
+      trailing: AppGlassHeaderGroup(
+        children: <Widget>[
+          RankingSortMenuButton(
+            triggerKey: const Key('rankings-sort-trigger'),
+            panelKey: const Key('rankings-sort-panel'),
+            filterState: filters,
+            glassGrouped: true,
+            onSortChanged: (field, direction) => _applyFilterChange(
+              () => ref
+                  .read(rankingSummaryProvider(_scope).notifier)
+                  .selectSort(field, direction),
+            ),
+          ),
+          if (batchSelectableNumbers.isNotEmpty)
+            AppGlassHeaderButton(
+              key: Key('$batchKeyPrefix-enter-selection-button'),
+              icon: Icons.check_circle_outline,
+              label: l10n.baseSelect,
+              onTap: enterSelection,
+            ),
+        ],
+      ),
       filterUpdate: paged.filterUpdate,
       hasPreviousFilterItems: paged.items.isNotEmpty,
       onRetryFilter: () => unawaited(
         ref.read(rankingSummaryProvider(_scope).notifier).retryFilter(),
       ),
-      filterPanelKey: const Key('rankings-filter-panel'),
-      filterPanelExtraWidth: 520,
-      filterPanelBuilder: (_) => RankingFilterSectionGroup(
-        sources: filters.sources,
-        selectedSource: filters.selectedSource,
-        boards: filters.boards,
-        selectedBoard: filters.selectedBoard,
-        selectedPeriod: filters.selectedPeriod,
-        isBoardLoading: filters.isLoading,
-        onSourceChanged: (value) => _applyFilterChange(
-          () => ref
-              .read(rankingSummaryProvider(_scope).notifier)
-              .selectSource(value),
-        ),
-        onBoardChanged: (value) => _applyFilterChange(
-          () => ref
-              .read(rankingSummaryProvider(_scope).notifier)
-              .selectBoard(value),
-        ),
-        onPeriodChanged: (value) => _applyFilterChange(
-          () => ref
-              .read(rankingSummaryProvider(_scope).notifier)
-              .selectPeriod(value),
-        ),
-        interaction: filters.interaction,
-        onInteractionChanged: (value) => _applyFilterChange(
-          () => ref
-              .read(rankingSummaryProvider(_scope).notifier)
-              .selectInteraction(value),
-        ),
-      ),
-      informationSlots: [
-        AppListHeaderInfo(
-          key: const Key('desktop-rankings-page-total'),
-          label: l10n.sharedMovieCount(paged.total),
-        ),
-        if (syncedAtLabel != null)
-          AppListHeaderInfo(
-            key: const Key('desktop-rankings-synced-at'),
-            label: syncedAtLabel,
-            icon: Icons.schedule_rounded,
-          ),
-      ],
-      actionSlots: [
-        RankingSortMenuButton(
-          triggerKey: const Key('rankings-sort-trigger'),
-          panelKey: const Key('rankings-sort-panel'),
-          filterState: filters,
-          onSortChanged: (field, direction) => _applyFilterChange(
-            () => ref
-                .read(rankingSummaryProvider(_scope).notifier)
-                .selectSort(field, direction),
-          ),
-        ),
-        buildEnterSelectionButton(),
-      ],
     );
   }
 
@@ -244,7 +255,7 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (selectionMode)
-              buildBatchSelectionToolbar()
+              buildGlassBatchSelectionToolbar()
             else
               _buildHeader(context, paged, filters, syncedAt),
             SizedBox(height: context.appSpacing.md),

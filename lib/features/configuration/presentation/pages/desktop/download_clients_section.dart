@@ -23,6 +23,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_info_pill.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 class DownloadClientsSection extends ConsumerStatefulWidget {
@@ -41,7 +42,7 @@ class _DownloadClientsSectionState
     List<MediaLibraryDto> libraries,
     List<MediaProviderDto> providers,
   ) async {
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
       builder: (_) => DownloadClientDialog(
         libraries: libraries,
@@ -56,7 +57,7 @@ class _DownloadClientsSectionState
     List<MediaLibraryDto> libraries,
     List<MediaProviderDto> providers,
   ) async {
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
       builder: (_) => DownloadClientDialog(
         libraries: libraries,

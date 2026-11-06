@@ -1,5 +1,5 @@
-import 'package:animate_do/animate_do.dart';
 import 'package:cupertino_ui/cupertino_ui.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -7,11 +7,6 @@ import 'package:sakuramedia/core/platform/haptic_feedback.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/shell/mobile/mobile_system_overlay.dart';
-
-/// 切换 tab 时选中 icon 的「先缩小再放大」时长。
-///
-/// `Pulse(from: 1.0, to: 0.6)` 的序列是 `1.0 → 0.6 → 1.0`，透明度不变。
-const Duration _kNavIconPulseDuration = Duration(milliseconds: 480);
 
 class AppMobileShell extends StatefulWidget {
   const AppMobileShell({
@@ -22,6 +17,7 @@ class AppMobileShell extends StatefulWidget {
     this.onDestinationSelected = _noopDestinationSelected,
     this.drawer,
     this.drawerEnableOpenDragGesture = false,
+    this.background,
     required this.child,
   });
 
@@ -31,6 +27,11 @@ class AppMobileShell extends StatefulWidget {
   final ValueChanged<int> onDestinationSelected;
   final Widget? drawer;
   final bool drawerEnableOpenDragGesture;
+
+  /// 页面内容安全区之外的整屏底色/环境光；为空时使用卡片底色。
+  ///
+  /// 该层铺到状态栏下方，让透明顶栏与页面背景连成一片；仍不覆盖底部导航。
+  final Widget? background;
   final Widget child;
 
   static void _noopDestinationSelected(int _) {}
@@ -40,12 +41,6 @@ class AppMobileShell extends StatefulWidget {
 }
 
 class _AppMobileShellState extends State<AppMobileShell> {
-  /// 上一次构建时的选中下标。
-  ///
-  /// 只在「下标发生变化的那一帧」给新选中项播放 icon 动效：首次构建时为
-  /// null，所有 icon 都静态，避免 App 启动时当前 tab 无端弹一下。
-  int? _previousIndex;
-
   @override
   Widget build(BuildContext context) {
     final navItems = widget.navGroups
@@ -54,86 +49,153 @@ class _AppMobileShellState extends State<AppMobileShell> {
     final resolvedCurrentIndex =
         widget.currentIndex ??
         _resolveCurrentIndex(widget.currentPath, navItems);
-    final animateIndex =
-        _previousIndex != null && _previousIndex != resolvedCurrentIndex
-        ? resolvedCurrentIndex
-        : null;
-    final animateNavIcons = !MediaQuery.disableAnimationsOf(context);
+    final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
+    final useGlassNavigation = !highContrast;
 
     final shell = AnnotatedRegion<SystemUiOverlayStyle>(
-      value: resolveMobileSystemOverlayStyle(context),
-      child: Scaffold(
-        backgroundColor: context.appColors.surfaceCard,
-        drawer: widget.drawer,
-        drawerEnableOpenDragGesture:
-            widget.drawer != null && widget.drawerEnableOpenDragGesture,
-        drawerEdgeDragWidth: _resolveDrawerEdgeDragWidth(context),
-        body: SafeArea(
-          key: const Key('mobile-shell-body-safe-area'),
-          bottom: false,
-          child: Padding(
-            key: const Key('mobile-shell-body-padding'),
-            padding: AppPageInsets.compactStandard,
-            child: widget.child,
-          ),
-        ),
-        bottomNavigationBar: SafeArea(
-          key: const Key('mobile-shell-bottom-safe-area'),
-          top: false,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              border: Border(top: BorderSide(color: context.appColors.divider)),
-            ),
-            child: CupertinoTabBar(
-              key: const Key('mobile-bottom-navigation'),
-              height: context.appComponentTokens.mobileBottomNavHeight,
-              iconSize: context.appComponentTokens.iconSizeXl,
-              backgroundColor: context.appColors.surfaceCard,
-              activeColor: Theme.of(context).colorScheme.primary,
-              inactiveColor: context.appTextPalette.secondary,
-              currentIndex: resolvedCurrentIndex,
-              items: navItems
-                  .asMap()
-                  .entries
-                  .map(
-                    (entry) => BottomNavigationBarItem(
-                      icon: Icon(entry.value.icon),
-                      activeIcon: _buildActiveIcon(
-                        entry.value.activeIcon ?? entry.value.icon,
-                        animate:
-                            animateNavIcons && animateIndex == entry.key,
-                      ),
-                      label: entry.value.label,
-                    ),
-                  )
-                  .toList(growable: false),
-              onTap: (index) => _handleDestinationTap(
-                context,
-                navItems,
-                resolvedCurrentIndex,
-                index,
+      value: widget.background == null
+          ? resolveMobileSystemOverlayStyle(context)
+          : resolveMobileSystemOverlayStyle(
+              context,
+            ).copyWith(statusBarColor: Colors.transparent),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          if (widget.background != null)
+            widget.background!
+          else
+            ColoredBox(color: context.appColors.surfaceCard),
+          Scaffold(
+            backgroundColor: Colors.transparent,
+            // 玻璃底栏需要真实的内容层作为折射/模糊来源。让 body 铺到屏幕底边，
+            // Scaffold 会把底栏高度写进 body 的 MediaQuery.padding.bottom，滚动页
+            // 通过现有 bottomSafeAreaSliver 留出末尾空间；实色兜底栏不穿底。
+            extendBody: useGlassNavigation,
+            drawer: widget.drawer,
+            drawerEnableOpenDragGesture:
+                widget.drawer != null && widget.drawerEnableOpenDragGesture,
+            drawerEdgeDragWidth: _resolveDrawerEdgeDragWidth(context),
+            body: SafeArea(
+              key: const Key('mobile-shell-body-safe-area'),
+              bottom: false,
+              child: Padding(
+                key: const Key('mobile-shell-body-padding'),
+                padding: AppPageInsets.compactStandard,
+                child: widget.child,
               ),
             ),
+            bottomNavigationBar: useGlassNavigation
+                ? _buildGlassNavigation(context, navItems, resolvedCurrentIndex)
+                : _buildSolidNavigation(
+                    context,
+                    navItems,
+                    resolvedCurrentIndex,
+                  ),
           ),
-        ),
+        ],
       ),
     );
 
-    _previousIndex = resolvedCurrentIndex;
     return shell;
   }
 
-  Widget _buildActiveIcon(IconData icon, {required bool animate}) {
-    if (!animate) {
-      return Icon(icon);
-    }
-    return Pulse(
-      key: const Key('mobile-nav-active-icon-pulse'),
-      from: 1.0,
-      to: 0.6,
-      duration: _kNavIconPulseDuration,
-      curve: Curves.easeOut,
-      child: Icon(icon),
+  Widget _buildGlassNavigation(
+    BuildContext context,
+    List<AppNavItem> navItems,
+    int currentIndex,
+  ) {
+    final primary = Theme.of(context).colorScheme.primary;
+    final labelStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s10,
+      weight: AppTextWeight.medium,
+      tone: AppTextTone.secondary,
+    ).copyWith(fontFamily: resolveAppFontFamily(context));
+    return SafeArea(
+      key: const Key('mobile-shell-bottom-safe-area'),
+      top: false,
+      minimum: EdgeInsets.only(
+        left: context.appSpacing.md,
+        right: context.appSpacing.md,
+        bottom: context.appSpacing.xs,
+      ),
+      child: GlassTabBar.bottom(
+        key: const Key('mobile-bottom-navigation'),
+        tabs: navItems
+            .map(
+              (item) => GlassTab(
+                icon: Icon(item.icon),
+                activeIcon: Icon(item.activeIcon ?? item.icon),
+                label: item.label,
+                semanticLabel: item.label,
+              ),
+            )
+            .toList(growable: false),
+        selectedIndex: currentIndex,
+        onTabSelected: (index) =>
+            _handleDestinationTap(context, navItems, currentIndex, index),
+        barHeight: context.appComponentTokens.mobileBottomNavHeight,
+        verticalPadding: 4,
+        horizontalPadding: 4,
+        barBorderRadius: 28,
+        iconSize: context.appComponentTokens.iconSizeXl,
+        labelFontSize: 10,
+        selectedIconColor: primary,
+        unselectedIconColor: context.appTextPalette.secondary,
+        selectedLabelColor: primary,
+        unselectedLabelColor: context.appTextPalette.secondary,
+        selectedLabelStyle: labelStyle.copyWith(
+          color: primary,
+          fontWeight: context.appTextWeights.semibold,
+        ),
+        unselectedLabelStyle: labelStyle,
+        // 使用库的底栏专用材质；顶栏的 ios27 磨砂在大块选中态下会发白发糊。
+        // 选中胶囊按压时会切到玻璃透镜态；压低 Fresnel / 环境边缘光，
+        // 避免切换时出现明显的白色边光，同时保留玻璃块的折射厚度。
+        indicatorSettings: const LiquidGlassSettings(
+          lightIntensity: 0,
+          ambientRim: 0.02,
+          fresnelStrength: 0,
+          glowIntensity: 0,
+        ),
+        quality: GlassQuality.premium,
+      ),
+    );
+  }
+
+  Widget _buildSolidNavigation(
+    BuildContext context,
+    List<AppNavItem> navItems,
+    int currentIndex,
+  ) {
+    return SafeArea(
+      key: const Key('mobile-shell-bottom-safe-area'),
+      top: false,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: context.appColors.divider)),
+        ),
+        child: CupertinoTabBar(
+          key: const Key('mobile-bottom-navigation'),
+          height: context.appComponentTokens.mobileBottomNavHeight,
+          iconSize: context.appComponentTokens.iconSizeXl,
+          backgroundColor: context.appColors.surfaceCard,
+          activeColor: Theme.of(context).colorScheme.primary,
+          inactiveColor: context.appTextPalette.secondary,
+          currentIndex: currentIndex,
+          items: navItems
+              .map(
+                (item) => BottomNavigationBarItem(
+                  icon: Icon(item.icon),
+                  activeIcon: Icon(item.activeIcon ?? item.icon),
+                  label: item.label,
+                ),
+              )
+              .toList(growable: false),
+          onTap: (index) =>
+              _handleDestinationTap(context, navItems, currentIndex, index),
+        ),
+      ),
     );
   }
 

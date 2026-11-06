@@ -1,8 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/app/app_platform.dart';
-import 'package:sakuramedia/theme/app_layout_tokens.dart';
+import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_glass_surface.dart';
 
 /// 决定 [showAppAdaptiveModal] 用哪种壳显示。
 enum AppAdaptiveModalVariant {
@@ -20,7 +22,8 @@ enum AppAdaptiveModalVariant {
 /// 让弹层内容感知自己落在哪种壳里的信箱。
 ///
 /// 少数弹层的 body 布局依赖壳体（抽屉里撑满、弹窗里按内容收缩），例如选择器
-/// 的列表。没有壳信息时按 `false`（弹窗）处理，与直接调用 [showDialog] 一致。
+/// 的列表。没有壳信息时按 `false`（弹窗）处理，与直接调用 [showAppDialog]
+/// 一致。
 class AppAdaptiveModalShellScope extends InheritedWidget {
   const AppAdaptiveModalShellScope({
     super.key,
@@ -46,7 +49,8 @@ class AppAdaptiveModalShellScope extends InheritedWidget {
 /// 平台自适应的通用弹窗壳。
 ///
 /// - `mobile` → [showAppBottomDrawer]（`mobileHeightFactor` / `mobileMaxHeightFactor`）；
-/// - 其余 → [showDialog] + [AppDesktopDialog]（`desktopWidth` / `desktopHeight`）。
+/// - 其余 → [showAppDialog] + [AppDesktopDialog]（`desktopWidth` /
+///   `desktopHeight`）。
 ///
 /// [builder] 在两端共用，并被 [AppAdaptiveModalShellScope] 包裹，body 可用
 /// `AppAdaptiveModalShellScope.maybeIsDrawer(context)` 感知当前壳体；`modalKey`
@@ -70,6 +74,7 @@ Future<T?> showAppAdaptiveModal<T>({
   bool enableDrag = true,
   bool showDrawerHandle = true,
   bool showDesktopCloseButton = true,
+  AppModalGlassStrength glassStrength = kAppModalGlassStrength,
   AppAdaptiveModalVariant variant = AppAdaptiveModalVariant.auto,
 }) {
   final resolved = _resolveVariant(context, variant);
@@ -82,20 +87,23 @@ Future<T?> showAppAdaptiveModal<T>({
       enableDrag: enableDrag,
       isDismissible: barrierDismissible,
       showHandle: showDrawerHandle,
+      glassStrength: glassStrength,
       builder: (drawerContext) => AppAdaptiveModalShellScope(
         isDrawer: true,
         child: builder(drawerContext),
       ),
     );
   }
-  return showDialog<T>(
+  return showAppDialog<T>(
     context: context,
+    barrierColor: context.appColors.modalBarrier,
     barrierDismissible: barrierDismissible,
     builder: (dialogContext) => AppDesktopDialog(
       dialogKey: dialogKey ?? modalKey,
       width: desktopWidth ?? dialogContext.appLayoutTokens.dialogWidthMd,
       height: desktopHeight,
       showCloseButton: showDesktopCloseButton,
+      glassStrength: glassStrength,
       child: AppAdaptiveModalShellScope(
         isDrawer: false,
         child: builder(dialogContext),

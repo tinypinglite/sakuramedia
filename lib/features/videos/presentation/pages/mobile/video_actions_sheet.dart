@@ -4,9 +4,9 @@ import 'package:sakuramedia/features/videos/presentation/video_display_title.dar
 import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_collection_chips.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/domain/media/media_center_play_button.dart';
 import 'package:sakuramedia/widgets/domain/media/media_duration_badge.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_action_grid.dart';
 
@@ -33,7 +33,7 @@ Future<void> showMobileVideoActionsSheet(
   return showAppBottomDrawer<void>(
     context: context,
     drawerKey: const Key('mobile-video-actions-sheet'),
-    maxHeightFactor: 0.62,
+    maxHeightFactor: 0.8,
     builder: (_) => MobileVideoActionsSheet(
       video: video,
       onPlay: onPlay,
@@ -79,12 +79,6 @@ class MobileVideoActionsSheet extends StatelessWidget {
   List<MediaPreviewActionItem> _buildActions(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return <MediaPreviewActionItem>[
-      MediaPreviewActionItem(
-        key: const Key('mobile-video-action-play'),
-        label: l10n.videoPlay,
-        icon: Icons.play_circle_outline_rounded,
-        onTap: video.canPlay ? () => _run(context, onPlay) : null,
-      ),
       if (onThumbnails != null)
         MediaPreviewActionItem(
           key: const Key('mobile-video-action-thumbnails'),
@@ -147,8 +141,6 @@ class MobileVideoActionsSheet extends StatelessWidget {
                       bottom: spacing.xs,
                       child: MediaDurationBadge(seconds: video.durationSeconds),
                     ),
-                  if (video.canPlay)
-                    MediaCenterPlayButton(onTap: () => _run(context, onPlay)),
                 ],
               ),
             ),
@@ -160,7 +152,7 @@ class MobileVideoActionsSheet extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: resolveAppTextStyle(
               context,
-              size: AppTextSize.s16,
+              size: AppTextSize.s18,
               weight: AppTextWeight.semibold,
               tone: AppTextTone.primary,
             ),
@@ -177,6 +169,14 @@ class MobileVideoActionsSheet extends StatelessWidget {
               ),
             ),
           ],
+          SizedBox(height: spacing.md),
+          AppButton(
+            key: const Key('mobile-video-action-play'),
+            label: l10n.videoPlay,
+            variant: AppButtonVariant.primary,
+            icon: const Icon(Icons.play_arrow_rounded),
+            onPressed: video.canPlay ? () => _run(context, onPlay) : null,
+          ),
           if (collections.isNotEmpty && onCollectionTap != null) ...[
             SizedBox(height: spacing.lg),
             Text(
@@ -202,9 +202,9 @@ class MobileVideoActionsSheet extends StatelessWidget {
           SizedBox(height: spacing.lg),
           MediaPreviewActionGrid(
             gridKey: const Key('mobile-video-actions-grid'),
-            layout: MediaPreviewActionGridLayout.horizontalScroll,
-            spacing: spacing.xs,
-            tileWidth: 64,
+            layout: MediaPreviewActionGridLayout.wrap,
+            spacing: spacing.sm,
+            tileWidth: 92,
             actions: _buildActions(context),
           ),
         ],

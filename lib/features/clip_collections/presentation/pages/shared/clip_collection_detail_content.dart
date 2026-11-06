@@ -22,16 +22,16 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_cover_card.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_member_views.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
@@ -296,61 +296,66 @@ class _ClipCollectionDetailContentState
 
   // --------------------------------------------------------- 顶栏
 
-  /// 成员列表顶栏：与其它列表页共用同一条 `AppListHeader`。
+  /// 成员列表顶栏：桌面玻璃分组，移动端紧凑图标行。
   /// **本页没有筛选维度**——切片合集是手动顺序，不接筛选入口。
   Widget _buildListHeader(
     BuildContext context,
     ClipCollectionDetailState state,
   ) {
-    final count = state.collection.clipCount;
     final hasClips = state.clips.isNotEmpty;
-    final playAllBuilder = widget.playAllBuilder;
     final l10n = AppLocalizations.of(context);
-    return AppListHeader(
-      informationSlots: [
-        AppListHeaderInfo(
-          key: Key('${widget.keyPrefix}-total'),
-          label: l10n.clipCollectionClipCount(count),
+    if (!_isMobile) {
+      return AppGlassListHeader(
+        leading: Text(
+          l10n.clipCollectionAllClipsTitle,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s18,
+            weight: AppTextWeight.semibold,
+            tone: AppTextTone.primary,
+          ),
         ),
-      ],
-      actionSlots: [
-        if (hasClips && _isMobile && playAllBuilder != null)
-          Skeleton.shade(
-            child: playAllBuilder(
-              context,
-              enabled: true,
-              onPlayFrom: () => _playFrom(0),
+        trailing: AppGlassHeaderGroup(
+          children: <Widget>[
+            AppGlassHeaderButton(
+              key: Key('${widget.keyPrefix}-add-clips-button'),
+              icon: Icons.playlist_add_rounded,
+              label: l10n.clipCollectionAddClips,
+              onTap: () => _addClips(context),
             ),
+            if (hasClips)
+              AppGlassHeaderButton(
+                key: Key('${widget.keyPrefix}-enter-selection-button'),
+                icon: Icons.check_circle_outline,
+                label: l10n.baseSelect,
+                onTap: enterSelection,
+              ),
+          ],
+        ),
+      );
+    }
+    return AppMobileListHeader(
+      leading: AppMobileHeaderText(title: l10n.clipCollectionAllClipsTitle),
+      actions: <Widget>[
+        if (hasClips)
+          AppGlassIconButton(
+            key: Key('${widget.keyPrefix}-play-all-button'),
+            tooltip: l10n.clipCollectionPlayAll,
+            icon: Icons.play_arrow_rounded,
+            onPressed: () => _playFrom(0),
           ),
-        if (_isMobile)
-          AppTextButton(
-            key: Key('${widget.keyPrefix}-add-clips-button'),
-            label: l10n.clipCollectionAdd,
-            size: AppTextButtonSize.xSmall,
-            onPressed: () => _addClips(context),
-          )
-        else
-          AppTextButton(
-            key: Key('${widget.keyPrefix}-add-clips-button'),
-            label: l10n.clipCollectionAddClips,
-            size: AppTextButtonSize.small,
-            onPressed: () => _addClips(context),
-          ),
-        if (hasClips && !_isMobile)
-          AppSelectionEntryButton(
-            key: Key('${widget.keyPrefix}-enter-selection-button'),
-            onPressed: enterSelection,
-          ),
-        if (_isMobile)
-          AppIconButton(
-            key: Key('${widget.keyPrefix}-rename-button'),
-            tooltip: l10n.clipCollectionEdit,
-            onPressed: () => _editCollection(context),
-            icon: Icon(
-              Icons.edit_outlined,
-              size: context.appComponentTokens.iconSizeSm,
-            ),
-          ),
+        AppGlassIconButton(
+          key: Key('${widget.keyPrefix}-add-clips-button'),
+          tooltip: l10n.clipCollectionAdd,
+          icon: Icons.playlist_add_rounded,
+          onPressed: () => _addClips(context),
+        ),
+        AppGlassIconButton(
+          key: Key('${widget.keyPrefix}-rename-button'),
+          tooltip: l10n.clipCollectionEdit,
+          onPressed: () => _editCollection(context),
+          icon: Icons.edit_outlined,
+        ),
       ],
     );
   }
@@ -371,55 +376,41 @@ class _ClipCollectionDetailContentState
     ]);
     final l10n = AppLocalizations.of(context);
     if (_isMobile) {
-      return AppListHeader.selection(
+      return AppMobileSelectionHeader(
         selectionLabel: l10n.clipCollectionSelectedCount(selectedCount),
-        selectionExitButtonKey: Key(
-          '${widget.keyPrefix}-exit-selection-button',
-        ),
+        exitKey: Key('${widget.keyPrefix}-exit-selection-button'),
         onExitSelection: exitSelection,
-        actionSlots: [
-          AppButton(
-            key: Key('${widget.keyPrefix}-select-all-button'),
-            label: allSelected
-                ? l10n.clipCollectionDeselectAll
-                : l10n.clipCollectionSelectAll,
-            variant: AppButtonVariant.ghost,
-            size: AppButtonSize.xSmall,
-            isSelected: allSelected,
-            onPressed: () => toggleSelectAll(clipIds),
-          ),
-        ],
+        selectAllKey: Key('${widget.keyPrefix}-select-all-button'),
+        selectAllTooltip: allSelected
+            ? l10n.clipCollectionDeselectAll
+            : l10n.clipCollectionSelectAll,
+        onToggleAll: () => toggleSelectAll(clipIds),
       );
     }
-    return AppSelectionHeaderToolbar(
-      countLabel: l10n.clipCollectionSelectedCount(selectedCount),
+    return AppGlassSelectionHeader(
+      selectionLabel: l10n.clipCollectionSelectedCount(selectedCount),
       selectAllLabel: allSelected
           ? l10n.clipCollectionDeselectAll
           : l10n.clipCollectionSelectAll,
       selectAllKey: Key('${widget.keyPrefix}-select-all-button'),
       onToggleAll: () => toggleSelectAll(clipIds),
-      actions: [
-        AppButton(
+      actions: <AppGlassSelectionAction>[
+        AppGlassSelectionAction(
           key: Key('${widget.keyPrefix}-batch-remove-button'),
           label: l10n.clipCollectionRemoveFromCollection,
-          variant: AppButtonVariant.secondary,
-          size: AppButtonSize.small,
-          onPressed: hasSelection && !submitting
-              ? () => _batchRemove(state)
-              : null,
+          icon: Icons.playlist_remove_rounded,
+          onTap: hasSelection && !submitting ? () => _batchRemove(state) : null,
         ),
-        AppButton(
+        AppGlassSelectionAction(
           key: Key('${widget.keyPrefix}-batch-delete-button'),
           label: l10n.clipCollectionDeleteClips,
-          variant: AppButtonVariant.danger,
-          size: AppButtonSize.small,
-          onPressed: hasSelection && !submitting
-              ? () => _batchDelete(state)
-              : null,
+          icon: Icons.delete_outline_rounded,
+          foregroundColor: context.appTextPalette.error,
+          onTap: hasSelection && !submitting ? () => _batchDelete(state) : null,
         ),
       ],
       exitKey: Key('${widget.keyPrefix}-exit-selection-button'),
-      onExit: exitSelection,
+      onExitSelection: exitSelection,
     );
   }
 

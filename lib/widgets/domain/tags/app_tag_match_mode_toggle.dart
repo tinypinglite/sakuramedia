@@ -1,8 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
 
 /// 「任一 / 全部」匹配模式切换按钮组。
 ///
@@ -25,24 +24,23 @@ class AppTagMatchModeToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final spacing = context.appSpacing;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        for (final mode in TagMatchMode.values) ...[
-          AppTextButton(
+    return AppSegmentedControl<TagMatchMode>(
+      key: buttonKeyPrefix == null ? null : Key('$buttonKeyPrefix-control'),
+      items: [
+        for (final mode in TagMatchMode.values)
+          AppSegmentedItem<TagMatchMode>(
+            value: mode,
+            label: mode.labelWith(l10n),
             key: buttonKeyPrefix == null
                 ? null
                 : Key('$buttonKeyPrefix-${mode.name}'),
-            label: mode.labelWith(l10n),
-            size: AppTextButtonSize.xSmall,
-            isSelected: matchMode == mode,
-            onPressed: () => onChanged(mode),
           ),
-          if (mode != TagMatchMode.values.last)
-            SizedBox(width: spacing.sm),
-        ],
       ],
+      selected: matchMode,
+      onChanged: onChanged,
+      size: AppSegmentedSize.compact,
+      layout: AppSegmentedLayout.scrollable,
+      tone: AppSegmentedTone.neutral,
     );
   }
 }

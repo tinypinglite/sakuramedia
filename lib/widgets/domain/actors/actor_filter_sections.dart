@@ -8,11 +8,13 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
-import 'package:sakuramedia/widgets/domain/movies/movie_filter_sections.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_chip.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_range_section.dart';
 
 /// 演员筛选所有 section 的纵向 Column。
 ///
-/// 桌面 `AppListHeader` 的就地浮层 panel 和移动 `MobileActorFilterDrawer` 都用它，
+/// 桌面玻璃筛选浮层和移动 `MobileActorFilterDrawer` 都用它，
 /// 避免双份维护。底栏/重置按钮由调用方自己附加。
 class ActorFilterSectionGroup extends ConsumerWidget {
   const ActorFilterSectionGroup({
@@ -36,7 +38,7 @@ class ActorFilterSectionGroup extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        MovieFilterChoiceSection<ActorSubscriptionStatus>(
+        AppFilterOptionSection<ActorSubscriptionStatus>(
           title: l10n.widgetActorFilterSubscriptionTitle,
           options: ActorSubscriptionStatus.values,
           selectedValue: filterState.subscriptionStatus,
@@ -45,7 +47,7 @@ class ActorFilterSectionGroup extends ConsumerWidget {
               onChanged(filterState.copyWith(subscriptionStatus: value)),
         ),
         SizedBox(height: context.appSpacing.lg),
-        MovieFilterChoiceSection<ActorGender>(
+        AppFilterOptionSection<ActorGender>(
           title: l10n.widgetActorFilterGenderTitle,
           options: ActorGender.values,
           selectedValue: filterState.gender,
@@ -53,14 +55,13 @@ class ActorFilterSectionGroup extends ConsumerWidget {
           onSelected: (value) => onChanged(filterState.copyWith(gender: value)),
         ),
         SizedBox(height: context.appSpacing.lg),
-        MovieFilterChoiceSection<bool>(
+        AppFilterOptionSection<bool>(
           title: l10n.widgetActorFilterPlayableTitle,
           options: const [false, true],
           selectedValue: filterState.hasPlayableMovies,
-          labelBuilder: (value) =>
-              value
-                  ? l10n.widgetActorFilterHasPlayable
-                  : l10n.widgetActorFilterAll,
+          labelBuilder: (value) => value
+              ? l10n.widgetActorFilterHasPlayable
+              : l10n.widgetActorFilterAll,
           optionKeyBuilder: (value) => Key(
             value ? 'actor-filter-playable-only' : 'actor-filter-playable-all',
           ),
@@ -124,8 +125,9 @@ class _ActorProfileFilterSectionsAsyncState
         ),
       ),
       error: (_, _) => _ActorProfileFilterOptionsMessage(
-        message:
-            AppLocalizations.of(context).widgetActorFilterOptionsLoadFailed,
+        message: AppLocalizations.of(
+          context,
+        ).widgetActorFilterOptionsLoadFailed,
         onRetry: widget.onRetry,
       ),
     );
@@ -217,7 +219,7 @@ class ActorProfileFilterSections extends StatelessWidget {
   }
 }
 
-class ActorNumericRangeFilterSection extends StatefulWidget {
+class ActorNumericRangeFilterSection extends StatelessWidget {
   const ActorNumericRangeFilterSection({
     super.key,
     required this.title,
@@ -235,164 +237,83 @@ class ActorNumericRangeFilterSection extends StatefulWidget {
   final int? selectedMax;
   final ValueChanged<(int?, int?)> onChanged;
 
-  @override
-  State<ActorNumericRangeFilterSection> createState() =>
-      _ActorNumericRangeFilterSectionState();
-}
+  bool get _hasValues => range.hasValues;
 
-class _ActorNumericRangeFilterSectionState
-    extends State<ActorNumericRangeFilterSection> {
-  late RangeValues _values;
-
-  bool get _hasValues => widget.range.hasValues;
-
-  @override
-  void initState() {
-    super.initState();
-    _values = _valuesFromWidget();
-  }
-
-  @override
-  void didUpdateWidget(covariant ActorNumericRangeFilterSection oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.range.min != widget.range.min ||
-        oldWidget.range.max != widget.range.max ||
-        oldWidget.selectedMin != widget.selectedMin ||
-        oldWidget.selectedMax != widget.selectedMax) {
-      _values = _valuesFromWidget();
-    }
-  }
-
-  RangeValues _valuesFromWidget() {
+  RangeValues get _values {
     if (!_hasValues) {
       return const RangeValues(0, 0);
     }
-    final lower = widget.range.min!;
-    final upper = widget.range.max!;
-    final start = (widget.selectedMin ?? lower).clamp(lower, upper).toDouble();
-    final end = (widget.selectedMax ?? upper).clamp(lower, upper).toDouble();
+    final lower = range.min!;
+    final upper = range.max!;
+    final start = (selectedMin ?? lower).clamp(lower, upper).toDouble();
+    final end = (selectedMax ?? upper).clamp(lower, upper).toDouble();
     return start <= end
         ? RangeValues(start, end)
         : RangeValues(lower.toDouble(), upper.toDouble());
   }
 
   void _apply(RangeValues values) {
-    final lower = widget.range.min!;
-    final upper = widget.range.max!;
-    final selectedMin = values.start.round() <= lower
-        ? null
-        : values.start.round();
-    final selectedMax = values.end.round() >= upper ? null : values.end.round();
-    if (selectedMin != widget.selectedMin ||
-        selectedMax != widget.selectedMax) {
-      widget.onChanged((selectedMin, selectedMax));
+    final lower = range.min!;
+    final upper = range.max!;
+    final nextMin = values.start.round() <= lower ? null : values.start.round();
+    final nextMax = values.end.round() >= upper ? null : values.end.round();
+    if (nextMin != selectedMin || nextMax != selectedMax) {
+      onChanged((nextMin, nextMax));
     }
   }
 
-  String _rangeLabel(AppLocalizations l10n) {
-    final lower = _values.start.round();
-    final upper = _values.end.round();
-    final min = widget.range.min;
-    final max = widget.range.max;
+  String _rangeLabel(AppLocalizations l10n, RangeValues values) {
+    final lower = values.start.round();
+    final upper = values.end.round();
+    final min = range.min;
+    final max = range.max;
     if (min == null || max == null || (lower == min && upper == max)) {
       return l10n.widgetActorFilterUnlimited;
     }
     if (lower == min) {
-      return '≤ $upper${widget.suffix}';
+      return '≤ $upper$suffix';
     }
     if (upper == max) {
-      return '≥ $lower${widget.suffix}';
+      return '≥ $lower$suffix';
     }
-    return '$lower ~ $upper${widget.suffix}';
+    return '$lower ~ $upper$suffix';
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final titleStyle = resolveAppTextStyle(
-      context,
-      size: AppTextSize.s14,
-      weight: AppTextWeight.regular,
-      tone: AppTextTone.primary,
-    );
     if (!_hasValues) {
       return Text(
-        l10n.widgetActorFilterNoProfileData(widget.title),
-        style: titleStyle,
+        l10n.widgetActorFilterNoProfileData(title),
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s12,
+          weight: AppTextWeight.medium,
+          tone: AppTextTone.muted,
+        ),
       );
     }
-    if (widget.range.min == widget.range.max) {
+    if (range.min == range.max) {
       return Text(
-        '${widget.title} ${widget.range.min}${widget.suffix}',
-        style: titleStyle,
+        '$title ${range.min}$suffix',
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s12,
+          weight: AppTextWeight.medium,
+          tone: AppTextTone.secondary,
+        ),
       );
     }
-    final colorScheme = Theme.of(context).colorScheme;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(widget.title, style: titleStyle),
-            Text(
-              _rangeLabel(l10n),
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                tone: AppTextTone.muted,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: context.appSpacing.xs),
-        SliderTheme(
-          data: SliderTheme.of(context).copyWith(
-            trackHeight: 3,
-            activeTrackColor: colorScheme.primary,
-            inactiveTrackColor: context.appColors.divider,
-            rangeThumbShape: const RoundRangeSliderThumbShape(
-              enabledThumbRadius: 7,
-              disabledThumbRadius: 7,
-              elevation: 0,
-            ),
-            overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
-            overlayColor: colorScheme.primary.withValues(alpha: 0.10),
-          ),
-          child: RangeSlider(
-            key: Key('actor-filter-${widget.title}-slider'),
-            min: widget.range.min!.toDouble(),
-            max: widget.range.max!.toDouble(),
-            values: _values,
-            onChanged: (values) => setState(() => _values = values),
-            onChangeEnd: _apply,
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: context.appSpacing.lg),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                '${widget.range.min}${widget.suffix}',
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s10,
-                  tone: AppTextTone.muted,
-                ),
-              ),
-              Text(
-                '${widget.range.max}${widget.suffix}',
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s10,
-                  tone: AppTextTone.muted,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
+    return AppFilterRangeSection(
+      title: title,
+      values: _values,
+      min: range.min!.toDouble(),
+      max: range.max!.toDouble(),
+      valueLabelBuilder: (values) => _rangeLabel(l10n, values),
+      minLabel: '${range.min}$suffix',
+      maxLabel: '${range.max}$suffix',
+      sliderKey: Key('actor-filter-$title-slider'),
+      onChangeEnd: _apply,
     );
   }
 }
@@ -419,9 +340,9 @@ class ActorCupFilterSection extends StatelessWidget {
           l10n.widgetActorCupLabel,
           style: resolveAppTextStyle(
             context,
-            size: AppTextSize.s14,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.primary,
+            size: AppTextSize.s12,
+            weight: AppTextWeight.medium,
+            tone: AppTextTone.secondary,
           ),
         ),
         SizedBox(height: context.appSpacing.sm),
@@ -440,10 +361,9 @@ class ActorCupFilterSection extends StatelessWidget {
             runSpacing: context.appSpacing.sm,
             children: options
                 .map(
-                  (option) => AppTextButton(
+                  (option) => AppFilterChip(
                     label: '${option.value} (${option.count})',
-                    size: AppTextButtonSize.xSmall,
-                    isSelected: selectedCups.contains(option.value),
+                    selected: selectedCups.contains(option.value),
                     onPressed: () {
                       final next = Set<String>.of(selectedCups);
                       if (!next.add(option.value)) {

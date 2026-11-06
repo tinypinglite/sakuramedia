@@ -4,6 +4,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/domain/media/media_center_play_button.dart';
 import 'package:sakuramedia/widgets/domain/media/media_duration_badge.dart';
@@ -37,7 +38,7 @@ Future<MediaMovieAction?> showMediaMovieActionsOverlay({
       builder: (_) => content,
     );
   }
-  return showDialog<MediaMovieAction>(
+  return showAppDialog<MediaMovieAction>(
     context: context,
     builder: (dialogContext) => AppDesktopDialog(
       dialogKey: const Key('media-row-movie-actions-dialog'),

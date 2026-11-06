@@ -4,84 +4,12 @@ import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/presentation/media_browse_filter_state.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_filter_entry_button.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart'
-    show AppFilterPanelFooter, AppFilterPopover, AppFilterPopoverAlignment;
-import 'package:sakuramedia/widgets/domain/media/media_sort_menu_button.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
+import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
 
-/// 「媒体管理」筛选工具栏：仿 `MovieFilterToolbar` 的 popover 触发按钮 +
-/// 内部分节面板 + 底部重置。
+/// 面板内的分节 Column：归属 / 媒体库 / 缩略图。
 ///
-/// 归属 / 所属媒体库 / 缩略图状态 / 排序方式全部通过 chip 选择，
-/// 避免多项状态挤在下拉里。
-class MediaBrowseFilterToolbar extends StatelessWidget {
-  const MediaBrowseFilterToolbar({
-    super.key,
-    required this.filterState,
-    required this.libraries,
-    required this.onChanged,
-    required this.onReset,
-  });
-
-  final MediaBrowseFilterState filterState;
-  final List<MediaLibraryDto> libraries;
-  final ValueChanged<MediaBrowseFilterState> onChanged;
-  final VoidCallback onReset;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        SizedBox(
-          height: context.appComponentTokens.mobileTopTabHeight,
-          child: AppFilterPopover(
-            triggerLabel: filterState.triggerLabel(l10n),
-            panelKey: const Key('media-management-filter-panel'),
-            scrollViewKey: const Key('media-management-filter-scroll-view'),
-            panelExtraWidth: 240,
-            // 面板 trigger 位于 leading 最左端，向右延伸自然填入内容区、
-            // 不会反过来遮挡左侧配置分类栏。
-            alignment: AppFilterPopoverAlignment.leftAlignedToTrigger,
-            triggerBuilder: (context, isOpen, toggle) => AppFilterEntryButton(
-              key: const Key('media-management-filter-trigger'),
-              icon: Icons.tune_rounded,
-              label: filterState.triggerLabel(l10n),
-              tooltip: l10n.mediaListFilterTooltip,
-              trailingIcon: isOpen
-                  ? Icons.expand_less_rounded
-                  : Icons.expand_more_rounded,
-              onTap: toggle,
-            ),
-            panelBuilder: (_) => MediaBrowseFilterSectionGroup(
-              filterState: filterState,
-              libraries: libraries,
-              onChanged: onChanged,
-            ),
-            footer: AppFilterPanelFooter(
-              isDefault: !filterState.hasActiveFilters,
-              onReset: onReset,
-            ),
-          ),
-        ),
-        SizedBox(width: context.appSpacing.xs),
-        SizedBox(
-          height: context.appComponentTokens.mobileTopTabHeight,
-          child: MediaSortMenuButton(
-            triggerKey: const Key('media-management-sort-trigger'),
-            panelKey: const Key('media-management-sort-panel'),
-            filterState: filterState,
-            onChanged: onChanged,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-/// 面板内的分节 Column：归属 / 媒体库 / 缩略图，各自 chip 选择。
+/// 桌面玻璃弹层和移动玻璃抽屉共用同一套中性分段控件；
 /// 排序不在筛选面板里，见 `MediaSortMenuButton`。
 class MediaBrowseFilterSectionGroup extends StatelessWidget {
   const MediaBrowseFilterSectionGroup({
@@ -126,97 +54,70 @@ class MediaBrowseFilterSectionGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final spacing = context.appSpacing;
+    final selectedLibraryId =
+        libraries.any((library) => library.id == filterState.libraryId)
+        ? filterState.libraryId
+        : null;
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionTitle(text: l10n.mediaListFilterSectionSource),
-        SizedBox(height: spacing.sm),
-        Wrap(
-          spacing: spacing.sm,
-          runSpacing: spacing.sm,
-          children: [
+        AppFilterChoiceSection<MediaBrowseKindFilter?>(
+          title: l10n.mediaListFilterSectionSource,
+          controlKey: const Key('media-kind-filter-control'),
+          items: [
             for (final option in _kindOptions(l10n))
-              AppTextButton(
+              AppSegmentedItem<MediaBrowseKindFilter?>(
                 key: option.itemKey,
                 label: option.label,
-                size: AppTextButtonSize.xSmall,
-                isSelected: filterState.kind == option.kind,
-                onPressed: () => onChanged(
-                  filterState.copyWith(
-                    kind: option.kind,
-                    resetKind: option.kind == null,
-                  ),
-                ),
+                value: option.kind,
               ),
           ],
+          selected: filterState.kind,
+          onChanged: (value) => onChanged(
+            filterState.copyWith(kind: value, resetKind: value == null),
+          ),
         ),
         SizedBox(height: spacing.lg),
-        _SectionTitle(text: l10n.mediaListFilterSectionLibrary),
-        SizedBox(height: spacing.sm),
-        Wrap(
-          spacing: spacing.sm,
-          runSpacing: spacing.sm,
-          children: [
-            AppTextButton(
-              key: const Key('media-library-filter-all'),
+        AppFilterChoiceSection<int?>(
+          title: l10n.mediaListFilterSectionLibrary,
+          controlKey: const Key('media-library-filter-control'),
+          items: [
+            AppSegmentedItem<int?>(
+              value: null,
               label: l10n.mediaListFilterAllLibraries,
-              size: AppTextButtonSize.xSmall,
-              isSelected: filterState.libraryId == null,
-              onPressed: () => onChanged(filterState.copyWith(libraryId: null)),
+              key: const Key('media-library-filter-all'),
             ),
             for (final library in libraries)
-              AppTextButton(
-                key: Key('media-library-filter-${library.id}'),
+              AppSegmentedItem<int?>(
+                value: library.id,
                 label: library.name,
-                size: AppTextButtonSize.xSmall,
-                isSelected: filterState.libraryId == library.id,
-                onPressed: () =>
-                    onChanged(filterState.copyWith(libraryId: library.id)),
+                key: Key('media-library-filter-${library.id}'),
               ),
           ],
+          selected: selectedLibraryId,
+          onChanged: (value) =>
+              onChanged(filterState.copyWith(libraryId: value)),
         ),
         SizedBox(height: spacing.lg),
-        _SectionTitle(text: l10n.mediaListFilterSectionThumbnail),
-        SizedBox(height: spacing.sm),
-        Wrap(
-          spacing: spacing.sm,
-          runSpacing: spacing.sm,
-          children: [
+        AppFilterChoiceSection<MediaBrowseThumbnailGenerationFilter?>(
+          title: l10n.mediaListFilterSectionThumbnail,
+          controlKey: const Key('media-thumbnail-generation-filter-control'),
+          items: [
             for (final filter in _thumbnailGenerationOrder)
-              AppTextButton(
+              AppSegmentedItem<MediaBrowseThumbnailGenerationFilter?>(
+                value: filter,
+                label: filter?.labelWith(l10n: l10n) ?? l10n.mediaListFilterAll,
                 key: Key(
                   'media-thumbnail-generation-filter-${filter?.name ?? 'all'}',
                 ),
-                label: filter?.labelWith(l10n: l10n) ?? l10n.mediaListFilterAll,
-                size: AppTextButtonSize.xSmall,
-                isSelected: filterState.thumbnailGenerationState == filter,
-                onPressed: () => onChanged(
-                  filterState.copyWith(thumbnailGenerationState: filter),
-                ),
               ),
           ],
+          selected: filterState.thumbnailGenerationState,
+          onChanged: (value) =>
+              onChanged(filterState.copyWith(thumbnailGenerationState: value)),
         ),
       ],
-    );
-  }
-}
-
-class _SectionTitle extends StatelessWidget {
-  const _SectionTitle({required this.text});
-
-  final String text;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: resolveAppTextStyle(
-        context,
-        size: AppTextSize.s14,
-        weight: AppTextWeight.regular,
-        tone: AppTextTone.primary,
-      ),
     );
   }
 }

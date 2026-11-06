@@ -13,11 +13,11 @@ import 'package:sakuramedia/features/clips/presentation/providers/clip_mutation_
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
-import 'package:sakuramedia/widgets/base/forms/app_search_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_glass_search_field.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_wrap.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
@@ -73,46 +73,38 @@ class _MobileClipCollectionsPageState
     });
 
     final spacing = context.appSpacing;
-    final colors = context.appColors;
     final async = ref.watch(clipCollectionsOverviewProvider);
     final l10n = AppLocalizations.of(context);
 
-    return ColoredBox(
+    return Column(
       key: const Key('mobile-clip-collections-page'),
-      color: colors.surfaceCard,
-      child: Column(
-        children: [
-          Padding(
-            padding: EdgeInsets.only(top: spacing.sm),
-            child: AppSearchField(
-              fieldKey: const Key('mobile-clip-collections-search-field'),
-              controller: _searchController,
-              hintText: l10n.clipCollectionSearchHint,
-              onChanged: (value) =>
-                  setState(() => _keyword = value.trim().toLowerCase()),
-              clearKey: const Key('mobile-clip-collections-search-clear'),
-            ),
-          ),
-          Expanded(child: _buildBody(context, async)),
-          Container(
-            padding: EdgeInsets.all(spacing.md),
-            decoration: BoxDecoration(
-              color: colors.surfaceCard,
-              border: Border(top: BorderSide(color: colors.divider)),
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              child: AppButton(
+      children: [
+        Padding(
+          padding: EdgeInsets.only(top: spacing.sm),
+          child: Row(
+            children: [
+              Expanded(
+                child: AppGlassSearchField(
+                  fieldKey: const Key('mobile-clip-collections-search-field'),
+                  controller: _searchController,
+                  hintText: l10n.clipCollectionSearchHint,
+                  onChanged: (value) =>
+                      setState(() => _keyword = value.trim().toLowerCase()),
+                  clearKey: const Key('mobile-clip-collections-search-clear'),
+                ),
+              ),
+              SizedBox(width: spacing.sm),
+              AppGlassIconButton(
                 key: const Key('mobile-clip-collections-create-button'),
-                label: l10n.clipCollectionCreate,
-                variant: AppButtonVariant.primary,
-                icon: const Icon(Icons.add_rounded),
+                tooltip: l10n.clipCollectionCreate,
+                icon: Icons.add_rounded,
                 onPressed: _createCollection,
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+        Expanded(child: _buildBody(context, async)),
+      ],
     );
   }
 

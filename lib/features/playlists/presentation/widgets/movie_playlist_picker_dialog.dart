@@ -7,10 +7,10 @@ import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/create_playlist_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/forms/app_search_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_header.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_api_provider.dart';
@@ -26,7 +26,7 @@ Future<void> showMoviePlaylistPickerDialog(
 }) {
   switch (presentation) {
     case MoviePlaylistPickerPresentation.dialog:
-      return showDialog<void>(
+      return showAppDialog<void>(
         context: context,
         builder: (dialogContext) => MoviePlaylistPickerDialog(
           movieNumber: movieNumber,
@@ -95,7 +95,13 @@ class _MoviePlaylistPickerDialogState
     _load();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool showLoading = false}) async {
+    if (showLoading && mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
     try {
       final playlists = await ref.read(playlistsApiProvider).getPlaylists();
       if (!mounted) {
@@ -132,203 +138,85 @@ class _MoviePlaylistPickerDialogState
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final tokens = context.appComponentTokens;
+    final l10n = AppLocalizations.of(context);
     final isBottomDrawer =
         widget.presentation == MoviePlaylistPickerPresentation.bottomDrawer;
     final visiblePlaylists = _visiblePlaylists;
-    final playlistList = Scrollbar(
-      controller: _scrollController,
-      thumbVisibility: !isBottomDrawer,
-      child: ListView.builder(
-        key: const Key('movie-playlist-list'),
-        controller: _scrollController,
-        padding: EdgeInsets.zero,
-        shrinkWrap: true,
-        itemCount: visiblePlaylists.length,
-        itemBuilder: (context, index) {
-          final playlist = visiblePlaylists[index];
-          final selected = _selectedPlaylistIds.contains(playlist.id);
-          final updating = _updatingPlaylistIds.contains(playlist.id);
-          return Material(
-            color: context.appColors.surfaceCard,
-            clipBehavior: Clip.hardEdge,
-            // 保留原生 InkWell：该选项行需要 hover/highlight 底色反馈，
-            // AppInteractiveSurface 明确不做 hover 底色（见其类注释）。
-            child: InkWell(
-              mouseCursor: updating
-                  ? SystemMouseCursors.basic
-                  : SystemMouseCursors.click,
-              key: Key('movie-playlist-option-${playlist.id}'),
-              hoverColor: context.appColors.surfaceMuted.withValues(
-                alpha: 0.45,
-              ),
-              highlightColor: context.appColors.surfaceMuted.withValues(
-                alpha: 0.6,
-              ),
-              splashFactory: NoSplash.splashFactory,
-              onTap: updating ? null : () => _togglePlaylist(playlist),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: spacing.sm,
-                  vertical: spacing.xs,
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        playlist.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s14,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: spacing.md),
-                    Text(
-                      AppLocalizations.of(
-                        context,
-                      ).playlistMovieCountShort(playlist.movieCount),
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s12,
-                        tone: AppTextTone.muted,
-                      ),
-                    ),
-                    SizedBox(width: spacing.sm),
-                    if (updating)
-                      SizedBox.square(
-                        dimension:
-                            kMinInteractiveDimension +
-                            Theme.of(
-                              context,
-                            ).visualDensity.baseSizeAdjustment.dy,
-                        child: Center(
-                          child: SizedBox.square(
-                            dimension: tokens.iconSizeXs,
-                            child: CircularProgressIndicator.adaptive(
-                              key: Key(
-                                'movie-playlist-updating-${playlist.id}',
-                              ),
-                              strokeWidth: 2,
-                            ),
-                          ),
-                        ),
-                      )
-                    else
-                      Checkbox(
-                        key: Key('movie-playlist-checkbox-${playlist.id}'),
-                        value: selected,
-                        onChanged: (_) => _togglePlaylist(playlist),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
     final Widget body;
     if (_isLoading) {
-      body = const Center(
+      body = const AppPickerIosState(
         key: Key('movie-playlist-loading'),
-        child: CircularProgressIndicator.adaptive(),
+        loading: true,
       );
     } else if (_errorMessage != null) {
-      body = Center(
-        child: Text(
-          _errorMessage!,
-          textAlign: TextAlign.center,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s14,
-            tone: AppTextTone.muted,
-          ),
+      body = AppPickerIosStateWithAction(
+        state: AppPickerIosState(
+          message: _errorMessage!,
+          onRetry: () => _load(showLoading: true),
+          retryKey: const Key('movie-playlist-retry'),
         ),
+        action: _buildCreateRow(l10n),
       );
     } else if (_playlists.isEmpty) {
-      body = Center(
-        child: Text(
-          AppLocalizations.of(context).playlistEmpty,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s14,
-            tone: AppTextTone.muted,
-          ),
-        ),
+      body = AppPickerIosStateWithAction(
+        state: AppPickerIosState(message: l10n.playlistEmpty),
+        action: _buildCreateRow(l10n),
       );
     } else if (visiblePlaylists.isEmpty) {
-      body = Center(
-        child: Text(
-          AppLocalizations.of(context).playlistNoMatch,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s14,
-            tone: AppTextTone.muted,
-          ),
-        ),
+      body = AppPickerIosStateWithAction(
+        state: AppPickerIosState(message: l10n.playlistNoMatch),
+        action: _buildCreateRow(l10n),
       );
     } else {
-      body = playlistList;
+      body = SingleChildScrollView(
+        controller: _scrollController,
+        key: const Key('movie-playlist-list'),
+        child: AppPickerIosSection(
+          header: Text(
+            l10n.commonSelectedCount(_selectedPlaylistIds.length),
+            key: const Key('movie-playlist-selected-count'),
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              tone: AppTextTone.muted,
+            ),
+          ),
+          children: [
+            _buildCreateRow(l10n),
+            for (final playlist in visiblePlaylists)
+              AppPickerIosRow(
+                selected: _selectedPlaylistIds.contains(playlist.id),
+                showCheckmark: true,
+                enabled: !_updatingPlaylistIds.contains(playlist.id),
+                busy: _updatingPlaylistIds.contains(playlist.id),
+                busyKey: Key('movie-playlist-updating-${playlist.id}'),
+                onTap: () => _togglePlaylist(playlist),
+                title: playlist.name,
+                trailingText: l10n.playlistMovieCountShort(playlist.movieCount),
+                optionKey: Key('movie-playlist-option-${playlist.id}'),
+              ),
+          ],
+        ),
+      );
     }
     final content = Column(
       mainAxisSize: isBottomDrawer ? MainAxisSize.max : MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                AppLocalizations.of(context).playlistAddToPlaylist,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s16,
-                  weight: AppTextWeight.medium,
-                ),
-              ),
-            ),
-            AppIconButton(
-              key: const Key('movie-playlist-close-button'),
-              tooltip: AppLocalizations.of(context).playlistCloseTooltip,
-              onPressed: () => Navigator.of(context).pop(),
-              icon: const Icon(Icons.close_rounded),
-            ),
-          ],
-        ),
-        SizedBox(height: spacing.sm),
-        AppSearchField(
-          fieldKey: const Key('movie-playlist-search-field'),
-          controller: _searchController,
-          hintText: AppLocalizations.of(context).playlistSearchHint,
-          onChanged: (value) =>
+        AppPickerHeader(
+          title: l10n.playlistAddToPlaylist,
+          searchController: _searchController,
+          searchFieldKey: const Key('movie-playlist-search-field'),
+          searchHintText: l10n.playlistSearchHint,
+          onSearchChanged: (value) =>
               setState(() => _keyword = value.trim().toLowerCase()),
-          clearKey: const Key('movie-playlist-search-clear'),
+          clearSearchKey: const Key('movie-playlist-search-clear'),
+          onClose: () => Navigator.of(context).pop(),
+          closeKey: const Key('movie-playlist-close-button'),
+          doneKey: const Key('movie-playlist-done-button'),
         ),
-        SizedBox(height: spacing.sm),
-        if (isBottomDrawer)
-          Expanded(child: body)
-        else
-          Flexible(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: MediaQuery.sizeOf(context).height * 0.5,
-              ),
-              child:
-                  _isLoading ||
-                      _errorMessage != null ||
-                      visiblePlaylists.isEmpty
-                  ? SizedBox(height: 160, child: body)
-                  : body,
-            ),
-          ),
-        Divider(color: context.appColors.divider, height: spacing.lg),
-        AppTextButton(
-          key: const Key('movie-playlist-create-button'),
-          label: AppLocalizations.of(context).playlistCreateTooltip,
-          icon: const Icon(Icons.add_rounded),
-          onPressed: _createPlaylist,
-        ),
+        SizedBox(height: spacing.lg),
+        AppPickerListFrame(isDrawer: isBottomDrawer, child: body),
       ],
     );
     if (!isBottomDrawer) {
@@ -340,6 +228,14 @@ class _MoviePlaylistPickerDialogState
       );
     }
     return content;
+  }
+
+  Widget _buildCreateRow(AppLocalizations l10n) {
+    return AppPickerIosActionRow(
+      label: l10n.playlistCreateTitle,
+      onTap: _createPlaylist,
+      optionKey: const Key('movie-playlist-create-button'),
+    );
   }
 
   Future<void> _togglePlaylist(PlaylistDto playlist) async {

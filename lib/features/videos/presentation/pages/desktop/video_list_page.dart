@@ -32,15 +32,14 @@ import 'package:sakuramedia/features/videos/presentation/video_display_title.dar
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_hint_box.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 
 /// PornBox 主页：顶部「新建合集」，中部「视频合集」横滑区（参照切片页），
@@ -311,16 +310,6 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
             key: const PageStorageKey<String>('desktop:videos:list'),
             controller: _scrollController,
             slivers: [
-              SliverToBoxAdapter(
-                child: Column(
-                  key: const Key('videos-page'),
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildCollectionsSection(context),
-                    SizedBox(height: context.appSpacing.lg),
-                  ],
-                ),
-              ),
               VideoListContent(
                 headerKey: _listHeaderKey,
                 paged: paged,
@@ -336,6 +325,18 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
                 contentKey: const Key('videos-page-list'),
                 totalKey: const Key('videos-page-total'),
                 sectionSpacing: context.appSpacing.lg,
+                before: <Widget>[
+                  SliverToBoxAdapter(
+                    child: Column(
+                      key: const Key('videos-page'),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildCollectionsSection(context),
+                        SizedBox(height: context.appSpacing.lg),
+                      ],
+                    ),
+                  ),
+                ],
                 onVideoTap: _openActionsDialog,
                 onVideoPlay: (video) => unawaited(_playVideo(video)),
                 onVideoThumbnails: (video) =>
@@ -367,8 +368,8 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
       BatchOperationType.videoDelete,
     ]);
 
-    return AppSelectionHeaderToolbar(
-      countLabel: l10n.videoSelectedCount(selectedCount),
+    return AppGlassSelectionHeader(
+      selectionLabel: l10n.videoSelectedCount(selectedCount),
       countKey: const Key('videos-selection-count-text'),
       selectAllLabel: allSelected
           ? l10n.videoDeselectAll
@@ -377,24 +378,23 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
       onToggleAll: _loadedVideos.isEmpty
           ? null
           : () => toggleSelectAll(videoIds),
-      actions: [
-        AppButton(
+      actions: <AppGlassSelectionAction>[
+        AppGlassSelectionAction(
           key: const Key('videos-batch-add-collection-button'),
+          icon: Icons.playlist_add_rounded,
           label: l10n.videoAddToCollection,
-          variant: AppButtonVariant.secondary,
-          size: AppButtonSize.small,
-          onPressed: hasSelection && !submitting ? _batchAddToCollection : null,
+          onTap: hasSelection && !submitting ? _batchAddToCollection : null,
         ),
-        AppButton(
+        AppGlassSelectionAction(
           key: const Key('videos-batch-delete-button'),
+          icon: Icons.delete_outline_rounded,
           label: l10n.commonDelete,
-          variant: AppButtonVariant.danger,
-          size: AppButtonSize.small,
-          onPressed: hasSelection && !submitting ? _batchDelete : null,
+          foregroundColor: hasSelection ? context.appTextPalette.error : null,
+          onTap: hasSelection && !submitting ? _batchDelete : null,
         ),
       ],
       exitKey: const Key('videos-exit-selection-button'),
-      onExit: exitSelection,
+      onExitSelection: exitSelection,
     );
   }
 
@@ -419,21 +419,27 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
                   ),
                 ),
                 const Spacer(),
-                AppTextButton(
-                  key: const Key('videos-create-collection-button'),
-                  label: l10n.videoNew,
-                  size: AppTextButtonSize.small,
-                  onPressed: _createCollection,
-                ),
                 if (collections.isNotEmpty) ...[
-                  SizedBox(width: context.appSpacing.xs),
                   AppTextButton(
                     key: const Key('videos-view-all-collections-button'),
                     label: l10n.videoViewAll,
                     size: AppTextButtonSize.small,
+                    trailingIcon: const Icon(Icons.chevron_right_rounded),
+                    emphasis: AppTextButtonEmphasis.secondary,
                     onPressed: _viewAllCollections,
                   ),
+                  SizedBox(width: context.appSpacing.sm),
                 ],
+                AppGlassHeaderGroup(
+                  children: <Widget>[
+                    AppGlassHeaderButton(
+                      key: const Key('videos-create-collection-button'),
+                      icon: Icons.add_rounded,
+                      label: l10n.videoNewCollection,
+                      onTap: _createCollection,
+                    ),
+                  ],
+                ),
               ],
             ),
             SizedBox(height: context.appSpacing.sm),
@@ -466,10 +472,13 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
     if (display.isEmpty) {
       return CollectionHintBox(message: l10n.videoCollectionsEmptyHint);
     }
+    const cardWidth = 210.0;
+    // 玻璃卡不再有封面下方的实色标题栏，行高按 16:9 封面收回，避免底部留白。
+    final cardHeight = cardWidth * 9 / 16;
     return AppSkeletonizer(
       enabled: isLoading,
       child: SizedBox(
-        height: 172,
+        height: cardHeight,
         child: ListView.separated(
           key: const Key('videos-collections-row'),
           scrollDirection: Axis.horizontal,
@@ -479,8 +488,7 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
           itemBuilder: (context, index) {
             final collection = display[index];
             return SizedBox(
-              width: 210,
-              // 卡片按内容自然高度渲染，避免被固定行高拉伸后在标题下方留白。
+              width: cardWidth,
               child: Align(
                 alignment: Alignment.topCenter,
                 child: CollectionCard.video(

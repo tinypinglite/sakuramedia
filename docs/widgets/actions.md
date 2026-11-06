@@ -18,6 +18,12 @@
 
 图标操作按钮，支持 `mini`、`compact`、`regular` 尺寸。必须提供可理解的 tooltip 或等价语义。
 
+## `AppGlassIconButton`
+
+路径：`lib/widgets/base/actions/app_glass_icon_button.dart`
+
+导航栏、吸顶控制条、移动列表头和浮层使用的液态玻璃圆钮，默认 44×44；桌面顶栏传 `size: 32` 与更小的图标。移动列表头用它承载筛选、排序、搜索、刷新、选择和新建等可图标化操作。可用 `iconWidget` 承载加载指示器等非 `IconData` 内容。高对比度模式回退为带描边的实色圆钮。只用于功能层，内容卡和正文不要使用。
+
 ## `AppInteractiveSurface`
 
 路径：`lib/widgets/base/interaction/app_interactive_surface.dart`

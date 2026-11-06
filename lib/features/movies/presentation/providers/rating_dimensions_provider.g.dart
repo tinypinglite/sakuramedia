@@ -36,7 +36,7 @@ final class RatingDimensionsProvider
   RatingDimensions create() => RatingDimensions();
 }
 
-String _$ratingDimensionsHash() => r'd8e7bc0efb246ea346ca2a4507ce6b0adec700e7';
+String _$ratingDimensionsHash() => r'8b8d061f8d1722960e4b1141de468c2859148811';
 
 /// 全局评分维度；维度变更会影响所有影片的总分，写入后重拉并失效已评分列表。
 

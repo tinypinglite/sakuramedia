@@ -22,19 +22,18 @@ import 'package:sakuramedia/features/shared/presentation/widgets/paged_async_sec
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_filter_total_header.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart'
-    show AppFilterPanelFooter;
+import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_popover.dart';
 import 'package:sakuramedia/widgets/domain/media/media_sort_menu_button.dart';
 
 /// 「媒体管理」列表 tab 的主体：筛选头 + 白底 media card 列表（桌面 / 移动共用）。
@@ -47,12 +46,12 @@ import 'package:sakuramedia/widgets/domain/media/media_sort_menu_button.dart';
 /// - 行点击：普通态 = JAV 弹「影片操作」/ PornBox 弹视频操作（桌面弹窗、移动底部
 ///   抽屉），选择态 = 勾选 / 取消勾选；移动端长按直接进入选择态并选中该行；
 /// - 筛选入口：桌面 popover 工具栏 / 移动底部抽屉（`MediaBrowseFilterSectionGroup` 复用）；
-/// - 多选：桌面顶栏「选择」入口 + 选择态操作条 / 移动 `AppListHeader.selection`（顶）
+/// - 多选：桌面顶栏「选择」入口 + 选择态操作条 / 移动 `AppMobileSelectionHeader`（顶）
 ///   + `AppSelectionBottomBar`（底）。
 ///
 /// 视觉参考「下载任务」卡片（[_DownloadTaskCard]）：页面灰底 + 每张 media card 直接浮起
-/// 为独立白卡（不再套 `AppContentCard`）。多选操作全部收敛到顶部 [AppFilterTotalHeader]
-/// 的 trailing，跟筛选、总数、刷新同一条行。
+/// 为独立白卡（不再套 `AppContentCard`）。桌面顶栏统一走 [AppGlassListHeader]，
+/// 筛选、总数、排序、刷新和选择收在同一条玻璃控制条里。
 class MediaListSection extends HookConsumerWidget {
   const MediaListSection({
     super.key,
@@ -148,7 +147,6 @@ class MediaListSection extends HookConsumerWidget {
       key: Key('$keyPrefix-list-scroll-view'),
       controller: scrollController,
       slivers: [
-        SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.lg)),
         _MediaListBodySliver(
           keyPrefix: keyPrefix,
           mobile: mobile,
@@ -205,6 +203,7 @@ class MediaListSection extends HookConsumerWidget {
             onToggleSearchExpanded: () =>
                 searchExpanded.value = !searchExpanded.value,
           ),
+          headerBottomSpacing: context.appSpacing.lg,
           child: AppFilterResultLoadingOverlay(
             surfaceColor: mobile
                 ? context.appColors.surfaceCard
@@ -336,7 +335,22 @@ class _MediaListHeader extends ConsumerWidget {
     final isInitialLoading = asyncState.isLoading && !asyncState.hasValue;
     final busy = isDeleting || isTransferring || isResettingThumbnails;
     final allLoadedSelected = currentState?.allLoadedSelected ?? false;
-    final searchToggle = AppIconButton(
+    final canResetThumbnails =
+        filter.thumbnailGenerationState ==
+            MediaBrowseThumbnailGenerationFilter.terminal ||
+        filter.thumbnailGenerationState ==
+            MediaBrowseThumbnailGenerationFilter.succeeded;
+    final resetThumbnailsLabel =
+        filter.thumbnailGenerationState ==
+            MediaBrowseThumbnailGenerationFilter.succeeded
+        ? l10n.mediaListActionRegenerateThumbnails
+        : l10n.mediaListActionRetryThumbnails;
+    final totalText = hasSelection
+        ? l10n.mediaListTotalItemsWithSelection(total, selectionCount)
+        : l10n.mediaListTotalItems(total);
+    final filterUpdate =
+        currentState?.paged.filterUpdate ?? const FilterUpdateState.idle();
+    final searchToggle = AppGlassIconButton(
       key: Key('$keyPrefix-search-toggle'),
       tooltip: searchExpanded
           ? l10n.mediaListCollapseSearchTooltip
@@ -344,12 +358,10 @@ class _MediaListHeader extends ConsumerWidget {
       semanticLabel: searchExpanded
           ? l10n.mediaListCollapseSearchTooltip
           : l10n.mediaListSearchFileNameTooltip,
-      icon: Icon(searchExpanded ? Icons.close_rounded : Icons.search_rounded),
-      isSelected: searchExpanded || filter.hasSearch,
-      backgroundColor: Colors.transparent,
-      selectedBackgroundColor: Colors.transparent,
-      borderColor: Colors.transparent,
-      selectedBorderColor: Colors.transparent,
+      icon: searchExpanded ? Icons.close_rounded : Icons.search_rounded,
+      foregroundColor: searchExpanded || filter.hasSearch
+          ? Theme.of(context).colorScheme.primary
+          : null,
       onPressed: onToggleSearchExpanded,
     );
     final searchField = _MediaFileNameSearchField(
@@ -359,211 +371,252 @@ class _MediaListHeader extends ConsumerWidget {
       onSubmitted: (value) => _applyFilter(ref, filter.copyWith(search: value)),
     );
 
-    // 移动端多选态：顶栏换 `AppListHeader.selection`（退出 / 计数 / 全选），
-    // 与 PornBox / 订阅列表的多选顶栏同一套组件；高度与常规顶栏严格一致。
     if (mobile && selectionMode) {
-      return AppListHeader.selection(
+      return AppMobileSelectionHeader(
         key: Key('$keyPrefix-selection-header'),
         selectionLabel: l10n.mediaListSelectedItems(selectionCount),
-        selectionExitButtonKey: Key('$keyPrefix-exit-selection-button'),
+        exitKey: Key('$keyPrefix-exit-selection-button'),
         onExitSelection: () {
           ref.read(mediaBrowseProvider.notifier).clearSelection();
           onExitSelection?.call();
         },
-        actionSlots: [
-          AppTextButton(
-            key: Key('$keyPrefix-select-all-button'),
-            label: allLoadedSelected
-                ? l10n.mediaListClearSelectAllLoaded
-                : l10n.mediaListSelectAllLoaded,
-            size: AppTextButtonSize.small,
-            onPressed: !hasItems || busy
-                ? null
-                : () => ref
-                      .read(mediaBrowseProvider.notifier)
-                      .toggleSelectAllLoaded(),
-          ),
-        ],
+        selectAllKey: Key('$keyPrefix-select-all-button'),
+        selectAllTooltip: allLoadedSelected
+            ? l10n.mediaListClearSelectAllLoaded
+            : l10n.mediaListSelectAllLoaded,
+        onToggleAll: !hasItems || busy
+            ? null
+            : () => ref
+                  .read(mediaBrowseProvider.notifier)
+                  .toggleSelectAllLoaded(),
       );
     }
 
-    // 移动端非多选态：默认只显示搜索图标；展开后只保留筛选、输入框和图标。
+    // 桌面多选态：与 PornBox / 合集详情一致，整条顶栏替换成玻璃多选头，
+    // 批量动作内联在右侧；移动端仍走上面的紧凑多选头 + 底部操作条。
+    if (!mobile && selectionMode) {
+      return AppGlassSelectionHeader(
+        selectionLabel: l10n.mediaListSelectedItems(selectionCount),
+        countKey: Key('$keyPrefix-selection-count-text'),
+        selectAllLabel: allLoadedSelected
+            ? l10n.mediaListClearSelectAllLoaded
+            : l10n.mediaListSelectAllLoaded,
+        selectAllKey: Key('$keyPrefix-select-all-button'),
+        onToggleAll: !hasItems || busy
+            ? null
+            : () => ref
+                  .read(mediaBrowseProvider.notifier)
+                  .toggleSelectAllLoaded(),
+        actions: <AppGlassSelectionAction>[
+          if (hasSelection)
+            AppGlassSelectionAction(
+              key: Key('$keyPrefix-batch-transfer-button'),
+              label: l10n.mediaListBatchTransfer(selectionCount),
+              icon: Icons.drive_file_move_outline,
+              onTap: busy ? null : onBatchTransfer,
+            ),
+          if (hasSelection &&
+              canResetThumbnails &&
+              onBatchResetThumbnails != null)
+            AppGlassSelectionAction(
+              key: Key('$keyPrefix-batch-reset-thumbnails-button'),
+              label: l10n.mediaListBatchResetThumbnailsCount(
+                resetThumbnailsLabel,
+                selectionCount,
+              ),
+              icon: Icons.refresh_rounded,
+              onTap: busy ? null : onBatchResetThumbnails,
+            ),
+          if (hasSelection)
+            AppGlassSelectionAction(
+              key: Key('$keyPrefix-batch-delete-button'),
+              label: l10n.mediaListBatchDelete(selectionCount),
+              icon: Icons.delete_outline_rounded,
+              foregroundColor: context.appTextPalette.error,
+              onTap: busy ? null : onBatchDelete,
+            ),
+        ],
+        exitKey: Key('$keyPrefix-exit-selection-button'),
+        onExitSelection: busy
+            ? null
+            : () {
+                ref.read(mediaBrowseProvider.notifier).clearSelection();
+                onExitSelection?.call();
+              },
+      );
+    }
+
     if (mobile) {
       if (searchExpanded) {
-        return AppListHeader(
+        return AppMobileListHeader(
           key: Key('$keyPrefix-header'),
-          onFilterTap: () => _openMobileFilterDrawer(
-            context,
-            filter: filter,
-            libraries: librariesState.libraries,
-            ref: ref,
-          ),
-          filterLabel: null,
-          filterButtonKey: Key('$keyPrefix-filter-trigger'),
-          filterTooltip: l10n.mediaListFilterTooltip,
-          leadingGap: context.appSpacing.sm,
-          filterUpdate:
-              currentState?.paged.filterUpdate ??
-              const FilterUpdateState.idle(),
+          leading: searchField,
+          actions: <Widget>[
+            AppGlassFilterIconButton(
+              key: Key('$keyPrefix-filter-trigger'),
+              summary: filter.triggerLabel(l10n),
+              isActive: filter.hasActiveFilters,
+              onPressed: () => _openMobileFilterDrawer(
+                context,
+                filter: filter,
+                libraries: librariesState.libraries,
+                ref: ref,
+              ),
+            ),
+            searchToggle,
+          ],
+          filterUpdate: filterUpdate,
           hasPreviousFilterItems: hasItems,
           onRetryFilter: () =>
               unawaited(ref.read(mediaBrowseProvider.notifier).retryFilter()),
-          center: Row(
-            children: [
-              Expanded(child: searchField),
-              SizedBox(width: context.appSpacing.sm),
-              searchToggle,
-            ],
-          ),
         );
       }
-      return AppListHeader(
+      return AppMobileListHeader(
         key: Key('$keyPrefix-header'),
-        onFilterTap: () => _openMobileFilterDrawer(
-          context,
-          filter: filter,
-          libraries: librariesState.libraries,
-          ref: ref,
+        leading: AppMobileHeaderText(
+          key: Key('$keyPrefix-total-text'),
+          countLabel: l10n.mediaListTotalItems(total),
         ),
-        // 移动端空间有限，筛选摘要收进 Tooltip，和排序入口一样只留图标。
-        filterLabel: null,
-        filterButtonKey: Key('$keyPrefix-filter-trigger'),
-        filterTooltip: l10n.mediaListFilterTooltip,
-        leadingGap: context.appSpacing.xs,
-        filterUpdate:
-            currentState?.paged.filterUpdate ?? const FilterUpdateState.idle(),
-        hasPreviousFilterItems: hasItems,
-        onRetryFilter: () =>
-            unawaited(ref.read(mediaBrowseProvider.notifier).retryFilter()),
-        center: Row(
-          children: [
-            MediaSortMenuButton(
-              triggerKey: Key('$keyPrefix-sort-trigger'),
-              drawerKey: Key('$keyPrefix-sort-drawer'),
-              keyPrefix: keyPrefix,
-              filterState: filter,
-              onChanged: (next) => _applyFilter(ref, next),
-              useDrawer: true,
-            ),
-            const Spacer(),
-            AppListHeaderInfo(
-              key: Key('$keyPrefix-total-text'),
-              label: l10n.mediaListTotalItems(total),
-            ),
-            SizedBox(width: context.appSpacing.xs),
-            AppTextButton(
-              key: Key('$keyPrefix-enter-selection-button'),
-              label: l10n.mediaListEnterSelection,
-              size: AppTextButtonSize.xSmall,
-              icon: const Icon(Icons.check_circle_outline, size: 14),
-              onPressed: hasItems && !busy ? onEnterSelection : null,
-            ),
-            SizedBox(width: context.appSpacing.xs),
-            AppIconButton(
-              key: Key('$keyPrefix-refresh-button'),
-              tooltip: isInitialLoading
-                  ? l10n.mediaListRefreshing
-                  : l10n.commonRefresh,
-              icon: const Icon(Icons.refresh_rounded),
-              onPressed: isInitialLoading
-                  ? null
-                  : () {
-                      unawaited((onRefresh ?? () => _defaultRefresh(ref))());
-                    },
-            ),
-            SizedBox(width: context.appSpacing.xs),
-            searchToggle,
-          ],
-        ),
-      );
-    }
-
-    if (searchExpanded && !selectionMode) {
-      return AppListHeader(
-        key: Key('$keyPrefix-header'),
-        filterButtonKey: Key('$keyPrefix-filter-trigger'),
-        filterLabel: null,
-        filterTooltip: l10n.mediaListFilterTooltip,
-        filterPanelKey: const Key('media-management-filter-panel'),
-        filterPanelExtraWidth: 240,
-        leadingGap: context.appSpacing.sm,
-        filterPanelBuilder: (_) => MediaBrowseFilterSectionGroup(
-          filterState: filter,
-          libraries: librariesState.libraries,
-          onChanged: (next) => _applyFilter(ref, next),
-        ),
-        filterPanelFooter: AppFilterPanelFooter(
-          isDefault: !filter.hasActiveFilters,
-          onReset: () => _resetFilter(ref),
-        ),
-        filterUpdate:
-            currentState?.paged.filterUpdate ?? const FilterUpdateState.idle(),
-        hasPreviousFilterItems: hasItems,
-        onRetryFilter: () =>
-            unawaited(ref.read(mediaBrowseProvider.notifier).retryFilter()),
-        center: LayoutBuilder(
-          builder: (context, constraints) => Align(
-            alignment: Alignment.centerRight,
-            child: SizedBox(
-              width: constraints.maxWidth.clamp(0.0, 360.0).toDouble(),
-              child: Row(
-                children: [
-                  Expanded(child: searchField),
-                  SizedBox(width: context.appSpacing.sm),
-                  searchToggle,
-                ],
-              ),
+        actions: <Widget>[
+          AppGlassFilterIconButton(
+            key: Key('$keyPrefix-filter-trigger'),
+            summary: filter.triggerLabel(l10n),
+            isActive: filter.hasActiveFilters,
+            onPressed: () => _openMobileFilterDrawer(
+              context,
+              filter: filter,
+              libraries: librariesState.libraries,
+              ref: ref,
             ),
           ),
-        ),
+          MediaSortMenuButton(
+            triggerKey: Key('$keyPrefix-sort-trigger'),
+            drawerKey: Key('$keyPrefix-sort-drawer'),
+            keyPrefix: keyPrefix,
+            filterState: filter,
+            onChanged: (next) => _applyFilter(ref, next),
+            useDrawer: true,
+            iconOnly: true,
+          ),
+          AppGlassIconButton(
+            key: Key('$keyPrefix-refresh-button'),
+            tooltip: isInitialLoading
+                ? l10n.mediaListRefreshing
+                : l10n.commonRefresh,
+            icon: Icons.refresh_rounded,
+            onPressed: isInitialLoading
+                ? null
+                : () {
+                    unawaited((onRefresh ?? () => _defaultRefresh(ref))());
+                  },
+          ),
+          searchToggle,
+        ],
+        filterUpdate: filterUpdate,
+        hasPreviousFilterItems: hasItems,
+        onRetryFilter: () =>
+            unawaited(ref.read(mediaBrowseProvider.notifier).retryFilter()),
       );
     }
 
-    return AppFilterTotalHeader(
-      leading: MediaBrowseFilterToolbar(
+    final desktopFilterPopover = AppGlassFilterPopover(
+      panelKey: const Key('media-management-filter-panel'),
+      scrollable: true,
+      isDefault: !filter.hasActiveFilters,
+      onReset: () => _resetFilter(ref),
+      triggerKey: const Key('media-management-filter-trigger'),
+      label: filter.triggerLabel(l10n),
+      tooltip: l10n.mediaListFilterTooltip,
+      info: <Widget>[
+        AppGlassHeaderText(
+          key: const Key('media-management-total-text'),
+          label: totalText,
+        ),
+      ],
+      panelBuilder: (context) => MediaBrowseFilterSectionGroup(
         filterState: filter,
         libraries: librariesState.libraries,
         onChanged: (next) => _applyFilter(ref, next),
-        onReset: () => _resetFilter(ref),
       ),
-      totalText: hasSelection
-          ? l10n.mediaListTotalItemsWithSelection(total, selectionCount)
-          : l10n.mediaListTotalItems(total),
-      totalKey: const Key('media-management-total-text'),
-      filterUpdate:
-          currentState?.paged.filterUpdate ?? const FilterUpdateState.idle(),
+    );
+    final desktopSortGroup = AppGlassHeaderGroup(
+      children: <Widget>[
+        MediaSortMenuButton(
+          triggerKey: const Key('media-management-sort-trigger'),
+          panelKey: const Key('media-management-sort-panel'),
+          keyPrefix: keyPrefix,
+          filterState: filter,
+          onChanged: (next) => _applyFilter(ref, next),
+          glassGrouped: true,
+        ),
+        if (hasItems)
+          AppGlassHeaderButton(
+            key: const Key('media-management-enter-selection-button'),
+            icon: Icons.check_circle_outline,
+            label: l10n.mediaListEnterSelection,
+            enabled: !busy && onEnterSelection != null,
+            onTap: onEnterSelection ?? () {},
+          ),
+      ],
+    );
+    final desktopSearchToggle = AppGlassIconButton(
+      key: Key('$keyPrefix-search-toggle'),
+      tooltip: searchExpanded
+          ? l10n.mediaListCollapseSearchTooltip
+          : l10n.mediaListSearchFileNameTooltip,
+      semanticLabel: searchExpanded
+          ? l10n.mediaListCollapseSearchTooltip
+          : l10n.mediaListSearchFileNameTooltip,
+      icon: searchExpanded ? Icons.close_rounded : Icons.search_rounded,
+      foregroundColor: searchExpanded || filter.hasSearch
+          ? Theme.of(context).colorScheme.primary
+          : null,
+      onPressed: onToggleSearchExpanded,
+    );
+
+    if (searchExpanded) {
+      return AppGlassListHeader(
+        leading: desktopFilterPopover,
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            SizedBox(width: 360, child: searchField),
+            SizedBox(width: context.appSpacing.sm),
+            desktopSearchToggle,
+          ],
+        ),
+        filterUpdate: filterUpdate,
+        hasPreviousFilterItems: hasItems,
+        onRetryFilter: () =>
+            unawaited(ref.read(mediaBrowseProvider.notifier).retryFilter()),
+      );
+    }
+
+    return AppGlassListHeader(
+      leading: desktopFilterPopover,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          desktopSortGroup,
+          SizedBox(width: context.appSpacing.xs),
+          AppGlassIconButton(
+            key: const Key('media-management-refresh-button'),
+            tooltip: isInitialLoading
+                ? l10n.mediaListRefreshing
+                : l10n.commonRefresh,
+            icon: Icons.refresh_rounded,
+            onPressed: isInitialLoading
+                ? null
+                : () => unawaited((onRefresh ?? () => _defaultRefresh(ref))()),
+          ),
+          SizedBox(width: context.appSpacing.xs),
+          desktopSearchToggle,
+        ],
+      ),
+      filterUpdate: filterUpdate,
       hasPreviousFilterItems: hasItems,
       onRetryFilter: () =>
           unawaited(ref.read(mediaBrowseProvider.notifier).retryFilter()),
-      trailing: _MediaListActionBar(
-        hasItems: hasItems,
-        selectionMode: selectionMode,
-        hasSelection: hasSelection,
-        selectionCount: selectionCount,
-        allLoadedSelected: allLoadedSelected,
-        isDeleting: isDeleting,
-        isTransferring: isTransferring,
-        isResettingThumbnails: isResettingThumbnails,
-        isInitialLoading: isInitialLoading,
-        busy: busy,
-        onEnterSelection: onEnterSelection,
-        onExitSelection: onExitSelection,
-        onBatchDelete: onBatchDelete,
-        onBatchTransfer: onBatchTransfer,
-        canResetThumbnails:
-            filter.thumbnailGenerationState ==
-                MediaBrowseThumbnailGenerationFilter.terminal ||
-            filter.thumbnailGenerationState ==
-                MediaBrowseThumbnailGenerationFilter.succeeded,
-        resetThumbnailsLabel:
-            filter.thumbnailGenerationState ==
-                MediaBrowseThumbnailGenerationFilter.succeeded
-            ? l10n.mediaListActionRegenerateThumbnails
-            : l10n.mediaListActionRetryThumbnails,
-        onBatchResetThumbnails: onBatchResetThumbnails,
-        onRefresh: () => unawaited((onRefresh ?? () => _defaultRefresh(ref))()),
-        searchToggle: selectionMode ? null : searchToggle,
-      ),
     );
   }
 }
@@ -608,7 +661,7 @@ class _MediaListMobileFilterDrawerContentState
   Widget build(BuildContext context) {
     return AppMobileFilterDrawerScaffold(
       scrollViewKey: widget.scrollViewKey,
-      footer: AppFilterPanelFooter(
+      footer: AppGlassFilterFooter(
         isDefault: !_local.hasActiveFilters,
         onReset: () => _apply(_local.resetFilters()),
       ),
@@ -1105,147 +1158,6 @@ class _MediaRowConsumer extends ConsumerWidget {
         transferringItemId?.value,
         retryingThumbnailMediaId?.value,
       ),
-    );
-  }
-}
-
-/// 顶栏右侧操作条：普通态 =「选择」入口 + 刷新 + 搜索；选择态 = 全选 /
-/// 迁移 / 重试 / 批量删除 / 退出选择，危险色只用于删除。
-///
-/// 「选择」是进入多选的唯一显式入口（移动端另有长按）；选择态下点行才是勾选。
-/// 退出选择与移动端多选顶栏同一语义：清空已选并结束选择模式。
-class _MediaListActionBar extends ConsumerWidget {
-  const _MediaListActionBar({
-    required this.hasItems,
-    required this.selectionMode,
-    required this.hasSelection,
-    required this.selectionCount,
-    required this.allLoadedSelected,
-    required this.isDeleting,
-    required this.isTransferring,
-    required this.isResettingThumbnails,
-    required this.isInitialLoading,
-    required this.busy,
-    required this.onEnterSelection,
-    required this.onExitSelection,
-    required this.onBatchDelete,
-    required this.onBatchTransfer,
-    required this.canResetThumbnails,
-    required this.resetThumbnailsLabel,
-    required this.onBatchResetThumbnails,
-    required this.onRefresh,
-    required this.searchToggle,
-  });
-
-  final bool hasItems;
-  final bool selectionMode;
-  final bool hasSelection;
-  final int selectionCount;
-  final bool allLoadedSelected;
-  final bool isDeleting;
-  final bool isTransferring;
-  final bool isResettingThumbnails;
-  final bool isInitialLoading;
-  final bool busy;
-  final VoidCallback? onEnterSelection;
-  final VoidCallback? onExitSelection;
-  final Future<void> Function() onBatchDelete;
-  final Future<void> Function() onBatchTransfer;
-  final bool canResetThumbnails;
-  final String resetThumbnailsLabel;
-  final Future<void> Function()? onBatchResetThumbnails;
-  final VoidCallback onRefresh;
-  final Widget? searchToggle;
-
-  void _exitSelection(WidgetRef ref) {
-    ref.read(mediaBrowseProvider.notifier).clearSelection();
-    onExitSelection?.call();
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final spacing = context.appSpacing;
-    if (!selectionMode) {
-      return Wrap(
-        spacing: spacing.xs,
-        runSpacing: spacing.xs,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          AppSelectionEntryButton(
-            key: const Key('media-management-enter-selection-button'),
-            onPressed: hasItems && !busy ? onEnterSelection : null,
-          ),
-          AppIconButton(
-            key: const Key('media-management-refresh-button'),
-            tooltip: isInitialLoading
-                ? l10n.mediaListRefreshing
-                : l10n.commonRefresh,
-            icon: const Icon(Icons.refresh_rounded),
-            onPressed: isInitialLoading ? null : onRefresh,
-          ),
-          ?searchToggle,
-        ],
-      );
-    }
-    return Wrap(
-      spacing: spacing.xs,
-      runSpacing: spacing.xs,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        AppButton(
-          key: const Key('media-management-select-all-button'),
-          label: allLoadedSelected
-              ? l10n.mediaListClearSelectAllLoaded
-              : l10n.mediaListSelectAllLoaded,
-          size: AppButtonSize.small,
-          variant: AppButtonVariant.secondary,
-          onPressed: !hasItems || busy
-              ? null
-              : () => ref
-                    .read(mediaBrowseProvider.notifier)
-                    .toggleSelectAllLoaded(),
-        ),
-        if (hasSelection)
-          AppButton(
-            key: const Key('media-management-batch-transfer-button'),
-            label: l10n.mediaListBatchTransfer(selectionCount),
-            size: AppButtonSize.small,
-            icon: const Icon(Icons.drive_file_move_outline),
-            isLoading: isTransferring,
-            onPressed: busy ? null : onBatchTransfer,
-          ),
-        if (hasSelection &&
-            canResetThumbnails &&
-            onBatchResetThumbnails != null)
-          AppButton(
-            key: const Key('media-management-batch-reset-thumbnails-button'),
-            label: l10n.mediaListBatchResetThumbnailsCount(
-              resetThumbnailsLabel,
-              selectionCount,
-            ),
-            size: AppButtonSize.small,
-            icon: const Icon(Icons.refresh_rounded),
-            isLoading: isResettingThumbnails,
-            onPressed: busy ? null : onBatchResetThumbnails,
-          ),
-        if (hasSelection)
-          AppButton(
-            key: const Key('media-management-batch-delete-button'),
-            label: l10n.mediaListBatchDelete(selectionCount),
-            size: AppButtonSize.small,
-            variant: AppButtonVariant.danger,
-            icon: const Icon(Icons.delete_outline_rounded),
-            isLoading: isDeleting,
-            onPressed: busy ? null : onBatchDelete,
-          ),
-        AppTextButton(
-          key: const Key('media-management-exit-selection-button'),
-          label: l10n.mediaListExitSelection,
-          size: AppTextButtonSize.small,
-          onPressed: busy ? null : () => _exitSelection(ref),
-        ),
-      ],
     );
   }
 }

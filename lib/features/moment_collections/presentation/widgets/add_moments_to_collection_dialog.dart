@@ -13,13 +13,11 @@ import 'package:sakuramedia/features/media/presentation/media_placeholders.dart'
 import 'package:sakuramedia/features/moment_collections/presentation/providers/moment_collections_api_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_picker_header.dart';
-import 'package:sakuramedia/widgets/base/forms/app_picker_option_tile.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 /// 时刻选择器的内容类型：后端 `kind` 支持 jav / video / all。
@@ -55,6 +53,7 @@ Future<void> showAddMomentsToCollectionDialog(
     drawerKey: const Key('add-moments-to-collection-bottom-sheet'),
     desktopWidth: context.appComponentTokens.playlistDialogWidth,
     mobileHeightFactor: 0.8,
+    showDesktopCloseButton: false,
     builder: (_) => AddMomentsToCollectionDialog(
       collectionId: collectionId,
       memberPointIds: memberPointIds,
@@ -265,19 +264,14 @@ class _AddMomentsToCollectionDialogState
       children: [
         AppPickerHeader(
           title: l10n.momentAddMomentsAction,
-          countLabel: _isLoading && _points.isEmpty
-              ? null
-              : _onlyUnadded
-              ? l10n.momentPickerCountAvailable(_memberIds.length, _total)
-              : l10n.momentPickerCountTotal(_memberIds.length, _total),
-          countKey: const Key('add-moments-count'),
           searchController: _searchController,
           searchFieldKey: const Key('add-moments-search-field'),
           searchHintText: l10n.momentPickerSearchHint,
           clearSearchKey: const Key('add-moments-search-clear'),
           onSearchChanged: _onSearchChanged,
           chips: _buildFilterChips(context),
-          onDone: _isDrawer ? () => Navigator.of(context).pop() : null,
+          onClose: () => Navigator.of(context).pop(),
+          closeKey: const Key('add-moments-close-button'),
           doneKey: const Key('add-moments-done-button'),
         ),
         SizedBox(height: spacing.lg),
@@ -290,11 +284,10 @@ class _AddMomentsToCollectionDialogState
   List<Widget> _buildFilterChips(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return <Widget>[
-      AppTextButton(
+      AppPickerIosChip(
         key: const Key('add-moments-only-unadded-chip'),
         label: l10n.momentPickerOnlyUnadded,
-        size: AppTextButtonSize.xSmall,
-        isSelected: _onlyUnadded,
+        selected: _onlyUnadded,
         onPressed: () => _setOnlyUnadded(!_onlyUnadded),
       ),
       Container(
@@ -303,11 +296,10 @@ class _AddMomentsToCollectionDialogState
         color: context.appColors.divider,
       ),
       for (final kind in _MomentKindOption.values)
-        AppTextButton(
+        AppPickerIosChip(
           key: Key('add-moments-kind-${kind.apiValue}'),
           label: kind.label(l10n),
-          size: AppTextButtonSize.xSmall,
-          isSelected: _kind == kind,
+          selected: _kind == kind,
           onPressed: () => _selectKind(kind),
         ),
     ];
@@ -321,9 +313,8 @@ class _AddMomentsToCollectionDialogState
       );
     }
     if (_errorMessage != null) {
-      return AppEmptyState(
+      return AppPickerIosState(
         key: const Key('add-moments-error'),
-        icon: Icons.cloud_off_rounded,
         message: _errorMessage!,
         onRetry: _loadInitial,
       );
@@ -341,7 +332,10 @@ class _AddMomentsToCollectionDialogState
       return _buildEmptyState(context);
     }
 
-    final spacing = context.appSpacing;
+    final l10n = AppLocalizations.of(context);
+    final countLabel = _onlyUnadded
+        ? l10n.momentPickerCountAvailable(_memberIds.length, _total)
+        : l10n.momentPickerCountTotal(_memberIds.length, _total);
     final list = AppPagedLoadMoreScope(
       canLoadMore: () =>
           !_isLoading &&
@@ -350,25 +344,36 @@ class _AddMomentsToCollectionDialogState
           _errorMessage == null &&
           _loadMoreErrorMessage == null,
       onLoadMore: _loadMore,
-      child: ListView.separated(
+      child: SingleChildScrollView(
         key: const Key('add-moments-list'),
         controller: _scrollController,
-        // 抽屉里由外层 Expanded 限高，无需 shrinkWrap；弹窗里靠 shrinkWrap + 限高。
-        shrinkWrap: !_isDrawer,
-        itemCount:
-            _points.length +
-            (_hasMore || _loadMoreErrorMessage != null ? 1 : 0),
-        separatorBuilder: (context, index) => SizedBox(height: spacing.sm),
-        itemBuilder: (context, index) {
-          if (index >= _points.length) {
-            return AppPagedLoadMoreFooter(
-              isLoading: _loadMoreErrorMessage == null,
-              errorMessage: _loadMoreErrorMessage,
-              onRetry: _retryLoadMore,
-            );
-          }
-          return _buildPointOption(context, _points[index]);
-        },
+        padding: EdgeInsets.only(bottom: context.appSpacing.xs),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppPickerIosSection(
+              dividerIndent: 84,
+              header: Text(
+                countLabel,
+                key: const Key('add-moments-count'),
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  tone: AppTextTone.muted,
+                ),
+              ),
+              children: [
+                for (final point in _points) _buildPointOption(context, point),
+              ],
+            ),
+            if (_hasMore || _loadMoreErrorMessage != null)
+              AppPagedLoadMoreFooter(
+                isLoading: _loadMoreErrorMessage == null,
+                errorMessage: _loadMoreErrorMessage,
+                onRetry: _retryLoadMore,
+              ),
+          ],
+        ),
       ),
     );
     if (_isDrawer) {
@@ -383,35 +388,31 @@ class _AddMomentsToCollectionDialogState
   Widget _buildEmptyState(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     if (_keyword.isNotEmpty) {
-      return AppEmptyState(
+      return AppPickerIosState(
         key: const Key('add-moments-empty-search'),
-        icon: Icons.search_off_rounded,
         title: l10n.momentEmptyNoMatchTitle,
         message: l10n.momentEmptyNoMatchMessage,
       );
     }
     if (_kind != _MomentKindOption.all) {
-      return AppEmptyState(
+      return AppPickerIosState(
         key: const Key('add-moments-empty-kind'),
-        icon: Icons.search_off_rounded,
         title: l10n.momentEmptyKindTitle,
         message: l10n.momentEmptyKindMessage,
       );
     }
     if (_onlyUnadded) {
-      return AppEmptyState(
+      return AppPickerIosState(
         key: const Key('add-moments-empty-all-added'),
-        icon: Icons.playlist_add_check_rounded,
         title: l10n.momentEmptyAllAddedTitle,
         message: l10n.momentEmptyAllAddedMessage,
-        retryLabel: l10n.momentViewAll,
-        retryKey: const Key('add-moments-show-all-button'),
+        actionLabel: l10n.momentViewAll,
         onRetry: () => _setOnlyUnadded(false),
+        retryKey: const Key('add-moments-show-all-button'),
       );
     }
-    return AppEmptyState(
+    return AppPickerIosState(
       key: const Key('add-moments-empty-library'),
-      icon: Icons.bookmark_border_rounded,
       title: l10n.momentEmptyNoMomentsTitle,
       message: l10n.momentEmptyNoMomentsMessage,
     );
@@ -420,19 +421,14 @@ class _AddMomentsToCollectionDialogState
   Widget _buildLoadingOptions(BuildContext context, {Key? key}) {
     final placeholders = mediaPointListItemPlaceholders();
     // loading 用占位时刻渲染真实选项行，由 [AppSkeletonizer] 灰化。
-    return Padding(
-      padding: EdgeInsets.only(top: context.appSpacing.xs),
-      child: AppSkeletonizer(
-        key: key,
-        enabled: true,
-        child: Column(
-          children: [
-            for (var index = 0; index < placeholders.length; index++) ...[
-              if (index > 0) SizedBox(height: context.appSpacing.sm),
-              _buildPointOption(context, placeholders[index]),
-            ],
-          ],
-        ),
+    return AppSkeletonizer(
+      key: key,
+      enabled: true,
+      child: AppPickerIosSection(
+        dividerIndent: 84,
+        children: [
+          for (final point in placeholders) _buildPointOption(context, point),
+        ],
       ),
     );
   }
@@ -449,15 +445,17 @@ class _AddMomentsToCollectionDialogState
               ? l10n.momentVideoLabel(videoItemId)
               : l10n.momentLabel(point.pointId));
 
-    return AppPickerOptionTile.cover(
+    return AppPickerIosRow(
+      optionKey: Key('add-moments-option-${point.pointId}'),
+      leading: AppPickerIosCover(url: coverUrl),
       selected: selected,
+      showCheckmark: true,
       enabled: !isAnyUpdating,
+      busy: isAnyUpdating && _updatingIds.contains(point.pointId),
+      busyKey: Key('add-moments-updating-${point.pointId}'),
       onTap: () => _toggle(point),
       title: title,
       subtitle: formatMediaTimecode(point.offsetSeconds),
-      coverUrl: coverUrl,
-      optionKey: Key('add-moments-option-${point.pointId}'),
-      checkboxKey: Key('add-moments-checkbox-${point.pointId}'),
     );
   }
 

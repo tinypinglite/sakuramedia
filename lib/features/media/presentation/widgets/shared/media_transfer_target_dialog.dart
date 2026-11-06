@@ -6,6 +6,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 Future<int?> showMediaTransferTargetDialog(
@@ -25,7 +26,7 @@ Future<int?> showMediaTransferTargetDialog(
       builder: (_) => body,
     );
   }
-  return showDialog<int>(
+  return showAppDialog<int>(
     context: context,
     builder: (_) => AppDesktopDialog(
       dialogKey: const Key('media-management-transfer-dialog'),

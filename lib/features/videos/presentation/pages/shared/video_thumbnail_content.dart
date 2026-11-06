@@ -5,6 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
+import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/clips/presentation/widgets/create_clip_dialog.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
@@ -15,7 +16,6 @@ import 'package:sakuramedia/features/videos/data/dto/video_item_detail_dto.dart'
 import 'package:sakuramedia/features/videos/presentation/providers/video_mutation_events_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/videos_api_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/video_display_title.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
@@ -30,12 +30,20 @@ class VideoThumbnailContent extends ConsumerStatefulWidget {
     required this.thumbnailPreviewPresentation,
     required this.onSearchSimilar,
     required this.onPlay,
+    this.mobileLayout = false,
+    this.useGlassChrome = false,
   });
 
   final int videoId;
   final MoviePlotPreviewPresentation thumbnailPreviewPresentation;
   final Future<void> Function(String imageUrl, String fileName) onSearchSimilar;
   final Future<void> Function(int offsetSeconds) onPlay;
+
+  /// 移动端把视频标题提升为页面主标题，并补一行时长 / 媒体数元信息。
+  final bool mobileLayout;
+
+  /// 移动端缩略图控制条使用液态玻璃分组。
+  final bool useGlassChrome;
 
   @override
   ConsumerState<VideoThumbnailContent> createState() =>
@@ -244,29 +252,56 @@ class _VideoThumbnailContentState extends ConsumerState<VideoThumbnailContent> {
       );
     }
 
+    final l10n = AppLocalizations.of(context);
+    final metadata = <String>[
+      if (_video!.durationSeconds > 0)
+        formatMediaTimecode(_video!.durationSeconds),
+      if (_video!.mediaItems.isNotEmpty)
+        l10n.videoMediaCount(_video!.mediaItems.length),
+    ].join(' · ');
     return Column(
       key: const Key('video-thumbnail-page'),
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: EdgeInsets.only(bottom: context.appSpacing.sm),
-          child: Text(
-            _video!.displayTitle(AppLocalizations.of(context)),
-            key: const Key('video-thumbnail-title'),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s18,
-              weight: AppTextWeight.semibold,
-              tone: AppTextTone.primary,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _video!.displayTitle(l10n),
+                key: const Key('video-thumbnail-title'),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: resolveAppTextStyle(
+                  context,
+                  size: widget.mobileLayout ? AppTextSize.s24 : AppTextSize.s18,
+                  weight: AppTextWeight.semibold,
+                  tone: AppTextTone.primary,
+                  height: widget.mobileLayout ? 1.12 : null,
+                ),
+              ),
+              if (widget.mobileLayout && metadata.isNotEmpty) ...[
+                SizedBox(height: context.appSpacing.xs),
+                Text(
+                  metadata,
+                  key: const Key('video-thumbnail-metadata'),
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.regular,
+                    tone: AppTextTone.secondary,
+                  ),
+                ),
+              ],
+            ],
           ),
         ),
         Expanded(
           child: MediaThumbnailTab(
             keyPrefix: 'video-thumbnail',
             mediaId: _mediaId,
+            glassChrome: widget.useGlassChrome,
             thumbnailPreviewPresentation: widget.thumbnailPreviewPresentation,
             onThumbnailMenuRequested: _showThumbnailActions,
             onCreateClip: _createClip,

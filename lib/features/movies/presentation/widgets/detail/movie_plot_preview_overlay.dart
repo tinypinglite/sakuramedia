@@ -15,6 +15,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_trigger.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_thumbnail.dart';
 
@@ -42,7 +43,7 @@ Future<void> showMoviePlotPreviewOverlay({
 
   switch (presentation) {
     case MoviePlotPreviewPresentation.dialog:
-      return showDialog<void>(
+      return showAppDialog<void>(
         context: context,
         builder: (dialogContext) => _MoviePlotPreviewDialog(
           plotImages: plotImages,
@@ -583,24 +584,24 @@ class _PreviewMainImageActionTargetState
     _stopListeningToImageStream();
 
     final stream = provider.resolve(createLocalImageConfiguration(context));
-    final listener = ImageStreamListener(
-      (ImageInfo imageInfo, bool synchronousCall) {
-        final width = imageInfo.image.width.toDouble();
-        final height = imageInfo.image.height.toDouble();
-        if (!mounted || width <= 0 || height <= 0) {
-          return;
-        }
+    final listener = ImageStreamListener((
+      ImageInfo imageInfo,
+      bool synchronousCall,
+    ) {
+      final width = imageInfo.image.width.toDouble();
+      final height = imageInfo.image.height.toDouble();
+      if (!mounted || width <= 0 || height <= 0) {
+        return;
+      }
 
-        final nextAspectRatio = width / height;
-        if (_imageAspectRatio == nextAspectRatio) {
-          return;
-        }
-        setState(() {
-          _imageAspectRatio = nextAspectRatio;
-        });
-      },
-      onError: (Object error, StackTrace? stackTrace) {},
-    );
+      final nextAspectRatio = width / height;
+      if (_imageAspectRatio == nextAspectRatio) {
+        return;
+      }
+      setState(() {
+        _imageAspectRatio = nextAspectRatio;
+      });
+    }, onError: (Object error, StackTrace? stackTrace) {});
 
     stream.addListener(listener);
     _imageStream = stream;

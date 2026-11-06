@@ -4,7 +4,6 @@ import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_pl
 import 'package:sakuramedia/features/videos/presentation/pages/shared/video_thumbnail_content.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
-import 'package:sakuramedia/theme.dart';
 
 class MobileVideoThumbnailPage extends StatelessWidget {
   const MobileVideoThumbnailPage({super.key, required this.videoId});
@@ -15,9 +14,11 @@ class MobileVideoThumbnailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ColoredBox(
       key: const Key('mobile-video-thumbnail-page-surface'),
-      color: context.appColors.surfaceCard,
+      color: Colors.transparent,
       child: VideoThumbnailContent(
         videoId: videoId,
+        mobileLayout: true,
+        useGlassChrome: true,
         thumbnailPreviewPresentation: MoviePlotPreviewPresentation.bottomDrawer,
         onSearchSimilar: (imageUrl, fileName) => launchImageSearchFromUrl(
           context,

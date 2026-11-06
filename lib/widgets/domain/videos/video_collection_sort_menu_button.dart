@@ -13,10 +13,14 @@ class VideoCollectionSortMenuButton extends StatelessWidget {
     required this.sort,
     required this.onChanged,
     this.useDrawer = false,
+    this.glassGrouped = false,
+    this.iconOnly = false,
     this.keyPrefix = 'video-collection',
     this.triggerKey,
     this.panelKey,
     this.drawerKey,
+    this.fieldControlKey,
+    this.directionControlKey,
   });
 
   final VideoCollectionSort sort;
@@ -29,10 +33,14 @@ class VideoCollectionSortMenuButton extends StatelessWidget {
   onChanged;
 
   final bool useDrawer;
+  final bool glassGrouped;
+  final bool iconOnly;
   final String keyPrefix;
   final Key? triggerKey;
   final Key? panelKey;
   final Key? drawerKey;
+  final Key? fieldControlKey;
+  final Key? directionControlKey;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +57,8 @@ class VideoCollectionSortMenuButton extends StatelessWidget {
       defaultOptionLabel: l10n.widgetVideoSortManual,
       directionVisibleWhen: (field) => field != null,
       useDrawer: useDrawer,
+      glassGrouped: glassGrouped,
+      iconOnly: iconOnly,
       triggerKey: triggerKey,
       panelKey: panelKey,
       drawerKey: drawerKey,
@@ -56,6 +66,8 @@ class VideoCollectionSortMenuButton extends StatelessWidget {
       directionKeyBuilder: (value) =>
           Key('$keyPrefix-sort-direction-${value.name}'),
       defaultOptionKey: Key('$keyPrefix-sort-default'),
+      fieldControlKey: fieldControlKey,
+      directionControlKey: directionControlKey,
     );
   }
 }

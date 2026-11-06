@@ -30,6 +30,7 @@ class MediaImportSourcePicker extends ConsumerStatefulWidget {
     required this.onSourceChanged,
     required this.onSourceDispositionChanged,
     this.allowFileSource = false,
+    this.browserHeight,
   });
 
   final MediaLibraryDto? selectedLibrary;
@@ -40,6 +41,9 @@ class MediaImportSourcePicker extends ConsumerStatefulWidget {
   /// JAV imports select directories by default. Video imports may also select
   /// a provider file entry when this flag is enabled.
   final bool allowFileSource;
+
+  /// 目录浏览器高度；不传时使用主题的目录浏览器高度。
+  final double? browserHeight;
 
   @override
   ConsumerState<MediaImportSourcePicker> createState() =>
@@ -403,7 +407,9 @@ class _MediaImportSourcePickerState
 
   Widget _buildBrowser(BuildContext context) {
     return Container(
-      height: context.appLayoutTokens.directoryBrowserHeight,
+      height:
+          widget.browserHeight ??
+          context.appLayoutTokens.directoryBrowserHeight,
       decoration: BoxDecoration(
         color: context.appColors.surfaceMuted,
         borderRadius: context.appRadius.mdBorder,
@@ -437,7 +443,7 @@ class _MediaImportSourcePickerState
     return ListView.separated(
       padding: EdgeInsets.symmetric(vertical: context.appSpacing.xs),
       itemCount: _entries.length + (showFooter ? 1 : 0),
-      separatorBuilder: (_, __) =>
+      separatorBuilder: (_, _) =>
           Divider(height: 1, color: context.appColors.divider),
       itemBuilder: (context, index) {
         if (index == _entries.length) {

@@ -10,6 +10,7 @@ class ActivityTaskSortMenuButton extends StatelessWidget {
     required this.filterState,
     required this.onChanged,
     this.useDrawer = false,
+    this.iconOnly = false,
     this.keyPrefix = 'activity-task',
     this.triggerKey,
     this.panelKey,
@@ -19,6 +20,7 @@ class ActivityTaskSortMenuButton extends StatelessWidget {
   final ActivityTaskFilterState filterState;
   final ValueChanged<ActivityTaskFilterState> onChanged;
   final bool useDrawer;
+  final bool iconOnly;
   final String keyPrefix;
   final Key? triggerKey;
   final Key? panelKey;
@@ -29,13 +31,13 @@ class ActivityTaskSortMenuButton extends StatelessWidget {
     return AppSortMenuButton<ActivityTaskSortField>(
       fields: ActivityTaskSortField.values,
       selectedField: filterState.sortField,
-      fieldLabelBuilder: (value) =>
-          value.label(AppLocalizations.of(context)),
+      fieldLabelBuilder: (value) => value.label(AppLocalizations.of(context)),
       onFieldChanged: (value) => onChanged(filterState.withSortField(value!)),
       selectedDirection: filterState.sortDirection,
       onDirectionChanged: (value) =>
           onChanged(filterState.withSortDirection(value)),
       useDrawer: useDrawer,
+      iconOnly: iconOnly,
       triggerKey: triggerKey,
       panelKey: panelKey,
       drawerKey: drawerKey,

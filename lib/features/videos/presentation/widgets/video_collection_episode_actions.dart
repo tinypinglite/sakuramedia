@@ -26,7 +26,6 @@ Future<VideoCollectionEpisodeAction?> showVideoCollectionEpisodeActions({
     context: context,
     globalPosition: position,
     presentation: presentation,
-    useRootNavigator: !isDrawer,
     drawerKey: const Key('video-episode-actions'),
     title: isDrawer ? title : null,
     items: <AppMenuItem<VideoCollectionEpisodeAction>>[

@@ -60,6 +60,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_shell.dart';
+import 'package:sakuramedia/widgets/shell/mobile/app_mobile_ambient_backdrop.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
 import 'package:sakuramedia/widgets/shell/mobile/mobile_overview_drawer.dart';
 
@@ -347,6 +348,9 @@ class MobileLatestMoviesRouteData extends _MobileSubpageRouteData
   String get pageName => 'mobile-latest-movies';
 
   @override
+  bool get glassChrome => true;
+
+  @override
   String title(AppLocalizations l10n) => l10n.routeLatestAddedTitle;
 
   @override
@@ -369,6 +373,9 @@ class MobileRecentlySubscribedMoviesRouteData extends _MobileSubpageRouteData
   String get pageName => 'mobile-recently-subscribed-movies';
 
   @override
+  bool get glassChrome => true;
+
+  @override
   String title(AppLocalizations l10n) => l10n.routeRecentlySubscribedTitle;
 
   @override
@@ -387,6 +394,9 @@ class MobileRecentViewsRouteData extends _MobileSubpageRouteData
 
   @override
   String get pageName => 'mobile-recent-views';
+
+  @override
+  bool get glassChrome => true;
 
   @override
   String title(AppLocalizations l10n) => l10n.routeRecentViewsTitle;
@@ -409,6 +419,9 @@ class MobileFavoritesRouteData extends _MobileSubpageRouteData
   String get pageName => 'mobile-favorites';
 
   @override
+  bool get glassChrome => true;
+
+  @override
   String title(AppLocalizations l10n) => l10n.routeFavoritesTitle;
 
   @override
@@ -429,6 +442,9 @@ class MobileRecentlyPlayedRouteData extends _MobileSubpageRouteData
   String get pageName => 'mobile-recently-played';
 
   @override
+  bool get glassChrome => true;
+
+  @override
   String title(AppLocalizations l10n) => l10n.routeRecentlyPlayedTitle;
 
   @override
@@ -447,6 +463,9 @@ class MobileRatedMoviesRouteData extends _MobileSubpageRouteData
 
   @override
   String get pageName => 'mobile-rated-movies';
+
+  @override
+  bool get glassChrome => true;
 
   @override
   String title(AppLocalizations l10n) => l10n.routeRatingsTitle;
@@ -509,6 +528,9 @@ class MobileActivityRouteData extends _MobileSubpageRouteData
   String get pageName => 'mobile-activity';
 
   @override
+  bool get glassChrome => true;
+
+  @override
   String title(AppLocalizations l10n) => l10n.routeTaskCenterTitle;
 
   @override
@@ -530,6 +552,9 @@ class MobileDownloadTasksRouteData extends _MobileSubpageRouteData
 
   @override
   String get pageName => 'mobile-download-tasks';
+
+  @override
+  bool get glassChrome => true;
 
   @override
   String title(AppLocalizations l10n) => l10n.routeDownloadTasksTitle;
@@ -555,6 +580,9 @@ class MobileNotificationsRouteData extends _MobileSubpageRouteData
   String get pageName => 'mobile-notifications';
 
   @override
+  bool get glassChrome => true;
+
+  @override
   String title(AppLocalizations l10n) => l10n.routeMessagesTitle;
 
   @override
@@ -573,6 +601,9 @@ class MobileMediaManagementRouteData extends _MobileSubpageRouteData
 
   @override
   String get pageName => 'mobile-media-management';
+
+  @override
+  bool get glassChrome => true;
 
   @override
   String title(AppLocalizations l10n) => l10n.routeMediaManagementTitle;
@@ -597,11 +628,13 @@ class MobileMovieSubscriptionsRouteData extends _MobileSubpageRouteData
   String get pageName => 'mobile-movie-subscriptions';
 
   @override
+  bool get glassChrome => true;
+
+  @override
   String title(AppLocalizations l10n) => l10n.routeSubscriptionManagementTitle;
 
   @override
   String get defaultLocation => mobileOverviewPath;
-
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return const MobileMovieSubscriptionsPage();
@@ -893,6 +926,9 @@ class MobileVideoThumbnailRouteData extends _MobileSubpageRouteData
   String get defaultLocation => mobilePornboxPath;
 
   @override
+  bool get glassChrome => true;
+
+  @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return MobileVideoThumbnailPage(videoId: videoId);
   }
@@ -905,6 +941,9 @@ class MobileTagsRouteData extends _MobileSubpageRouteData
 
   @override
   String get pageName => 'mobile-tags';
+
+  @override
+  bool get glassChrome => true;
 
   @override
   String title(AppLocalizations l10n) => l10n.routeTagsTitle;
@@ -929,6 +968,9 @@ class MobileTagMoviesRouteData extends _MobileSubpageRouteData
   String get pageName => 'mobile-tag-movies';
 
   @override
+  bool get glassChrome => true;
+
+  @override
   String title(AppLocalizations l10n) => l10n.routeTagsTitle;
 
   @override
@@ -947,6 +989,9 @@ class MobileClipCollectionsRouteData extends _MobileSubpageRouteData
 
   @override
   String get pageName => 'mobile-clip-collections';
+
+  @override
+  bool get glassChrome => true;
 
   @override
   String title(AppLocalizations l10n) => l10n.routeClipCollectionsTitle;
@@ -973,6 +1018,9 @@ class MobileClipCollectionDetailRouteData extends _MobileSubpageRouteData
   String get pageName => 'mobile-clip-collection-detail';
 
   @override
+  bool get glassChrome => true;
+
+  @override
   String title(AppLocalizations l10n) => l10n.routeCollectionsTitle;
 
   @override
@@ -993,6 +1041,9 @@ class MobileMomentCollectionsRouteData extends _MobileSubpageRouteData
 
   @override
   String get pageName => 'mobile-moment-collections';
+
+  @override
+  bool get glassChrome => true;
 
   @override
   String title(AppLocalizations l10n) => l10n.routeMomentCollectionsTitle;
@@ -1019,11 +1070,13 @@ class MobileMomentCollectionDetailRouteData extends _MobileSubpageRouteData
   String get pageName => 'mobile-moment-collection-detail';
 
   @override
+  bool get glassChrome => true;
+
+  @override
   String title(AppLocalizations l10n) => l10n.routeCollectionsTitle;
 
   @override
   String get defaultLocation => mobileMomentCollectionsPath;
-
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return MobileMomentCollectionDetailPage(collectionId: collectionId);
@@ -1084,6 +1137,9 @@ class MobileVideoCollectionsRouteData extends _MobileSubpageRouteData
   String get defaultLocation => mobilePornboxPath;
 
   @override
+  bool get glassChrome => true;
+
+  @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return const MobileVideoCollectionsPage();
   }
@@ -1106,6 +1162,9 @@ class MobileVideoCollectionDetailRouteData extends _MobileSubpageRouteData
 
   @override
   String get defaultLocation => mobileVideoCollectionsPath;
+
+  @override
+  bool get glassChrome => true;
 
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
@@ -1306,6 +1365,7 @@ class _MobileRootShellScopeState extends ConsumerState<_MobileRootShellScope> {
             )
           : null,
       drawerEnableOpenDragGesture: enableOverviewDrawerDrag,
+      background: const AppMobileAmbientBackdrop(child: SizedBox.expand()),
       onDestinationSelected: (index) {
         navigationShell.goBranch(
           index,
@@ -1470,6 +1530,9 @@ class MobilePlaylistDetailRouteData extends _MobileSubpageRouteData
   String get pageName => 'mobile-playlist-detail';
 
   @override
+  bool get glassChrome => true;
+
+  @override
   String title(AppLocalizations l10n) => l10n.routePlaylistDetailsTitle;
 
   @override
@@ -1490,6 +1553,9 @@ class MobileFollowRouteData extends _MobileSubpageRouteData
 
   @override
   String get pageName => 'mobile-follow';
+
+  @override
+  bool get glassChrome => true;
 
   @override
   String title(AppLocalizations l10n) => l10n.routeNewActorReleasesTitle;
@@ -1514,6 +1580,9 @@ class MobileDiscoverMoviesRouteData extends _MobileSubpageRouteData
   String get pageName => 'mobile-discover-movies';
 
   @override
+  bool get glassChrome => true;
+
+  @override
   String title(AppLocalizations l10n) => l10n.routeRecommendedMoviesTitle;
 
   @override
@@ -1536,6 +1605,9 @@ class MobileDiscoverMomentsRouteData extends _MobileSubpageRouteData
   String get pageName => 'mobile-discover-moments';
 
   @override
+  bool get glassChrome => true;
+
+  @override
   String title(AppLocalizations l10n) => l10n.routeRecommendedMomentsTitle;
 
   @override
@@ -1556,6 +1628,9 @@ class MobileHotActressReleasesRouteData extends _MobileSubpageRouteData
 
   @override
   String get pageName => 'mobile-hot-actress-releases';
+
+  @override
+  bool get glassChrome => true;
 
   @override
   String title(AppLocalizations l10n) => l10n.routePopularNewReleasesTitle;
@@ -1581,6 +1656,9 @@ class MobileMovieSeriesRouteData extends _MobileSubpageRouteData
 
   @override
   String get pageName => 'mobile-movie-series';
+
+  @override
+  bool get glassChrome => true;
 
   @override
   String title(AppLocalizations l10n) => l10n.routeSeriesMoviesTitle;
@@ -1653,11 +1731,13 @@ class MobileActorDetailRouteData extends _MobileSubpageRouteData
   String get pageName => 'mobile-actor-detail';
 
   @override
+  bool get glassChrome => true;
+
+  @override
   String title(AppLocalizations l10n) => l10n.routeActorDetailsTitle;
 
   @override
   String get defaultLocation => mobileActorsPath;
-
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
     return MobileActorDetailPage(actorId: actorId);
@@ -1697,6 +1777,9 @@ abstract class _MobileSubpageRouteData extends GoRouteData {
   EdgeInsetsGeometry get bodyPadding => AppPageInsets.compactStandard;
   bool get immersive => false;
 
+  /// PornBox 子页使用透明环境底 + 玻璃返回按钮。
+  bool get glassChrome => false;
+
   /// 子页是否随滚动收起 AppBar。默认全局开启；个别需要常驻的子页
   /// 覆盖为 false。immersive 子页收起的是悬浮返回栏，正文不位移。
   bool get autoHideAppBar => true;
@@ -1720,6 +1803,7 @@ abstract class _MobileSubpageRouteData extends GoRouteData {
         bodyPadding: bodyPadding,
         immersive: immersive,
         autoHideAppBar: autoHideAppBar,
+        glassChrome: glassChrome,
         child: buildSubpage(context, state),
       ),
     );
@@ -1738,6 +1822,7 @@ class _LocalizedMobileSubpageShell extends StatelessWidget {
     required this.bodyPadding,
     required this.immersive,
     required this.autoHideAppBar,
+    required this.glassChrome,
     required this.child,
   });
 
@@ -1747,6 +1832,7 @@ class _LocalizedMobileSubpageShell extends StatelessWidget {
   final EdgeInsetsGeometry bodyPadding;
   final bool immersive;
   final bool autoHideAppBar;
+  final bool glassChrome;
   final Widget child;
 
   @override
@@ -1758,6 +1844,7 @@ class _LocalizedMobileSubpageShell extends StatelessWidget {
       bodyPadding: bodyPadding,
       immersive: immersive,
       autoHideAppBar: autoHideAppBar,
+      glassChrome: glassChrome,
       child: child,
     );
   }

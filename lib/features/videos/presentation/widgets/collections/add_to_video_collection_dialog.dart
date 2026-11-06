@@ -9,11 +9,10 @@ import 'package:sakuramedia/features/videos/presentation/providers/videos_api_pr
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/create_video_collection_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
-import 'package:sakuramedia/widgets/base/forms/app_picker_option_tile.dart';
-import 'package:sakuramedia/widgets/base/forms/app_search_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_header.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 /// 「加入合集」的呈现形态：桌面弹窗 / 移动端底部抽屉。
@@ -36,7 +35,7 @@ Future<void> showAddToVideoCollectionDialog(
 }) {
   switch (presentation) {
     case AddToVideoCollectionPresentation.dialog:
-      return showDialog<void>(
+      return showAppDialog<void>(
         context: context,
         builder: (dialogContext) => AddToVideoCollectionDialog(
           videoItemId: videoItemId,
@@ -112,7 +111,13 @@ class _AddToVideoCollectionDialogState
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool showLoading = false}) async {
+    if (showLoading && mounted) {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+    }
     try {
       // 与列表页 / 目标选择器共享 overview 缓存，避免每次打开重复全量拉取。
       final collections = await ref.read(
@@ -148,126 +153,116 @@ class _AddToVideoCollectionDialogState
     if (_isBottomDrawer) {
       return content;
     }
-    return AppDesktopDialog(width: 420, child: content);
+    return AppDesktopDialog(width: 420, showCloseButton: false, child: content);
   }
 
   Widget _buildContent(BuildContext context) {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
     final isAnyUpdating = _updatingIds.isNotEmpty;
-    // 抽屉形态：列表占据抽屉剩余空间并内部滚动，表头/按钮常驻，整体由抽屉 maxHeightFactor
-    // 约束，避免矮屏上「表头 + 固定高列表 + 按钮」超过抽屉封顶导致溢出。桌面弹窗仍用固定上限。
-    final listSection = _isBottomDrawer
-        ? Flexible(child: _buildBody(context))
-        : ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 320),
+    return AbsorbPointer(
+      absorbing: isAnyUpdating,
+      child: Column(
+        mainAxisSize: _isBottomDrawer ? MainAxisSize.max : MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppPickerHeader(
+            title: l10n.videoAddToCollection,
+            searchController: _searchController,
+            searchFieldKey: const Key('add-to-video-collection-search-field'),
+            searchHintText: l10n.videoSearchCollections,
+            onSearchChanged: (value) =>
+                setState(() => _keyword = value.trim().toLowerCase()),
+            clearSearchKey: const Key('add-to-video-collection-search-clear'),
+            onClose: () => Navigator.of(context).pop(),
+            closeKey: const Key('add-to-video-collection-close-button'),
+            doneKey: const Key('add-to-video-collection-done-button'),
+          ),
+          SizedBox(height: spacing.lg),
+          AppPickerListFrame(
+            isDrawer: _isBottomDrawer,
             child: _buildBody(context),
-          );
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        AbsorbPointer(
-          absorbing: isAnyUpdating,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.videoAddToCollection,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s16,
-                  weight: AppTextWeight.semibold,
-                  tone: AppTextTone.primary,
-                ),
-              ),
-              SizedBox(height: spacing.md),
-              AppSearchField(
-                fieldKey: const Key('add-to-video-collection-search-field'),
-                controller: _searchController,
-                hintText: l10n.videoSearchCollections,
-                onChanged: (value) =>
-                    setState(() => _keyword = value.trim().toLowerCase()),
-                clearKey: const Key('add-to-video-collection-search-clear'),
-              ),
-              SizedBox(height: spacing.md),
-              listSection,
-              SizedBox(height: spacing.md),
-              Row(
-                children: [
-                  Expanded(
-                    child: AppButton(
-                      label: l10n.videoCreateCollectionAndAdd,
-                      onPressed: _isLoading || isAnyUpdating
-                          ? null
-                          : _createAndAdd,
-                    ),
-                  ),
-                  SizedBox(width: spacing.md),
-                  AppButton(
-                    label: l10n.videoClose,
-                    variant: AppButtonVariant.secondary,
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-            ],
           ),
-        ),
-        if (isAnyUpdating)
-          const SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator.adaptive(strokeWidth: 2),
-          ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildBody(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(16),
-          child: CircularProgressIndicator.adaptive(),
-        ),
+      return const AppPickerIosState(
+        key: Key('add-to-video-collection-loading'),
+        loading: true,
       );
     }
     if (_errorMessage != null) {
-      return AppEmptyState(message: _errorMessage!);
+      return AppPickerIosStateWithAction(
+        state: AppPickerIosState(
+          message: _errorMessage!,
+          onRetry: () => _load(showLoading: true),
+          retryKey: const Key('add-to-video-collection-retry'),
+        ),
+        action: _buildCreateRow(AppLocalizations.of(context), enabled: true),
+      );
     }
     if (_collections.isEmpty) {
-      return AppEmptyState(
-        message: AppLocalizations.of(context).videoCollectionsEmptyDialog,
+      return AppPickerIosStateWithAction(
+        state: AppPickerIosState(
+          message: AppLocalizations.of(context).videoCollectionsEmptyDialog,
+        ),
+        action: _buildCreateRow(AppLocalizations.of(context), enabled: true),
       );
     }
     final visibleCollections = _visibleCollections;
     if (visibleCollections.isEmpty) {
-      return AppEmptyState(
-        message: AppLocalizations.of(context).videoCollectionsNoMatch,
+      return AppPickerIosStateWithAction(
+        state: AppPickerIosState(
+          message: AppLocalizations.of(context).videoCollectionsNoMatch,
+        ),
+        action: _buildCreateRow(AppLocalizations.of(context), enabled: true),
       );
     }
     final isAnyUpdating = _updatingIds.isNotEmpty;
-    return ListView.separated(
+    final l10n = AppLocalizations.of(context);
+    return SingleChildScrollView(
       key: const Key('add-to-video-collection-list'),
-      shrinkWrap: true,
-      itemCount: visibleCollections.length,
-      separatorBuilder: (context, _) => SizedBox(height: context.appSpacing.sm),
-      itemBuilder: (context, index) {
-        final collection = visibleCollections[index];
-        final selected = _selectedIds.contains(collection.id);
-        return AppPickerOptionTile.text(
-          selected: selected,
-          enabled: !isAnyUpdating,
-          onTap: () => _toggle(collection),
-          title: collection.name,
-          trailingText: collection.itemCount > 0
-              ? '${collection.itemCount}'
-              : null,
-          optionKey: Key('add-to-video-collection-option-${collection.id}'),
-          checkboxKey: Key('add-to-video-collection-checkbox-${collection.id}'),
-        );
-      },
+      child: AppPickerIosSection(
+        header: Text(
+          l10n.commonSelectedCount(_selectedIds.length),
+          key: const Key('add-to-video-collection-selected-count'),
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            tone: AppTextTone.muted,
+          ),
+        ),
+        children: [
+          _buildCreateRow(l10n, enabled: !isAnyUpdating),
+          for (final collection in visibleCollections)
+            AppPickerIosRow(
+              selected: _selectedIds.contains(collection.id),
+              showCheckmark: true,
+              enabled: !isAnyUpdating,
+              busy: _updatingIds.contains(collection.id),
+              busyKey: Key('add-to-video-collection-updating-${collection.id}'),
+              onTap: () => _toggle(collection),
+              title: collection.name,
+              trailingText: collection.itemCount > 0
+                  ? '${collection.itemCount}'
+                  : null,
+              optionKey: Key('add-to-video-collection-option-${collection.id}'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCreateRow(AppLocalizations l10n, {required bool enabled}) {
+    return AppPickerIosActionRow(
+      label: l10n.videoCreateCollectionAndAdd,
+      enabled: enabled,
+      onTap: _createAndAdd,
+      optionKey: const Key('add-to-video-collection-create-button'),
     );
   }
 

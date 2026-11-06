@@ -24,9 +24,10 @@ import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_filter_sections.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_list_search_field.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_sort_menu_button.dart';
@@ -169,13 +170,16 @@ class _DesktopActorsPageState extends ConsumerState<DesktopActorsPage> {
               onFilterChanged: _applyFilter,
               onResetFilters: _resetFilters,
               searchExpanded: _searchExpanded,
-              searchToggle: ActorListSearchToggle(
+              searchToggle: AppGlassIconButton(
                 key: const Key('actors-search-toggle'),
-                isActive: _searchExpanded || filter.query != null,
                 tooltip: _searchExpanded
                     ? AppLocalizations.of(context).actorSearchCollapseTooltip
                     : AppLocalizations.of(context).actorSearchTooltip,
-                onTap: _toggleSearch,
+                icon: Icons.search_rounded,
+                foregroundColor: _searchExpanded || filter.query != null
+                    ? Theme.of(context).colorScheme.primary
+                    : null,
+                onPressed: _toggleSearch,
               ),
               searchField: ActorListSearchField(
                 fieldKey: const Key('actors-search-field'),
@@ -290,62 +294,57 @@ class _ActorsHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AppListHeader(
-      filterButtonKey: const Key('actors-filter-trigger'),
-      filterLabel: filterState.triggerLabel(l10n),
-      filterPanelKey: const Key('actors-filter-panel'),
-      filterPanelExtraWidth: 260,
-      filterPanelBuilder: (_) => ActorFilterSectionGroup(
-        filterState: filterState,
-        onChanged: onFilterChanged,
-      ),
-      filterPanelFooter: AppFilterPanelFooter(
+    final totalLabel = l10n.actorListTotalCount(total);
+    if (searchExpanded) {
+      return AppGlassListHeader(
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            AppGlassHeaderText(
+              key: const Key('actors-page-total'),
+              label: totalLabel,
+            ),
+            SizedBox(width: context.appSpacing.md),
+            SizedBox(width: 360, child: searchField),
+          ],
+        ),
+        trailing: searchToggle,
+      );
+    }
+    return AppGlassListHeader(
+      leading: AppGlassFilterPopover(
+        panelKey: const Key('actors-filter-panel'),
+        scrollable: true,
         isDefault: !filterState.hasActiveFilters,
         onReset: onResetFilters,
+        triggerKey: const Key('actors-filter-trigger'),
+        label: filterState.triggerLabel(l10n),
+        info: <Widget>[
+          AppGlassHeaderText(
+            key: const Key('actors-page-total'),
+            label: totalLabel,
+          ),
+        ],
+        panelBuilder: (context) => ActorFilterSectionGroup(
+          filterState: filterState,
+          onChanged: onFilterChanged,
+        ),
+      ),
+      trailing: AppGlassHeaderGroup(
+        children: <Widget>[
+          ActorSortMenuButton(
+            triggerKey: const Key('actors-sort-trigger'),
+            panelKey: const Key('actors-sort-panel'),
+            filterState: filterState,
+            glassGrouped: true,
+            onChanged: onFilterChanged,
+          ),
+          searchToggle,
+        ],
       ),
       filterUpdate: filterUpdate,
       hasPreviousFilterItems: hasPreviousItems,
       onRetryFilter: onRetryFilter,
-      informationSlots: searchExpanded
-          ? const <Widget>[]
-          : <Widget>[
-              AppListHeaderInfo(
-                key: const Key('actors-page-total'),
-                label: l10n.actorListTotalCount(total),
-              ),
-            ],
-      actionSlots: searchExpanded
-          ? const <Widget>[]
-          : <Widget>[
-              ActorSortMenuButton(
-                triggerKey: const Key('actors-sort-trigger'),
-                panelKey: const Key('actors-sort-panel'),
-                filterState: filterState,
-                onChanged: onFilterChanged,
-              ),
-              searchToggle,
-            ],
-      center: searchExpanded
-          ? Row(
-              children: [
-                AppListHeaderInfo(
-                  key: const Key('actors-page-total'),
-                  label: l10n.actorListTotalCount(total),
-                ),
-                const Spacer(),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 360),
-                  child: Row(
-                    children: [
-                      Expanded(child: searchField),
-                      SizedBox(width: context.appSpacing.sm),
-                      searchToggle,
-                    ],
-                  ),
-                ),
-              ],
-            )
-          : null,
     );
   }
 }

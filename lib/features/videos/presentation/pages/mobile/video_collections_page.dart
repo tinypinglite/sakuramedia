@@ -13,11 +13,11 @@ import 'package:sakuramedia/features/videos/presentation/widgets/collections/cre
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
-import 'package:sakuramedia/widgets/base/forms/app_search_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_glass_search_field.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_wrap.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
@@ -73,47 +73,43 @@ class _MobileVideoCollectionsPageState
     });
 
     final spacing = context.appSpacing;
-    final colors = context.appColors;
     final async = ref.watch(videoCollectionsOverviewProvider);
     final l10n = AppLocalizations.of(context);
 
     return ColoredBox(
       key: const Key('mobile-video-collections-page'),
-      color: colors.surfaceCard,
+      color: Colors.transparent,
       child: Column(
         children: [
           Padding(
             padding: EdgeInsets.only(top: spacing.sm),
-            child: AppSearchField(
-              fieldKey: const Key('mobile-video-collections-search-field'),
-              controller: _searchController,
-              hintText: l10n.videoSearchCollections,
-              onChanged: (value) =>
-                  setState(() => _keyword = value.trim().toLowerCase()),
-              clearKey: const Key('mobile-video-collections-search-clear'),
+            child: Row(
+              children: [
+                Expanded(
+                  child: AppGlassSearchField(
+                    fieldKey: const Key(
+                      'mobile-video-collections-search-field',
+                    ),
+                    controller: _searchController,
+                    hintText: l10n.videoSearchCollections,
+                    onChanged: (value) =>
+                        setState(() => _keyword = value.trim().toLowerCase()),
+                    clearKey: const Key(
+                      'mobile-video-collections-search-clear',
+                    ),
+                  ),
+                ),
+                SizedBox(width: spacing.sm),
+                AppGlassIconButton(
+                  key: const Key('mobile-video-collections-create-button'),
+                  tooltip: l10n.videoNewCollection,
+                  icon: Icons.add_rounded,
+                  onPressed: _createCollection,
+                ),
+              ],
             ),
           ),
           Expanded(child: _buildBody(context, async)),
-          Container(
-            padding: EdgeInsets.all(spacing.md),
-            decoration: BoxDecoration(
-              color: colors.surfaceCard,
-              border: Border(top: BorderSide(color: colors.divider)),
-            ),
-            child: SafeArea(
-              top: false,
-              child: SizedBox(
-                width: double.infinity,
-                child: AppButton(
-                  key: const Key('mobile-video-collections-create-button'),
-                  label: l10n.videoNewCollection,
-                  variant: AppButtonVariant.primary,
-                  icon: const Icon(Icons.add_rounded),
-                  onPressed: _createCollection,
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -176,6 +172,7 @@ class _MobileVideoCollectionsPageState
                 itemBuilder: (context, collection, _) => CollectionCard.video(
                   key: Key('mobile-video-collection-card-${collection.id}'),
                   collection: collection,
+                  coverBackdrop: true,
                   onTap: () => MobileVideoCollectionDetailRouteData(
                     collectionId: collection.id,
                   ).push(context),

@@ -1,10 +1,9 @@
 import 'dart:async';
 
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
@@ -24,13 +23,16 @@ import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_chip.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_popover.dart';
 
 class MultiVersionMoviesSection extends HookConsumerWidget {
   const MultiVersionMoviesSection({
@@ -201,38 +203,55 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
         useListenable(includeVr);
         useListenable(includeFc2);
         useListenable(includeProcessed);
-        return Wrap(
-          spacing: spacing.sm,
-          runSpacing: spacing.sm,
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (final filter in [
-              (
-                label: l10n.mediaListVersionsIncludeVr,
-                state: includeVr,
-                key: 'vr',
+            Text(
+              l10n.mediaListVersionsFilterTitle,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                weight: AppTextWeight.medium,
+                tone: AppTextTone.secondary,
               ),
-              (
-                label: l10n.mediaListVersionsIncludeFc2,
-                state: includeFc2,
-                key: 'fc2',
-              ),
-              (
-                label: l10n.mediaListVersionsIncludeProcessed,
-                state: includeProcessed,
-                key: 'processed',
-              ),
-            ])
-              AppTextButton(
-                key: Key('$keyPrefix-versions-include-${filter.key}'),
-                label: filter.label,
-                size: AppTextButtonSize.xSmall,
-                isSelected: filter.state.value,
-                onPressed: () {
-                  exitSelection();
-                  filter.state.value = !filter.state.value;
-                  if (scrollController.hasClients) scrollController.jumpTo(0);
-                },
-              ),
+            ),
+            SizedBox(height: spacing.sm),
+            Wrap(
+              spacing: spacing.sm,
+              runSpacing: spacing.sm,
+              children: [
+                for (final filter in [
+                  (
+                    label: l10n.mediaListVersionsIncludeVr,
+                    state: includeVr,
+                    key: 'vr',
+                  ),
+                  (
+                    label: l10n.mediaListVersionsIncludeFc2,
+                    state: includeFc2,
+                    key: 'fc2',
+                  ),
+                  (
+                    label: l10n.mediaListVersionsIncludeProcessed,
+                    state: includeProcessed,
+                    key: 'processed',
+                  ),
+                ])
+                  AppFilterChip(
+                    key: Key('$keyPrefix-versions-include-${filter.key}'),
+                    label: filter.label,
+                    selected: filter.state.value,
+                    onPressed: () {
+                      exitSelection();
+                      filter.state.value = !filter.state.value;
+                      if (scrollController.hasClients) {
+                        scrollController.jumpTo(0);
+                      }
+                    },
+                  ),
+              ],
+            ),
           ],
         );
       },
@@ -243,7 +262,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
         useListenable(includeVr);
         useListenable(includeFc2);
         useListenable(includeProcessed);
-        return AppFilterPanelFooter(
+        return AppGlassFilterFooter(
           isDefault:
               !includeVr.value && !includeFc2.value && !includeProcessed.value,
           onReset: () {
@@ -296,70 +315,133 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
       );
     }
 
-    final content = AppFixedHeaderLayout(
-      header: selectionMode.value
-          ? AppSelectionHeaderToolbar(
-              countLabel: l10n.mediaListSelectedCopies(selected.length),
-              countKey: Key('$keyPrefix-versions-selected-count'),
-              selectAllLabel: l10n.mediaListClearSelection,
-              selectAllKey: Key('$keyPrefix-versions-clear-selection'),
-              onToggleAll: deleting.value || selected.isEmpty
-                  ? null
-                  : () => selectedIds.value = {},
-              actions: mobile ? [] : [deleteButton],
-              exitKey: Key('$keyPrefix-versions-exit-selection'),
-              onExit: deleting.value ? null : exitSelection,
-            )
-          : AppListHeader(
-              filterButtonKey: Key('$keyPrefix-versions-filter'),
-              filterLabel:
-                  !includeVr.value &&
-                      !includeFc2.value &&
-                      !includeProcessed.value
-                  ? l10n.mediaListFilterTooltip
-                  : [
-                      if (includeVr.value) 'VR',
-                      if (includeFc2.value) 'FC2',
-                      if (includeProcessed.value)
-                        l10n.mediaListVersionsIncludeProcessed,
-                    ].join(' / '),
-              filterPanelKey: Key('$keyPrefix-versions-filter-panel'),
-              filterPanelBuilder: mobile ? null : filterOptions,
-              filterPanelFooter: mobile ? null : filterFooter(),
-              onFilterTap: mobile
-                  ? () => showAppBottomDrawer(
-                      context: context,
-                      drawerKey: Key('$keyPrefix-versions-filter-drawer'),
-                      maxHeightFactor: 0.8,
-                      builder: (context) => AppMobileFilterDrawerScaffold(
-                        footer: filterFooter(),
-                        child: filterOptions(context),
-                      ),
-                    )
-                  : null,
-              informationSlots: [
-                AppListHeaderInfo(
-                  key: Key('$keyPrefix-versions-total'),
-                  label: l10n.mediaListTotalMovies(
-                    asyncState.value?.total ?? 0,
+    final filterLabel =
+        !includeVr.value && !includeFc2.value && !includeProcessed.value
+        ? l10n.mediaListFilterTooltip
+        : [
+            if (includeVr.value) 'VR',
+            if (includeFc2.value) 'FC2',
+            if (includeProcessed.value) l10n.mediaListVersionsIncludeProcessed,
+          ].join(' / ');
+    final totalLabel = l10n.mediaListTotalMovies(asyncState.value?.total ?? 0);
+
+    final selectionHeader = mobile
+        ? AppMobileSelectionHeader(
+            selectionLabel: l10n.mediaListSelectedCopies(selected.length),
+            countKey: Key('$keyPrefix-versions-selected-count'),
+            selectAllTooltip: l10n.mediaListClearSelection,
+            selectAllKey: Key('$keyPrefix-versions-clear-selection'),
+            onToggleAll: deleting.value || selected.isEmpty
+                ? null
+                : () => selectedIds.value = {},
+            exitKey: Key('$keyPrefix-versions-exit-selection'),
+            onExitSelection: deleting.value ? null : exitSelection,
+          )
+        : AppGlassSelectionHeader(
+            selectionLabel: l10n.mediaListSelectedCopies(selected.length),
+            countKey: Key('$keyPrefix-versions-selected-count'),
+            selectAllLabel: l10n.mediaListClearSelection,
+            selectAllKey: Key('$keyPrefix-versions-clear-selection'),
+            onToggleAll: deleting.value || selected.isEmpty
+                ? null
+                : () => selectedIds.value = {},
+            exitKey: Key('$keyPrefix-versions-exit-selection'),
+            onExitSelection: deleting.value ? null : exitSelection,
+            actions: <AppGlassSelectionAction>[
+              AppGlassSelectionAction(
+                key: Key('$keyPrefix-versions-batch-delete'),
+                label: l10n.mediaListBatchDeleteSelected,
+                icon: Icons.delete_outline_rounded,
+                foregroundColor: context.appTextPalette.error,
+                onTap: selected.isEmpty || deleting.value
+                    ? null
+                    : () => unawaited(deleteSelected()),
+              ),
+            ],
+          );
+
+    final filterHeader = mobile
+        ? AppMobileListHeader(
+            leading: AppMobileHeaderText(
+              key: Key('$keyPrefix-versions-total'),
+              countLabel: totalLabel,
+            ),
+            actions: <Widget>[
+              AppGlassFilterIconButton(
+                key: Key('$keyPrefix-versions-filter'),
+                summary: filterLabel,
+                isActive:
+                    includeVr.value ||
+                    includeFc2.value ||
+                    includeProcessed.value,
+                onPressed: () => showAppBottomDrawer(
+                  context: context,
+                  drawerKey: Key('$keyPrefix-versions-filter-drawer'),
+                  maxHeightFactor: 0.8,
+                  builder: (context) => AppMobileFilterDrawerScaffold(
+                    footer: filterFooter(),
+                    child: filterOptions(context),
                   ),
                 ),
+              ),
+              AppGlassIconButton(
+                key: Key('$keyPrefix-versions-select'),
+                tooltip: l10n.baseSelect,
+                icon: Icons.check_circle_outline,
+                onPressed: groups.isEmpty
+                    ? null
+                    : () => selectionMode.value = true,
+              ),
+              AppGlassIconButton(
+                key: Key('$keyPrefix-versions-refresh'),
+                tooltip: l10n.commonRefresh,
+                icon: Icons.refresh_rounded,
+                onPressed: asyncState.isLoading ? null : refresh,
+              ),
+            ],
+          )
+        : AppGlassListHeader(
+            leading: AppGlassFilterPopover(
+              panelKey: Key('$keyPrefix-versions-filter-panel'),
+              footerBuilder: (context, close) => filterFooter(),
+              triggerKey: Key('$keyPrefix-versions-filter'),
+              label: filterLabel,
+              tooltip: l10n.mediaListVersionsFilterTitle,
+              info: <Widget>[
+                AppGlassHeaderText(
+                  key: Key('$keyPrefix-versions-total'),
+                  label: totalLabel,
+                ),
               ],
-              actionSlots: [
-                AppSelectionEntryButton(
+              panelBuilder: filterOptions,
+            ),
+            trailing: AppGlassHeaderGroup(
+              children: <Widget>[
+                AppGlassHeaderButton(
                   key: Key('$keyPrefix-versions-select'),
-                  onPressed: groups.isEmpty
-                      ? null
+                  icon: Icons.check_circle_outline,
+                  label: l10n.baseSelect,
+                  enabled: groups.isNotEmpty,
+                  onTap: groups.isEmpty
+                      ? () {}
                       : () => selectionMode.value = true,
                 ),
-                AppIconButton(
+                AppGlassHeaderButton(
                   key: Key('$keyPrefix-versions-refresh'),
-                  tooltip: l10n.commonRefresh,
-                  icon: const Icon(Icons.refresh_rounded),
-                  onPressed: asyncState.isLoading ? null : refresh,
+                  icon: Icons.refresh_rounded,
+                  label: l10n.commonRefresh,
+                  enabled: !asyncState.isLoading,
+                  onTap: asyncState.isLoading
+                      ? () {}
+                      : () => unawaited(refresh()),
                 ),
               ],
             ),
+          );
+
+    final content = AppFixedHeaderLayout(
+      header: selectionMode.value ? selectionHeader : filterHeader,
+      headerBottomSpacing: context.appSpacing.lg,
       child: CustomScrollView(
         key: Key('$keyPrefix-versions-scroll'),
         controller: scrollController,

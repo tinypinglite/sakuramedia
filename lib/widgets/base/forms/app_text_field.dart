@@ -1,8 +1,16 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_chrome_settings.dart';
 
-class AppTextField extends StatelessWidget {
+/// 统一的液态玻璃文本输入基座。
+///
+/// 用 [FormField] 保留 Material 表单的校验和 autovalidate 语义，输入面本身
+/// 交给 `liquid_glass_widgets` 的 [GlassTextField] 绘制。label / helper / error
+/// 留在玻璃面外侧，避免错误和长说明把玻璃输入撑成内容卡片。
+class AppTextField extends StatefulWidget {
   const AppTextField({
     super.key,
     this.fieldKey,
@@ -26,7 +34,6 @@ class AppTextField extends StatelessWidget {
     this.autovalidateMode,
     this.maxLines = 1,
     this.minLines,
-    this.expands = false,
     this.isDense = true,
     this.contentPadding,
     this.fillColor,
@@ -57,147 +64,265 @@ class AppTextField extends StatelessWidget {
   final AutovalidateMode? autovalidateMode;
   final int? maxLines;
   final int? minLines;
-  final bool expands;
   final bool isDense;
 
   /// 覆盖默认内容内边距；用于塞进固定高度顶栏等紧凑场景。
   final EdgeInsetsGeometry? contentPadding;
 
-  /// 覆盖默认的填充色（默认 `context.appColors.surfaceMuted`）。
-  /// 用于把输入框放到比 `surfaceMuted` 更暗的面板上（如侧边栏）需要提升对比度的场景。
+  /// 覆盖玻璃 tint；高对比度/实色回退时作为输入面填充色。
   final Color? fillColor;
 
-  /// 覆盖默认圆角（`context.appRadius.smBorder`）；紧凑顶栏等场景可收紧到
-  /// 更方的 [AppRadius.xsBorder]。
+  /// 覆盖默认圆角；映射到液态玻璃形状。
   final BorderRadius? borderRadius;
 
   /// 覆盖默认正文样式（默认 `resolveAppTextStyle(context, size: AppTextSize.s14)`）。
   /// 用于 JSON / 代码等需要等宽字体的编辑区。
   final TextStyle? style;
 
-  /// 固定输入框填充面的高度；为空时沿用内容自适应高度。
+  /// 固定输入面的高度；为空时沿用多行内容自适应高度。
   final double? height;
+
+  @override
+  State<AppTextField> createState() => _AppTextFieldState();
+}
+
+class _AppTextFieldState extends State<AppTextField> {
+  final GlobalKey<FormFieldState<String>> _formFieldKey =
+      GlobalKey<FormFieldState<String>>();
+
+  late TextEditingController _effectiveController;
+  bool _ownsController = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _attachController();
+  }
+
+  @override
+  void didUpdateWidget(covariant AppTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller == widget.controller) {
+      return;
+    }
+    _detachController();
+    _attachController();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _syncFormValue();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _detachController();
+    super.dispose();
+  }
+
+  void _attachController() {
+    if (widget.controller == null) {
+      _effectiveController = TextEditingController();
+      _ownsController = true;
+    } else {
+      _effectiveController = widget.controller!;
+      _ownsController = false;
+    }
+    _effectiveController.addListener(_syncFormValue);
+  }
+
+  void _detachController() {
+    _effectiveController.removeListener(_syncFormValue);
+    if (_ownsController) {
+      _effectiveController.dispose();
+    }
+  }
+
+  void _syncFormValue() {
+    final field = _formFieldKey.currentState;
+    if (field == null || field.value == _effectiveController.text) {
+      return;
+    }
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _syncFormValue();
+        }
+      });
+      return;
+    }
+    field.didChange(_effectiveController.text);
+  }
 
   @override
   Widget build(BuildContext context) {
     final formTokens = context.appFormTokens;
+    final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
+    final reduceMotion =
+        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    final inheritedFontFamily = resolveAppFontFamily(context);
+    final resolvedRadius =
+        (widget.borderRadius ?? context.appRadius.smBorder).topLeft.x;
+    final textStyle =
+        (widget.style ??
+                resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s14,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.primary,
+                ))
+            .copyWith(
+              fontFamily: widget.style?.fontFamily ?? inheritedFontFamily,
+            );
+    final placeholderStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s14,
+      weight: AppTextWeight.regular,
+      tone: AppTextTone.muted,
+    ).copyWith(fontFamily: inheritedFontFamily);
+    final baseSettings = highContrast ? null : appGlassHeaderSettings(context);
+    final glassSettings = baseSettings == null
+        ? null
+        : widget.fillColor == null
+        ? baseSettings
+        : baseSettings.copyWith(glassColor: widget.fillColor!);
+    final padding =
+        widget.contentPadding ??
+        EdgeInsets.symmetric(
+          horizontal: formTokens.fieldHorizontalPadding,
+          vertical:
+              formTokens.fieldVerticalPadding +
+              (widget.isDense ? 0 : context.appSpacing.xs),
+        );
+    final maxLines = widget.obscureText ? 1 : (widget.maxLines ?? 1);
+    final minLines = widget.obscureText ? null : widget.minLines;
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (label != null && label!.isNotEmpty) ...[
-          Text(
-            label!,
-            softWrap: true,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              tone: AppTextTone.secondary,
-            ),
-          ),
-          SizedBox(height: formTokens.labelGap),
-        ],
-        TextFormField(
-          key: fieldKey,
-          controller: controller,
-          focusNode: focusNode,
-          obscureText: obscureText,
-          enabled: enabled,
-          validator: validator,
-          keyboardType: keyboardType,
-          inputFormatters: inputFormatters,
-          onTapOutside: onTapOutside,
-          textInputAction: textInputAction,
-          onFieldSubmitted: onFieldSubmitted,
-          onChanged: onChanged,
-          autovalidateMode: autovalidateMode,
-          maxLines: expands ? null : (obscureText ? 1 : maxLines),
-          minLines: expands ? null : (obscureText ? 1 : minLines),
-          expands: expands,
-          textAlignVertical: height == null ? null : TextAlignVertical.center,
-          style: style ?? resolveAppTextStyle(context, size: AppTextSize.s14),
-          decoration: _buildDecoration(context),
-        ),
-      ],
-    );
-  }
-
-  InputDecoration _buildDecoration(BuildContext context) {
-    final theme = Theme.of(context);
-    final formTokens = context.appFormTokens;
-    final colors = context.appColors;
-
-    OutlineInputBorder border(Color color) => OutlineInputBorder(
-      borderRadius: borderRadius ?? context.appRadius.smBorder,
-      borderSide: BorderSide(color: color),
-    );
-
-    return InputDecoration(
-      hintText: hintText,
-      helperText: helperText,
-      // 后端下发的说明/校验文案可能很长：不设置时 Flutter 只显示单行省略。
-      // 给足行数让它换行显示全（实际只占文本真实高度），桌面/移动共用。
-      helperMaxLines: 10,
-      errorMaxLines: 10,
-      hintStyle: resolveAppTextStyle(
-        context,
-        size: AppTextSize.s14,
-        tone: AppTextTone.muted,
-      ),
-      helperStyle: resolveAppTextStyle(
-        context,
-        size: AppTextSize.s12,
-        tone: AppTextTone.muted,
-      ),
-      errorStyle: resolveAppTextStyle(
-        context,
-        size: AppTextSize.s12,
-        tone: AppTextTone.error,
-      ),
-      constraints: height == null
-          ? null
-          : BoxConstraints.tightFor(height: height),
-      isDense: isDense,
-      filled: true,
-      fillColor: fillColor ?? colors.surfaceMuted,
-      contentPadding:
-          contentPadding ??
-          EdgeInsets.symmetric(
-            horizontal: formTokens.fieldHorizontalPadding,
-            vertical: formTokens.fieldVerticalPadding,
-          ),
-      prefixIcon: prefix == null
-          ? null
-          : Padding(
-              padding: EdgeInsets.only(
-                left: context.appSpacing.md,
-                right: context.appSpacing.sm,
+    return FormField<String>(
+      key: _formFieldKey,
+      initialValue: _effectiveController.text,
+      enabled: widget.enabled,
+      validator: widget.validator,
+      autovalidateMode: widget.autovalidateMode ?? AutovalidateMode.disabled,
+      builder: (field) {
+        Widget glassField = GlassTextField(
+          key: widget.fieldKey,
+          controller: _effectiveController,
+          focusNode: widget.focusNode,
+          placeholder: widget.hintText,
+          prefixIcon: widget.prefix,
+          suffixIcon: widget.suffix,
+          obscureText: widget.obscureText,
+          keyboardType: widget.keyboardType,
+          textInputAction: widget.textInputAction,
+          maxLines: maxLines,
+          minLines: minLines,
+          enabled: true,
+          readOnly: !widget.enabled,
+          inputFormatters: widget.inputFormatters,
+          onChanged: (value) {
+            field.didChange(value);
+            widget.onChanged?.call(value);
+          },
+          onSubmitted: widget.onFieldSubmitted,
+          onTapOutside: widget.onTapOutside,
+          textStyle: textStyle,
+          placeholderStyle: placeholderStyle,
+          padding: padding,
+          iconSpacing: widget.tightSuffix
+              ? context.appSpacing.xs
+              : context.appSpacing.sm,
+          height: widget.height,
+          shape: LiquidRoundedSuperellipse(borderRadius: resolvedRadius),
+          settings: glassSettings,
+          useOwnLayer: !highContrast,
+          quality: highContrast ? null : GlassQuality.premium,
+          surfaceStyle: highContrast
+              ? GlassSurfaceStyle.solid
+              : GlassSurfaceStyle.glass,
+          color: highContrast
+              ? (widget.fillColor ?? context.appColors.surfaceMuted)
+              : null,
+          interactionBehavior: highContrast || reduceMotion || !widget.enabled
+              ? GlassInteractionBehavior.none
+              : GlassInteractionBehavior.glowOnly,
+        );
+        if (!widget.enabled) {
+          glassField = Semantics(
+            container: true,
+            textField: true,
+            enabled: false,
+            readOnly: true,
+            label: widget.label ?? widget.hintText,
+            value: _effectiveController.text,
+            child: ExcludeSemantics(
+              child: ExcludeFocus(
+                child: IgnorePointer(
+                  child: Opacity(opacity: 0.55, child: glassField),
+                ),
               ),
-              child: height == null
-                  ? prefix
-                  : SizedBox(
-                      height: height,
-                      child: Align(
-                        alignment: Alignment.center,
-                        widthFactor: 1,
-                        child: prefix,
-                      ),
-                    ),
             ),
-      prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
-      suffixIcon: suffix,
-      // 默认沿用 Flutter 的 48×48 min（保证 AppIconButton 等 icon 型 suffix 的触控热区）；
-      // 只有 tightSuffix=true 的文本型 suffix（例如单位「MB」「分钟」）才收紧到 0×0，让文本贴边。
-      suffixIconConstraints: suffix != null && tightSuffix
-          ? const BoxConstraints(minWidth: 0, minHeight: 0)
-          : null,
-      border: border(colors.borderSubtle),
-      enabledBorder: border(colors.borderSubtle),
-      focusedBorder: border(colors.borderSubtle),
-      errorBorder: border(theme.colorScheme.error),
-      focusedErrorBorder: border(theme.colorScheme.error),
-      disabledBorder: border(colors.borderSubtle),
+          );
+        }
+        if (highContrast) {
+          glassField = DecoratedBox(
+            position: DecorationPosition.foreground,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(resolvedRadius),
+              border: Border.all(color: Theme.of(context).colorScheme.outline),
+            ),
+            child: glassField,
+          );
+        }
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.label != null && widget.label!.isNotEmpty) ...[
+              Text(
+                widget.label!,
+                softWrap: true,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  tone: AppTextTone.secondary,
+                ),
+              ),
+              SizedBox(height: formTokens.labelGap),
+            ],
+            glassField,
+            if (field.hasError) ...[
+              SizedBox(height: context.appSpacing.xs),
+              Semantics(
+                liveRegion: true,
+                child: Text(
+                  field.errorText!,
+                  softWrap: true,
+                  maxLines: 10,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    tone: AppTextTone.error,
+                  ),
+                ),
+              ),
+            ] else if (widget.helperText != null &&
+                widget.helperText!.isNotEmpty) ...[
+              SizedBox(height: context.appSpacing.xs),
+              Text(
+                widget.helperText!,
+                softWrap: true,
+                maxLines: 10,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  tone: AppTextTone.muted,
+                ),
+              ),
+            ],
+          ],
+        );
+      },
     );
   }
 }

@@ -41,13 +41,17 @@ void main() {
 
     expect(state.sortField, VideoSortField.title);
     expect(state.sortDirection, SortDirection.desc);
-    expect(find.byKey(const Key('videos-sort-popover')), findsOne);
+    expect(find.byKey(const Key('videos-sort-popover')), findsNothing);
 
+    await tester.tap(find.byKey(const Key('videos-sort-trigger')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('videos-sort-popover')), findsOne);
     await tester.tap(_popoverText('videos-sort-popover', '升序'));
     await tester.pumpAndSettle();
 
     expect(state.sortField, VideoSortField.title);
     expect(state.sortDirection, SortDirection.asc);
+    expect(find.byKey(const Key('videos-sort-popover')), findsNothing);
   });
 
   testWidgets('选择入口只在可进入多选时显示', (tester) async {

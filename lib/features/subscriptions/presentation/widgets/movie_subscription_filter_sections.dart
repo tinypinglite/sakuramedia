@@ -8,8 +8,8 @@ import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
 /// 订阅管理列表的筛选面板内容：搜索。
 ///
-/// 桌面 `AppListHeader` 的就地浮层与移动底部抽屉共用同一份，避免双份维护。
-/// 底栏 / 重置按钮由调用方附加（`AppFilterPanelFooter`）。
+/// 桌面玻璃筛选浮层与移动底部抽屉共用同一份，避免双份维护。
+/// 底栏 / 重置按钮由调用方附加（`AppGlassFilterFooter`）。
 ///
 /// 状态分段签**不在**这里——它是页面的一级维度、自带计数，收进筛选面板等于把最
 /// 重要的入口藏起来。排序也不在这里，见 `MovieSubscriptionSortMenuButton`。

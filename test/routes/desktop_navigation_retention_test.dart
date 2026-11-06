@@ -96,6 +96,10 @@ void main() {
       router.push('/desktop/library/movies/ABC-000');
       await tester.pumpAndSettle();
       router.pop();
+      await tester.pump();
+      // 侧栏选中态动画结束后，原实现仍会继续播 180ms 的壳层边距过渡。
+      await tester.pump(const Duration(milliseconds: 130));
+      expect(tester.hasRunningAnimations, isFalse);
       await tester.pumpAndSettle();
       expect(tester.state<ScrollableState>(scrollable), same(original));
       expect(original.position.pixels, offset);

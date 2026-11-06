@@ -61,7 +61,7 @@ class OverviewSurface extends StatelessWidget {
     final spacing = context.appSpacing;
     final radius = context.appRadius.lgBorder;
     final glowSize = spacing.xxxl * 9;
-    final dark = Theme.of(context).brightness == Brightness.dark;
+    final highlight = context.appColors.overviewSurfaceHighlight;
 
     return Container(
       width: double.infinity,
@@ -117,8 +117,8 @@ class OverviewSurface extends StatelessWidget {
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                         colors: <Color>[
-                          Colors.white.withValues(alpha: dark ? 0.035 : 0.22),
-                          Colors.white.withValues(alpha: 0),
+                          highlight,
+                          highlight.withValues(alpha: 0),
                         ],
                       ),
                     ),

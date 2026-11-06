@@ -13,6 +13,8 @@ class MovieSubscriptionSortMenuButton extends StatelessWidget {
     required this.filterState,
     required this.onChanged,
     this.useDrawer = false,
+    this.glassGrouped = false,
+    this.iconOnly = false,
     this.keyPrefix = 'movie-subscriptions',
     this.triggerKey,
     this.panelKey,
@@ -22,6 +24,8 @@ class MovieSubscriptionSortMenuButton extends StatelessWidget {
   final MovieSubscriptionFilterState filterState;
   final ValueChanged<MovieSubscriptionFilterState> onChanged;
   final bool useDrawer;
+  final bool glassGrouped;
+  final bool iconOnly;
   final String keyPrefix;
   final Key? triggerKey;
   final Key? panelKey;
@@ -39,6 +43,8 @@ class MovieSubscriptionSortMenuButton extends StatelessWidget {
           onChanged(filterState.withSortDirection(value)),
       directionVisibleWhen: (field) => field?.supportsDirection ?? false,
       useDrawer: useDrawer,
+      glassGrouped: glassGrouped,
+      iconOnly: iconOnly,
       triggerKey: triggerKey,
       panelKey: panelKey,
       drawerKey: drawerKey,

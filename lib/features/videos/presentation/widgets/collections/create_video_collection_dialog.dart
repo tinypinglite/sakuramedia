@@ -9,6 +9,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
@@ -24,7 +25,7 @@ Future<VideoCollectionDto?> showVideoCollectionDialog(
 }) {
   switch (presentation) {
     case VideoCollectionEditPresentation.dialog:
-      return showDialog<VideoCollectionDto>(
+      return showAppDialog<VideoCollectionDto>(
         context: context,
         builder: (dialogContext) =>
             CreateVideoCollectionDialog(existing: existing),

@@ -19,6 +19,15 @@ import '../../../support/logged_in_session_store.dart';
 import '../../../support/test_api_bundle.dart';
 import '../support/plugin_test_data.dart';
 
+String fieldText(WidgetTester tester, Finder field) {
+  return tester
+      .widget<EditableText>(
+        find.descendant(of: field, matching: find.byType(EditableText)),
+      )
+      .controller
+      .text;
+}
+
 Map<String, dynamic> actorSchema() =>
     jsonDecode(
           File(
@@ -216,7 +225,7 @@ void main() {
         await tester.tap(find.text('slow').last);
         await tester.pumpAndSettle();
         final tags = find.byKey(const Key('plugin-setting-nested.tags'));
-        expect(tester.widget<TextFormField>(tags).controller!.text, 'AA\nBB');
+        expect(fieldText(tester, tags), 'AA\nBB');
         await tester.ensureVisible(tags);
         await tester.enterText(tags, 'CC\nDD');
         final timeout = find.byKey(const Key('plugin-setting-nested.timeout'));
@@ -286,10 +295,7 @@ void main() {
         settings: {'api_key': 'sk-existing'},
       );
       final password = find.byKey(const Key('plugin-setting-api_key'));
-      expect(
-        tester.widget<TextFormField>(password).controller!.text,
-        'sk-existing',
-      );
+      expect(fieldText(tester, password), 'sk-existing');
       bundle.adapter.enqueueJson(
         method: 'PUT',
         path: '/system/plugins/demo_plugin/settings',
@@ -375,14 +381,9 @@ void main() {
         settings: {'retry_days': 5},
       );
       final retry = find.byKey(const Key('plugin-setting-retry_days'));
-      expect(tester.widget<TextFormField>(retry).controller!.text, '5');
+      expect(fieldText(tester, retry), '5');
       expect(
-        tester
-            .widget<TextFormField>(
-              find.byKey(const Key('plugin-setting-max_attempts')),
-            )
-            .controller!
-            .text,
+        fieldText(tester, find.byKey(const Key('plugin-setting-max_attempts'))),
         '3',
       );
       await tester.enterText(retry, '7');

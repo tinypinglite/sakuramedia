@@ -17,7 +17,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_sort_menu_button.dart';
 
 /// 移动端标签页：标签浏览态 + 所选标签下的影片列表。
@@ -117,6 +117,7 @@ class _MobileTagsPageState extends ConsumerState<MobileTagsPage> {
       onMovieTap: (context, movieNumber) =>
           MobileMovieDetailRouteData(movieNumber: movieNumber).push(context),
       headerBuilder: _buildMobileHeader,
+      usePinnedMobileHeader: true,
       useMobileSelectionLayout: true,
       bodyBuilder: (context, scrollController, sliver, onRefresh) =>
           AppAdaptiveRefreshScrollView(
@@ -136,24 +137,26 @@ class _MobileTagsPageState extends ConsumerState<MobileTagsPage> {
     MovieSummaryListHeaderArgs args,
   ) {
     final l10n = AppLocalizations.of(context);
-    return AppListHeader(
-      filterButtonKey: const Key('mobile-tags-filter-button'),
-      filterTooltip: l10n.tagFilterTooltip,
-      filterLabel: args.filterState.triggerLabel(l10n),
-      onFilterTap: () => _openFilterDrawer(context, args),
-      informationSlots: [
-        AppListHeaderInfo(
-          key: const Key('mobile-tags-page-total'),
-          label: l10n.tagMovieCountLabel(args.total),
+    final filterLabel = args.filterState.triggerLabel(l10n);
+    return AppMobileListHeader(
+      leading: AppMobileHeaderText(
+        key: const Key('mobile-tags-page-total'),
+        countLabel: l10n.tagMovieCountLabel(args.total),
+      ),
+      actions: <Widget>[
+        AppGlassFilterIconButton(
+          key: const Key('mobile-tags-filter-button'),
+          summary: filterLabel,
+          isActive: args.filterState.hasActiveFilters,
+          onPressed: () => _openFilterDrawer(context, args),
         ),
-      ],
-      actionSlots: [
         MovieSortMenuButton(
           triggerKey: const Key('mobile-tags-sort-trigger'),
           drawerKey: const Key('mobile-tags-sort-drawer'),
           filterState: args.filterState,
           onChanged: args.onApply,
           useDrawer: true,
+          iconOnly: true,
         ),
       ],
     );

@@ -7,6 +7,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
@@ -21,7 +22,7 @@ Future<PlaylistDto?> showCreatePlaylistDialog(
 }) {
   switch (presentation) {
     case CreatePlaylistDialogPresentation.dialog:
-      return showDialog<PlaylistDto>(
+      return showAppDialog<PlaylistDto>(
         context: context,
         builder: (dialogContext) => const CreatePlaylistDialog(
           presentation: CreatePlaylistDialogPresentation.dialog,
@@ -31,7 +32,7 @@ Future<PlaylistDto?> showCreatePlaylistDialog(
       return showAppBottomDrawer<PlaylistDto>(
         context: context,
         drawerKey: const Key('create-playlist-bottom-sheet'),
-        heightFactor: 0.7,
+        maxHeightFactor: 0.7,
         builder: (sheetContext) => const CreatePlaylistDialog(
           presentation: CreatePlaylistDialogPresentation.bottomDrawer,
         ),

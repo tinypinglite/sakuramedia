@@ -416,7 +416,6 @@ class _ActiveRunsSection extends StatelessWidget {
                     child: ActivityTaskRunCard(
                       taskRun: runs[index],
                       highlighted: highlightedId == runs[index].id,
-                      backgroundColor: Colors.transparent,
                     ),
                   ),
                   if (index != runs.length - 1) SizedBox(height: spacing.md),

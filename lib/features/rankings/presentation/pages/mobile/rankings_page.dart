@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/app/page_cache_keys.dart';
 import 'package:sakuramedia/app/providers/riverpod_page_cache_provider.dart';
@@ -14,6 +13,7 @@ import 'package:sakuramedia/features/rankings/presentation/providers/ranking_sum
 import 'package:sakuramedia/features/rankings/presentation/rankings_placeholders.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_scope.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_state.dart';
+import 'package:sakuramedia/features/shared/data/movie_interaction_filter.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/stable_set_selection.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
@@ -27,9 +27,10 @@ import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
 import 'package:sakuramedia/widgets/domain/rankings/ranking_sort_menu_button.dart';
 import 'package:sakuramedia/features/rankings/presentation/widgets/ranked_movie_summary_grid.dart';
@@ -50,6 +51,7 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
 
   late final RiverpodPageHandle _pageCacheHandle;
   late final ScrollController _scrollController;
+  final _listHeaderKey = GlobalKey();
 
   MovieCardHoverFeatureActions get _hoverFeatureActions =>
       movieCardHoverFeatureActions(context);
@@ -137,50 +139,31 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
         ),
       ),
     );
-    return ColoredBox(
-      color: context.appColors.surfaceCard,
-      child: Column(
-        children: [
-          Expanded(
-            child: AppFixedHeaderLayout(
-              header: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  if (selectionMode)
-                    buildMobileBatchSelectionHeader()
-                  else
-                    _buildHeader(context, paged, filters, syncedAt),
-                  SizedBox(height: context.appSpacing.md),
-                  if (filters.errorMessage != null &&
-                      paged.filterUpdate.isIdle) ...[
-                    AppInlineErrorBanner(
-                      message: filters.errorMessage!,
-                      onRetry: () => ref
-                          .read(rankingSummaryProvider(_scope).notifier)
-                          .reloadFiltersAndData(),
-                    ),
-                    SizedBox(height: context.appSpacing.md),
-                  ],
-                ],
-              ),
-              child: AppFilterResultLoadingOverlay(
-                surfaceColor: context.appColors.surfaceCard,
-                isLoading: paged.filterUpdate.isLoading,
-                hasPreviousItems: paged.items.isNotEmpty,
-                child: _buildScrollView(
-                  context,
-                  paged,
-                  filters,
-                  initialErrorMessage,
-                  subscriptionUpdating,
-                ),
-              ),
+    final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
+    return Column(
+      children: [
+        Expanded(
+          child: AppFilterResultLoadingOverlay(
+            surfaceColor: highContrast
+                ? context.appColors.surfacePage
+                : context.appColors.surfaceCard.withValues(alpha: 0.9),
+            protectedHeaderKey: _listHeaderKey,
+            scrollController: _scrollController,
+            isLoading: paged.filterUpdate.isLoading,
+            hasPreviousItems: paged.items.isNotEmpty,
+            child: _buildScrollView(
+              context,
+              paged,
+              filters,
+              syncedAt,
+              initialErrorMessage,
+              subscriptionUpdating,
             ),
           ),
-          // 多选态的批量动作贴底常驻，与影片列表 / PornBox 一致。
-          if (selectionMode) buildMobileBatchSelectionBottomBar(),
-        ],
-      ),
+        ),
+        // 多选态的批量动作贴底常驻，与影片列表 / PornBox 一致。
+        if (selectionMode) buildMobileBatchSelectionBottomBar(),
+      ],
     );
   }
 
@@ -188,6 +171,7 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
     BuildContext context,
     PagedViewSnapshot<RankedMovieListItemDto> paged,
     RankingFilterState filters,
+    DateTime? syncedAt,
     String? initialErrorMessage,
     StableSetSelection<String> subscriptionUpdating,
   ) {
@@ -209,9 +193,34 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
         controller: _scrollController,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: <Widget>[
-          SliverMainAxisGroup(
+          AppPinnedSliverSection(
             key: const Key('mobile-rankings-page'),
-            slivers: [
+            headerKey: _listHeaderKey,
+            before: <Widget>[
+              SliverToBoxAdapter(
+                child: AppMobilePageTitle(
+                  key: const Key('mobile-rankings-large-title'),
+                  title: AppLocalizations.of(context).routeRankingsBoardTitle,
+                ),
+              ),
+            ],
+            header: selectionMode
+                ? buildMobileBatchSelectionHeader()
+                : _buildHeader(context, paged, filters, syncedAt),
+            headerBottomSpacing: context.appSpacing.md,
+            after: <Widget>[
+              if (filters.errorMessage != null && paged.filterUpdate.isIdle)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: context.appSpacing.md),
+                    child: AppInlineErrorBanner(
+                      message: filters.errorMessage!,
+                      onRetry: () => ref
+                          .read(rankingSummaryProvider(_scope).notifier)
+                          .reloadFiltersAndData(),
+                    ),
+                  ),
+                ),
               if (hasNoSources &&
                   !(paged.filterUpdate.hasFailed && paged.items.isEmpty))
                 SliverToBoxAdapter(
@@ -304,39 +313,37 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
       withPrefix: false,
     );
 
-    return AppListHeader(
-      filterButtonKey: const Key('mobile-rankings-filter-button'),
-      filterTooltip: l10n.sharedFilter,
-      filterIcon: Icons.leaderboard_outlined,
-      filterLabel: boardLabel,
-      filterEnabled: filters.sources.isNotEmpty,
-      filterUpdate: paged.filterUpdate,
-      hasPreviousFilterItems: paged.items.isNotEmpty,
-      onRetryFilter: () => unawaited(
-        ref.read(rankingSummaryProvider(_scope).notifier).retryFilter(),
+    final filterActive =
+        filters.selectedSource != null ||
+        filters.selectedBoard != null ||
+        filters.selectedPeriod != null ||
+        filters.interaction != MovieInteractionFilter.initial;
+    return AppMobileListHeader(
+      leading: AppMobileHeaderText(
+        key: const Key('mobile-rankings-page-total'),
+        title: l10n.rankingListMoviesTitle,
+        countLabel: l10n.sharedMovieCount(paged.total),
+        secondaryLabel: syncedAtLabel,
+        secondaryKey: const Key('mobile-rankings-synced-at'),
       ),
-      onFilterTap: () => _openFilterDrawer(initialAnchor: null),
-      informationSlots: [
-        AppListHeaderInfo(
-          key: const Key('mobile-rankings-page-total'),
-          label: l10n.sharedMovieCount(paged.total),
+      actions: <Widget>[
+        AppGlassFilterIconButton(
+          key: const Key('mobile-rankings-filter-button'),
+          summary: boardLabel,
+          isActive: filterActive,
+          onPressed: filters.sources.isEmpty
+              ? null
+              : () => _openFilterDrawer(initialAnchor: null),
         ),
-        if (syncedAtLabel != null)
-          AppListHeaderInfo(
-            key: const Key('mobile-rankings-synced-at'),
-            label: syncedAtLabel,
-            icon: Icons.schedule_rounded,
-          ),
-      ],
-      actionSlots: [
         RankingSortMenuButton(
           triggerKey: const Key('mobile-rankings-sort-trigger'),
           drawerKey: const Key('mobile-rankings-sort-drawer'),
           keyPrefix: 'mobile-rankings',
           filterState: filters,
           useDrawer: true,
+          iconOnly: true,
           onSortChanged: (field, direction) {
-            _scrollToTop();
+            _scrollToHeader();
             unawaited(
               ref
                   .read(rankingSummaryProvider(_scope).notifier)
@@ -345,6 +352,11 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
           },
         ),
       ],
+      filterUpdate: paged.filterUpdate,
+      hasPreviousFilterItems: paged.items.isNotEmpty,
+      onRetryFilter: () => unawaited(
+        ref.read(rankingSummaryProvider(_scope).notifier).retryFilter(),
+      ),
     );
   }
 
@@ -353,13 +365,11 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
       context,
       scope: _scope,
       initialAnchor: initialAnchor,
-      onFilterChanged: _scrollToTop,
+      onFilterChanged: _scrollToHeader,
     );
   }
 
-  void _scrollToTop() {
-    if (_scrollController.hasClients) {
-      _scrollController.jumpTo(0);
-    }
+  void _scrollToHeader() {
+    AppPinnedListHeader.scrollToStart(_listHeaderKey, _scrollController);
   }
 }

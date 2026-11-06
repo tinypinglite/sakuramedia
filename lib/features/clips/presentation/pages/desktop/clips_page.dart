@@ -29,18 +29,19 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
+import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_popover.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_actions_panel.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_grid_card.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
@@ -148,27 +149,34 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
               child: CustomScrollView(
                 controller: _scrollController,
                 slivers: <Widget>[
-                  SliverToBoxAdapter(
-                    child: _buildCollectionsSection(context, collectionsAsync),
-                  ),
-                  AppPinnedListHeader(
-                    key: _listHeaderKey,
-                    color: Colors.transparent,
-                    child: _buildClipsHeader(context, clips),
-                  ),
-                  _buildClipsSliver(context, clipsView),
-                  // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
-                  // 隐藏时保留 lg 底部边距（原语义）。
-                  PagedLoadMoreFooterSliver(
-                    hiddenSpacing: PagedFooterSpacing.lg,
-                    watchFooter: (ref) => ref.watch(
-                      clipsOverviewProvider.select(
-                        (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
+                  AppPinnedSliverSection(
+                    headerKey: _listHeaderKey,
+                    before: <Widget>[
+                      SliverToBoxAdapter(
+                        child: _buildCollectionsSection(
+                          context,
+                          collectionsAsync,
+                        ),
                       ),
-                    ),
-                    onLoadMore: (ref) => unawaited(
-                      ref.read(clipsOverviewProvider.notifier).loadMore(),
-                    ),
+                    ],
+                    header: _buildClipsHeader(context, clips),
+                    headerBottomSpacing: context.appSpacing.lg,
+                    after: <Widget>[
+                      _buildClipsSliver(context, clipsView),
+                      // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
+                      // 隐藏时保留 lg 底部边距（原语义）。
+                      PagedLoadMoreFooterSliver(
+                        hiddenSpacing: PagedFooterSpacing.lg,
+                        watchFooter: (ref) => ref.watch(
+                          clipsOverviewProvider.select(
+                            (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
+                          ),
+                        ),
+                        onLoadMore: (ref) => unawaited(
+                          ref.read(clipsOverviewProvider.notifier).loadMore(),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -291,6 +299,7 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
       clipsOverviewProvider.select(
         (asyncState) => (
           sort: asyncState.value?.filter.sort ?? ClipsFilter.defaultSort,
+          total: asyncState.value?.paged.total ?? 0,
           filterUpdate:
               asyncState.value?.paged.filterUpdate ??
               const FilterUpdateState.idle(),
@@ -305,54 +314,69 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
         if (selectionMode)
           _buildSelectionHeader(context, clips)
         else
-          AppListHeader(
+          AppGlassListHeader(
+            leading: AppGlassPopover(
+              panelKey: const Key('clips-sort-panel'),
+              triggerBuilder: (context, toggle) => AppGlassHeaderGroup(
+                children: <Widget>[
+                  AppGlassHeaderButton(
+                    key: const Key('clips-sort-trigger'),
+                    icon: Icons.swap_vert_rounded,
+                    label: _clipSortLabel(l10n, currentSort),
+                    trailingIcon: Icons.expand_more_rounded,
+                    tooltip: l10n.baseSortTooltip,
+                    onTap: toggle,
+                  ),
+                  AppGlassHeaderText(
+                    key: const Key('clips-page-total'),
+                    label: l10n.clipListTotalCount(headerView.total),
+                  ),
+                ],
+              ),
+              contentBuilder: (context, close) =>
+                  AppFilterChoiceSection<String>(
+                    title: l10n.baseSortTitle,
+                    controlKey: const Key('clips-sort-order'),
+                    items: <AppSegmentedItem<String>>[
+                      AppSegmentedItem(
+                        value: ClipsFilter.defaultSort,
+                        label: l10n.clipSortLatest,
+                      ),
+                      AppSegmentedItem(
+                        value: 'created_at:asc',
+                        label: l10n.clipSortEarliest,
+                      ),
+                    ],
+                    selected: currentSort,
+                    onChanged: _applySort,
+                  ),
+            ),
+            trailing: hasClips
+                ? AppGlassHeaderGroup(
+                    children: <Widget>[
+                      AppGlassHeaderButton(
+                        key: const Key('clips-enter-selection-button'),
+                        icon: Icons.check_circle_outline,
+                        label: l10n.baseSelect,
+                        onTap: enterSelection,
+                      ),
+                    ],
+                  )
+                : null,
             filterUpdate: headerView.filterUpdate,
             hasPreviousFilterItems: hasClips,
             onRetryFilter: () => unawaited(
               ref.read(clipsOverviewProvider.notifier).retryFilter(),
             ),
-            actionSlots: [
-              _buildSortAction(
-                context,
-                actionKey: const Key('clips-sort-latest'),
-                label: l10n.clipSortLatest,
-                sort: 'created_at:desc',
-                currentSort: currentSort,
-              ),
-              _buildSortAction(
-                context,
-                actionKey: const Key('clips-sort-earliest'),
-                label: l10n.clipSortEarliest,
-                sort: 'created_at:asc',
-                currentSort: currentSort,
-              ),
-              if (hasClips)
-                AppSelectionEntryButton(
-                  key: const Key('clips-enter-selection-button'),
-                  onPressed: enterSelection,
-                ),
-            ],
           ),
       ],
     );
   }
 
-  Widget _buildSortAction(
-    BuildContext context, {
-    required Key actionKey,
-    required String label,
-    required String sort,
-    required String currentSort,
-  }) {
-    return AppTextButton(
-      key: actionKey,
-      label: label,
-      size: AppTextButtonSize.xSmall,
-      isSelected: currentSort == sort,
-      selectedStyle: AppTextButtonSelectedStyle.plain,
-      onPressed: () => _applySort(sort),
-    );
-  }
+  String _clipSortLabel(AppLocalizations l10n, String sort) =>
+      sort == ClipsFilter.defaultSort
+      ? l10n.clipSortLatest
+      : l10n.clipSortEarliest;
 
   void _applySort(String sort) {
     final current = ref.read(clipsOverviewProvider).value?.filter.sort;
@@ -364,7 +388,7 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
   }
 
   /// 选择模式下的批量操作栏：已选数 / 全选 / 加入合集 / 删除 / 取消。
-  /// 原地替换常规操作行（[AppSelectionHeaderToolbar] 与 [AppListHeader] 等高）。
+  /// 原地替换常规操作行（[AppGlassSelectionHeader] 与 [AppGlassListHeader] 等高）。
   Widget _buildSelectionHeader(BuildContext context, List<MediaClipDto> clips) {
     final l10n = AppLocalizations.of(context);
     final clipIds = clips.map((c) => c.clipId);
@@ -374,29 +398,28 @@ class _DesktopClipsPageState extends ConsumerState<DesktopClipsPage>
       BatchOperationType.clipCollectionAdd,
       BatchOperationType.clipDelete,
     ]);
-    return AppSelectionHeaderToolbar(
-      countLabel: l10n.clipSelectionCount(selectedCount),
+    return AppGlassSelectionHeader(
+      selectionLabel: l10n.clipSelectionCount(selectedCount),
       selectAllLabel: allSelected ? l10n.clipDeselectAll : l10n.clipSelectAll,
       selectAllKey: const Key('clips-select-all-button'),
       onToggleAll: () => toggleSelectAll(clipIds),
-      actions: [
-        AppButton(
+      exitKey: const Key('clips-exit-selection-button'),
+      onExitSelection: exitSelection,
+      actions: <AppGlassSelectionAction>[
+        AppGlassSelectionAction(
           key: const Key('clips-batch-add-collection-button'),
           label: l10n.clipAddToCollection,
-          variant: AppButtonVariant.secondary,
-          size: AppButtonSize.small,
-          onPressed: hasSelection && !submitting ? _batchAddToCollection : null,
+          icon: Icons.playlist_add_rounded,
+          onTap: hasSelection && !submitting ? _batchAddToCollection : null,
         ),
-        AppButton(
+        AppGlassSelectionAction(
           key: const Key('clips-batch-delete-button'),
           label: l10n.commonDelete,
-          variant: AppButtonVariant.danger,
-          size: AppButtonSize.small,
-          onPressed: hasSelection && !submitting ? _batchDelete : null,
+          icon: Icons.delete_outline_rounded,
+          foregroundColor: context.appTextPalette.error,
+          onTap: hasSelection && !submitting ? _batchDelete : null,
         ),
       ],
-      exitKey: const Key('clips-exit-selection-button'),
-      onExit: exitSelection,
     );
   }
 

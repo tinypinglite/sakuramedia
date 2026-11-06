@@ -19,9 +19,10 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
@@ -216,7 +217,7 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
             if (selectionMode)
               (widget.useMobileSelectionLayout
                   ? buildMobileBatchSelectionHeader()
-                  : buildBatchSelectionToolbar())
+                  : buildGlassBatchSelectionToolbar())
             else
               _buildHeader(context, view.items, view.total),
             SizedBox(height: widget.sectionSpacing),
@@ -294,7 +295,7 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
     });
   }
 
-  /// 列表顶栏：与其它列表页共用同一条 `AppListHeader`。
+  /// 列表顶栏：桌面走玻璃控制条，移动端使用紧凑玻璃图标行。
   ///
   /// **本页没有筛选维度**——后端 `/movies/by-series` 只吃 seriesId + 分页，所以
   /// 不接筛选入口，左侧留给信息槽。系列名与总数都是只读信息，「同步系列影片」
@@ -305,28 +306,52 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
     int total,
   ) {
     final l10n = AppLocalizations.of(context);
-    return AppListHeader(
-      informationSlots: [
-        // 系列名报到返回栏时信息槽就不再放它，免得同一个名字出现两次。
-        if (!widget.hoistTitleToSubpageShell)
-          AppListHeaderInfo(
-            key: const Key('series-movies-title'),
-            label: _displaySeriesName(movies, l10n: l10n),
-          ),
-        AppListHeaderInfo(
-          key: widget.totalKey,
-          label: l10n.moviePageSeriesTotalCount(total),
+    final seriesName = _displaySeriesName(movies, l10n: l10n);
+    final totalLabel = l10n.moviePageSeriesTotalCount(total);
+    if (!widget.useMobileSelectionLayout) {
+      return AppGlassListHeader(
+        leading: AppGlassHeaderGroup(
+          children: <Widget>[
+            if (!widget.hoistTitleToSubpageShell)
+              AppGlassHeaderText(
+                key: const Key('series-movies-title'),
+                label: seriesName,
+              ),
+            AppGlassHeaderText(key: widget.totalKey, label: totalLabel),
+          ],
         ),
-      ],
-      actionSlots: [
-        AppTextButton(
+        trailing: AppGlassHeaderGroup(
+          children: <Widget>[
+            AppGlassHeaderButton(
+              key: const Key('series-movies-import-button'),
+              icon: Icons.sync_rounded,
+              label: l10n.moviePageSeriesSync,
+              onTap: _handleImport,
+            ),
+            AppGlassHeaderButton(
+              key: const Key('series-movies-enter-selection-button'),
+              icon: Icons.check_circle_outline,
+              label: l10n.baseSelect,
+              enabled: batchSelectableNumbers.isNotEmpty,
+              onTap: batchSelectableNumbers.isEmpty ? () {} : enterSelection,
+            ),
+          ],
+        ),
+      );
+    }
+    return AppMobileListHeader(
+      leading: AppMobileHeaderText(
+        key: widget.totalKey,
+        title: widget.hoistTitleToSubpageShell ? null : seriesName,
+        countLabel: totalLabel,
+      ),
+      actions: <Widget>[
+        AppGlassIconButton(
           key: const Key('series-movies-import-button'),
-          label: l10n.moviePageSeriesSync,
-          size: AppTextButtonSize.small,
+          tooltip: l10n.moviePageSeriesSync,
+          icon: Icons.sync_rounded,
           onPressed: _handleImport,
         ),
-        // 移动端多选入口挂在卡片长按菜单里，顶栏不常驻「选择」。
-        if (!widget.useMobileSelectionLayout) buildEnterSelectionButton(),
       ],
     );
   }

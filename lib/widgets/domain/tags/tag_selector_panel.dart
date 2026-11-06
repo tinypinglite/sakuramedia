@@ -9,6 +9,7 @@ import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_chip.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/domain/tags/app_tag_match_mode_toggle.dart';
 
@@ -271,12 +272,11 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
         for (final tag in selection.selectedTags)
-          AppTextButton(
+          AppFilterChip(
             key: Key('${widget.keyPrefix}-selected-${tag.tagId}'),
             label: tag.name,
-            size: AppTextButtonSize.xSmall,
-            isSelected: true,
-            trailingIcon: const Icon(Icons.close),
+            selected: true,
+            trailing: const Icon(Icons.close),
             onPressed: () => widget.onRemoveTag(tag.tagId),
           ),
         AppTextButton(
@@ -457,13 +457,12 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
       runSpacing: spacing.sm,
       children: [
         for (final tag in tags)
-          AppTextButton(
+          AppFilterChip(
             key: Key('${widget.keyPrefix}-option-${tag.tagId}'),
             label: widget.showTagCounts
                 ? '${tag.name} · ${tag.movieCount}'
                 : tag.name,
-            size: AppTextButtonSize.xSmall,
-            isSelected: selection.isSelected(tag.tagId),
+            selected: selection.isSelected(tag.tagId),
             onPressed: () => widget.onToggleTag(tag.tagId),
           ),
       ],

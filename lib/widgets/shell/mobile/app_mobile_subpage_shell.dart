@@ -3,7 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/shell/mobile/app_mobile_ambient_backdrop.dart';
 import 'package:sakuramedia/widgets/shell/mobile/mobile_system_overlay.dart';
 
 typedef AppMobileSubpageBackHandler = Future<bool> Function();
@@ -113,6 +115,7 @@ class AppMobileSubpageShell extends StatefulWidget {
     this.bodyPadding = AppPageInsets.compactStandard,
     this.immersive = false,
     this.autoHideAppBar = false,
+    this.glassChrome = false,
   });
 
   final String title;
@@ -132,6 +135,12 @@ class AppMobileSubpageShell extends StatefulWidget {
   /// 移动路由层对所有子页传 true；直接使用 shell 时默认 false，
   /// 需要滚动收起时显式开启。
   final bool autoHideAppBar;
+
+  /// 透明页面背景 + 液态玻璃返回按钮的子页导航栏。
+  ///
+  /// 只改导航层和页面底色；子页内容仍是普通内容层。开启后 AppBar 常驻，
+  /// 不跟随滚动收起，避免玻璃返回键在滚动中消失。
+  final bool glassChrome;
 
   @override
   State<AppMobileSubpageShell> createState() => _AppMobileSubpageShellState();
@@ -183,7 +192,8 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
   @override
   Widget build(BuildContext context) {
     final immersive = widget.immersive;
-    final autoHideAppBar = widget.autoHideAppBar;
+    final useGlassChrome = widget.glassChrome && !immersive;
+    final autoHideAppBar = widget.autoHideAppBar && !useGlassChrome;
     final router = GoRouter.maybeOf(context);
     final appBar = _buildAppBar(context, immersive: immersive);
     final interceptedChild = AppMobileSubpageBackInterceptor(
@@ -204,7 +214,9 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
     final Widget scaffold;
     if (autoHideAppBar && !immersive) {
       scaffold = Scaffold(
-        backgroundColor: context.appColors.surfaceCard,
+        backgroundColor: useGlassChrome
+            ? Colors.transparent
+            : context.appColors.surfaceCard,
         body: Column(
           children: [
             AnimatedSize(
@@ -221,7 +233,7 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
       );
     } else {
       scaffold = Scaffold(
-        backgroundColor: immersive
+        backgroundColor: immersive || useGlassChrome
             ? Colors.transparent
             : context.appColors.surfaceCard,
         extendBodyBehindAppBar: immersive,
@@ -257,10 +269,14 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
                 systemNavigationBarColor: Colors.transparent,
                 systemNavigationBarIconBrightness: Brightness.light,
               )
-            : resolveMobileSystemOverlayStyle(context),
+            : resolveMobileSystemOverlayStyle(
+                context,
+              ).copyWith(statusBarColor: Colors.transparent),
         child: ColoredBox(
           key: const Key('mobile-subpage-root-surface'),
-          color: immersive ? Colors.transparent : context.appColors.surfaceCard,
+          color: immersive || useGlassChrome
+              ? Colors.transparent
+              : context.appColors.surfaceCard,
           child: SafeArea(
             key: const Key('mobile-subpage-safe-area'),
             // 沉浸时顶边不留安全区：封面从状态栏下开始铺。
@@ -276,20 +292,24 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
         ),
       ),
     );
-    if (router == null) return content;
+    final themedContent = useGlassChrome
+        ? AppMobileAmbientBackdrop(child: content)
+        : content;
+    if (router == null) return themedContent;
     // GoRouter 对无历史可退的深链首屏会直接返回 false；这里补一次回退处理，
     // 同时让 PopScope 保持 true，避免无拦截时禁用 iOS 侧滑返回。
     return BackButtonListener(
       onBackButtonPressed: _backButtonHandler,
-      child: content,
+      child: themedContent,
     );
   }
 
   AppBar _buildAppBar(BuildContext context, {required bool immersive}) {
     final l10n = appL10n(context);
+    final glassChrome = widget.glassChrome && !immersive;
     return AppBar(
       key: const Key('mobile-subpage-topbar'),
-      backgroundColor: immersive
+      backgroundColor: immersive || glassChrome
           ? Colors.transparent
           : context.appColors.surfaceCard,
       elevation: 0,
@@ -310,19 +330,33 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
               ),
             )
           : null,
-      leadingWidth: context.appComponentTokens.mobileSubpageLeadingWidth,
+      leadingWidth: glassChrome
+          ? 60
+          : context.appComponentTokens.mobileSubpageLeadingWidth,
       titleSpacing: 0, // 默认 16
-      leading: IconButton(
-        iconSize: context.appComponentTokens.iconSizeSm,
-        key: const Key('mobile-subpage-back-button'),
-        onPressed: () => _handleBack(context),
-        icon: Icon(
-          Icons.arrow_back_ios_new_rounded,
-          // 沉浸页压在封面和顶部压暗渐变上，沿用媒体前景色保证可读。
-          color: immersive ? context.appTextPalette.onMedia : null,
-        ),
-        tooltip: l10n.shellBack,
-      ),
+      leading: glassChrome
+          ? Padding(
+              padding: EdgeInsets.only(left: context.appSpacing.sm),
+              child: Center(
+                child: AppGlassIconButton(
+                  key: const Key('mobile-subpage-back-button'),
+                  tooltip: l10n.shellBack,
+                  icon: Icons.arrow_back_ios_new_rounded,
+                  onPressed: () => _handleBack(context),
+                ),
+              ),
+            )
+          : IconButton(
+              iconSize: context.appComponentTokens.iconSizeSm,
+              key: const Key('mobile-subpage-back-button'),
+              onPressed: () => _handleBack(context),
+              icon: Icon(
+                Icons.arrow_back_ios_new_rounded,
+                // 沉浸页压在封面和顶部压暗渐变上，沿用媒体前景色保证可读。
+                color: immersive ? context.appTextPalette.onMedia : null,
+              ),
+              tooltip: l10n.shellBack,
+            ),
       title: immersive
           // 沉浸页不占标题位：封面直通状态栏，顶栏只留返回键和渐变。
           ? null
@@ -340,8 +374,10 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
                   overflow: TextOverflow.ellipsis,
                   style: resolveAppTextStyle(
                     context,
-                    size: AppTextSize.s14,
-                    weight: AppTextWeight.medium,
+                    size: glassChrome ? AppTextSize.s16 : AppTextSize.s14,
+                    weight: glassChrome
+                        ? AppTextWeight.semibold
+                        : AppTextWeight.medium,
                     tone: AppTextTone.primary,
                   ),
                 );

@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/features/actors/presentation/controllers/listing/actor_filter_state.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
@@ -267,46 +268,31 @@ class _ActorMergeDialogState extends State<ActorMergeDialog> {
     }
     return SizedBox(
       height: 260,
-      child: ListView.builder(
-        itemCount: _candidates.length,
-        itemBuilder: (context, index) {
-          final candidate = _candidates[index];
-          final isSelected = _selected.containsKey(candidate.id);
-          return CheckboxListTile(
-            key: Key('actor-merge-candidate-${candidate.id}'),
-            value: isSelected,
-            onChanged: (value) => _toggleCandidate(candidate, value),
-            controlAffinity: ListTileControlAffinity.trailing,
-            contentPadding: EdgeInsets.zero,
-            secondary: ActorAvatar(
-              imageUrl: candidate.profileImage?.origin,
-              size: context.appComponentTokens.iconSize2xl,
-              placeholderKey: Key(
-                'actor-merge-candidate-avatar-placeholder-${candidate.id}',
+      child: SingleChildScrollView(
+        child: AppPickerIosSection(
+          dividerIndent: 68,
+          children: [
+            for (final candidate in _candidates)
+              AppPickerIosRow(
+                optionKey: Key('actor-merge-candidate-${candidate.id}'),
+                selected: _selected.containsKey(candidate.id),
+                showCheckmark: true,
+                onTap: () => _toggleCandidate(
+                  candidate,
+                  !_selected.containsKey(candidate.id),
+                ),
+                title: candidate.displayName,
+                subtitle: candidate.javdbId,
+                leading: ActorAvatar(
+                  imageUrl: candidate.profileImage?.origin,
+                  size: context.appComponentTokens.iconSize2xl,
+                  placeholderKey: Key(
+                    'actor-merge-candidate-avatar-placeholder-${candidate.id}',
+                  ),
+                ),
               ),
-            ),
-            title: Text(
-              candidate.displayName,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                tone: AppTextTone.primary,
-              ),
-            ),
-            subtitle: Text(
-              candidate.javdbId,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                tone: AppTextTone.muted,
-              ),
-            ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }

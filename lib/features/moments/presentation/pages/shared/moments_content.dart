@@ -29,13 +29,18 @@ import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
+import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_popover.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_hint_box.dart';
@@ -162,18 +167,18 @@ class MomentsContent extends HookConsumerWidget {
     final listHeaderKey = useMemoized(() => GlobalKey());
     final scrollController = useScrollController();
 
-    final sliver = SliverMainAxisGroup(
+    final sliver = AppPinnedSliverSection(
       key: rootKey,
-      slivers: [
+      headerKey: listHeaderKey,
+      before: [
         SliverToBoxAdapter(
           child: _buildCollectionsSection(context, ref, collectionsAsync),
         ),
-        AppPinnedListHeader(
-          key: listHeaderKey,
-          color: useMobileFilterDrawer
-              ? context.appColors.surfaceCard
-              : Colors.transparent,
-          child: _buildMomentsHeader(
+      ],
+      header: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildMomentsHeader(
             context,
             ref,
             scrollController,
@@ -206,7 +211,12 @@ class MomentsContent extends HookConsumerWidget {
             ),
             submitting: submitting,
           ),
-        ),
+        ],
+      ),
+      headerBottomSpacing: useMobileFilterDrawer
+          ? context.appSpacing.md
+          : context.appSpacing.lg,
+      after: [
         _buildBody(
           context,
           ref,
@@ -505,49 +515,41 @@ class MomentsContent extends HookConsumerWidget {
     final hasSelection = selectedCount > 0;
     final l10n = AppLocalizations.of(context);
     if (useMobileFilterDrawer) {
-      return AppListHeader.selection(
+      return AppMobileSelectionHeader(
         selectionLabel: l10n.momentSelectedCount(selectedCount),
-        selectionExitButtonKey: Key('$keyPrefix-exit-selection-button'),
+        exitKey: Key('$keyPrefix-exit-selection-button'),
         onExitSelection: onExitSelection,
-        actionSlots: [
-          AppButton(
-            key: Key('$keyPrefix-select-all-button'),
-            label: allSelected ? l10n.momentDeselectAll : l10n.momentSelectAll,
-            variant: AppButtonVariant.ghost,
-            size: AppButtonSize.xSmall,
-            isSelected: allSelected,
-            onPressed: onToggleAll,
-          ),
-        ],
+        selectAllKey: Key('$keyPrefix-select-all-button'),
+        selectAllTooltip: allSelected
+            ? l10n.momentDeselectAll
+            : l10n.momentSelectAll,
+        onToggleAll: onToggleAll,
       );
     }
-    return AppSelectionHeaderToolbar(
-      countLabel: l10n.momentSelectedCount(selectedCount),
+    return AppGlassSelectionHeader(
+      selectionLabel: l10n.momentSelectedCount(selectedCount),
       selectAllLabel: allSelected
           ? l10n.momentDeselectAll
           : l10n.momentSelectAll,
       selectAllKey: Key('$keyPrefix-select-all-button'),
       onToggleAll: onToggleAll,
-      actions: [
-        AppButton(
+      onExitSelection: onExitSelection,
+      exitKey: Key('$keyPrefix-exit-selection-button'),
+      actions: <AppGlassSelectionAction>[
+        AppGlassSelectionAction(
           key: Key('$keyPrefix-selection-add-collection-button'),
           label: l10n.momentAddToCollection,
-          variant: AppButtonVariant.secondary,
-          size: AppButtonSize.small,
-          onPressed: hasSelection && !submitting
-              ? onBatchAddToCollection
-              : null,
+          icon: Icons.playlist_add_rounded,
+          onTap: hasSelection && !submitting ? onBatchAddToCollection : null,
         ),
-        AppButton(
+        AppGlassSelectionAction(
           key: Key('$keyPrefix-selection-delete-button'),
           label: l10n.commonDelete,
-          variant: AppButtonVariant.danger,
-          size: AppButtonSize.small,
-          onPressed: hasSelection && !submitting ? onBatchDelete : null,
+          icon: Icons.delete_outline_rounded,
+          foregroundColor: context.appTextPalette.error,
+          onTap: hasSelection && !submitting ? onBatchDelete : null,
         ),
       ],
-      exitKey: Key('$keyPrefix-exit-selection-button'),
-      onExit: onExitSelection,
     );
   }
 
@@ -563,68 +565,140 @@ class MomentsContent extends HookConsumerWidget {
     VoidCallback onEnterSelection,
   ) {
     final l10n = AppLocalizations.of(context);
-    return AppListHeader(
-      filterButtonKey: Key('$keyPrefix-filter-trigger'),
-      // 摘要只报「内容类型」这一主维度，排序有独立分节，不堆在入口上。
-      filterLabel: filter.kindFilter.label(l10n),
-      filterPanelKey: Key('$keyPrefix-filter-panel'),
-      filterPanelExtraWidth: 180,
+    if (!useMobileFilterDrawer) {
+      return _buildGlassHeader(
+        context,
+        ref,
+        scrollController,
+        listHeaderKey,
+        paged,
+        filter,
+        onEnterSelection,
+      );
+    }
+    return AppMobileListHeader(
+      leading: AppMobileHeaderText(
+        key: Key('$keyPrefix-page-total'),
+        countLabel: l10n.momentCountLabel(paged.total),
+      ),
+      actions: <Widget>[
+        AppGlassFilterIconButton(
+          key: Key('$keyPrefix-filter-trigger'),
+          summary:
+              '${filter.kindFilter.label(l10n)} · '
+              '${filter.sortOrder.label(l10n)}',
+          isActive:
+              filter.kindFilter != MomentsFilter.initial.kindFilter ||
+              filter.sortOrder != MomentsFilter.initial.sortOrder,
+          onPressed: () => unawaited(
+            _openFilterDrawer(
+              context,
+              ref,
+              scrollController,
+              listHeaderKey,
+              filter,
+            ),
+          ),
+        ),
+        if (paged.items.isNotEmpty)
+          AppGlassIconButton(
+            key: Key('$keyPrefix-enter-selection-button'),
+            tooltip: l10n.momentSelectAction,
+            icon: Icons.check_circle_outline,
+            onPressed: onEnterSelection,
+          ),
+      ],
       filterUpdate: paged.filterUpdate,
       hasPreviousFilterItems: paged.items.isNotEmpty,
       onRetryFilter: () =>
           unawaited(ref.read(momentsProvider.notifier).retryFilter()),
-      onFilterTap: useMobileFilterDrawer
-          ? () => unawaited(
-              _openFilterDrawer(
-                context,
-                ref,
-                scrollController,
-                listHeaderKey,
-                filter,
-              ),
-            )
-          : null,
-      filterPanelBuilder: useMobileFilterDrawer
-          ? null
-          : (_) => MomentFilterSectionGroup(
-              kindFilter: filter.kindFilter,
-              sortOrder: filter.sortOrder,
-              keyPrefix: keyPrefix,
-              onKindChanged: (next) => _applyFilter(
-                ref,
-                scrollController,
-                listHeaderKey,
-                (current) => current.copyWith(kindFilter: next),
-              ),
-              onSortChanged: (next) => _applyFilter(
-                ref,
-                scrollController,
-                listHeaderKey,
-                (current) => current.copyWith(sortOrder: next),
-              ),
-            ),
-      informationSlots: [
-        AppListHeaderInfo(
-          key: Key('$keyPrefix-page-total'),
-          label: l10n.momentCountLabel(paged.total),
+    );
+  }
+
+  Widget _buildGlassHeader(
+    BuildContext context,
+    WidgetRef ref,
+    ScrollController scrollController,
+    GlobalKey listHeaderKey,
+    PagedViewSnapshot<MomentListItem> paged,
+    MomentsFilter filter,
+    VoidCallback onEnterSelection,
+  ) {
+    final l10n = AppLocalizations.of(context);
+    void applyKind(MomentKindFilter next) => _applyFilter(
+      ref,
+      scrollController,
+      listHeaderKey,
+      (current) => current.copyWith(kindFilter: next),
+    );
+    void applySort(MomentSortOrder next) => _applyFilter(
+      ref,
+      scrollController,
+      listHeaderKey,
+      (current) => current.copyWith(sortOrder: next),
+    );
+
+    return AppGlassListHeader(
+      leading: AppGlassFilterPopover(
+        panelKey: Key('$keyPrefix-filter-panel'),
+        showResetFooter: false,
+        triggerKey: Key('$keyPrefix-filter-trigger'),
+        label: filter.kindFilter.label(l10n),
+        tooltip: l10n.baseFilterTooltip,
+        info: <Widget>[
+          AppGlassHeaderText(
+            key: Key('$keyPrefix-page-total'),
+            label: l10n.momentCountLabel(paged.total),
+          ),
+        ],
+        panelBuilder: (context) => AppFilterChoiceSection<MomentKindFilter>(
+          title: l10n.momentFilterKindTitle,
+          controlKey: Key('$keyPrefix-filter-kind'),
+          items: <AppSegmentedItem<MomentKindFilter>>[
+            for (final kind in MomentKindFilter.values)
+              AppSegmentedItem(value: kind, label: kind.label(l10n)),
+          ],
+          selected: filter.kindFilter,
+          onChanged: applyKind,
         ),
-      ],
-      actionSlots: paged.items.isEmpty
-          ? const <Widget>[]
-          : [
-              AppTextButton(
+      ),
+      trailing: AppGlassPopover(
+        panelKey: Key('$keyPrefix-sort-panel'),
+        triggerBuilder: (context, toggle) => AppGlassHeaderGroup(
+          children: <Widget>[
+            AppGlassHeaderButton(
+              key: Key('$keyPrefix-sort-trigger'),
+              icon: Icons.swap_vert_rounded,
+              label: filter.sortOrder.label(l10n),
+              trailingIcon: Icons.expand_more_rounded,
+              tooltip: l10n.baseSortTooltip,
+              onTap: toggle,
+            ),
+            if (paged.items.isNotEmpty)
+              AppGlassHeaderButton(
                 key: Key('$keyPrefix-enter-selection-button'),
+                icon: Icons.check_circle_outline,
                 label: l10n.momentSelectAction,
-                size: useMobileFilterDrawer
-                    ? AppTextButtonSize.xSmall
-                    : AppTextButtonSize.small,
-                icon: Icon(
-                  Icons.check_circle_outline,
-                  size: useMobileFilterDrawer ? 14 : 16,
-                ),
-                onPressed: onEnterSelection,
+                onTap: onEnterSelection,
               ),
-            ],
+          ],
+        ),
+        contentBuilder: (context, close) =>
+            AppFilterChoiceSection<MomentSortOrder>(
+              title: l10n.momentFilterSortTitle,
+              controlKey: Key('$keyPrefix-sort-order'),
+              items: <AppSegmentedItem<MomentSortOrder>>[
+                for (final order in MomentSortOrder.values)
+                  AppSegmentedItem(value: order, label: order.label(l10n)),
+              ],
+              selected: filter.sortOrder,
+              onChanged: applySort,
+            ),
+      ),
+      filterUpdate: paged.filterUpdate,
+      hasPreviousFilterItems: paged.items.isNotEmpty,
+      onRetryFilter: () =>
+          unawaited(ref.read(momentsProvider.notifier).retryFilter()),
     );
   }
 

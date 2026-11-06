@@ -13,10 +13,8 @@ import 'package:sakuramedia/features/media/presentation/providers/media_api_prov
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
-import 'package:sakuramedia/widgets/base/forms/app_picker_option_tile.dart';
-import 'package:sakuramedia/widgets/base/forms/app_search_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_header.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 Future<void> showAddToMomentCollectionDialog(
@@ -30,6 +28,7 @@ Future<void> showAddToMomentCollectionDialog(
     drawerKey: const Key('add-to-moment-collection-drawer'),
     desktopWidth: context.appComponentTokens.playlistDialogWidth,
     mobileMaxHeightFactor: 0.7,
+    showDesktopCloseButton: false,
     builder: (_) => AddToMomentCollectionDialog(
       pointId: pointId,
       mediaId: mediaId,
@@ -67,7 +66,7 @@ class _AddToMomentCollectionDialogState
   final TextEditingController _searchController = TextEditingController();
   String _keyword = '';
   bool _isLoading = true;
-  bool _isUpdating = false;
+  int? _updatingId;
   String? _error;
   int? _pointId;
 
@@ -93,7 +92,13 @@ class _AddToMomentCollectionDialogState
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _load({bool showLoading = false}) async {
+    if (showLoading && mounted) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
     try {
       final api = ref.read(momentCollectionsApiProvider);
       final results = await Future.wait<Object>([
@@ -136,131 +141,117 @@ class _AddToMomentCollectionDialogState
 
   @override
   Widget build(BuildContext context) {
-    final maxListHeight = _isDrawer
-        ? MediaQuery.sizeOf(context).height * 0.5
-        : 320.0;
-    return _buildContent(context, maxListHeight: maxListHeight);
+    return _buildContent(context);
   }
 
-  Widget _buildContent(BuildContext context, {required double maxListHeight}) {
+  Widget _buildContent(BuildContext context) {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        AbsorbPointer(
-          absorbing: _isUpdating,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      l10n.momentAddToCollection,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s16,
-                        weight: AppTextWeight.medium,
-                        tone: AppTextTone.secondary,
-                      ),
-                    ),
-                  ),
-                  AppIconButton(
-                    key: const Key('add-to-moment-collection-create-button'),
-                    tooltip: l10n.momentCollectionCreateTitle,
-                    onPressed: _isLoading || _isUpdating
-                        ? null
-                        : _createCollection,
-                    icon: const Icon(Icons.add_rounded),
-                  ),
-                ],
-              ),
-              SizedBox(height: spacing.sm),
-              AppSearchField(
-                fieldKey: const Key('add-to-moment-collection-search-field'),
-                controller: _searchController,
-                hintText: l10n.momentCollectionSearchHint,
-                onChanged: (value) =>
-                    setState(() => _keyword = value.trim().toLowerCase()),
-                clearKey: const Key('add-to-moment-collection-search-clear'),
-              ),
-              SizedBox(height: spacing.lg),
-              _buildList(context, maxListHeight: maxListHeight),
-            ],
+    return AbsorbPointer(
+      absorbing: _updatingId != null,
+      child: Column(
+        mainAxisSize: _isDrawer ? MainAxisSize.max : MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          AppPickerHeader(
+            title: l10n.momentAddToCollection,
+            searchController: _searchController,
+            searchFieldKey: const Key('add-to-moment-collection-search-field'),
+            searchHintText: l10n.momentCollectionSearchHint,
+            onSearchChanged: (value) =>
+                setState(() => _keyword = value.trim().toLowerCase()),
+            clearSearchKey: const Key('add-to-moment-collection-search-clear'),
+            onClose: () => Navigator.of(context).pop(),
+            closeKey: const Key('add-to-moment-collection-close-button'),
+            doneKey: const Key('add-to-moment-collection-done-button'),
           ),
-        ),
-        if (_isUpdating)
-          const SizedBox(
-            width: 24,
-            height: 24,
-            child: CircularProgressIndicator.adaptive(strokeWidth: 2),
-          ),
-      ],
+          SizedBox(height: spacing.lg),
+          AppPickerListFrame(isDrawer: _isDrawer, child: _buildList(context)),
+        ],
+      ),
     );
   }
 
-  Widget _buildList(BuildContext context, {required double maxListHeight}) {
+  Widget _buildList(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     if (_isLoading) {
-      return const SizedBox(
+      return const AppPickerIosState(
         key: Key('add-to-moment-collection-loading'),
-        height: 160,
-        child: Center(child: CircularProgressIndicator.adaptive()),
+        loading: true,
       );
     }
     if (_error != null) {
-      return SizedBox(height: 160, child: AppEmptyState(message: _error!));
+      return AppPickerIosStateWithAction(
+        state: AppPickerIosState(
+          message: _error!,
+          onRetry: () => _load(showLoading: true),
+          retryKey: const Key('add-to-moment-collection-retry'),
+        ),
+        action: _buildCreateRow(l10n, enabled: true),
+      );
     }
     if (_collections.isEmpty) {
-      return SizedBox(
-        height: 160,
-        child: Center(
-          child: Text(
-            AppLocalizations.of(context).momentCollectionEmptyAddDialog,
-          ),
-        ),
+      return AppPickerIosStateWithAction(
+        state: AppPickerIosState(message: l10n.momentCollectionEmptyAddDialog),
+        action: _buildCreateRow(l10n, enabled: true),
       );
     }
     final visibleCollections = _visibleCollections;
     if (visibleCollections.isEmpty) {
-      return SizedBox(
-        height: 160,
-        child: Center(
-          child: Text(AppLocalizations.of(context).momentCollectionNoMatch),
-        ),
+      return AppPickerIosStateWithAction(
+        state: AppPickerIosState(message: l10n.momentCollectionNoMatch),
+        action: _buildCreateRow(l10n, enabled: true),
       );
     }
-    final spacing = context.appSpacing;
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxHeight: maxListHeight),
-      child: ListView.separated(
-        key: const Key('add-to-moment-collection-list'),
-        shrinkWrap: true,
-        itemCount: visibleCollections.length,
-        separatorBuilder: (_, _) => SizedBox(height: spacing.sm),
-        itemBuilder: (context, index) {
-          final collection = visibleCollections[index];
-          final selected = _selectedIds.contains(collection.id);
-          return AppPickerOptionTile.text(
-            selected: selected,
-            enabled: !_isUpdating,
-            onTap: () => _toggle(collection, selected),
-            title: collection.name,
-            trailingText: collection.pointCount > 0
-                ? '${collection.pointCount}'
-                : null,
-            optionKey: Key('add-to-moment-collection-${collection.id}'),
-          );
-        },
+    return SingleChildScrollView(
+      key: const Key('add-to-moment-collection-list'),
+      child: AppPickerIosSection(
+        header: Text(
+          l10n.commonSelectedCount(_selectedIds.length),
+          key: const Key('add-to-moment-collection-selected-count'),
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s12,
+            tone: AppTextTone.muted,
+          ),
+        ),
+        children: [
+          _buildCreateRow(l10n, enabled: _updatingId == null),
+          for (final collection in visibleCollections)
+            AppPickerIosRow(
+              selected: _selectedIds.contains(collection.id),
+              showCheckmark: true,
+              enabled: _updatingId == null,
+              busy: _updatingId == collection.id,
+              busyKey: Key(
+                'add-to-moment-collection-updating-${collection.id}',
+              ),
+              onTap: () =>
+                  _toggle(collection, _selectedIds.contains(collection.id)),
+              title: collection.name,
+              trailingText: collection.pointCount > 0
+                  ? '${collection.pointCount}'
+                  : null,
+              optionKey: Key('add-to-moment-collection-${collection.id}'),
+            ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildCreateRow(AppLocalizations l10n, {required bool enabled}) {
+    return AppPickerIosActionRow(
+      label: l10n.momentCollectionCreateTitle,
+      enabled: enabled,
+      onTap: _createCollection,
+      optionKey: const Key('add-to-moment-collection-create-button'),
     );
   }
 
   Future<void> _toggle(MomentCollectionDto collection, bool selected) async {
     final l10n = AppLocalizations.of(context);
     setState(() {
-      _isUpdating = true;
+      _updatingId = collection.id;
       if (selected) {
         _selectedIds.remove(collection.id);
       } else {
@@ -322,7 +313,7 @@ class _AddToMomentCollectionDialogState
         tone: AppToastTone.error,
       );
     } finally {
-      if (mounted) setState(() => _isUpdating = false);
+      if (mounted) setState(() => _updatingId = null);
     }
   }
 

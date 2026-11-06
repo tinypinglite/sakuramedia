@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/media_libraries_provider.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_source.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_collections_overview_provider.dart';
@@ -11,9 +12,12 @@ import 'package:sakuramedia/features/videos/presentation/widgets/collections/vid
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/domain/media_import/media_import_source_picker.dart';
 import 'package:sakuramedia/widgets/domain/media_import/media_library_selector_field.dart';
+
+const _videoImportBrowserHeight = 220.0;
 
 /// Provider-neutral 视频导入表单结果。
 class VideoImportRequest {
@@ -35,6 +39,7 @@ Future<VideoImportRequest?> showVideoImportDialog(BuildContext context) {
   return showAppAdaptiveModal<VideoImportRequest>(
     context: context,
     modalKey: const Key('video-import-modal'),
+    desktopHeight: (MediaQuery.sizeOf(context).height - 48).clamp(640.0, 760.0),
     builder: (_) => const VideoImportDialog(),
   );
 }
@@ -131,6 +136,9 @@ class _VideoImportDialogState extends ConsumerState<VideoImportDialog> {
   Widget build(BuildContext context) {
     // 维持合集 overview 存活：嵌套的单选弹层复用同一份缓存，不重复全量拉取。
     ref.listen(videoCollectionsOverviewProvider, (_, _) {});
+    final librariesAsync = ref.watch(mediaLibrariesProvider);
+    final isInitialLoading =
+        librariesAsync.isLoading && !librariesAsync.hasValue;
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
     return SafeArea(
@@ -149,40 +157,43 @@ class _VideoImportDialogState extends ConsumerState<VideoImportDialog> {
             ),
           ),
           SizedBox(height: spacing.lg),
-          Flexible(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  MediaLibrarySelectorField(
-                    selectedLibraryId: _selectedLibrary?.id,
-                    onLibraryChanged: _handleLibraryChanged,
-                  ),
-                  if (_selectedLibrary != null) ...[
-                    SizedBox(height: spacing.md),
-                    MediaImportSourcePicker(
-                      selectedLibrary: _selectedLibrary,
-                      sourceDisposition: _sourceDisposition,
-                      allowFileSource: true,
-                      onSourceChanged: (source) {
-                        if (source == _source) {
-                          return;
-                        }
-                        setState(() => _source = source);
-                      },
-                      onSourceDispositionChanged: (disposition) {
-                        if (disposition == _sourceDisposition) {
-                          return;
-                        }
-                        setState(() => _sourceDisposition = disposition);
-                      },
+          Expanded(
+            child: isInitialLoading
+                ? const Center(child: AppPickerIosState(loading: true))
+                : SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        MediaLibrarySelectorField(
+                          selectedLibraryId: _selectedLibrary?.id,
+                          onLibraryChanged: _handleLibraryChanged,
+                        ),
+                        if (_selectedLibrary != null) ...[
+                          SizedBox(height: spacing.md),
+                          _buildCollectionField(context),
+                          SizedBox(height: spacing.md),
+                          MediaImportSourcePicker(
+                            selectedLibrary: _selectedLibrary,
+                            sourceDisposition: _sourceDisposition,
+                            allowFileSource: true,
+                            browserHeight: _videoImportBrowserHeight,
+                            onSourceChanged: (source) {
+                              if (source == _source) {
+                                return;
+                              }
+                              setState(() => _source = source);
+                            },
+                            onSourceDispositionChanged: (disposition) {
+                              if (disposition == _sourceDisposition) {
+                                return;
+                              }
+                              setState(() => _sourceDisposition = disposition);
+                            },
+                          ),
+                        ],
+                      ],
                     ),
-                  ],
-                  SizedBox(height: spacing.lg),
-                  _buildCollectionField(context),
-                ],
-              ),
-            ),
+                  ),
           ),
           SizedBox(height: spacing.xl),
           Row(

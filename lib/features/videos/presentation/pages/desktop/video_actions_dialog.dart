@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_c
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/domain/media/media_duration_badge.dart';
 import 'package:sakuramedia/widgets/domain/media/media_center_play_button.dart';
@@ -32,7 +33,7 @@ Future<void> showDesktopVideoActionsDialog(
   List<VideoCollectionRef> collections = const <VideoCollectionRef>[],
   ValueChanged<VideoCollectionRef>? onCollectionTap,
 }) {
-  return showDialog<void>(
+  return showAppDialog<void>(
     context: context,
     builder: (dialogContext) {
       return AppDesktopDialog(

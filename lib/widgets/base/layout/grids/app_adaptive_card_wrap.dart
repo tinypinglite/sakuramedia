@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/app_sliver_width_builder.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
 
 /// 自然高度卡片网格（Sliver）：按全站统一列数规格切列宽，卡片保持自身内容高度。
@@ -35,32 +36,34 @@ class AppAdaptiveCardWrapSliver<T> extends StatelessWidget {
   final int minColumns;
   final int? maxColumns;
 
-  /// 是否把同一行卡片拉成等高；默认保持各卡自然高度。
+  /// 是否把同一行的多张卡片拉成等高；单卡行不额外测量。
   final bool stretchRows;
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing.md;
-    return SliverLayoutBuilder(
-      builder: (context, constraints) {
+    final targetWidth = resolveAppCardGridTargetWidth(context, orientation);
+    final resolvedMaxColumns =
+        maxColumns ?? context.appComponentTokens.cardGridMaxColumns;
+    return AppSliverWidthBuilder(
+      builder: (context, width) {
         final columns = resolveGridColumnCount(
-          width: constraints.crossAxisExtent,
+          width: width,
           spacing: spacing,
-          targetWidth: resolveAppCardGridTargetWidth(context, orientation),
+          targetWidth: targetWidth,
           minColumns: minColumns,
-          maxColumns:
-              maxColumns ?? context.appComponentTokens.cardGridMaxColumns,
+          maxColumns: resolvedMaxColumns,
         );
-        final cardWidth =
-            (constraints.crossAxisExtent - spacing * (columns - 1)) / columns;
+        final cardWidth = (width - spacing * (columns - 1)) / columns;
         final rowCount = (items.length + columns - 1) ~/ columns;
         return SliverList(
           key: gridKey,
           delegate: SliverChildBuilderDelegate((context, rowIndex) {
             final start = rowIndex * columns;
             final end = math.min(start + columns, items.length);
+            final stretchRow = stretchRows && end - start > 1;
             final row = Row(
-              crossAxisAlignment: stretchRows
+              crossAxisAlignment: stretchRow
                   ? CrossAxisAlignment.stretch
                   : CrossAxisAlignment.start,
               children: [
@@ -75,7 +78,7 @@ class AppAdaptiveCardWrapSliver<T> extends StatelessWidget {
             );
             return Padding(
               padding: EdgeInsets.only(top: rowIndex == 0 ? 0 : spacing),
-              child: stretchRows ? IntrinsicHeight(child: row) : row,
+              child: stretchRow ? IntrinsicHeight(child: row) : row,
             );
           }, childCount: rowCount),
         );

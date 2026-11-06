@@ -2,12 +2,13 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 
 /// 影片批量订阅/取消订阅的执行闭包：由调用方绑定到具体分页控制器的
 /// `batchToggleSubscription` 方法。这样 helper 无需知道 controller 具体类型
@@ -23,116 +24,6 @@ typedef MovieBlacklistBatchExecutor =
 
 /// 批量动作种类，用于区分「哪个按钮该转圈」。
 enum MovieBatchAction { subscribe, unsubscribe, blacklist }
-
-/// 影片列表的「进入多选」按钮：[AppSelectionEntryButton] 的薄壳，只负责按
-/// [keyPrefix] 生成稳定 Key。列表为空时禁用。
-class MovieBatchEnterSelectionButton extends StatelessWidget {
-  const MovieBatchEnterSelectionButton({
-    super.key,
-    required this.keyPrefix,
-    required this.enabled,
-    required this.onEnter,
-  });
-
-  /// 页面/子域前缀，用来生成稳定 Widget Key（如 `movie-list`、`actor-detail`）。
-  final String keyPrefix;
-  final bool enabled;
-  final VoidCallback onEnter;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppSelectionEntryButton(
-      key: Key('$keyPrefix-enter-selection-button'),
-      onPressed: enabled ? onEnter : null,
-    );
-  }
-}
-
-/// 影片列表多选态操作条：[AppSelectionToolbar] 的薄壳，往 `actions` 里塞
-/// 「订阅」/「取消订阅」两个批量按钮。
-class MovieBatchSelectionToolbar extends StatelessWidget {
-  const MovieBatchSelectionToolbar({
-    super.key,
-    required this.keyPrefix,
-    required this.selectedCount,
-    required this.visibleTotal,
-    required this.allSelected,
-    required this.operatingAction,
-    required this.onToggleAll,
-    required this.onSubscribe,
-    required this.onUnsubscribe,
-    this.onBlacklist,
-    required this.onExit,
-  });
-
-  final String keyPrefix;
-  final int selectedCount;
-  final int visibleTotal;
-  final bool allSelected;
-
-  /// 正在提交的批量动作；`null` 表示空闲。只有对应那一个按钮转圈，
-  /// 另一个只是禁用——两个都转圈会让用户以为点错了动作。
-  final MovieBatchAction? operatingAction;
-
-  /// 「全选/取消全选」按钮回调；`null` 时按钮禁用。
-  final VoidCallback? onToggleAll;
-
-  /// 「订阅」批量按钮回调；`null` 时按钮禁用（无选中或正在提交）。
-  final VoidCallback? onSubscribe;
-
-  /// 「取消订阅」批量按钮回调；同上。
-  final VoidCallback? onUnsubscribe;
-
-  final VoidCallback? onBlacklist;
-
-  /// 「取消」（退出多选）按钮回调；正在提交时禁用。
-  final VoidCallback? onExit;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    // 顶栏高度对齐、原地改写筛选行的规则都在 AppSelectionHeaderToolbar 里，
-    // 这里只负责塞影片特有的两个批量动作。
-    return AppSelectionHeaderToolbar(
-      countLabel: l10n.widgetMovieSelectionCount(selectedCount),
-      countKey: Key('$keyPrefix-selection-count-text'),
-      selectAllLabel: allSelected
-          ? l10n.widgetMovieDeselectAll
-          : l10n.widgetMovieSelectAllWithCount(visibleTotal),
-      selectAllKey: Key('$keyPrefix-select-all-button'),
-      onToggleAll: onToggleAll,
-      actions: [
-        AppButton(
-          key: Key('$keyPrefix-batch-subscribe-button'),
-          label: l10n.widgetMovieSubscribe,
-          variant: AppButtonVariant.primary,
-          size: AppButtonSize.small,
-          isLoading: operatingAction == MovieBatchAction.subscribe,
-          onPressed: onSubscribe,
-        ),
-        AppButton(
-          key: Key('$keyPrefix-batch-unsubscribe-button'),
-          label: l10n.widgetMovieUnsubscribe,
-          variant: AppButtonVariant.danger,
-          size: AppButtonSize.small,
-          isLoading: operatingAction == MovieBatchAction.unsubscribe,
-          onPressed: onUnsubscribe,
-        ),
-        if (onBlacklist != null)
-          AppButton(
-            key: Key('$keyPrefix-batch-blacklist-button'),
-            label: l10n.widgetMovieBlacklist,
-            variant: AppButtonVariant.danger,
-            size: AppButtonSize.small,
-            isLoading: operatingAction == MovieBatchAction.blacklist,
-            onPressed: onBlacklist,
-          ),
-      ],
-      exitKey: Key('$keyPrefix-exit-selection-button'),
-      onExit: onExit,
-    );
-  }
-}
 
 /// 移动端影片列表多选态**顶栏**：退出 + 计数 + 全选，仅此三样。
 ///
@@ -160,22 +51,15 @@ class MovieBatchMobileSelectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return AppListHeader.selection(
+    return AppMobileSelectionHeader(
       selectionLabel: l10n.widgetMovieSelectionCount(selectedCount),
-      selectionExitButtonKey: Key('$keyPrefix-exit-selection-button'),
+      exitKey: Key('$keyPrefix-exit-selection-button'),
       onExitSelection: onExit,
-      actionSlots: [
-        AppButton(
-          key: Key('$keyPrefix-select-all-button'),
-          label: allSelected
-              ? l10n.widgetMovieDeselectAll
-              : l10n.widgetMovieSelectAllWithCount(visibleTotal),
-          variant: AppButtonVariant.ghost,
-          size: AppButtonSize.xSmall,
-          isSelected: allSelected,
-          onPressed: onToggleAll,
-        ),
-      ],
+      selectAllKey: Key('$keyPrefix-select-all-button'),
+      selectAllTooltip: allSelected
+          ? l10n.widgetMovieDeselectAll
+          : l10n.widgetMovieSelectAllWithCount(visibleTotal),
+      onToggleAll: onToggleAll,
     );
   }
 }
@@ -306,7 +190,7 @@ Future<MovieSubscriptionBatchToggleResult?> runMovieSubscriptionBatch({
 ///       _controller.items.map((movie) => movie.movieNumber).toList(growable: false);
 /// }
 /// ```
-/// build 里 `selectionMode ? buildBatchSelectionToolbar() : <常规 header +
+/// build 里 `selectionMode ? buildGlassBatchSelectionToolbar() : <常规 header +
 /// buildEnterSelectionButton()>`。
 mixin MovieBatchSelectionMixin<W extends StatefulWidget>
     on MultiSelectStateMixin<W, String> {
@@ -390,34 +274,58 @@ mixin MovieBatchSelectionMixin<W extends StatefulWidget>
     }
   }
 
-  /// 多选态下原地替换筛选行的操作条。
-  Widget buildBatchSelectionToolbar() {
+  /// 桌面多选态下的玻璃操作条。
+  Widget buildGlassBatchSelectionToolbar() {
     final visible = batchSelectableNumbers;
     final busy = isBatchOperating;
     final blacklist = batchBlacklistExecutor;
-    return MovieBatchSelectionToolbar(
-      keyPrefix: batchKeyPrefix,
-      selectedCount: selectedCount,
-      visibleTotal: visible.length,
-      allSelected: isAllSelected(visible),
-      operatingAction: _operatingAction,
+    final l10n = AppLocalizations.of(context);
+    final danger = context.appTextPalette.error;
+    final accent = context.appTextPalette.accent;
+    return AppGlassSelectionHeader(
+      selectionLabel: l10n.widgetMovieSelectionCount(selectedCount),
+      countKey: Key('$batchKeyPrefix-selection-count-text'),
+      selectAllLabel: isAllSelected(visible)
+          ? l10n.widgetMovieDeselectAll
+          : l10n.widgetMovieSelectAllWithCount(visible.length),
+      selectAllKey: Key('$batchKeyPrefix-select-all-button'),
       onToggleAll: (busy || visible.isEmpty)
           ? null
           : () => toggleSelectAll(visible),
-      onSubscribe: (selectedIds.isEmpty || busy)
-          ? null
-          : () => runSubscriptionBatch(subscribe: true),
-      onUnsubscribe: (selectedIds.isEmpty || busy)
-          ? null
-          : () => runSubscriptionBatch(subscribe: false),
-      onBlacklist: (blacklist == null || selectedIds.isEmpty || busy)
-          ? null
-          : runBlacklistBatch,
-      onExit: busy ? null : exitSelection,
+      exitKey: Key('$batchKeyPrefix-exit-selection-button'),
+      onExitSelection: busy ? null : exitSelection,
+      actions: <AppGlassSelectionAction>[
+        AppGlassSelectionAction(
+          key: Key('$batchKeyPrefix-batch-subscribe-button'),
+          label: l10n.widgetMovieSubscribe,
+          icon: Icons.add_circle_outline,
+          foregroundColor: accent,
+          onTap: (selectedIds.isEmpty || busy)
+              ? null
+              : () => runSubscriptionBatch(subscribe: true),
+        ),
+        AppGlassSelectionAction(
+          key: Key('$batchKeyPrefix-batch-unsubscribe-button'),
+          label: l10n.widgetMovieUnsubscribe,
+          icon: Icons.remove_circle_outline,
+          foregroundColor: danger,
+          onTap: (selectedIds.isEmpty || busy)
+              ? null
+              : () => runSubscriptionBatch(subscribe: false),
+        ),
+        if (blacklist != null)
+          AppGlassSelectionAction(
+            key: Key('$batchKeyPrefix-batch-blacklist-button'),
+            label: l10n.widgetMovieBlacklist,
+            icon: Icons.block_rounded,
+            foregroundColor: danger,
+            onTap: (selectedIds.isEmpty || busy) ? null : runBlacklistBatch,
+          ),
+      ],
     );
   }
 
-  /// 移动端多选态下原地替换 [AppListHeader]（退出 + 计数 + 全选）。
+  /// 移动端多选态下原地替换为紧凑玻璃多选头（退出 + 计数 + 全选）。
   /// 批量动作另见 [buildMobileBatchSelectionBottomBar]。
   Widget buildMobileBatchSelectionHeader() {
     final visible = batchSelectableNumbers;
@@ -450,15 +358,6 @@ mixin MovieBatchSelectionMixin<W extends StatefulWidget>
       onBlacklist: (blacklist == null || selectedIds.isEmpty || busy)
           ? null
           : runBlacklistBatch,
-    );
-  }
-
-  /// 非多选态下的「选择」入口按钮。
-  Widget buildEnterSelectionButton() {
-    return MovieBatchEnterSelectionButton(
-      keyPrefix: batchKeyPrefix,
-      enabled: batchSelectableNumbers.isNotEmpty,
-      onEnter: enterSelection,
     );
   }
 }

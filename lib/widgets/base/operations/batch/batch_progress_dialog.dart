@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 /// 批量任务执行结果：成功与失败的原始条目清单，供调用方按结果就地更新列表。
@@ -28,12 +29,11 @@ Future<BatchRunResult<T>> runLocalBatchOperation<T>(
   required List<T> items,
   required Future<void> Function(T item) action,
 }) async {
-  final result = await showDialog<BatchRunResult<T>>(
+  final result = await showAppDialog<BatchRunResult<T>>(
     context: context,
     barrierDismissible: false,
-    builder:
-        (dialogContext) =>
-            _BatchProgressDialog<T>(title: title, items: items, action: action),
+    builder: (dialogContext) =>
+        _BatchProgressDialog<T>(title: title, items: items, action: action),
   );
   return result ??
       BatchRunResult<T>(succeeded: const [], failed: List<T>.of(items));
@@ -137,10 +137,9 @@ class _BatchProgressDialogState<T> extends State<_BatchProgressDialog<T>> {
                 context,
                 size: AppTextSize.s12,
                 weight: AppTextWeight.regular,
-                tone:
-                    _done && _failed.isNotEmpty
-                        ? AppTextTone.error
-                        : AppTextTone.secondary,
+                tone: _done && _failed.isNotEmpty
+                    ? AppTextTone.error
+                    : AppTextTone.secondary,
               ),
             ),
             if (_done) ...[
@@ -151,10 +150,9 @@ class _BatchProgressDialogState<T> extends State<_BatchProgressDialog<T>> {
                   key: const Key('batch-progress-close-button'),
                   label: l10n.baseClose,
                   size: AppButtonSize.small,
-                  onPressed:
-                      () => Navigator.of(context).pop(
-                        BatchRunResult<T>(succeeded: _succeeded, failed: _failed),
-                      ),
+                  onPressed: () => Navigator.of(context).pop(
+                    BatchRunResult<T>(succeeded: _succeeded, failed: _failed),
+                  ),
                 ),
               ),
             ],

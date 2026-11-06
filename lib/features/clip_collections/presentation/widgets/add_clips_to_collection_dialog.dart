@@ -13,14 +13,12 @@ import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_picker_header.dart';
-import 'package:sakuramedia/widgets/base/forms/app_picker_option_tile.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
 
 /// 在合集详情里弹出「添加切片」选择器：默认只看未加入，勾选即时加入 / 移出。
 ///
@@ -37,6 +35,7 @@ Future<void> showAddClipsToCollectionDialog(
     drawerKey: const Key('add-clips-to-collection-bottom-sheet'),
     desktopWidth: context.appComponentTokens.playlistDialogWidth,
     mobileHeightFactor: 0.8,
+    showDesktopCloseButton: false,
     builder: (_) => AddClipsToCollectionDialog(
       collectionId: collectionId,
       memberClipIds: memberClipIds,
@@ -235,30 +234,21 @@ class _AddClipsToCollectionDialogState
       children: [
         AppPickerHeader(
           title: l10n.clipCollectionAddClips,
-          countLabel: _isLoading && _clips.isEmpty
-              ? null
-              : _onlyUnadded
-              ? l10n.clipCollectionAddedAvailableCount(
-                  _memberIds.length,
-                  _total,
-                )
-              : l10n.clipCollectionAddedTotalCount(_memberIds.length, _total),
-          countKey: const Key('add-clips-count'),
           searchController: _searchController,
           searchFieldKey: const Key('add-clips-search-field'),
           searchHintText: l10n.clipCollectionSearchClipsHint,
           clearSearchKey: const Key('add-clips-search-clear'),
           onSearchChanged: _onSearchChanged,
           chips: <Widget>[
-            AppTextButton(
+            AppPickerIosChip(
               key: const Key('add-clips-only-unadded-chip'),
               label: l10n.clipCollectionOnlyUnadded,
-              size: AppTextButtonSize.xSmall,
-              isSelected: _onlyUnadded,
+              selected: _onlyUnadded,
               onPressed: () => _setOnlyUnadded(!_onlyUnadded),
             ),
           ],
-          onDone: _isDrawer ? () => Navigator.of(context).pop() : null,
+          onClose: () => Navigator.of(context).pop(),
+          closeKey: const Key('add-clips-close-button'),
           doneKey: const Key('add-clips-done-button'),
         ),
         SizedBox(height: spacing.lg),
@@ -273,9 +263,8 @@ class _AddClipsToCollectionDialogState
       return _buildLoadingOptions(context, key: const Key('add-clips-loading'));
     }
     if (_errorMessage != null) {
-      return AppEmptyState(
+      return AppPickerIosState(
         key: const Key('add-clips-error'),
-        icon: Icons.cloud_off_rounded,
         message: _errorMessage!,
         onRetry: _loadInitial,
       );
@@ -292,7 +281,10 @@ class _AddClipsToCollectionDialogState
       return _buildEmptyState(context);
     }
 
-    final spacing = context.appSpacing;
+    final l10n = AppLocalizations.of(context);
+    final countLabel = _onlyUnadded
+        ? l10n.clipCollectionAddedAvailableCount(_memberIds.length, _total)
+        : l10n.clipCollectionAddedTotalCount(_memberIds.length, _total);
     final list = AppPagedLoadMoreScope(
       canLoadMore: () =>
           !_isLoading &&
@@ -301,24 +293,36 @@ class _AddClipsToCollectionDialogState
           _errorMessage == null &&
           _loadMoreErrorMessage == null,
       onLoadMore: _loadMore,
-      child: ListView.separated(
+      child: SingleChildScrollView(
         key: const Key('add-clips-list'),
         controller: _scrollController,
-        // 抽屉里由外层 Expanded 限高，无需 shrinkWrap；弹窗里靠 shrinkWrap + 限高。
-        shrinkWrap: !_isDrawer,
-        itemCount:
-            _clips.length + (_hasMore || _loadMoreErrorMessage != null ? 1 : 0),
-        separatorBuilder: (context, index) => SizedBox(height: spacing.sm),
-        itemBuilder: (context, index) {
-          if (index >= _clips.length) {
-            return AppPagedLoadMoreFooter(
-              isLoading: _loadMoreErrorMessage == null,
-              errorMessage: _loadMoreErrorMessage,
-              onRetry: _retryLoadMore,
-            );
-          }
-          return _buildClipOption(context, _clips[index]);
-        },
+        padding: EdgeInsets.only(bottom: context.appSpacing.xs),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            AppPickerIosSection(
+              dividerIndent: 84,
+              header: Text(
+                countLabel,
+                key: const Key('add-clips-count'),
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  tone: AppTextTone.muted,
+                ),
+              ),
+              children: [
+                for (final clip in _clips) _buildClipOption(context, clip),
+              ],
+            ),
+            if (_hasMore || _loadMoreErrorMessage != null)
+              AppPagedLoadMoreFooter(
+                isLoading: _loadMoreErrorMessage == null,
+                errorMessage: _loadMoreErrorMessage,
+                onRetry: _retryLoadMore,
+              ),
+          ],
+        ),
       ),
     );
     if (_isDrawer) {
@@ -333,27 +337,24 @@ class _AddClipsToCollectionDialogState
   Widget _buildEmptyState(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     if (_keyword.isNotEmpty) {
-      return AppEmptyState(
+      return AppPickerIosState(
         key: const Key('add-clips-empty-search'),
-        icon: Icons.search_off_rounded,
         title: l10n.clipCollectionNoMatchingClips,
         message: l10n.clipCollectionTryAnotherKeyword,
       );
     }
     if (_onlyUnadded) {
-      return AppEmptyState(
+      return AppPickerIosState(
         key: const Key('add-clips-empty-all-added'),
-        icon: Icons.playlist_add_check_rounded,
         title: l10n.clipCollectionAllAdded,
         message: l10n.clipCollectionAllAddedHint,
-        retryLabel: l10n.clipCollectionViewAll,
-        retryKey: const Key('add-clips-show-all-button'),
+        actionLabel: l10n.clipCollectionViewAll,
         onRetry: () => _setOnlyUnadded(false),
+        retryKey: const Key('add-clips-show-all-button'),
       );
     }
-    return AppEmptyState(
+    return AppPickerIosState(
       key: const Key('add-clips-empty-library'),
-      icon: Icons.movie_creation_outlined,
       title: l10n.clipCollectionNoClipsTitle,
       message: l10n.clipCollectionNoClipsHint,
     );
@@ -362,19 +363,14 @@ class _AddClipsToCollectionDialogState
   Widget _buildLoadingOptions(BuildContext context, {Key? key}) {
     final placeholders = clipPlaceholders();
     // loading 用占位切片渲染真实选项行，由 [AppSkeletonizer] 灰化。
-    return Padding(
-      padding: EdgeInsets.only(top: context.appSpacing.xs),
-      child: AppSkeletonizer(
-        key: key,
-        enabled: true,
-        child: Column(
-          children: [
-            for (var index = 0; index < placeholders.length; index++) ...[
-              if (index > 0) SizedBox(height: context.appSpacing.sm),
-              _buildClipOption(context, placeholders[index]),
-            ],
-          ],
-        ),
+    return AppSkeletonizer(
+      key: key,
+      enabled: true,
+      child: AppPickerIosSection(
+        dividerIndent: 84,
+        children: [
+          for (final clip in placeholders) _buildClipOption(context, clip),
+        ],
       ),
     );
   }
@@ -393,15 +389,17 @@ class _AddClipsToCollectionDialogState
       formatMediaTimecode(clip.durationSeconds),
     ];
 
-    return AppPickerOptionTile.cover(
+    return AppPickerIosRow(
+      optionKey: Key('add-clips-option-${clip.clipId}'),
+      leading: AppPickerIosCover(url: coverUrl),
       selected: selected,
+      showCheckmark: true,
       enabled: !isAnyUpdating,
+      busy: isAnyUpdating && _updatingIds.contains(clip.clipId),
+      busyKey: Key('add-clips-updating-${clip.clipId}'),
       onTap: () => _toggle(clip),
       title: title.isEmpty ? l10n.clipCollectionUntitledClip : title,
       subtitle: metaParts.join(' · '),
-      coverUrl: coverUrl,
-      optionKey: Key('add-clips-option-${clip.clipId}'),
-      checkboxKey: Key('add-clips-checkbox-${clip.clipId}'),
     );
   }
 

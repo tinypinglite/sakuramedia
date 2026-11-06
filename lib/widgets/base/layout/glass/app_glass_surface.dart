@@ -6,14 +6,16 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 
 /// 玻璃材质的语义档位：
-/// - [sidebar]：桌面侧栏整块浮层，主题自适应、无外投影；
+/// - [sidebar]：桌面侧栏整块浮层，主题自适应、浅色模式带轻量浮层阴影；
 /// - [chrome]：浮在媒体内容上的窗口级控件（顶栏、浮动返回键），带浮层阴影；
 /// - [control]：页面内的可点击次级控件（动作组），主题自适应、不带阴影；
 /// - [overlay]：播放器菜单/抽屉等深色媒体浮层，模糊更强、染色更实；
-/// - [track]：分段控件等控件内部的凹槽，只提供一层很淡的玻璃底和边光。
+/// - [track]：分段控件等控件内部的凹槽，只提供一层很淡的玻璃底和边光；
+/// - [modal]：对话框、底部抽屉等模态浮层，直接使用库的 iOS 27
+///   `glassEffect(.regular)` preset 和 premium 质量。
 ///
 /// 内容卡和正文不使用玻璃，保持可读性；主操作仍用实色品牌色。
-enum AppGlassTone { sidebar, chrome, control, overlay, track }
+enum AppGlassTone { sidebar, chrome, control, overlay, track, modal }
 
 /// 统一玻璃表面。
 ///
@@ -25,7 +27,8 @@ enum AppGlassTone { sidebar, chrome, control, overlay, track }
 /// - 1px 外圈用 sweep 渐变，内层圆角同步减 1px，四角描边均匀；
 /// - 内侧顶部叠一层柔和的 specular wash，底部压一道暗边模拟玻璃厚度；
 /// - 背景先模糊、再提高饱和度，让玻璃「聚色」而不是发灰；
-/// - chrome / overlay 带浮层阴影，control / track 不带阴影。
+/// - chrome / overlay 带浮层阴影，sidebar 仅浅色模式带轻量阴影，
+///   control / track 不带阴影。
 ///
 /// 正常路径使用 `liquid_glass_widgets` 的 shader 玻璃；上面的光感近似规则
 /// 只用于高对比、关闭模糊或无法映射圆角的 fallback。
@@ -37,6 +40,7 @@ class AppGlassSurface extends StatelessWidget {
     this.borderRadius,
     this.padding,
     this.blur = true,
+    this.glassSettings,
     this.width,
     this.height,
   });
@@ -48,6 +52,9 @@ class AppGlassSurface extends StatelessWidget {
 
   /// 是否启用背景滤镜（模糊 + 饱和度提升）。关闭后只保留染色与边光。
   final bool blur;
+
+  /// 覆盖当前 tone 的库材质参数；为空时使用 tone 的默认配方。
+  final LiquidGlassSettings? glassSettings;
 
   /// 整体尺寸；为空时由子级决定。
   final double? width;
@@ -81,12 +88,14 @@ class AppGlassSurface extends StatelessWidget {
       return null;
     }
 
-    final settings = _packageSettings(context);
+    final settings = glassSettings ?? _packageSettings(context);
     final quality = tone == AppGlassTone.track || tone == AppGlassTone.sidebar
         ? GlassQuality.standard
         : GlassQuality.premium;
     final allowElevation =
-        tone == AppGlassTone.chrome || tone == AppGlassTone.overlay;
+        tone == AppGlassTone.chrome ||
+        tone == AppGlassTone.overlay ||
+        tone == AppGlassTone.modal;
 
     if (!shape.isLeftOnly) {
       return GlassContainer(
@@ -163,6 +172,20 @@ class AppGlassSurface extends StatelessWidget {
       );
     }
 
+    final topOnly =
+        topLeft == topRight &&
+        topLeft.x == topLeft.y &&
+        bottomLeft == Radius.zero &&
+        bottomRight == Radius.zero;
+    if (topOnly) {
+      return _PackageShape(
+        shape: LiquidVerticalRoundedSuperellipse(
+          topRadius: topLeft.x,
+          bottomRadius: 0,
+        ),
+      );
+    }
+
     final leftOnly =
         topLeft == bottomLeft &&
         topLeft.x == topLeft.y &&
@@ -183,13 +206,13 @@ class AppGlassSurface extends StatelessWidget {
     final colors = context.appColors;
     return switch (tone) {
       AppGlassTone.sidebar => LiquidGlassSettings(
-        thickness: 22,
-        blur: 8,
-        saturation: 1.25,
-        chromaticAberration: 0.01,
-        lightIntensity: 0.55,
-        glassColor: colors.surfaceElevated.withValues(alpha: 0.26),
-        shadowElevation: 0,
+        thickness: 28,
+        blur: 10,
+        saturation: 1.4,
+        chromaticAberration: 0.02,
+        lightIntensity: 0.7,
+        glassColor: colors.surfaceElevated.withValues(alpha: 0.32),
+        shadowElevation: 1,
       ),
       AppGlassTone.chrome => LiquidGlassSettings(
         thickness: 26,
@@ -225,6 +248,10 @@ class AppGlassSurface extends StatelessWidget {
         lightIntensity: 0.35,
         glassColor: colors.mediaOverlaySoft.withValues(alpha: 0.10),
       ),
+      AppGlassTone.modal =>
+        Theme.of(context).brightness == Brightness.dark
+            ? LiquidGlassSettings.ios27Dark
+            : LiquidGlassSettings.ios27Light,
     };
   }
 
@@ -561,6 +588,28 @@ class _GlassRecipe {
         topSheenAlpha: 0.08,
         topSheenHeight: 14,
         innerBottomShadowAlpha: 0.10,
+      ),
+      AppGlassTone.modal => _GlassRecipe(
+        tint: colors.surfaceElevated,
+        tintAlpha: 0.94,
+        blurSigma: 32,
+        saturation: 1.18,
+        topRimAlpha: isDark ? 0.30 : 0.72,
+        sideRimAlpha: isDark ? 0.16 : 0.44,
+        lowRimAlpha: isDark ? 0.05 : 0.10,
+        bottomRimAlpha: isDark ? 0.10 : 0.18,
+        topSheenAlpha: isDark ? 0.12 : 0.24,
+        topSheenHeight: 26,
+        innerBottomShadowAlpha: isDark ? 0.24 : 0.10,
+        shadow: <BoxShadow>[
+          BoxShadow(
+            color: context.appShadows.color.withValues(
+              alpha: isDark ? 0.40 : 0.16,
+            ),
+            blurRadius: 44,
+            offset: const Offset(0, 18),
+          ),
+        ],
       ),
     };
   }

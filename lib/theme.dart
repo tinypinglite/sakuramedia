@@ -154,6 +154,7 @@ ThemeData _buildSakuraThemeData({
     filledButtonTheme: FilledButtonThemeData(style: interactiveButtonStyle),
     iconButtonTheme: IconButtonThemeData(style: interactiveButtonStyle),
     outlinedButtonTheme: OutlinedButtonThemeData(style: interactiveButtonStyle),
+    dialogTheme: DialogThemeData(barrierColor: colors.modalBarrier),
     popupMenuTheme: const PopupMenuThemeData(
       mouseCursor: WidgetStateMouseCursor.clickable,
     ),
@@ -173,7 +174,9 @@ ThemeData _buildSakuraThemeData({
       const AppOverlayTokens.defaults(),
       const AppSpacing.defaults(),
       const AppRadius.defaults(),
-      const AppToastTokens.defaults(),
+      brightness == Brightness.dark
+          ? const AppToastTokens.dark()
+          : const AppToastTokens.defaults(),
       const AppSidebarTokens.defaults(),
       shadows,
       textScale,

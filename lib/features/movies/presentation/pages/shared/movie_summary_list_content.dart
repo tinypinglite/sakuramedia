@@ -23,12 +23,13 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_filter_sections.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_sort_menu_button.dart';
@@ -102,8 +103,10 @@ class MovieSummaryListContent extends ConsumerStatefulWidget {
     this.onRefreshFailure,
     this.headerBuilder,
     this.headerLeading,
+    this.mobileHeaderLeading,
     this.showHeader = true,
     this.useMobileSelectionLayout = false,
+    this.usePinnedMobileHeader = false,
     this.tagSelectionScope,
     this.enableMediaTagFilter = false,
     this.trailingLabelForMovie,
@@ -123,9 +126,13 @@ class MovieSummaryListContent extends ConsumerStatefulWidget {
   final MovieSummaryListHeaderBuilder? headerBuilder;
   final Widget? headerLeading;
 
+  /// 一级移动列表页的大标题等前置内容；仅与 [usePinnedMobileHeader] 搭配使用。
+  final Widget? mobileHeaderLeading;
+
   /// 无筛选维度的列表（如女优上新）可以整行不渲染顶栏，把高度留给内容。
   final bool showHeader;
   final bool useMobileSelectionLayout;
+  final bool usePinnedMobileHeader;
 
   /// 可选的标签筛选：传入后筛选面板末尾出现「标签」分节，选择变化实时应用
   /// 到列表筛选，顶栏摘要与重置也纳入标签条件。生命周期由调用页面管理
@@ -147,6 +154,7 @@ class _MovieSummaryListContentState
         MultiSelectStateMixin<MovieSummaryListContent, String>,
         MovieBatchSelectionMixin<MovieSummaryListContent> {
   late final ScrollController _scrollController;
+  final _listHeaderKey = GlobalKey();
 
   MovieCardHoverFeatureActions get _hoverFeatureActions =>
       movieCardHoverFeatureActions(
@@ -351,7 +359,7 @@ class _MovieSummaryListContentState
     if (selectionMode) {
       header = widget.useMobileSelectionLayout
           ? buildMobileBatchSelectionHeader()
-          : buildBatchSelectionToolbar();
+          : buildGlassBatchSelectionToolbar();
     } else if (!widget.showHeader) {
       header = null;
     } else if (headerBuilder != null) {
@@ -370,67 +378,142 @@ class _MovieSummaryListContentState
         filter: filter,
         tagSelection: tagSelection,
       );
-      header = AppListHeader(
-        filterButtonKey: const Key('movies-filter-trigger'),
-        filterLabel: filterLabel,
-        filterPanelKey: const Key('movies-filter-panel'),
-        filterPanelBuilder: (_) => MovieFilterSectionGroup(
-          filterState: filter,
-          onChanged: _applyFilter,
-          tagSection: tagSelectionScope == null
-              ? null
-              : TagFilterSection(scope: tagSelectionScope),
-          mediaTagSection: widget.enableMediaTagFilter
-              ? MediaTagFilterSection(filter: filter, onChanged: _applyFilter)
-              : null,
-        ),
-        filterPanelFooter: AppFilterPanelFooter(
+      header = AppGlassListHeader(
+        leading: AppGlassFilterPopover(
+          panelKey: const Key('movies-filter-panel'),
+          scrollable: true,
           isDefault:
               !filter.hasActiveFilters &&
               !(tagSelection?.hasSelection ?? false),
           onReset: _resetFilters,
-        ),
-        informationSlots: [
-          AppListHeaderInfo(
-            key: widget.totalKey,
-            label: l10n.moviePageMovieCount(paged.total),
-          ),
-        ],
-        actionSlots: [
-          MovieSortMenuButton(
-            triggerKey: const Key('movies-sort-trigger'),
-            panelKey: const Key('movies-sort-panel'),
+          triggerKey: const Key('movies-filter-trigger'),
+          label: filterLabel,
+          info: <Widget>[
+            AppGlassHeaderText(
+              key: widget.totalKey,
+              label: l10n.moviePageMovieCount(paged.total),
+            ),
+          ],
+          panelBuilder: (context) => MovieFilterSectionGroup(
             filterState: filter,
             onChanged: _applyFilter,
+            tagSection: tagSelectionScope == null
+                ? null
+                : TagFilterSection(scope: tagSelectionScope),
+            mediaTagSection: widget.enableMediaTagFilter
+                ? MediaTagFilterSection(filter: filter, onChanged: _applyFilter)
+                : null,
           ),
-          buildEnterSelectionButton(),
-        ],
+        ),
+        trailing: AppGlassHeaderGroup(
+          children: <Widget>[
+            MovieSortMenuButton(
+              triggerKey: const Key('movies-sort-trigger'),
+              panelKey: const Key('movies-sort-panel'),
+              filterState: filter,
+              glassGrouped: true,
+              onChanged: _applyFilter,
+            ),
+            if (batchSelectableNumbers.isNotEmpty)
+              AppGlassHeaderButton(
+                key: Key('$batchKeyPrefix-enter-selection-button'),
+                icon: Icons.check_circle_outline,
+                label: l10n.baseSelect,
+                onTap: enterSelection,
+              ),
+          ],
+        ),
       );
     }
 
-    final body = AppFixedHeaderLayout(
-      header: Column(
-        key: widget.contentKey,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!selectionMode && widget.headerLeading != null)
-            widget.headerLeading!,
-          ?header,
-          AppFilterUpdateBar(
-            state: paged.filterUpdate,
-            hasPreviousItems: items.isNotEmpty,
-            onRetry: () => unawaited(
-              ref
-                  .read(movieSummaryProvider(widget.scope).notifier)
-                  .retryFilter(),
+    final listSliver = SliverMainAxisGroup(
+      slivers: [
+        if (!paged.filterUpdate.hasFailed || items.isNotEmpty)
+          AppSkeletonizer.sliver(
+            enabled: isInitialLoading,
+            child: MovieSummarySliver(
+              items: isInitialLoading
+                  ? movieListItemPlaceholders(count: 24)
+                  : items,
+              errorMessage: initialErrorMessage,
+              trailingLabelForMovie: widget.trailingLabelForMovie,
+              onMovieTap: (movie) =>
+                  widget.onMovieTap(context, movie.movieNumber),
+              onMovieMenuRequest: (movie, globalPosition) {
+                unawaited(
+                  showMovieCollectionFeatureActionMenu(
+                    context: context,
+                    movieNumber: movie.movieNumber,
+                    globalPosition: globalPosition,
+                    isSubscribed: movie.isSubscribed,
+                    onBlacklisted: () => ref
+                        .read(movieSummaryProvider(widget.scope).notifier)
+                        .removeMovies(<String>[movie.movieNumber]),
+                    onEnterSelection: widget.useMobileSelectionLayout
+                        ? () {
+                            enterSelection();
+                            toggleSelect(movie.movieNumber);
+                          }
+                        : null,
+                  ),
+                );
+              },
+              onMovieSubscriptionTap: (movie) =>
+                  _toggleMovieSubscription(movie.movieNumber),
+              onMovieToggleCollectionType:
+                  _hoverFeatureActions.toggleCollectionType,
+              onMovieBlacklist: _hoverFeatureActions.blacklist,
+              isMovieSubscriptionUpdating: (movie) =>
+                  updating.contains(movie.movieNumber),
+              emptyMessage:
+                  widget.emptyMessage ??
+                  (!filter.hasActiveFilters
+                      ? l10n.moviePageEmptyNoMovies
+                      : l10n.moviePageEmptyNoMatches),
+              selectionMode: selectionMode,
+              isMovieSelected: (movie) => isSelected(movie.movieNumber),
+              onMovieSelectedChanged: (movie, _) =>
+                  toggleSelect(movie.movieNumber),
             ),
           ),
-          SizedBox(height: widget.sectionSpacing),
-        ],
-      ),
-      child: AppFilterResultLoadingOverlay(
+        // loadMore 页脚独立订阅：翻页状态翻转只重建它，不重建上面网格。
+        PagedLoadMoreFooterSliver(
+          watchFooter: (ref) => ref.watch(
+            movieSummaryProvider(
+              widget.scope,
+            ).select((s) => pagedLoadMoreFooterSnapshot(s.value?.paged)),
+          ),
+          onLoadMore: (ref) => unawaited(
+            ref.read(movieSummaryProvider(widget.scope).notifier).loadMore(),
+          ),
+        ),
+      ],
+    );
+
+    final headerContent = Column(
+      key: widget.contentKey,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!selectionMode && widget.headerLeading != null)
+          widget.headerLeading!,
+        ?header,
+        AppFilterUpdateBar(
+          state: paged.filterUpdate,
+          hasPreviousItems: items.isNotEmpty,
+          onRetry: () => unawaited(
+            ref.read(movieSummaryProvider(widget.scope).notifier).retryFilter(),
+          ),
+        ),
+        SizedBox(height: widget.sectionSpacing),
+      ],
+    );
+
+    final Widget body;
+    if (widget.usePinnedMobileHeader) {
+      body = AppFilterResultLoadingOverlay(
         surfaceColor: widget.surfaceColor,
-        // 结果区已经在渲染骨架时，不再叠居中的筛选进度层，避免遮住骨架。
+        protectedHeaderKey: _listHeaderKey,
+        scrollController: _scrollController,
         isLoading: paged.filterUpdate.isLoading && !isInitialLoading,
         hasPreviousItems: items.isNotEmpty,
         child: AppPagedLoadMoreScope(
@@ -446,78 +529,66 @@ class _MovieSummaryListContentState
           child: widget.bodyBuilder(
             context,
             _scrollController,
-            SliverMainAxisGroup(
-              slivers: [
-                if (!paged.filterUpdate.hasFailed || items.isNotEmpty)
-                  AppSkeletonizer.sliver(
-                    enabled: isInitialLoading,
-                    child: MovieSummarySliver(
-                      items: isInitialLoading
-                          ? movieListItemPlaceholders(count: 24)
-                          : items,
-                      errorMessage: initialErrorMessage,
-                      trailingLabelForMovie: widget.trailingLabelForMovie,
-                      onMovieTap: (movie) =>
-                          widget.onMovieTap(context, movie.movieNumber),
-                      onMovieMenuRequest: (movie, globalPosition) {
-                        unawaited(
-                          showMovieCollectionFeatureActionMenu(
-                            context: context,
-                            movieNumber: movie.movieNumber,
-                            globalPosition: globalPosition,
-                            isSubscribed: movie.isSubscribed,
-                            onBlacklisted: () => ref
-                                .read(
-                                  movieSummaryProvider(widget.scope).notifier,
-                                )
-                                .removeMovies(<String>[movie.movieNumber]),
-                            onEnterSelection: widget.useMobileSelectionLayout
-                                ? () {
-                                    enterSelection();
-                                    toggleSelect(movie.movieNumber);
-                                  }
-                                : null,
-                          ),
-                        );
-                      },
-                      onMovieSubscriptionTap: (movie) =>
-                          _toggleMovieSubscription(movie.movieNumber),
-                      onMovieToggleCollectionType:
-                          _hoverFeatureActions.toggleCollectionType,
-                      onMovieBlacklist: _hoverFeatureActions.blacklist,
-                      isMovieSubscriptionUpdating: (movie) =>
-                          updating.contains(movie.movieNumber),
-                      emptyMessage:
-                          widget.emptyMessage ??
-                          (!filter.hasActiveFilters
-                              ? l10n.moviePageEmptyNoMovies
-                              : l10n.moviePageEmptyNoMatches),
-                      selectionMode: selectionMode,
-                      isMovieSelected: (movie) => isSelected(movie.movieNumber),
-                      onMovieSelectedChanged: (movie, _) =>
-                          toggleSelect(movie.movieNumber),
-                    ),
-                  ),
-                // loadMore 页脚独立订阅：翻页状态翻转只重建它，不重建上面网格。
-                PagedLoadMoreFooterSliver(
-                  watchFooter: (ref) => ref.watch(
-                    movieSummaryProvider(widget.scope).select(
-                      (s) => pagedLoadMoreFooterSnapshot(s.value?.paged),
-                    ),
-                  ),
-                  onLoadMore: (ref) => unawaited(
-                    ref
-                        .read(movieSummaryProvider(widget.scope).notifier)
-                        .loadMore(),
-                  ),
-                ),
+            AppPinnedSliverSection(
+              key: widget.contentKey,
+              headerKey: _listHeaderKey,
+              before: <Widget>[
+                if (widget.mobileHeaderLeading != null)
+                  SliverToBoxAdapter(child: widget.mobileHeaderLeading),
+                if (!selectionMode && widget.headerLeading != null)
+                  SliverToBoxAdapter(child: widget.headerLeading),
               ],
+              header: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ?header,
+                  AppFilterUpdateBar(
+                    state: paged.filterUpdate,
+                    hasPreviousItems: items.isNotEmpty,
+                    onRetry: () => unawaited(
+                      ref
+                          .read(movieSummaryProvider(widget.scope).notifier)
+                          .retryFilter(),
+                    ),
+                  ),
+                ],
+              ),
+              headerBottomSpacing: widget.sectionSpacing,
+              after: <Widget>[listSliver],
             ),
             widget.enableRefresh ? _handleRefresh : null,
           ),
         ),
-      ),
-    );
+      );
+    } else {
+      body = AppFixedHeaderLayout(
+        header: headerContent,
+        child: AppFilterResultLoadingOverlay(
+          surfaceColor: widget.surfaceColor,
+          // 结果区已经在渲染骨架时，不再叠居中的筛选进度层，避免遮住骨架。
+          isLoading: paged.filterUpdate.isLoading && !isInitialLoading,
+          hasPreviousItems: items.isNotEmpty,
+          child: AppPagedLoadMoreScope(
+            canLoadMore: () =>
+                ref
+                    .read(movieSummaryProvider(widget.scope))
+                    .value
+                    ?.paged
+                    .canAutoLoadMore ??
+                false,
+            onLoadMore: () => ref
+                .read(movieSummaryProvider(widget.scope).notifier)
+                .loadMore(),
+            child: widget.bodyBuilder(
+              context,
+              _scrollController,
+              listSliver,
+              widget.enableRefresh ? _handleRefresh : null,
+            ),
+          ),
+        ),
+      );
+    }
 
     final content = widget.useMobileSelectionLayout
         ? Column(

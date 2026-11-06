@@ -36,8 +36,9 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_sc
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_filter_sections.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_sort_menu_button.dart';
@@ -381,7 +382,7 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
     );
   }
 
-  /// 影片区顶栏：与影片 / 女优列表页共用同一条 `AppListHeader`。
+  /// 影片区顶栏：桌面玻璃分组，移动端紧凑图标行。
   /// 差别只在筛选面板的容器——桌面就地浮层，移动底部抽屉。
   ///
   /// 数量属于当前作品筛选结果，随作品列表一起展示。
@@ -391,62 +392,95 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
     PagedViewSnapshot<MovieListItemDto> movies,
   ) {
     final l10n = AppLocalizations.of(context);
-    return AppListHeader(
-      filterButtonKey: const Key('actor-detail-filter-trigger'),
-      filterLabel: filterState.triggerLabel(l10n),
-      filterPanelKey: const Key('actor-detail-filter-panel'),
+    final totalLabel = l10n.actorMovieCountLabel(movies.total);
+    final showTotal = !movies.isInitialLoading && movies.initialError == null;
+    if (widget.useMobileFilterDrawer) {
+      return AppMobileListHeader(
+        leading: showTotal ? AppMobileHeaderText(countLabel: totalLabel) : null,
+        actions: <Widget>[
+          AppGlassFilterIconButton(
+            key: const Key('actor-detail-filter-trigger'),
+            summary: filterState.triggerLabel(l10n),
+            isActive: filterState.hasActiveFilters,
+            onPressed: () => unawaited(_openFilterDrawer()),
+          ),
+          ActorTagFilterMenuButton(
+            actorId: widget.actorId,
+            triggerKey: const Key('actor-detail-tag-filter-trigger'),
+            panelKey: const Key('actor-detail-tag-filter-panel'),
+            drawerKey: const Key('mobile-actor-detail-tag-filter-drawer'),
+            useDrawer: true,
+          ),
+          MovieSortMenuButton(
+            triggerKey: const Key('actor-detail-sort-trigger'),
+            drawerKey: const Key('mobile-actor-detail-sort-drawer'),
+            filterState: filterState,
+            onChanged: _applyFilter,
+            useDrawer: true,
+            iconOnly: true,
+          ),
+        ],
+        filterUpdate: movies.filterUpdate,
+        hasPreviousFilterItems: movies.items.isNotEmpty,
+        onRetryFilter: () => unawaited(
+          ref.read(movieSummaryProvider(_scope).notifier).retryFilter(),
+        ),
+      );
+    }
+    return AppGlassListHeader(
+      leading: AppGlassFilterPopover(
+        panelKey: const Key('actor-detail-filter-panel'),
+        scrollable: true,
+        isDefault: !filterState.hasActiveFilters,
+        onReset: _resetFilters,
+        triggerKey: const Key('actor-detail-filter-trigger'),
+        label: filterState.triggerLabel(l10n),
+        onBeforeOpen: _loadMovieYearsIfNeeded,
+        info: [if (showTotal) AppGlassHeaderText(label: totalLabel)],
+        panelBuilder: (context) => MovieFilterSectionGroup(
+          filterState: filterState,
+          onChanged: _applyFilter,
+          showActorAgeSection: false,
+          mediaTagSection: MediaTagFilterSection(
+            filter: filterState,
+            onChanged: _applyFilter,
+          ),
+          yearOptions: _movieYearOptions,
+          isYearOptionsLoading: _isMovieYearsLoading,
+          yearOptionsErrorMessage: _movieYearsErrorMessage,
+          onYearOptionsRetry: () => unawaited(_loadMovieYears(force: true)),
+        ),
+      ),
       filterUpdate: movies.filterUpdate,
       hasPreviousFilterItems: movies.items.isNotEmpty,
       onRetryFilter: () => unawaited(
         ref.read(movieSummaryProvider(_scope).notifier).retryFilter(),
       ),
-      onFilterPanelOpened: widget.useMobileFilterDrawer
-          ? null
-          : _loadMovieYearsIfNeeded,
-      onFilterTap: widget.useMobileFilterDrawer
-          ? () => unawaited(_openFilterDrawer())
-          : null,
-      filterPanelBuilder: widget.useMobileFilterDrawer
-          ? null
-          : (_) => MovieFilterSectionGroup(
-              filterState: filterState,
-              onChanged: _applyFilter,
-              showActorAgeSection: false,
-              mediaTagSection: MediaTagFilterSection(
-                filter: filterState,
-                onChanged: _applyFilter,
-              ),
-              yearOptions: _movieYearOptions,
-              isYearOptionsLoading: _isMovieYearsLoading,
-              yearOptionsErrorMessage: _movieYearsErrorMessage,
-              onYearOptionsRetry: () => unawaited(_loadMovieYears(force: true)),
+      trailing: AppGlassHeaderGroup(
+        children: <Widget>[
+          ActorTagFilterMenuButton(
+            actorId: widget.actorId,
+            triggerKey: const Key('actor-detail-tag-filter-trigger'),
+            panelKey: const Key('actor-detail-tag-filter-panel'),
+            drawerKey: const Key('mobile-actor-detail-tag-filter-drawer'),
+            glassGrouped: true,
+          ),
+          MovieSortMenuButton(
+            triggerKey: const Key('actor-detail-sort-trigger'),
+            drawerKey: const Key('mobile-actor-detail-sort-drawer'),
+            filterState: filterState,
+            onChanged: _applyFilter,
+            glassGrouped: true,
+          ),
+          if (batchSelectableNumbers.isNotEmpty)
+            AppGlassHeaderButton(
+              key: Key('$batchKeyPrefix-enter-selection-button'),
+              icon: Icons.check_circle_outline,
+              label: l10n.baseSelect,
+              onTap: enterSelection,
             ),
-      filterPanelFooter: AppFilterPanelFooter(
-        isDefault: !filterState.hasActiveFilters,
-        onReset: _resetFilters,
+        ],
       ),
-      informationSlots: [
-        if (!movies.isInitialLoading && movies.initialError == null)
-          AppListHeaderInfo(label: l10n.actorMovieCountLabel(movies.total)),
-      ],
-      actionSlots: [
-        ActorTagFilterMenuButton(
-          actorId: widget.actorId,
-          triggerKey: const Key('actor-detail-tag-filter-trigger'),
-          panelKey: const Key('actor-detail-tag-filter-panel'),
-          drawerKey: const Key('mobile-actor-detail-tag-filter-drawer'),
-          useDrawer: widget.useMobileFilterDrawer,
-        ),
-        MovieSortMenuButton(
-          triggerKey: const Key('actor-detail-sort-trigger'),
-          drawerKey: const Key('mobile-actor-detail-sort-drawer'),
-          filterState: filterState,
-          onChanged: _applyFilter,
-          useDrawer: widget.useMobileFilterDrawer,
-        ),
-        // 移动端多选入口挂在卡片长按菜单里，顶栏不常驻「选择」。
-        if (!widget.useMobileSelectionLayout) buildEnterSelectionButton(),
-      ],
     );
   }
 
@@ -588,8 +622,9 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
               child: widget.bodyBuilder(
                 context,
                 _scrollController,
-                SliverMainAxisGroup(
-                  slivers: [
+                AppPinnedSliverSection(
+                  headerKey: _listHeaderKey,
+                  before: <Widget>[
                     SliverToBoxAdapter(
                       child: KeyedSubtree(
                         key: widget.contentKey,
@@ -611,18 +646,14 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
                     SliverToBoxAdapter(
                       child: SizedBox(height: widget.sectionSpacing),
                     ),
-                    AppPinnedListHeader(
-                      key: _listHeaderKey,
-                      color: Colors.transparent,
-                      child: selectionMode
-                          ? (widget.useMobileSelectionLayout
-                                ? buildMobileBatchSelectionHeader()
-                                : buildBatchSelectionToolbar())
-                          : _buildFilterHeader(context, movieFilter, movies),
-                    ),
-                    SliverToBoxAdapter(
-                      child: SizedBox(height: widget.sectionSpacing),
-                    ),
+                  ],
+                  header: selectionMode
+                      ? (widget.useMobileSelectionLayout
+                            ? buildMobileBatchSelectionHeader()
+                            : buildGlassBatchSelectionToolbar())
+                      : _buildFilterHeader(context, movieFilter, movies),
+                  headerBottomSpacing: widget.sectionSpacing,
+                  after: <Widget>[
                     if (!movies.filterUpdate.hasFailed ||
                         movies.items.isNotEmpty)
                       AppSkeletonizer.sliver(

@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/plugins/data/dto/plugin_dto.dart';
 import 'package:sakuramedia/features/plugins/presentation/pages/shared/plugin_settings_content.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 /// 打开单个插件的桌面配置编辑器。
@@ -12,7 +13,7 @@ Future<void> showPluginSettingsDialog(
   BuildContext context, {
   required PluginSummaryDto plugin,
 }) {
-  return showDialog<void>(
+  return showAppDialog<void>(
     context: context,
     builder: (_) => AppDesktopDialog(
       dialogKey: const Key('plugin-settings-dialog'),

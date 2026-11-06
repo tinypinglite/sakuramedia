@@ -4,7 +4,7 @@ import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_sca
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_filter_sections.dart';
 
-/// 弹出移动端演员筛选底部抽屉。内容与行为对齐桌面女优页 `AppListHeader` 的就地
+/// 弹出移动端演员筛选底部抽屉。内容与行为对齐桌面女优页玻璃筛选浮层
 /// 浮层面板（同一个 `ActorFilterSectionGroup`），见 `showMobileMovieFilterDrawer`
 /// 的说明。
 Future<void> showMobileActorFilterDrawer(

@@ -4,6 +4,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/domain/media/media_center_play_button.dart';
 import 'package:sakuramedia/widgets/domain/media/media_duration_badge.dart';
@@ -117,9 +118,7 @@ class ClipActionsPanel extends StatelessWidget {
                     bottom: spacing.xs,
                     child: MediaDurationBadge(seconds: clip.durationSeconds),
                   ),
-                  MediaCenterPlayButton(
-                    onTap: () => _run(context, onPlay),
-                  ),
+                  MediaCenterPlayButton(onTap: () => _run(context, onPlay)),
                 ],
               ),
             ),
@@ -175,17 +174,16 @@ Future<void> showClipActionsSheet(
     context: context,
     drawerKey: const Key('mobile-clip-actions-sheet'),
     maxHeightFactor: 0.62,
-    builder:
-        (_) => ClipActionsPanel(
-          clip: clip,
-          keyPrefix: 'mobile-clip',
-          onPlay: onPlay,
-          onOpenMovie: onOpenMovie,
-          onAddToCollection: onAddToCollection,
-          onRename: onRename,
-          onDelete: onDelete,
-          onRemoveFromCollection: onRemoveFromCollection,
-        ),
+    builder: (_) => ClipActionsPanel(
+      clip: clip,
+      keyPrefix: 'mobile-clip',
+      onPlay: onPlay,
+      onOpenMovie: onOpenMovie,
+      onAddToCollection: onAddToCollection,
+      onRename: onRename,
+      onDelete: onDelete,
+      onRemoveFromCollection: onRemoveFromCollection,
+    ),
   );
 }
 
@@ -200,22 +198,21 @@ Future<void> showClipActionsDialog(
   VoidCallback? onDelete,
   VoidCallback? onRemoveFromCollection,
 }) {
-  return showDialog<void>(
+  return showAppDialog<void>(
     context: context,
-    builder:
-        (dialogContext) => AppDesktopDialog(
-          dialogKey: const Key('clip-actions-dialog'),
-          width: dialogContext.appComponentTokens.playlistDialogWidth,
-          child: ClipActionsPanel(
-            clip: clip,
-            keyPrefix: 'clip',
-            onPlay: onPlay,
-            onOpenMovie: onOpenMovie,
-            onAddToCollection: onAddToCollection,
-            onRename: onRename,
-            onDelete: onDelete,
-            onRemoveFromCollection: onRemoveFromCollection,
-          ),
-        ),
+    builder: (dialogContext) => AppDesktopDialog(
+      dialogKey: const Key('clip-actions-dialog'),
+      width: dialogContext.appComponentTokens.playlistDialogWidth,
+      child: ClipActionsPanel(
+        clip: clip,
+        keyPrefix: 'clip',
+        onPlay: onPlay,
+        onOpenMovie: onOpenMovie,
+        onAddToCollection: onAddToCollection,
+        onRename: onRename,
+        onDelete: onDelete,
+        onRemoveFromCollection: onRemoveFromCollection,
+      ),
+    ),
   );
 }

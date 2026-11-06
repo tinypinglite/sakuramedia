@@ -20,23 +20,23 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_toolbar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_member_views.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
 
 /// 时刻合集详情共享实现：桌面 / 移动双端壳差异收在 [isMobile] 参数里。
 ///
-/// 交互范式对齐切片合集详情：桌面标题块 + [AppListHeader] + 内联批量操作；
+/// 交互范式对齐切片合集详情：桌面玻璃控制条 + 内联批量操作；
 /// 移动端合集名上报返回栏、长按进多选、批量动作走贴底条；双端网格，成员点击
 /// 统一弹时刻预览层；桌面网格卡悬停渐显信息与动作行（来源媒体已删除时隐藏播放）。
 class MomentCollectionDetailContent extends ConsumerStatefulWidget {
@@ -195,52 +195,59 @@ class _MomentCollectionDetailContentState
 
   // --------------------------------------------------------- 顶栏
 
-  /// 成员列表顶栏：与其它列表页共用同一条 `AppListHeader`。
+  /// 成员列表顶栏：桌面玻璃分组，移动端紧凑图标行。
   /// **本页没有筛选维度**——时刻合集是手动顺序，不接筛选入口。
   Widget _buildListHeader(
     BuildContext context,
     MomentCollectionDetailState state,
   ) {
-    final count = state.collection.pointCount;
     final hasPoints = state.points.isNotEmpty;
     final l10n = AppLocalizations.of(context);
-    return AppListHeader(
-      informationSlots: [
-        AppListHeaderInfo(
-          key: Key('$_keyPrefix-total'),
-          label: l10n.momentCountLabel(count),
+    if (!_isMobile) {
+      return AppGlassListHeader(
+        leading: Text(
+          l10n.momentCollectionAllMomentsTitle,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s18,
+            weight: AppTextWeight.semibold,
+            tone: AppTextTone.primary,
+          ),
         ),
-      ],
-      actionSlots: [
-        if (_isMobile)
-          AppTextButton(
-            key: Key('$_keyPrefix-add-moments-button'),
-            label: l10n.momentAddAction,
-            size: AppTextButtonSize.xSmall,
-            onPressed: () => _addMoments(context),
-          )
-        else
-          AppTextButton(
-            key: Key('$_keyPrefix-add-moments-button'),
-            label: l10n.momentAddMomentsAction,
-            size: AppTextButtonSize.small,
-            onPressed: () => _addMoments(context),
-          ),
-        if (hasPoints && !_isMobile)
-          AppSelectionEntryButton(
-            key: Key('$_keyPrefix-enter-selection-button'),
-            onPressed: enterSelection,
-          ),
-        if (_isMobile)
-          AppIconButton(
-            key: Key('$_keyPrefix-rename-button'),
-            tooltip: l10n.momentCollectionEditTitle,
-            onPressed: () => _editCollection(context),
-            icon: Icon(
-              Icons.edit_outlined,
-              size: context.appComponentTokens.iconSizeSm,
+        trailing: AppGlassHeaderGroup(
+          children: <Widget>[
+            AppGlassHeaderButton(
+              key: Key('$_keyPrefix-add-moments-button'),
+              icon: Icons.bookmark_add_outlined,
+              label: l10n.momentAddMomentsAction,
+              onTap: () => _addMoments(context),
             ),
-          ),
+            if (hasPoints)
+              AppGlassHeaderButton(
+                key: Key('$_keyPrefix-enter-selection-button'),
+                icon: Icons.check_circle_outline,
+                label: l10n.baseSelect,
+                onTap: enterSelection,
+              ),
+          ],
+        ),
+      );
+    }
+    return AppMobileListHeader(
+      leading: AppMobileHeaderText(title: l10n.momentCollectionAllMomentsTitle),
+      actions: <Widget>[
+        AppGlassIconButton(
+          key: Key('$_keyPrefix-add-moments-button'),
+          tooltip: l10n.momentAddAction,
+          icon: Icons.bookmark_add_outlined,
+          onPressed: () => _addMoments(context),
+        ),
+        AppGlassIconButton(
+          key: Key('$_keyPrefix-rename-button'),
+          tooltip: l10n.momentCollectionEditTitle,
+          onPressed: () => _editCollection(context),
+          icon: Icons.edit_outlined,
+        ),
       ],
     );
   }
@@ -261,51 +268,41 @@ class _MomentCollectionDetailContentState
     ]);
     final l10n = AppLocalizations.of(context);
     if (_isMobile) {
-      return AppListHeader.selection(
+      return AppMobileSelectionHeader(
         selectionLabel: l10n.momentSelectedCount(selectedCount),
-        selectionExitButtonKey: Key('$_keyPrefix-exit-selection-button'),
+        exitKey: Key('$_keyPrefix-exit-selection-button'),
         onExitSelection: exitSelection,
-        actionSlots: [
-          AppButton(
-            key: Key('$_keyPrefix-select-all-button'),
-            label: allSelected ? l10n.momentDeselectAll : l10n.momentSelectAll,
-            variant: AppButtonVariant.ghost,
-            size: AppButtonSize.xSmall,
-            isSelected: allSelected,
-            onPressed: () => toggleSelectAll(pointIds),
-          ),
-        ],
+        selectAllKey: Key('$_keyPrefix-select-all-button'),
+        selectAllTooltip: allSelected
+            ? l10n.momentDeselectAll
+            : l10n.momentSelectAll,
+        onToggleAll: () => toggleSelectAll(pointIds),
       );
     }
-    return AppSelectionHeaderToolbar(
-      countLabel: l10n.momentSelectedCount(selectedCount),
+    return AppGlassSelectionHeader(
+      selectionLabel: l10n.momentSelectedCount(selectedCount),
       selectAllLabel: allSelected
           ? l10n.momentDeselectAll
           : l10n.momentSelectAll,
       selectAllKey: Key('$_keyPrefix-select-all-button'),
       onToggleAll: () => toggleSelectAll(pointIds),
-      actions: [
-        AppButton(
+      actions: <AppGlassSelectionAction>[
+        AppGlassSelectionAction(
           key: Key('$_keyPrefix-batch-remove-button'),
           label: l10n.momentCollectionRemoveAction,
-          variant: AppButtonVariant.secondary,
-          size: AppButtonSize.small,
-          onPressed: hasSelection && !submitting
-              ? () => _batchRemove(state)
-              : null,
+          icon: Icons.playlist_remove_rounded,
+          onTap: hasSelection && !submitting ? () => _batchRemove(state) : null,
         ),
-        AppButton(
+        AppGlassSelectionAction(
           key: Key('$_keyPrefix-batch-delete-button'),
           label: l10n.momentDeleteTitle,
-          variant: AppButtonVariant.danger,
-          size: AppButtonSize.small,
-          onPressed: hasSelection && !submitting
-              ? () => _batchDelete(state)
-              : null,
+          icon: Icons.delete_outline_rounded,
+          foregroundColor: context.appTextPalette.error,
+          onTap: hasSelection && !submitting ? () => _batchDelete(state) : null,
         ),
       ],
       exitKey: Key('$_keyPrefix-exit-selection-button'),
-      onExit: exitSelection,
+      onExitSelection: exitSelection,
     );
   }
 

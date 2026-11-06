@@ -32,6 +32,7 @@ import 'package:sakuramedia/features/playlists/presentation/widgets/movie_playli
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
@@ -519,7 +520,7 @@ class _DesktopMovieDetailPageState extends ConsumerState<DesktopMovieDetailPage>
     if (candidates.length == 1) {
       return Future<MovieMergePlaybackCandidateDto?>.value(candidates.single);
     }
-    return showDialog<MovieMergePlaybackCandidateDto>(
+    return showAppDialog<MovieMergePlaybackCandidateDto>(
       context: context,
       builder: (dialogContext) => AppDesktopDialog(
         dialogKey: const Key('movie-merge-playback-library-dialog'),

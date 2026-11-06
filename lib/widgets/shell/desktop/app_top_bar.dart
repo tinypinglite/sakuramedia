@@ -10,11 +10,11 @@ import 'package:sakuramedia/features/status/presentation/providers/server_capabi
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/domain/search/catalog_search_field.dart';
 import 'package:sakuramedia/widgets/shell/desktop/app_sidebar_toggle_button.dart';
-import 'package:sakuramedia/widgets/shell/desktop/app_top_bar_glass_refresh_button.dart';
 import 'package:sakuramedia/widgets/shell/desktop/app_top_bar_glass_search_field.dart';
 import 'package:sakuramedia/widgets/shell/window/app_window_drag_area.dart';
 import 'package:sakuramedia/widgets/shell/window/app_windows_caption.dart';
@@ -123,7 +123,6 @@ class AppTopBar extends ConsumerWidget {
     const rightInset = AppPageInsets.desktop;
     final backButtonSlotWidth = config.isBackEnabled ? 40.0 : 0.0;
     final titleLeadingGap = config.isBackEnabled ? spacing.sm : 0.0;
-    final l10n = appL10n(context);
 
     return Row(
       children: [
@@ -134,16 +133,7 @@ class AppTopBar extends ConsumerWidget {
         if (config.isBackEnabled)
           SizedBox(
             width: backButtonSlotWidth,
-            child: AppIconButton(
-              key: const Key('topbar-back-button'),
-              tooltip: l10n.shellBack,
-              onPressed: () => _handleBack(context),
-              padding: EdgeInsets.zero,
-              icon: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: context.appComponentTokens.iconSizeXs,
-              ),
-            ),
+            child: Center(child: _buildBackButton(context, glass: translucent)),
           ),
         if (titleLeadingGap > 0) SizedBox(width: titleLeadingGap),
         Expanded(
@@ -176,9 +166,8 @@ class AppTopBar extends ConsumerWidget {
     );
   }
 
-  /// 沉浸页顶栏：只留一颗普通返回键（与其它顶栏同一套按钮），页面标题由
-  /// 内容区自己承载。搜索/刷新在沉浸页通常隐藏；若调用方仍开启，则按普通
-  /// 图标放在右侧。
+  /// 沉浸页顶栏：只留一颗返回键，页面标题由内容区自己承载。
+  /// 搜索/刷新在沉浸页通常隐藏；若调用方仍开启，则按普通图标放在右侧。
   Widget _buildOverlayHeader(
     BuildContext context, {
     required bool isSidebarCollapsed,
@@ -186,7 +175,6 @@ class AppTopBar extends ConsumerWidget {
   }) {
     const leftInset = AppPageInsets.desktop;
     const rightInset = AppPageInsets.desktop;
-    final l10n = appL10n(context);
 
     return Row(
       children: [
@@ -194,17 +182,8 @@ class AppTopBar extends ConsumerWidget {
         if (config.isBackEnabled)
           SizedBox(
             width: 40.0,
-            child: AppIconButton(
-              key: const Key('topbar-back-button'),
-              tooltip: l10n.shellBack,
-              semanticLabel: l10n.shellBack,
-              onPressed: () => _handleBack(context),
-              padding: EdgeInsets.zero,
-              icon: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: context.appComponentTokens.iconSizeXs,
-                color: context.appTextPalette.onMedia,
-              ),
+            child: Center(
+              child: _buildBackButton(context, glass: true, overlay: true),
             ),
           ),
         Expanded(child: AppWindowDragArea(child: const SizedBox.expand())),
@@ -238,6 +217,42 @@ class AppTopBar extends ConsumerWidget {
     if (fallbackPath != null && fallbackPath != currentPath) {
       router.go(fallbackPath);
     }
+  }
+
+  Widget _buildBackButton(
+    BuildContext context, {
+    required bool glass,
+    bool overlay = false,
+  }) {
+    final l10n = appL10n(context);
+    void onPressed() {
+      _handleBack(context);
+    }
+
+    final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
+    if (glass && !highContrast) {
+      return AppGlassIconButton(
+        key: const Key('topbar-back-button'),
+        tooltip: l10n.shellBack,
+        semanticLabel: l10n.shellBack,
+        icon: Icons.arrow_back_ios_new_rounded,
+        iconSize: 16,
+        size: 32,
+        onPressed: onPressed,
+      );
+    }
+    return AppIconButton(
+      key: const Key('topbar-back-button'),
+      tooltip: l10n.shellBack,
+      semanticLabel: l10n.shellBack,
+      onPressed: onPressed,
+      padding: EdgeInsets.zero,
+      icon: Icon(
+        Icons.arrow_back_ios_new_rounded,
+        size: context.appComponentTokens.iconSizeXs,
+        color: overlay ? context.appTextPalette.onMedia : null,
+      ),
+    );
   }
 }
 
@@ -369,9 +384,30 @@ class _TopBarActionsState extends ConsumerState<_TopBarActions> {
     final actions = refresh == null
         ? null
         : widget.glass && !highContrast
-        ? AppTopBarGlassRefreshButton(
-            onPressed: refresh,
-            isRefreshing: widget.isRefreshing,
+        ? AppGlassIconButton(
+            key: Key(
+              widget.isRefreshing
+                  ? 'topbar-refresh-button-loading'
+                  : 'topbar-refresh-button',
+            ),
+            tooltip: l10n.commonRefresh,
+            semanticLabel: l10n.commonRefresh,
+            icon: Icons.refresh_rounded,
+            iconWidget: widget.isRefreshing
+                ? SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator.adaptive(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color?>(
+                        context.appTextPalette.primary,
+                      ),
+                    ),
+                  )
+                : null,
+            iconSize: 18,
+            size: 32,
+            onPressed: widget.isRefreshing ? null : refresh,
           )
         : _TopBarRefreshButton(
             onPressed: refresh,

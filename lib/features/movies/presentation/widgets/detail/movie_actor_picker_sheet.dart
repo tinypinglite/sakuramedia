@@ -10,6 +10,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
@@ -345,10 +346,14 @@ class _MovieActorPickerSheetState extends State<MovieActorPickerSheet> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Expanded(
-          child: ListView.builder(
-            itemCount: _candidates.length,
-            itemBuilder: (context, index) =>
-                _buildCandidateTile(context, _candidates[index]),
+          child: SingleChildScrollView(
+            child: AppPickerIosSection(
+              dividerIndent: 68,
+              children: [
+                for (final candidate in _candidates)
+                  _buildCandidateTile(context, candidate),
+              ],
+            ),
           ),
         ),
         if (query.isNotEmpty) ...[
@@ -371,32 +376,21 @@ class _MovieActorPickerSheetState extends State<MovieActorPickerSheet> {
     final l10n = AppLocalizations.of(context);
     final isExisting = widget.existingActorIds.contains(candidate.id);
     final isSelected = _selected.containsKey(candidate.id);
-    return CheckboxListTile(
-      key: Key('movie-actor-picker-candidate-${candidate.id}'),
-      value: isExisting || isSelected,
-      onChanged: isExisting
-          ? null
-          : (value) => _toggleCandidate(candidate, value),
-      controlAffinity: ListTileControlAffinity.trailing,
-      contentPadding: EdgeInsets.zero,
-      secondary: ActorAvatar(
+    return AppPickerIosRow(
+      optionKey: Key('movie-actor-picker-candidate-${candidate.id}'),
+      selected: isExisting || isSelected,
+      showCheckmark: true,
+      enabled: !isExisting,
+      onTap: () => _toggleCandidate(candidate, !isSelected),
+      title: candidate.displayName,
+      leading: ActorAvatar(
         imageUrl: candidate.profileImage?.origin,
         size: tokens.iconSize2xl,
         placeholderKey: Key(
           'movie-actor-picker-avatar-placeholder-${candidate.id}',
         ),
       ),
-      title: Text(
-        candidate.displayName,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        style: resolveAppTextStyle(
-          context,
-          size: AppTextSize.s14,
-          tone: AppTextTone.primary,
-        ),
-      ),
-      subtitle: Row(
+      subtitleWidget: Row(
         children: [
           Flexible(
             child: Text(

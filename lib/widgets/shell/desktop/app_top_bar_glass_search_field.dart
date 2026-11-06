@@ -1,8 +1,8 @@
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/forms/app_glass_search_field_chrome.dart';
 
 /// 概览页透明顶栏使用的液态玻璃搜索框。
 ///
@@ -41,23 +41,7 @@ class AppTopBarGlassSearchField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
-    final reduceMotion =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final l10n = AppLocalizations.of(context);
-    final themeFontFamily = Theme.of(context).textTheme.bodyMedium?.fontFamily;
-    final textStyle = resolveAppTextStyle(
-      context,
-      size: AppTextSize.s14,
-      weight: AppTextWeight.regular,
-      tone: AppTextTone.primary,
-    ).copyWith(fontFamily: themeFontFamily);
-    final placeholderStyle = resolveAppTextStyle(
-      context,
-      size: AppTextSize.s14,
-      weight: AppTextWeight.regular,
-      tone: AppTextTone.muted,
-    ).copyWith(fontFamily: themeFontFamily);
     final suffix = showImageSearchButton || showTextImageSearchButton
         ? Row(
             mainAxisSize: MainAxisSize.min,
@@ -84,41 +68,15 @@ class AppTopBarGlassSearchField extends StatelessWidget {
           )
         : null;
 
-    return GlassTextField.search(
+    return buildAppGlassSearchField(
       key: fieldKey,
+      context: context,
       controller: controller,
       focusNode: focusNode,
       placeholder: hintText,
+      height: height,
       suffixIcon: suffix,
       onSubmitted: onSubmitted,
-      height: height,
-      shape: const LiquidRoundedRectangle(borderRadius: height / 2),
-      padding: EdgeInsets.symmetric(horizontal: context.appSpacing.md),
-      iconSpacing: context.appSpacing.sm,
-      textStyle: textStyle,
-      placeholderStyle: placeholderStyle,
-      settings: highContrast ? null : _glassSettings(context),
-      useOwnLayer: !highContrast,
-      quality: highContrast ? null : GlassQuality.standard,
-      surfaceStyle: highContrast
-          ? GlassSurfaceStyle.solid
-          : GlassSurfaceStyle.glass,
-      color: highContrast ? context.appColors.surfaceMuted : null,
-      interactionBehavior: highContrast || reduceMotion
-          ? GlassInteractionBehavior.none
-          : GlassInteractionBehavior.glowOnly,
-    );
-  }
-
-  LiquidGlassSettings _glassSettings(BuildContext context) {
-    return LiquidGlassSettings(
-      thickness: 18,
-      blur: 8,
-      saturation: 1.25,
-      chromaticAberration: 0.01,
-      lightIntensity: 0.5,
-      glassColor: context.appColors.surfaceElevated.withValues(alpha: 0.22),
-      shadowElevation: 0,
     );
   }
 }

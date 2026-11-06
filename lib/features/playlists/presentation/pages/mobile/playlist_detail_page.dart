@@ -13,10 +13,10 @@ class MobilePlaylistDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return ColoredBox(
       key: const Key('mobile-playlist-detail-page'),
-      color: context.appColors.surfaceCard,
+      color: Colors.transparent,
       child: PlaylistDetailContent(
         playlistId: playlistId,
-        surfaceColor: context.appColors.surfaceCard,
+        surfaceColor: context.appColors.surfaceCard.withValues(alpha: 0.9),
         fallbackPath: mobileOverviewPath,
         enablePullToRefresh: true,
         onMovieTap: (movie) => MobileMovieDetailRouteData(

@@ -13,6 +13,8 @@ class RankingSortMenuButton extends StatelessWidget {
     required this.filterState,
     required this.onSortChanged,
     this.useDrawer = false,
+    this.glassGrouped = false,
+    this.iconOnly = false,
     this.keyPrefix = 'rankings',
     this.triggerKey,
     this.panelKey,
@@ -23,6 +25,8 @@ class RankingSortMenuButton extends StatelessWidget {
   final void Function(RankingSortField? field, SortDirection direction)
   onSortChanged;
   final bool useDrawer;
+  final bool glassGrouped;
+  final bool iconOnly;
   final String keyPrefix;
   final Key? triggerKey;
   final Key? panelKey;
@@ -43,11 +47,11 @@ class RankingSortMenuButton extends StatelessWidget {
       onDirectionChanged: (value) =>
           onSortChanged(filterState.selectedSortField, value),
       allowDefaultOption: true,
-      defaultOptionLabel: AppLocalizations.of(
-        context,
-      ).widgetRankingSortDefault,
+      defaultOptionLabel: AppLocalizations.of(context).widgetRankingSortDefault,
       directionVisibleWhen: (field) => field != null,
       useDrawer: useDrawer,
+      glassGrouped: glassGrouped,
+      iconOnly: iconOnly,
       triggerKey: triggerKey,
       panelKey: panelKey,
       drawerKey: drawerKey,

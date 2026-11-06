@@ -3,6 +3,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
@@ -18,7 +19,7 @@ Future<String?> showRenameClipDialog(
 }) {
   switch (presentation) {
     case RenameClipDialogPresentation.dialog:
-      return showDialog<String>(
+      return showAppDialog<String>(
         context: context,
         builder: (dialogContext) =>
             RenameClipDialog(initialTitle: initialTitle),
@@ -29,9 +30,9 @@ Future<String?> showRenameClipDialog(
         drawerKey: const Key('rename-clip-bottom-sheet'),
         maxHeightFactor: 0.5,
         builder: (sheetContext) => RenameClipDialog(
-              initialTitle: initialTitle,
-              presentation: RenameClipDialogPresentation.bottomDrawer,
-            ),
+          initialTitle: initialTitle,
+          presentation: RenameClipDialogPresentation.bottomDrawer,
+        ),
       );
   }
 }

@@ -10,19 +10,29 @@ class VideoSortMenuButton extends StatelessWidget {
     required this.filterState,
     required this.onChanged,
     this.useDrawer = false,
+    this.glassGrouped = false,
+    this.iconOnly = false,
+    this.tooltip,
     this.keyPrefix = 'videos',
     this.triggerKey,
     this.panelKey,
     this.drawerKey,
+    this.fieldControlKey,
+    this.directionControlKey,
   });
 
   final VideoFilterState filterState;
   final ValueChanged<VideoFilterState> onChanged;
   final bool useDrawer;
+  final bool glassGrouped;
+  final bool iconOnly;
+  final String? tooltip;
   final String keyPrefix;
   final Key? triggerKey;
   final Key? panelKey;
   final Key? drawerKey;
+  final Key? fieldControlKey;
+  final Key? directionControlKey;
 
   @override
   Widget build(BuildContext context) {
@@ -37,12 +47,17 @@ class VideoSortMenuButton extends StatelessWidget {
       onDirectionChanged: (value) =>
           onChanged(filterState.copyWith(sortDirection: value)),
       useDrawer: useDrawer,
+      glassGrouped: glassGrouped,
+      iconOnly: iconOnly,
+      tooltip: tooltip,
       triggerKey: triggerKey,
       panelKey: panelKey,
       drawerKey: drawerKey,
       fieldKeyBuilder: (value) => Key('$keyPrefix-sort-field-${value.name}'),
       directionKeyBuilder: (value) =>
           Key('$keyPrefix-sort-direction-${value.name}'),
+      fieldControlKey: fieldControlKey,
+      directionControlKey: directionControlKey,
     );
   }
 }

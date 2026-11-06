@@ -6,8 +6,8 @@ import 'package:sakuramedia/features/videos/presentation/video_display_title.dar
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 
 /// 桌面视频合集详情壳：桌面语义（网格 / hover / 顶栏内联批量 /
 /// 就地筛选浮层 / 桌面动作弹窗与确认对话框）收在壳里，实现在
@@ -31,11 +31,13 @@ class DesktopVideoCollectionDetailPage extends StatelessWidget {
       hoistTitleToSubpageShell: false,
       useMobileSortDrawer: false,
       playAllBuilder: (context, {required enabled, required onPlayFrom}) {
-        return AppButton(
+        return AppGlassHeaderButton(
           key: const Key('video-collection-play-all-button'),
+          icon: Icons.play_arrow_rounded,
           label: l10n.videoPlayAll,
-          variant: AppButtonVariant.primary,
-          onPressed: enabled ? onPlayFrom : null,
+          enabled: enabled,
+          onTap: onPlayFrom,
+          foregroundColor: Theme.of(context).colorScheme.primary,
         );
       },
       onMemberTap: (context, item, actions) {

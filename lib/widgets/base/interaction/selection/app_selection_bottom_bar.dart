@@ -1,9 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
 
 /// 移动端多选态的**底部**批量操作条：贴底常驻，动作按钮等宽平分整行。
 ///
-/// 与顶部的 [AppSelectionToolbar] 分工明确——顶栏只放「退出 / 计数 / 全选」这类
+/// 与顶部的移动多选头分工明确——顶栏只放「退出 / 计数 / 全选」这类
 /// 轻量上下文，真正的批量动作放在这里：拇指够得到、按钮命中区大、危险动作不会
 /// 和退出按钮挤在同一处误触。PornBox 视频列表是最早的样板，这里收口成共享件。
 ///
@@ -20,15 +21,14 @@ class AppSelectionBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final colors = context.appColors;
     final leadingWidget = leading;
 
-    return Container(
-      padding: EdgeInsets.all(spacing.md),
-      decoration: BoxDecoration(
-        color: colors.surfaceCard,
-        border: Border(top: BorderSide(color: colors.divider)),
+    return AppGlassSurface(
+      tone: AppGlassTone.chrome,
+      borderRadius: BorderRadius.vertical(
+        top: context.appRadius.lgBorder.topLeft,
       ),
+      padding: EdgeInsets.all(spacing.md),
       child: SafeArea(
         top: false,
         child: Row(

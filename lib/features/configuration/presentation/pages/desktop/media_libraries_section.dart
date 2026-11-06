@@ -26,6 +26,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 
@@ -90,7 +91,7 @@ class _MediaLibrariesSectionState extends ConsumerState<MediaLibrariesSection> {
       );
       return;
     }
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
       builder: (_) => MediaLibraryDialog(
         title: AppLocalizations.of(context).mediaLibraryAdd,
@@ -105,7 +106,7 @@ class _MediaLibrariesSectionState extends ConsumerState<MediaLibrariesSection> {
     if (!mounted) {
       return;
     }
-    await showDialog<void>(
+    await showAppDialog<void>(
       context: context,
       builder: (_) => MediaLibraryDialog(
         title: AppLocalizations.of(context).mediaLibraryEditTitle,

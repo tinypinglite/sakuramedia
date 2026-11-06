@@ -10,6 +10,7 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_switch.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 Future<MediaTagDto?> showMediaTagRuleEditor(
@@ -26,7 +27,7 @@ Future<MediaTagDto?> showMediaTagRuleEditor(
       builder: (_) => editor,
     );
   }
-  return showDialog<MediaTagDto>(
+  return showAppDialog<MediaTagDto>(
     context: context,
     builder: (_) => AppDesktopDialog(
       dialogKey: const Key('media-tag-rule-editor-dialog'),

@@ -30,9 +30,9 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_section_header.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/layout/keep_alive_page.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
@@ -47,31 +47,26 @@ class MobileOverviewSkeletonPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
-
     return DefaultTabController(
       length: 4,
       child: _MobileOverviewTabIndexReporter(
-        child: ColoredBox(
+        child: Column(
           key: const Key('mobile-overview-skeleton-page'),
-          color: colors.surfaceCard,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const _MobileOverviewHeader(),
-              Expanded(
-                child: TabBarView(
-                  key: const Key('mobile-overview-tab-view'),
-                  children: const [
-                    AppKeepAlive(child: _MobileOverviewMyTab()),
-                    AppKeepAlive(child: MobileOverviewClipsTab()),
-                    AppKeepAlive(child: MobileOverviewDiscoverTab()),
-                    AppKeepAlive(child: MobileOverviewMomentsTab()),
-                  ],
-                ),
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _MobileOverviewHeader(),
+            Expanded(
+              child: TabBarView(
+                key: const Key('mobile-overview-tab-view'),
+                children: const [
+                  AppKeepAlive(child: _MobileOverviewMyTab()),
+                  AppKeepAlive(child: MobileOverviewClipsTab()),
+                  AppKeepAlive(child: MobileOverviewDiscoverTab()),
+                  AppKeepAlive(child: MobileOverviewMomentsTab()),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -162,14 +157,11 @@ class _MobileOverviewHeader extends StatelessWidget {
             Builder(
               builder: (buttonContext) {
                 return Center(
-                  child: AppIconButton(
+                  child: AppGlassIconButton(
                     key: const Key('mobile-overview-menu-button'),
                     tooltip: l10n.overviewOpenMenu,
                     semanticLabel: l10n.overviewOpenMenu,
-                    // compact 的命中区只有 28dp,低于触控最小目标,手指略偏就落空
-                    // (「有时点不动」)。regular = 20 + md*2 = 44dp,图标视觉不变。
-                    size: AppIconButtonSize.regular,
-                    icon: const Icon(Icons.menu_rounded),
+                    icon: Icons.menu_rounded,
                     // 不能在 build 期把 hasDrawer 快照下来当门控:Scaffold.maybeOf
                     // 走 findAncestorStateOfType,不建立依赖,drawer 后来挂上也不会
                     // 触发本页重建,按钮会永久停在禁用态。改为点击时现取,

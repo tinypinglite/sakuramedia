@@ -8,6 +8,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/shell/desktop/app_desktop_shell.dart';
 
 import '../support/test_api_bundle.dart';
 
@@ -55,6 +56,33 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(router.routeInformationProvider.value.uri.path, desktopOverviewPath);
+  });
+
+  testWidgets('desktop login enters the shell without a page transition', (
+    tester,
+  ) async {
+    final sessionStore = SessionStore.inMemory();
+    final bundle = await createTestApiBundle(sessionStore);
+    addTearDown(bundle.dispose);
+    final router = buildDesktopRouter(sessionStore: sessionStore);
+
+    await _pumpRouter(tester, router: router, bundle: bundle);
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, loginPath);
+
+    await sessionStore.saveTokens(
+      accessToken: 'test',
+      refreshToken: 'test',
+      expiresAt: DateTime(2099),
+    );
+    await tester.pumpAndSettle();
+
+    expect(router.routeInformationProvider.value.uri.path, desktopOverviewPath);
+    final shellRoute = ModalRoute.of(
+      tester.element(find.byType(AppDesktopShell)),
+    );
+    expect(shellRoute, isNotNull);
+    expect(shellRoute!.transitionDuration, Duration.zero);
   });
 
   testWidgets('authenticated user can access protected mobile routes', (

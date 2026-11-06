@@ -1,8 +1,8 @@
 import 'dart:async';
 
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
@@ -11,16 +11,16 @@ import 'package:sakuramedia/features/videos/presentation/providers/videos_api_pr
 import 'package:sakuramedia/features/videos/presentation/video_placeholders.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/create_video_collection_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_route_paths.dart';
+import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
-import 'package:sakuramedia/widgets/base/forms/app_search_field.dart';
+import 'package:sakuramedia/widgets/base/forms/app_glass_search_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_wrap.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
 
 class DesktopVideoCollectionsPage extends ConsumerStatefulWidget {
@@ -105,14 +105,15 @@ class _DesktopVideoCollectionsPageState
       // 页面边距由桌面 shell 的 AppPageInsets.desktopStandard (24px) 统一提供，
       // 此处不再叠加 EdgeInsets.all(spacing.lg)，否则合计 40px 比合集详情等
       // 同类页明显宽（详情页此前已修，这里是漏掉的一处）。
-      child: CustomScrollView(
+      child: Column(
         key: const Key('video-collections-page'),
-        slivers: [
-          SliverToBoxAdapter(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          GlassBackdropGroup(
             child: Row(
               children: [
                 Expanded(
-                  child: AppSearchField(
+                  child: AppGlassSearchField(
                     fieldKey: const Key('video-collections-search-field'),
                     controller: _searchController,
                     hintText: l10n.videoSearchCollections,
@@ -122,17 +123,26 @@ class _DesktopVideoCollectionsPageState
                   ),
                 ),
                 SizedBox(width: context.appSpacing.md),
-                AppButton(
-                  key: const Key('video-collections-create-button'),
-                  label: l10n.videoNewCollection,
-                  variant: AppButtonVariant.primary,
-                  onPressed: () => _create(context, ref),
+                AppGlassHeaderGroup(
+                  children: <Widget>[
+                    AppGlassHeaderButton(
+                      key: const Key('video-collections-create-button'),
+                      icon: Icons.add_rounded,
+                      label: l10n.videoNewCollection,
+                      onTap: () => _create(context, ref),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.lg)),
-          _buildBody(context, ref, async),
+          SizedBox(height: context.appSpacing.lg),
+          Expanded(
+            child: CustomScrollView(
+              key: const Key('video-collections-scroll'),
+              slivers: [_buildBody(context, ref, async)],
+            ),
+          ),
         ],
       ),
     );
@@ -186,8 +196,9 @@ class _DesktopVideoCollectionsPageState
         orientation: AppCardGridOrientation.landscape,
         itemBuilder: (context, collection, _) => CollectionCard.video(
           collection: collection,
-          onTap: () =>
-              context.go('$desktopVideoCollectionsPath/${collection.id}'),
+          onTap: () => context.pushDesktopVideoCollectionDetail(
+            collectionId: collection.id,
+          ),
           onEdit: () => _edit(context, ref, collection),
           onDelete: () => _delete(context, ref, collection),
         ),

@@ -106,8 +106,8 @@ class StorageUsageCard extends StatelessWidget {
       child: ScrollbarTheme(
         data: ScrollbarTheme.of(context).copyWith(
           thumbColor: WidgetStatePropertyAll(context.appColors.borderStrong),
-          thickness: const WidgetStatePropertyAll(4),
-          radius: const Radius.circular(2),
+          thickness: WidgetStatePropertyAll(context.appSpacing.xs),
+          radius: Radius.circular(context.appSpacing.xs / 2),
         ),
         child: Scrollbar(
           child: SingleChildScrollView(

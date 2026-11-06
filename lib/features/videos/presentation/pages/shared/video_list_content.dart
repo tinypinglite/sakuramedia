@@ -39,6 +39,7 @@ class VideoListContent extends StatelessWidget {
     this.onVideoToggleSelect,
     this.selectionHeaderBuilder,
     this.onEnterSelection,
+    this.before = const <Widget>[],
     this.sectionSpacing = 0,
     this.contentKey,
     this.totalKey,
@@ -75,7 +76,7 @@ class VideoListContent extends StatelessWidget {
   /// 选择模式下切换某个视频选中态的回调。
   final ValueChanged<VideoItemListItemDto>? onVideoToggleSelect;
 
-  /// 多选态**整条顶栏**的替代内容（通常是 `AppSelectionHeaderToolbar`）。
+  /// 多选态**整条顶栏**的替代内容。
   ///
   /// 多选是原地改写这一行，不在筛选行下面另起一行——另起一行会让整页内容上下
   /// 跳动。返回 `null` 时退回常规顶栏。
@@ -87,7 +88,11 @@ class VideoListContent extends StatelessWidget {
   /// 进入多选的回调；列表为空时由 [VideoListContent] 自动隐藏入口。
   final VoidCallback? onEnterSelection;
 
+  /// 吸顶筛选条上方的 sliver 内容，与列表一起参与控制栏前后裁剪。
+  final List<Widget> before;
+
   final double sectionSpacing;
+
   final Key? contentKey;
   final Key? totalKey;
 
@@ -103,30 +108,23 @@ class VideoListContent extends StatelessWidget {
     final enterSelection = !selectionMode && paged.items.isNotEmpty
         ? onEnterSelection
         : null;
-    return SliverMainAxisGroup(
+    return AppPinnedSliverSection(
       key: contentKey,
-      slivers: [
-        AppPinnedListHeader(
-          key: headerKey,
-          color: Colors.transparent,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              VideoGlassListHeader(
-                filterState: filterState,
-                total: paged.total,
-                filterUpdate: paged.filterUpdate,
-                hasPreviousFilterItems: paged.items.isNotEmpty,
-                onFilterChanged: onFilterChanged,
-                onRetryFilter: onRetryFilter,
-                onEnterSelection: enterSelection,
-                selectionHeader: selectionHeader,
-                totalKey: totalKey,
-              ),
-              SizedBox(height: sectionSpacing),
-            ],
-          ),
-        ),
+      headerKey: headerKey,
+      before: before,
+      header: VideoGlassListHeader(
+        filterState: filterState,
+        total: paged.total,
+        filterUpdate: paged.filterUpdate,
+        hasPreviousFilterItems: paged.items.isNotEmpty,
+        onFilterChanged: onFilterChanged,
+        onRetryFilter: onRetryFilter,
+        onEnterSelection: enterSelection,
+        selectionHeader: selectionHeader,
+        totalKey: totalKey,
+      ),
+      headerBottomSpacing: sectionSpacing,
+      after: <Widget>[
         if (!paged.filterUpdate.hasFailed || paged.items.isNotEmpty)
           AppSkeletonizer.sliver(
             enabled: paged.isInitialLoading,

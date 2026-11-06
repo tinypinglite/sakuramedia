@@ -57,7 +57,7 @@ final class DuplicateMediaProvider
   }
 }
 
-String _$duplicateMediaHash() => r'f40043687ee411a147535984c47b3d711e7e4393';
+String _$duplicateMediaHash() => r'bbb17b4b45993406c77d92e7b38fa11d9e58f68d';
 
 /// 重复媒体分组列表：JAV / PornBox 各自缓存一份分页结果。
 

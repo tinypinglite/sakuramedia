@@ -56,7 +56,7 @@ final class MultiVersionMoviesProvider
 }
 
 String _$multiVersionMoviesHash() =>
-    r'7a704dd5fd82639ce72996107f00f9c75e55fc4e';
+    r'd9a7bf3d3e841349fed86586e2d670a7aaca4cc5';
 
 final class MultiVersionMoviesFamily extends $Family
     with

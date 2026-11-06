@@ -8,10 +8,11 @@ import 'package:sakuramedia/features/movies/presentation/pages/shared/rated_movi
 import 'package:sakuramedia/features/movies/presentation/providers/rating_dimensions_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/rating/rating_dimensions_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
+import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_sort_menu_button.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
 
 /// 「我的评分」页顶栏；桌面浮层与移动抽屉共用同一套筛选和排序入口。
 class RatedMoviesHeader extends ConsumerWidget {
@@ -54,88 +55,99 @@ class RatedMoviesHeader extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final filterState = args.filterState;
     final filterIsDefault = ratedMovieFilterIsDefault(filterState);
-
-    return AppListHeader(
-      onFilterTap: isMobile
-          ? () => showMobileRatedMoviesFilterDrawer(
-              context,
-              current: filterState,
-              onChanged: args.onApply,
-            )
-          : null,
-      filterPanelBuilder: isMobile
-          ? null
-          : (_) => RatedMovieFilterSections(
-              filterState: filterState,
-              onChanged: args.onApply,
-            ),
-      filterPanelFooter: isMobile
-          ? null
-          : AppFilterPanelFooter(
-              isDefault: filterIsDefault,
-              onReset: () => args.onApply(ratedMovieFilterReset(filterState)),
-            ),
-      filterButtonKey: const Key('rated-movies-filter-trigger'),
-      filterPanelKey: const Key('rated-movies-filter-panel'),
-      filterLabel: ratedMovieFilterLabel(filterState, l10n),
-      filterTooltip: l10n.moviePageFilterTooltip,
-      informationSlots: [
-        AppListHeaderInfo(
-          key: Key(
-            isMobile
-                ? 'mobile-rated-movies-count'
-                : 'desktop-rated-movies-count',
-          ),
-          label: l10n.moviePageRatedCount(args.total),
-        ),
+    final countKey = Key(
+      isMobile ? 'mobile-rated-movies-count' : 'desktop-rated-movies-count',
+    );
+    final countLabel = l10n.moviePageRatedCount(args.total);
+    final sortButton = AppSortMenuButton<String>(
+      fields: <String>[
+        'total',
+        for (final dimension in dimensions) 'dimension:${dimension.id}',
       ],
-      actionSlots: [
-        AppSortMenuButton<String>(
-          fields: <String>[
-            'total',
-            for (final dimension in dimensions) 'dimension:${dimension.id}',
-          ],
-          selectedField: selectedValue,
-          fieldLabelBuilder: (value) =>
-              _dimensionLabel(value, dimensions, l10n: l10n),
-          onFieldChanged: (newValue) {
-            final value = newValue!;
-            if (value == 'total') {
-              args.onApply(
-                args.filterState.copyWith(
-                  sortField: MovieSortField.myScore,
-                  dimensionSortId: null,
-                ),
-              );
-              return;
-            }
-            final dimensionId = int.tryParse(value.split(':').last);
-            if (dimensionId != null) {
-              args.onApply(
-                args.filterState.copyWith(dimensionSortId: dimensionId),
-              );
-            }
-          },
-          selectedDirection: args.filterState.sortDirection,
-          onDirectionChanged: (value) =>
-              args.onApply(args.filterState.copyWith(sortDirection: value)),
-          useDrawer: isMobile,
-          triggerKey: const Key('rated-movies-sort-trigger'),
-          panelKey: const Key('rated-movies-sort-panel'),
-          drawerKey: const Key('mobile-rated-movies-sort-drawer'),
-          fieldKeyBuilder: (value) => Key(
-            value == 'total'
-                ? 'rated-movies-sort-total'
-                : 'rated-movies-sort-dimension-${value.split(':').last}',
+      selectedField: selectedValue,
+      fieldLabelBuilder: (value) =>
+          _dimensionLabel(value, dimensions, l10n: l10n),
+      onFieldChanged: (newValue) {
+        final value = newValue!;
+        if (value == 'total') {
+          args.onApply(
+            args.filterState.copyWith(
+              sortField: MovieSortField.myScore,
+              dimensionSortId: null,
+            ),
+          );
+          return;
+        }
+        final dimensionId = int.tryParse(value.split(':').last);
+        if (dimensionId != null) {
+          args.onApply(args.filterState.copyWith(dimensionSortId: dimensionId));
+        }
+      },
+      selectedDirection: args.filterState.sortDirection,
+      onDirectionChanged: (value) =>
+          args.onApply(args.filterState.copyWith(sortDirection: value)),
+      useDrawer: isMobile,
+      glassGrouped: !isMobile,
+      iconOnly: isMobile,
+      triggerKey: const Key('rated-movies-sort-trigger'),
+      panelKey: const Key('rated-movies-sort-panel'),
+      drawerKey: const Key('mobile-rated-movies-sort-drawer'),
+      fieldKeyBuilder: (value) => Key(
+        value == 'total'
+            ? 'rated-movies-sort-total'
+            : 'rated-movies-sort-dimension-${value.split(':').last}',
+      ),
+      directionKeyBuilder: (value) =>
+          Key('rated-movies-sort-${value.apiValue}'),
+    );
+
+    if (!isMobile) {
+      return AppGlassListHeader(
+        leading: AppGlassFilterPopover(
+          panelKey: const Key('rated-movies-filter-panel'),
+          scrollable: true,
+          isDefault: filterIsDefault,
+          onReset: () => args.onApply(ratedMovieFilterReset(filterState)),
+          triggerKey: const Key('rated-movies-filter-trigger'),
+          label: ratedMovieFilterLabel(filterState, l10n),
+          tooltip: l10n.moviePageFilterTooltip,
+          info: <Widget>[AppGlassHeaderText(key: countKey, label: countLabel)],
+          panelBuilder: (context) => RatedMovieFilterSections(
+            filterState: filterState,
+            onChanged: args.onApply,
           ),
-          directionKeyBuilder: (value) =>
-              Key('rated-movies-sort-${value.apiValue}'),
         ),
-        AppTextButton(
+        trailing: AppGlassHeaderGroup(
+          children: <Widget>[
+            sortButton,
+            AppGlassHeaderButton(
+              key: const Key('rated-movies-dimension-manage'),
+              icon: Icons.tune_rounded,
+              label: l10n.moviePageDimensionManage,
+              onTap: () => showRatingDimensionsDialog(context, ref: ref),
+            ),
+          ],
+        ),
+      );
+    }
+    return AppMobileListHeader(
+      leading: AppMobileHeaderText(key: countKey, countLabel: countLabel),
+      actions: [
+        AppGlassFilterIconButton(
+          key: const Key('rated-movies-filter-trigger'),
+          summary: ratedMovieFilterLabel(filterState, l10n),
+          isActive: !filterIsDefault,
+          onPressed: () => showMobileRatedMoviesFilterDrawer(
+            context,
+            current: filterState,
+            onChanged: args.onApply,
+          ),
+        ),
+        sortButton,
+        AppGlassIconButton(
           key: const Key('rated-movies-dimension-manage'),
-          label: l10n.moviePageDimensionManage,
-          icon: const Icon(Icons.tune_rounded),
-          size: AppTextButtonSize.xSmall,
+          tooltip: l10n.moviePageDimensionManage,
+          icon: Icons.dashboard_customize_outlined,
           onPressed: () => showRatingDimensionsDialog(context, ref: ref),
         ),
       ],
