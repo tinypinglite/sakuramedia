@@ -147,8 +147,8 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
     await showMobileRankingFilterDrawer(
       context,
       scope: _scope,
+      actions: rankingFilterActions,
       initialAnchor: initialAnchor,
-      onFilterChanged: scrollRankingsToStart,
     );
   }
 }

@@ -15,6 +15,7 @@ import 'package:sakuramedia/features/rankings/presentation/providers/ranking_sum
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_state.dart';
 import 'package:sakuramedia/features/rankings/presentation/rankings_placeholders.dart';
 import 'package:sakuramedia/features/rankings/presentation/widgets/ranked_movie_summary_grid.dart';
+import 'package:sakuramedia/features/rankings/presentation/widgets/rankings_filter_panel.dart';
 import 'package:sakuramedia/features/shared/data/movie_interaction_filter.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/stable_set_selection.dart';
@@ -63,8 +64,14 @@ mixin RankingsPageBehaviorMixin<W extends ConsumerStatefulWidget>
 
   RankingSummaryScope get rankingScope;
 
-  bool get isMobileRankings =>
-      rankingScope == const RankingSummaryScope.mobile();
+  bool get isMobileRankings => rankingScope.isMobile;
+
+  RankingsFilterActions get rankingFilterActions => (
+    selectSource: selectRankingSource,
+    selectBoard: selectRankingBoard,
+    selectPeriod: selectRankingPeriod,
+    selectInteraction: selectRankingInteraction,
+  );
 
   MovieCardHoverFeatureActions get _rankingHoverFeatureActions =>
       movieCardHoverFeatureActions(context);
@@ -153,17 +160,33 @@ mixin RankingsPageBehaviorMixin<W extends ConsumerStatefulWidget>
     showMovieSubscriptionFeedback(result, l10n: AppLocalizations.of(context));
   }
 
-  void selectRankingSource(RankingSourceDto value) =>
-      _applyRankingFilterChange(() => _ranking.selectSource(value));
+  void selectRankingSource(RankingSourceDto value) {
+    if (_currentRankingFilters.selectedSource?.sourceKey == value.sourceKey) {
+      return;
+    }
+    _applyRankingFilterChange(() => _ranking.selectSource(value));
+  }
 
-  void selectRankingBoard(RankingBoardDto value) =>
-      _applyRankingFilterChange(() => _ranking.selectBoard(value));
+  void selectRankingBoard(RankingBoardDto value) {
+    if (_currentRankingFilters.selectedBoard?.boardKey == value.boardKey) {
+      return;
+    }
+    _applyRankingFilterChange(() => _ranking.selectBoard(value));
+  }
 
-  void selectRankingPeriod(String value) =>
-      _applyRankingFilterChange(() => _ranking.selectPeriod(value));
+  void selectRankingPeriod(String value) {
+    if (_currentRankingFilters.selectedPeriod == value) {
+      return;
+    }
+    _applyRankingFilterChange(() => _ranking.selectPeriod(value));
+  }
 
-  void selectRankingInteraction(MovieInteractionFilter value) =>
-      _applyRankingFilterChange(() => _ranking.selectInteraction(value));
+  void selectRankingInteraction(MovieInteractionFilter value) {
+    if (value.matches(_currentRankingFilters.interaction)) {
+      return;
+    }
+    _applyRankingFilterChange(() => _ranking.selectInteraction(value));
+  }
 
   void selectRankingSort(RankingSortField? field, SortDirection direction) =>
       _applyRankingFilterChange(() => _ranking.selectSort(field, direction));
@@ -172,6 +195,10 @@ mixin RankingsPageBehaviorMixin<W extends ConsumerStatefulWidget>
     scrollRankingsToStart();
     unawaited(action());
   }
+
+  RankingFilterState get _currentRankingFilters =>
+      ref.read(rankingSummaryProvider(rankingScope)).value?.filters ??
+      RankingFilterState.initial;
 
   void scrollRankingsToStart() {
     if (isMobileRankings) {

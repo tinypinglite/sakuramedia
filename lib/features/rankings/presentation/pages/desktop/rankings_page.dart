@@ -2,7 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/rankings/presentation/pages/shared/rankings_page_behavior.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_scope.dart';
-import 'package:sakuramedia/features/rankings/presentation/widgets/ranking_filter_sections.dart';
+import 'package:sakuramedia/features/rankings/presentation/widgets/rankings_filter_panel.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
@@ -105,18 +105,9 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
               label: syncedAtLabel,
             ),
         ],
-        panelBuilder: (context) => RankingFilterSectionGroup(
-          sources: filters.sources,
-          selectedSource: filters.selectedSource,
-          boards: filters.boards,
-          selectedBoard: filters.selectedBoard,
-          selectedPeriod: filters.selectedPeriod,
-          isBoardLoading: filters.isLoading,
-          onSourceChanged: selectRankingSource,
-          onBoardChanged: selectRankingBoard,
-          onPeriodChanged: selectRankingPeriod,
-          interaction: filters.interaction,
-          onInteractionChanged: selectRankingInteraction,
+        panelBuilder: (context) => RankingsFilterPanel(
+          filters: filters,
+          actions: rankingFilterActions,
         ),
       ),
       trailing: AppGlassHeaderGroup(

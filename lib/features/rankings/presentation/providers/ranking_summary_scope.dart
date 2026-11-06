@@ -11,6 +11,8 @@ class RankingSummaryScope {
 
   final String cacheKey;
 
+  bool get isMobile => this == const RankingSummaryScope.mobile();
+
   @override
   bool operator ==(Object other) =>
       other is RankingSummaryScope && other.cacheKey == cacheKey;

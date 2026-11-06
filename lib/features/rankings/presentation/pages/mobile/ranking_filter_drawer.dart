@@ -1,13 +1,12 @@
-import 'dart:async';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_provider.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_scope.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_state.dart';
+import 'package:sakuramedia/features/rankings/presentation/widgets/ranking_filter_sections.dart';
+import 'package:sakuramedia/features/rankings/presentation/widgets/rankings_filter_panel.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
-import 'package:sakuramedia/features/rankings/presentation/widgets/ranking_filter_sections.dart';
 
 /// 弹出移动端榜单筛选底部抽屉。
 ///
@@ -18,8 +17,8 @@ import 'package:sakuramedia/features/rankings/presentation/widgets/ranking_filte
 Future<void> showMobileRankingFilterDrawer(
   BuildContext context, {
   required RankingSummaryScope scope,
+  required RankingsFilterActions actions,
   RankingFilterAnchor? initialAnchor,
-  VoidCallback? onFilterChanged,
 }) {
   return showAppBottomDrawer<void>(
     context: context,
@@ -27,8 +26,8 @@ Future<void> showMobileRankingFilterDrawer(
     maxHeightFactor: 0.6,
     builder: (sheetContext) => _MobileRankingFilterDrawerContent(
       scope: scope,
+      actions: actions,
       initialAnchor: initialAnchor,
-      onFilterChanged: onFilterChanged,
     ),
   );
 }
@@ -36,13 +35,13 @@ Future<void> showMobileRankingFilterDrawer(
 class _MobileRankingFilterDrawerContent extends ConsumerStatefulWidget {
   const _MobileRankingFilterDrawerContent({
     required this.scope,
+    required this.actions,
     required this.initialAnchor,
-    required this.onFilterChanged,
   });
 
   final RankingSummaryScope scope;
+  final RankingsFilterActions actions;
   final RankingFilterAnchor? initialAnchor;
-  final VoidCallback? onFilterChanged;
 
   @override
   ConsumerState<_MobileRankingFilterDrawerContent> createState() =>
@@ -81,56 +80,9 @@ class _MobileRankingFilterDrawerContentState
     return AppMobileFilterDrawerScaffold(
       // 榜单没有「恢复默认」语义（来源/榜单必须二选一），故不带 footer。
       scrollViewKey: const Key('mobile-rankings-filter-scroll-view'),
-      child: RankingFilterSectionGroup(
-        sources: filters.sources,
-        selectedSource: filters.selectedSource,
-        boards: filters.boards,
-        selectedBoard: filters.selectedBoard,
-        selectedPeriod: filters.selectedPeriod,
-        isBoardLoading: filters.isLoading,
-        onSourceChanged: (value) {
-          if (filters.selectedSource?.sourceKey == value.sourceKey) {
-            return;
-          }
-          widget.onFilterChanged?.call();
-          unawaited(
-            ref
-                .read(rankingSummaryProvider(widget.scope).notifier)
-                .selectSource(value),
-          );
-        },
-        onBoardChanged: (value) {
-          if (filters.selectedBoard?.boardKey == value.boardKey) {
-            return;
-          }
-          widget.onFilterChanged?.call();
-          unawaited(
-            ref
-                .read(rankingSummaryProvider(widget.scope).notifier)
-                .selectBoard(value),
-          );
-        },
-        onPeriodChanged: (value) {
-          if (filters.selectedPeriod == value) return;
-          widget.onFilterChanged?.call();
-          unawaited(
-            ref
-                .read(rankingSummaryProvider(widget.scope).notifier)
-                .selectPeriod(value),
-          );
-        },
-        interaction: filters.interaction,
-        onInteractionChanged: (interaction) {
-          if (interaction.matches(filters.interaction)) {
-            return;
-          }
-          widget.onFilterChanged?.call();
-          unawaited(
-            ref
-                .read(rankingSummaryProvider(widget.scope).notifier)
-                .selectInteraction(interaction),
-          );
-        },
+      child: RankingsFilterPanel(
+        filters: filters,
+        actions: widget.actions,
         sectionKeys: _sectionKeys,
       ),
     );
