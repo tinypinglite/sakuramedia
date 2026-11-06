@@ -26,9 +26,9 @@ abstract final class AppGlassStyle {
     final dark = GlassTheme.brightnessOf(context) == Brightness.dark;
     final tint =
         (dark
-                ? context.appColors.surfaceElevated
-                : context.appColors.surfaceCard)
-            .withValues(alpha: dark ? 0.38 : 0.30);
+                ? context.appColors.surfaceMuted
+                : context.appColors.surfaceMuted)
+            .withValues(alpha: dark ? 0.6 : 0.60);
     return settingsWithColor(context, tint);
   }
 
