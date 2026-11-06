@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_collections_overview_provider.dart';
@@ -85,11 +85,11 @@ class _DesktopVideoCollectionsPageState
           .deleteCollection(collection.id);
       await ref.read(videoCollectionsOverviewProvider.notifier).refresh();
       if (context.mounted) {
-        showToast(l10n.videoCollectionDeleted);
+        showToast(l10n.videoCollectionDeleted, tone: AppToastTone.success);
       }
     } catch (_) {
       if (context.mounted) {
-        showToast(l10n.videoDeleteFailedLater);
+        showToast(l10n.videoDeleteFailedLater, tone: AppToastTone.error);
       }
     }
   }
@@ -102,42 +102,38 @@ class _DesktopVideoCollectionsPageState
 
     return AppPageRefreshScope(
       onRefresh: notifier.refresh,
-      child: ColoredBox(
-        color: context.appColors.surfaceElevated,
-        // 页面边距由桌面 shell 的 AppPageInsets.desktopStandard (24px) 统一提供，
-        // 此处不再叠加 EdgeInsets.all(spacing.lg)，否则合计 40px 比合集详情等
-        // 同类页明显宽（详情页此前已修，这里是漏掉的一处）。
-        child: CustomScrollView(
-          key: const Key('video-collections-page'),
-          slivers: [
-            SliverToBoxAdapter(
-              child: Row(
-                children: [
-                  Expanded(
-                    child: AppSearchField(
-                      fieldKey: const Key('video-collections-search-field'),
-                      controller: _searchController,
-                      hintText: l10n.videoSearchCollections,
-                      onChanged: (value) => setState(
-                        () => _keyword = value.trim().toLowerCase(),
-                      ),
-                      clearKey: const Key('video-collections-search-clear'),
-                    ),
+      // 页面边距由桌面 shell 的 AppPageInsets.desktopStandard (24px) 统一提供，
+      // 此处不再叠加 EdgeInsets.all(spacing.lg)，否则合计 40px 比合集详情等
+      // 同类页明显宽（详情页此前已修，这里是漏掉的一处）。
+      child: CustomScrollView(
+        key: const Key('video-collections-page'),
+        slivers: [
+          SliverToBoxAdapter(
+            child: Row(
+              children: [
+                Expanded(
+                  child: AppSearchField(
+                    fieldKey: const Key('video-collections-search-field'),
+                    controller: _searchController,
+                    hintText: l10n.videoSearchCollections,
+                    onChanged: (value) =>
+                        setState(() => _keyword = value.trim().toLowerCase()),
+                    clearKey: const Key('video-collections-search-clear'),
                   ),
-                  SizedBox(width: context.appSpacing.md),
-                  AppButton(
-                    key: const Key('video-collections-create-button'),
-                    label: l10n.videoNewCollection,
-                    variant: AppButtonVariant.primary,
-                    onPressed: () => _create(context, ref),
-                  ),
-                ],
-              ),
+                ),
+                SizedBox(width: context.appSpacing.md),
+                AppButton(
+                  key: const Key('video-collections-create-button'),
+                  label: l10n.videoNewCollection,
+                  variant: AppButtonVariant.primary,
+                  onPressed: () => _create(context, ref),
+                ),
+              ],
             ),
-            SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.lg)),
-            _buildBody(context, ref, async),
-          ],
-        ),
+          ),
+          SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.lg)),
+          _buildBody(context, ref, async),
+        ],
       ),
     );
   }
@@ -188,14 +184,13 @@ class _DesktopVideoCollectionsPageState
         gridKey: const Key('video-collections-grid'),
         items: collections,
         orientation: AppCardGridOrientation.landscape,
-        itemBuilder:
-            (context, collection, _) => CollectionCard.video(
-              collection: collection,
-              onTap: () =>
-                  context.go('$desktopVideoCollectionsPath/${collection.id}'),
-              onEdit: () => _edit(context, ref, collection),
-              onDelete: () => _delete(context, ref, collection),
-            ),
+        itemBuilder: (context, collection, _) => CollectionCard.video(
+          collection: collection,
+          onTap: () =>
+              context.go('$desktopVideoCollectionsPath/${collection.id}'),
+          onEdit: () => _edit(context, ref, collection),
+          onDelete: () => _delete(context, ref, collection),
+        ),
       ),
     );
   }

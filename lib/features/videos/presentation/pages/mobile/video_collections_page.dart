@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_collections_overview_provider.dart';
@@ -173,19 +173,15 @@ class _MobileVideoCollectionsPageState
                 gridKey: const Key('mobile-video-collections-grid'),
                 items: collections,
                 orientation: AppCardGridOrientation.landscape,
-                itemBuilder:
-                    (context, collection, _) => CollectionCard.video(
-                      key: Key(
-                        'mobile-video-collection-card-${collection.id}',
-                      ),
-                      collection: collection,
-                      onTap:
-                          () => MobileVideoCollectionDetailRouteData(
-                            collectionId: collection.id,
-                          ).push(context),
-                      onEdit: () => _editCollection(collection),
-                      onDelete: () => _deleteCollection(collection),
-                    ),
+                itemBuilder: (context, collection, _) => CollectionCard.video(
+                  key: Key('mobile-video-collection-card-${collection.id}'),
+                  collection: collection,
+                  onTap: () => MobileVideoCollectionDetailRouteData(
+                    collectionId: collection.id,
+                  ).push(context),
+                  onEdit: () => _editCollection(collection),
+                  onDelete: () => _deleteCollection(collection),
+                ),
               ),
             ),
         ],
@@ -203,7 +199,10 @@ class _MobileVideoCollectionsPageState
     }
     await ref.read(videoCollectionsOverviewProvider.notifier).refresh();
     if (mounted) {
-      showToast(AppLocalizations.of(context).videoCollectionCreated);
+      showToast(
+        AppLocalizations.of(context).videoCollectionCreated,
+        tone: AppToastTone.success,
+      );
     }
   }
 
@@ -218,7 +217,10 @@ class _MobileVideoCollectionsPageState
     }
     await ref.read(videoCollectionsOverviewProvider.notifier).refresh();
     if (mounted) {
-      showToast(AppLocalizations.of(context).commonSaved);
+      showToast(
+        AppLocalizations.of(context).commonSaved,
+        tone: AppToastTone.success,
+      );
     }
   }
 
@@ -245,15 +247,12 @@ class _MobileVideoCollectionsPageState
           .deleteCollection(collection.id);
       await ref.read(videoCollectionsOverviewProvider.notifier).refresh();
       if (mounted) {
-        showToast(l10n.videoCollectionDeleted);
+        showToast(l10n.videoCollectionDeleted, tone: AppToastTone.success);
       }
     } catch (error) {
       showToast(
-        apiErrorMessage(
-          error,
-          fallback: l10n.videoDeleteFailed,
-          l10n: l10n,
-        ),
+        apiErrorMessage(error, fallback: l10n.videoDeleteFailed, l10n: l10n),
+        tone: AppToastTone.error,
       );
     }
   }

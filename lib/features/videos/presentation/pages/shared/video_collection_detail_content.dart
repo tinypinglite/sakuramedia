@@ -4,7 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:intl/intl.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.dart';
@@ -225,12 +225,9 @@ class _VideoCollectionDetailContentState
     );
 
     if (_isMobile) {
-      return ColoredBox(color: widget.surfaceColor, child: content);
+      return content;
     }
-    return AppPageRefreshScope(
-      onRefresh: notifier.refresh,
-      child: ColoredBox(color: widget.surfaceColor, child: content),
-    );
+    return AppPageRefreshScope(onRefresh: notifier.refresh, child: content);
   }
 
   // --------------------------------------------------------- 状态三态
@@ -581,9 +578,7 @@ class _VideoCollectionDetailContentState
                 // expandToParent 模式下 coverAspectRatio 仅在 cover placeholder 时
                 // 影响占位比例；瀑布流 tile 已按真实比例分配高度，传 16:9 兜底即可。
                 coverAspectRatio: 16 / 9,
-                title: item.video.displayTitle(
-                  AppLocalizations.of(context),
-                ),
+                title: item.video.displayTitle(AppLocalizations.of(context)),
                 // 副信息只在桌面悬停面板渲染；移动端无 hover，收起态不铺文字。
                 subtitle: _formatReleaseDate(item.video.releaseDate),
                 onTap: selectionMode
@@ -595,9 +590,7 @@ class _VideoCollectionDetailContentState
                     : () => playSingle(
                         context,
                         item.video.id,
-                        item.video.displayTitle(
-                          AppLocalizations.of(context),
-                        ),
+                        item.video.displayTitle(AppLocalizations.of(context)),
                       ),
                 playButtonKey: Key(
                   '${widget.keyPrefix}-grid-play-${item.video.id}',
@@ -661,7 +654,10 @@ class _VideoCollectionDetailContentState
         collectionId: widget.collectionId,
       );
     }
-    showToast(error ?? AppLocalizations.of(context).videoRemovedFromCollection);
+    showToast(
+      error ?? AppLocalizations.of(context).videoRemovedFromCollection,
+      tone: error == null ? AppToastTone.success : AppToastTone.error,
+    );
   }
 
   /// 彻底删除视频本体（含文件，不可恢复）：先确认，再走 notifier 乐观删除并广播
@@ -691,7 +687,7 @@ class _VideoCollectionDetailContentState
       return;
     }
     _mutationBroadcaster.reportDeleted(videoId);
-    showToast(l10n.videoDeletedToast);
+    showToast(l10n.videoDeletedToast, tone: AppToastTone.success);
   }
 
   /// 跳转到该视频的缩略图页（桌面悬停动作）。
@@ -727,7 +723,10 @@ class _VideoCollectionDetailContentState
         videoId: item.video.id,
         collectionId: target.id,
       );
-      showToast(l10n.videoAddedToCollection(target.name));
+      showToast(
+        l10n.videoAddedToCollection(target.name),
+        tone: AppToastTone.success,
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -738,6 +737,7 @@ class _VideoCollectionDetailContentState
           fallback: l10n.videoAddToCollectionFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }

@@ -9,14 +9,10 @@ import 'package:sakuramedia/features/videos/presentation/providers/video_summary
 import 'package:sakuramedia/features/videos/presentation/video_placeholders.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
-import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_list_header.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
-import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_filter_sections.dart';
+import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_glass_list_header.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_summary_grid.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/widgets/domain/videos/video_sort_menu_button.dart';
 
 /// 视频列表「排序条 + 总数 + 网格 + 分页底栏」的 Sliver 呈现层。
 ///
@@ -42,7 +38,7 @@ class VideoListContent extends StatelessWidget {
     this.selectedIds = const <int>{},
     this.onVideoToggleSelect,
     this.selectionHeaderBuilder,
-    this.headerActionsBuilder,
+    this.onEnterSelection,
     this.sectionSpacing = 0,
     this.contentKey,
     this.totalKey,
@@ -88,9 +84,8 @@ class VideoListContent extends StatelessWidget {
   /// （决定「全选」状态）。
   final Widget? Function(BuildContext context)? selectionHeaderBuilder;
 
-  /// 常规态顶栏右侧操作槽（如「选择」入口）。返回 `null` 不渲染。
-  /// 用 builder 让分页状态变化时拿到最新 items。
-  final Widget? Function(BuildContext context)? headerActionsBuilder;
+  /// 进入多选的回调；列表为空时由 [VideoListContent] 自动隐藏入口。
+  final VoidCallback? onEnterSelection;
 
   final double sectionSpacing;
   final Key? contentKey;
@@ -105,52 +100,29 @@ class VideoListContent extends StatelessWidget {
     final selectionHeader = selectionMode
         ? selectionHeaderBuilder?.call(context)
         : null;
-    final actions = headerActionsBuilder?.call(context);
+    final enterSelection = !selectionMode && paged.items.isNotEmpty
+        ? onEnterSelection
+        : null;
     return SliverMainAxisGroup(
       key: contentKey,
       slivers: [
         AppPinnedListHeader(
           key: headerKey,
-          color: context.appColors.surfaceElevated,
+          color: Colors.transparent,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 桌面与移动共用同一条顶栏：筛选入口 + 只读信息 + 操作。
-              // 差别只在筛选面板的容器——桌面就地浮层，移动底部抽屉。
-              selectionHeader ??
-                  AppListHeader(
-                    filterButtonKey: const Key('videos-filter-trigger'),
-                    filterLabel: filterState.triggerLabel(l10n),
-                    filterPanelKey: const Key('videos-filter-panel'),
-                    filterPanelExtraWidth: 180,
-                    filterPanelBuilder: (_) => VideoFilterSectionGroup(
-                      filterState: filterState,
-                      onChanged: onFilterChanged,
-                    ),
-                    filterPanelFooter: AppFilterPanelFooter(
-                      isDefault: !filterState.hasActiveFilters,
-                      onReset: () =>
-                          onFilterChanged(filterState.resetFilters()),
-                    ),
-                    filterUpdate: paged.filterUpdate,
-                    hasPreviousFilterItems: paged.items.isNotEmpty,
-                    onRetryFilter: onRetryFilter,
-                    informationSlots: [
-                      AppListHeaderInfo(
-                        key: totalKey ?? const Key('videos-page-total'),
-                        label: l10n.videoTotalCount(paged.total),
-                      ),
-                    ],
-                    actionSlots: [
-                      VideoSortMenuButton(
-                        triggerKey: const Key('videos-sort-trigger'),
-                        panelKey: const Key('videos-sort-panel'),
-                        filterState: filterState,
-                        onChanged: onFilterChanged,
-                      ),
-                      ?actions,
-                    ],
-                  ),
+              VideoGlassListHeader(
+                filterState: filterState,
+                total: paged.total,
+                filterUpdate: paged.filterUpdate,
+                hasPreviousFilterItems: paged.items.isNotEmpty,
+                onFilterChanged: onFilterChanged,
+                onRetryFilter: onRetryFilter,
+                onEnterSelection: enterSelection,
+                selectionHeader: selectionHeader,
+                totalKey: totalKey,
+              ),
               SizedBox(height: sectionSpacing),
             ],
           ),
