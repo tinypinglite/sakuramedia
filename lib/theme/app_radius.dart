@@ -9,21 +9,30 @@ class AppRadius extends ThemeExtension<AppRadius> {
     required this.sm,
     required this.md,
     required this.lg,
+    required this.xl,
     required this.pill,
   });
 
-  const AppRadius.defaults() : xs = 4, sm = 8, md = 12, lg = 16, pill = 999;
+  const AppRadius.defaults()
+    : xs = 4,
+      sm = 8,
+      md = 12,
+      lg = 16,
+      xl = 28,
+      pill = 999;
 
   final double xs;
   final double sm;
   final double md;
   final double lg;
+  final double xl;
   final double pill;
 
   BorderRadius get xsBorder => BorderRadius.circular(xs);
   BorderRadius get smBorder => BorderRadius.circular(sm);
   BorderRadius get mdBorder => BorderRadius.circular(md);
   BorderRadius get lgBorder => BorderRadius.circular(lg);
+  BorderRadius get xlBorder => BorderRadius.circular(xl);
   BorderRadius get pillBorder => BorderRadius.circular(pill);
 
   @override
@@ -32,6 +41,7 @@ class AppRadius extends ThemeExtension<AppRadius> {
     double? sm,
     double? md,
     double? lg,
+    double? xl,
     double? pill,
   }) {
     return AppRadius(
@@ -39,6 +49,7 @@ class AppRadius extends ThemeExtension<AppRadius> {
       sm: sm ?? this.sm,
       md: md ?? this.md,
       lg: lg ?? this.lg,
+      xl: xl ?? this.xl,
       pill: pill ?? this.pill,
     );
   }
@@ -53,6 +64,7 @@ class AppRadius extends ThemeExtension<AppRadius> {
       sm: lerpDouble(sm, other.sm, t)!,
       md: lerpDouble(md, other.md, t)!,
       lg: lerpDouble(lg, other.lg, t)!,
+      xl: lerpDouble(xl, other.xl, t)!,
       pill: lerpDouble(pill, other.pill, t)!,
     );
   }
