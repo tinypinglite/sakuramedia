@@ -4,6 +4,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
 
 /// 决定 [showAppAdaptiveModal] 用哪种壳显示。
 enum AppAdaptiveModalVariant {
@@ -84,6 +85,7 @@ Future<T?> showAppAdaptiveModal<T>({
   bool showDrawerHandle = true,
   bool showDesktopCloseButton = true,
   AppAdaptiveModalVariant variant = AppAdaptiveModalVariant.auto,
+  AppModalDismissController? dismissController,
 }) {
   assert(
     desktopConstraints == null ||
@@ -101,17 +103,19 @@ Future<T?> showAppAdaptiveModal<T>({
       enableDrag: enableDrag,
       isDismissible: barrierDismissible,
       showHandle: showDrawerHandle,
+      dismissController: dismissController,
       builder: (drawerContext) => AppAdaptiveModalShellScope(
         isDrawer: true,
         child: builder(drawerContext),
       ),
     );
   }
-  return showAppDialog<T>(
-    context: context,
-    barrierColor: context.appColors.modalBarrier,
-    barrierDismissible: barrierDismissible,
-    builder: (dialogContext) => AppDesktopDialog(
+  Widget buildDialog(BuildContext dialogContext, {required bool locked}) {
+    final content = AppAdaptiveModalShellScope(
+      isDrawer: false,
+      child: builder(dialogContext),
+    );
+    return AppDesktopDialog(
       dialogKey: dialogKey ?? modalKey,
       width: desktopConstraints == null
           ? desktopWidth ?? dialogContext.appLayoutTokens.dialogWidthMd
@@ -123,11 +127,27 @@ Future<T?> showAppAdaptiveModal<T>({
       backgroundColor: desktopBackgroundColor,
       onClose: desktopOnClose,
       showCloseButton: showDesktopCloseButton,
-      child: AppAdaptiveModalShellScope(
-        isDrawer: false,
-        child: builder(dialogContext),
-      ),
-    ),
+      closeButtonEnabled: !locked,
+      child: dismissController == null
+          ? content
+          : AppModalDismissScope(controller: dismissController, child: content),
+    );
+  }
+
+  return showAppDialog<T>(
+    context: context,
+    barrierColor: context.appColors.modalBarrier,
+    barrierDismissible: barrierDismissible,
+    builder: (dialogContext) {
+      if (dismissController == null) {
+        return buildDialog(dialogContext, locked: false);
+      }
+      return ListenableBuilder(
+        listenable: dismissController,
+        builder: (context, _) =>
+            buildDialog(dialogContext, locked: dismissController.locked),
+      );
+    },
   );
 }
 

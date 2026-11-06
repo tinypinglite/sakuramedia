@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
@@ -286,7 +287,7 @@ class _CollectionMembershipDialogState<T>
       return trailingText;
     }
     final count = _config.countOf?.call(collection);
-    return count != null && count > 0 ? '$count' : null;
+    return count != null && count > 0 ? formatAppCount(count) : null;
   }
 
   Widget _buildCreateRow({required bool enabled}) {

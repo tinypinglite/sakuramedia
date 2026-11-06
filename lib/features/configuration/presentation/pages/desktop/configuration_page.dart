@@ -21,6 +21,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_settings_rail.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_back_guard.dart';
 
 class DesktopConfigurationPage extends ConsumerStatefulWidget {
   const DesktopConfigurationPage({super.key});
@@ -43,6 +44,9 @@ class _DesktopConfigurationPageState
   List<_ConfigurationTab> get _tabs => _buildTabs(AppLocalizations.of(context));
   int _selectedIndex = 2;
   final Set<Key> _dirtyTabs = <Key>{};
+  AppBackGuardController? _backGuard;
+  AppBackGuardRegistration? _backGuardRegistration;
+  bool _isConfirmingBack = false;
 
   // 顺序即右侧 IndexedStack 的索引；itemKey 沿用原 tab key，保持深链/测试兼容。
   List<_ConfigurationTab> _buildTabs(AppLocalizations l10n) {
@@ -187,6 +191,7 @@ class _DesktopConfigurationPageState
       _dirtyTabs.remove(leavingKey);
       _selectedIndex = index;
     });
+    _syncBackGuard();
   }
 
   void _handleTabDirtyChanged(Key tabKey, bool dirty) {
@@ -198,6 +203,20 @@ class _DesktopConfigurationPageState
         _dirtyTabs.remove(tabKey);
       }
     });
+    _syncBackGuard();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final guard = AppBackGuardScope.maybeOf(context);
+    if (identical(guard, _backGuard)) {
+      return;
+    }
+    _backGuardRegistration?.dispose();
+    _backGuardRegistration = null;
+    _backGuard = guard;
+    _syncBackGuard();
   }
 
   @override
@@ -223,6 +242,54 @@ class _DesktopConfigurationPageState
         unawaited(_select(index));
       }
     });
+  }
+
+  void _syncBackGuard() {
+    if (_dirtyTabs.isEmpty) {
+      _backGuardRegistration?.dispose();
+      _backGuardRegistration = null;
+      return;
+    }
+    _backGuardRegistration ??= _backGuard?.register(_confirmLeavePage);
+  }
+
+  Future<bool> _confirmLeavePage() async {
+    if (_dirtyTabs.isEmpty) {
+      return true;
+    }
+    if (_isConfirmingBack) {
+      return false;
+    }
+    _isConfirmingBack = true;
+    try {
+      final l10n = AppLocalizations.of(context);
+      final confirmed = await showAppConfirmDialog(
+        context,
+        title: l10n.configUnsavedChangesTitle,
+        message: l10n.configLeaveUnsavedMessage,
+        confirmLabel: l10n.configLeaveConfirm,
+        dialogKey: const Key('configuration-advanced-leave-confirm-dialog'),
+        confirmKey: const Key('configuration-advanced-leave-confirm-button'),
+        cancelKey: const Key('configuration-advanced-leave-cancel-button'),
+      );
+      if (!confirmed || !mounted) {
+        return false;
+      }
+      if (_dirtyTabs.contains(_downloadSelectionCategoryKey)) {
+        ref.read(downloadSelectionPolicyProvider.notifier).discardDraft();
+      }
+      setState(_dirtyTabs.clear);
+      _syncBackGuard();
+      return true;
+    } finally {
+      _isConfirmingBack = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _backGuardRegistration?.dispose();
+    super.dispose();
   }
 
   @override

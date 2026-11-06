@@ -20,7 +20,7 @@ import 'package:sakuramedia/features/media/presentation/providers/media_api_prov
 import 'package:sakuramedia/features/videos/presentation/providers/videos_api_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/video_display_title.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 import 'package:sakuramedia/widgets/base/media/video/themed_video_player.dart';
@@ -439,7 +439,12 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
       return wrapWithMoviePlayerBackButton(
         onBackPressed: _handleBack,
         backButtonKey: const Key('video-player-back-button'),
-        child: Center(child: AppEmptyState(message: _errorMessage!)),
+        child: Center(
+          child: AppErrorState(
+            title: AppLocalizations.of(context).videoLoadFailed,
+            message: _errorMessage!,
+          ),
+        ),
       );
     }
     final controller = _controller;

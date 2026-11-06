@@ -137,6 +137,9 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent> {
             ),
           ],
         ),
+        filterUpdate: args.filterUpdate,
+        hasPreviousFilterItems: args.total > 0,
+        onRetryFilter: args.onRetryFilter,
       );
     }
     return AppMobileListHeader(
@@ -153,6 +156,9 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent> {
           onPressed: _handleImport,
         ),
       ],
+      filterUpdate: args.filterUpdate,
+      hasPreviousFilterItems: args.total > 0,
+      onRetryFilter: args.onRetryFilter,
     );
   }
 

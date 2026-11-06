@@ -103,16 +103,25 @@ class _SystemDiagnosticsStripState
     SystemDiagnosticsState state,
   ) {
     final l10n = AppLocalizations.of(context);
+    if (state.isRunning) {
+      return (
+        palette: AppStatusChipPalette.forSemantic(
+          AppStatusSemantic.neutral,
+          icon: Icons.hourglass_top,
+        ),
+        label: l10n.diagnosticStatusProbing,
+      );
+    }
     if (state.lastRunAt == null) {
       return (
-        palette: AppStatusChipPalette.neutral(),
+        palette: AppStatusChipPalette.forSemantic(AppStatusSemantic.neutral),
         label: l10n.systemDiagnosticsStatusNotChecked,
       );
     }
     if (state.unhealthyCount > 0 ||
         state.overallStatus == DiagnosticItemStatus.unhealthy) {
       return (
-        palette: AppStatusChipPalette.error(),
+        palette: AppStatusChipPalette.forSemantic(AppStatusSemantic.error),
         label: l10n.systemDiagnosticsStatusIssues(
           state.unhealthyCount > 0 ? state.unhealthyCount : 1,
         ),
@@ -121,19 +130,19 @@ class _SystemDiagnosticsStripState
     if (state.overallStatus == DiagnosticItemStatus.warning ||
         state.overallStatus == DiagnosticItemStatus.blocked) {
       return (
-        palette: AppStatusChipPalette.warning(),
+        palette: AppStatusChipPalette.forSemantic(AppStatusSemantic.warning),
         label: l10n.systemDiagnosticsStatusWarning,
       );
     }
     if (state.overallStatus == DiagnosticItemStatus.disabled ||
         state.overallStatus == DiagnosticItemStatus.notTested) {
       return (
-        palette: AppStatusChipPalette.neutral(),
+        palette: AppStatusChipPalette.forSemantic(AppStatusSemantic.neutral),
         label: l10n.systemDiagnosticsStatusPartiallyChecked,
       );
     }
     return (
-      palette: AppStatusChipPalette.success(),
+      palette: AppStatusChipPalette.forSemantic(AppStatusSemantic.success),
       label: l10n.systemDiagnosticsStatusAllPassed,
     );
   }

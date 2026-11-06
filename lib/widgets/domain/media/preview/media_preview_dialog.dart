@@ -17,6 +17,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
 import 'package:sakuramedia/widgets/domain/media/media_center_play_button.dart';
@@ -533,12 +534,9 @@ class _MediaPreviewDialogState extends ConsumerState<MediaPreviewDialog> {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              InkWell(
-                mouseCursor: widget.useInlineNavigation && _canOpenMovieDetail
-                    ? SystemMouseCursors.click
-                    : SystemMouseCursors.basic,
+              AppInteractiveSurface(
                 key: const Key('image-search-result-preview-movie-cover'),
-                borderRadius: context.appRadius.mdBorder,
+                focusRingRadius: context.appRadius.mdBorder,
                 onTap: widget.useInlineNavigation && _canOpenMovieDetail
                     ? _handleOpenMovieDetail
                     : null,
@@ -774,12 +772,11 @@ class _MovieActorStrip extends StatelessWidget {
 
             return Tooltip(
               message: tooltip,
-              child: InkWell(
-                mouseCursor: actor.id > 0 && onActorTap != null
-                    ? SystemMouseCursors.click
-                    : SystemMouseCursors.basic,
+              child: AppInteractiveSurface(
                 key: itemKey,
-                borderRadius: context.appRadius.smBorder,
+                enabled: actor.id > 0 && onActorTap != null,
+                focusRingRadius: context.appRadius.smBorder,
+                semanticLabel: tooltip,
                 onTap: actor.id > 0 && onActorTap != null
                     ? () => onActorTap!(actor.id)
                     : null,

@@ -114,7 +114,13 @@ class MediaManagementContent extends HookConsumerWidget {
       if (previous != null && next != null && previous != next) {
         selection.exitSelection();
         if (currentTab == 0 && listScrollController.hasClients) {
-          listScrollController.jumpTo(0);
+          unawaited(
+            listScrollController.animateTo(
+              0,
+              duration: context.appMotion.fast,
+              curve: context.appMotion.standard,
+            ),
+          );
         }
       }
     });
@@ -125,12 +131,15 @@ class MediaManagementContent extends HookConsumerWidget {
     final deletingMediaId = useState<int?>(null);
     final transferringMediaId = useState<int?>(null);
     final retryingThumbnailMediaId = useState<int?>(null);
+    final refreshError = useState<String?>(null);
     return AppPageRefreshScope(
       onRefresh: () => _refreshAll(
+        context,
         ref,
         currentTab: currentTab,
         duplicateKind: duplicateKind.value,
         versionsProvider: versionsProvider,
+        refreshError: refreshError,
       ),
       child: Column(
         key: rootKey,
@@ -199,10 +208,12 @@ class MediaManagementContent extends HookConsumerWidget {
                             selection,
                           ),
                       onRefresh: () => _refreshAll(
+                        context,
                         ref,
                         currentTab: currentTab,
                         duplicateKind: duplicateKind.value,
                         versionsProvider: versionsProvider,
+                        refreshError: refreshError,
                       ),
                       onOpenMovieDetail: onOpenMovieDetail,
                       keyPrefix: keyPrefix,
@@ -268,17 +279,26 @@ class MediaManagementContent extends HookConsumerWidget {
                         if (duplicateKind.value == next) return;
                         duplicateKind.value = next;
                         if (duplicateScrollController.hasClients) {
-                          duplicateScrollController.jumpTo(0);
+                          unawaited(
+                            duplicateScrollController.animateTo(
+                              0,
+                              duration: context.appMotion.fast,
+                              curve: context.appMotion.standard,
+                            ),
+                          );
                         }
                       },
                       keyPrefix: keyPrefix,
                       mobile: mobile,
                       onRefresh: () => _refreshAll(
+                        context,
                         ref,
                         currentTab: currentTab,
                         duplicateKind: duplicateKind.value,
                         versionsProvider: versionsProvider,
+                        refreshError: refreshError,
                       ),
+                      refreshError: refreshError.value,
                       onOpenMovieDetail: onOpenMovieDetail,
                       onOpenVideoCollectionDetail: onOpenVideoCollectionDetail,
                     ),
@@ -300,6 +320,15 @@ class MediaManagementContent extends HookConsumerWidget {
                       keyPrefix: keyPrefix,
                       mobile: mobile,
                       onOpenMovieDetail: onOpenMovieDetail,
+                      refreshError: refreshError.value,
+                      onRefresh: () => _refreshAll(
+                        context,
+                        ref,
+                        currentTab: currentTab,
+                        duplicateKind: duplicateKind.value,
+                        versionsProvider: versionsProvider,
+                        refreshError: refreshError,
+                      ),
                     ),
                   ),
                 ),
@@ -320,6 +349,15 @@ class MediaManagementContent extends HookConsumerWidget {
                       scrollController: invalidScrollController,
                       onOpenMovieDetail: onOpenMovieDetail,
                       mobile: mobile,
+                      refreshError: refreshError.value,
+                      onRefresh: () => _refreshAll(
+                        context,
+                        ref,
+                        currentTab: currentTab,
+                        duplicateKind: duplicateKind.value,
+                        versionsProvider: versionsProvider,
+                        refreshError: refreshError,
+                      ),
                     ),
                   ),
                 ),
@@ -332,28 +370,40 @@ class MediaManagementContent extends HookConsumerWidget {
   }
 
   Future<void> _refreshAll(
+    BuildContext context,
     WidgetRef ref, {
     required int currentTab,
     required MediaListItemKind duplicateKind,
     required MultiVersionMoviesProvider versionsProvider,
+    required ValueNotifier<String?> refreshError,
   }) async {
     final refreshes = <Future<String?>>[
       ref.read(mediaBrowseProvider.notifier).refresh(),
       ref.read(invalidMediaProvider.notifier).refresh(),
       ref.read(mediaLibrariesProvider.notifier).refresh(),
     ];
+    Future<String?>? duplicateRefresh;
+    Future<String?>? versionsRefresh;
     if (currentTab == _duplicateTabIndex) {
-      refreshes.add(
-        ref.read(duplicateMediaProvider(duplicateKind).notifier).refresh(),
-      );
+      duplicateRefresh = ref
+          .read(duplicateMediaProvider(duplicateKind).notifier)
+          .refresh();
+      refreshes.add(duplicateRefresh);
     }
     if (currentTab == _versionsTabIndex) {
-      refreshes.add(ref.read(versionsProvider.notifier).refresh());
+      versionsRefresh = ref.read(versionsProvider.notifier).refresh();
+      refreshes.add(versionsRefresh);
     }
     final results = await Future.wait<String?>(refreshes);
-    for (final message in results) {
-      if (message != null) showToast(message);
-    }
+    if (!context.mounted) return;
+    refreshError.value = switch (currentTab) {
+      _duplicateTabIndex =>
+        duplicateRefresh == null ? null : await duplicateRefresh,
+      _versionsTabIndex =>
+        versionsRefresh == null ? null : await versionsRefresh,
+      3 => results[1],
+      _ => null,
+    };
   }
 
   Future<void> _openBatchDeleteDialog(
@@ -717,16 +767,7 @@ class MediaManagementContent extends HookConsumerWidget {
           .resetMediaThumbnails(mediaIds: mediaIds, force: force);
       if (!context.mounted) return;
       selection?.exitSelection();
-      final refreshMessage = await ref
-          .read(mediaBrowseProvider.notifier)
-          .refresh();
-      if (!context.mounted) return;
-      if (refreshMessage != null) {
-        showToast(
-          l10n.mediaListThumbnailResetRefreshFailed(resetCount, refreshMessage),
-          tone: AppToastTone.error,
-        );
-      } else if (resetCount == 0) {
+      if (resetCount == 0) {
         showToast(
           force
               ? l10n.mediaListThumbnailNothingToRegenerate
@@ -744,6 +785,8 @@ class MediaManagementContent extends HookConsumerWidget {
           tone: AppToastTone.success,
         );
       }
+      // 刷新失败由列表 Header 的 AppFilterUpdateBar 单通道呈现，保留旧列表。
+      await ref.read(mediaBrowseProvider.notifier).refresh();
     } catch (error) {
       if (context.mounted) {
         showToast(

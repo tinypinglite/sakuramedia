@@ -15,7 +15,10 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 
 /// Provider-neutral source browser used by the media import dialogs.
@@ -422,12 +425,14 @@ class _MediaImportSourcePickerState
 
   Widget _buildBrowserBody(BuildContext context) {
     if (_isBrowsing) {
-      return const Center(child: CircularProgressIndicator.adaptive());
+      return const Center(child: AppInlineSpinner());
     }
     if (_browseError != null) {
       return SingleChildScrollView(
-        child: AppEmptyState(
+        child: AppErrorState(
+          title: AppLocalizations.of(context).widgetMediaImportBrowseFailed,
           message: _browseError!,
+          variant: AppStatePanelVariant.section,
           retryKey: const Key('media-import-picker-browse-retry-button'),
           onRetry: _retryBrowse,
         ),
@@ -467,7 +472,7 @@ class _MediaImportSourcePickerState
     if (_isLoadingMore) {
       return Padding(
         padding: EdgeInsets.all(context.appSpacing.md),
-        child: const Center(child: CircularProgressIndicator.adaptive()),
+        child: const Center(child: AppInlineSpinner()),
       );
     }
     return Padding(
@@ -572,10 +577,7 @@ class _ImportEntryRow extends StatelessWidget {
     final spacing = context.appSpacing;
     final muted = !entry.isDirectory && !canSelect;
     final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
-    return InkWell(
-      mouseCursor: entry.isDirectory || canSelect
-          ? SystemMouseCursors.click
-          : SystemMouseCursors.basic,
+    return AppInteractiveSurface(
       onTap: entry.isDirectory || canSelect ? onTap : null,
       child: Padding(
         padding: EdgeInsets.symmetric(

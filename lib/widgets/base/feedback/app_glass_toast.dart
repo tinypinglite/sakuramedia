@@ -1,6 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_backend.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_flat_style.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_flat_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 
 enum AppToastTone { neutral, success, warning, error, info }
 
@@ -18,6 +21,7 @@ class AppGlassToast extends StatelessWidget {
   Widget build(BuildContext context) {
     final tokens = context.appToastTokens;
     final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
+    final flat = AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat;
     final content = _buildContent(context);
     final padding = EdgeInsets.symmetric(
       horizontal: tokens.horizontalPadding,
@@ -32,7 +36,13 @@ class AppGlassToast extends StatelessWidget {
           minWidth: tokens.minWidth,
           minHeight: tokens.minHeight,
         ),
-        child: highContrast
+        child: flat
+            ? _buildFlatSurface(
+                padding: padding,
+                borderRadius: tokens.borderRadius,
+                child: content,
+              )
+            : highContrast
             ? _buildSolidSurface(
                 context,
                 padding: padding,
@@ -46,6 +56,19 @@ class AppGlassToast extends StatelessWidget {
                 child: content,
               ),
       ),
+    );
+  }
+
+  Widget _buildFlatSurface({
+    required EdgeInsets padding,
+    required double borderRadius,
+    required Widget child,
+  }) {
+    return AppGlassFlatSurface(
+      borderRadius: BorderRadius.circular(borderRadius),
+      padding: padding,
+      role: AppFlatSurfaceRole.overlay,
+      child: child,
     );
   }
 

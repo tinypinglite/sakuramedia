@@ -126,6 +126,11 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
                       errorMessage: paged.initialError != null
                           ? l10n.errorVideoListLoadFailed
                           : null,
+                      onErrorRetry: () => unawaited(
+                        ref
+                            .read(videoSummaryProvider(_scope).notifier)
+                            .reload(),
+                      ),
                       emptyMessage: l10n.videoEmptyList,
                       onVideoTap: (video) => selectionAwareTap(
                         video.id,
@@ -190,6 +195,7 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
           key: const Key('videos-batch-add-collection-button'),
           icon: Icons.playlist_add_rounded,
           label: l10n.videoAddToCollection,
+          isLoading: submitting && hasSelection,
           onTap: hasSelection && !submitting ? batchAddToCollection : null,
         ),
         AppGlassSelectionAction(
@@ -197,6 +203,7 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
           icon: Icons.delete_outline_rounded,
           label: l10n.commonDelete,
           foregroundColor: hasSelection ? context.appTextPalette.error : null,
+          isLoading: submitting && hasSelection,
           onTap: hasSelection && !submitting ? batchDelete : null,
         ),
       ],

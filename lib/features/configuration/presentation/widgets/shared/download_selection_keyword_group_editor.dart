@@ -2,9 +2,9 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/configuration/data/dto/download_selection_policy_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
 
 Future<DownloadSelectionKeywordGroupDto?>
 showDownloadSelectionKeywordGroupEditor(
@@ -152,25 +152,13 @@ class _DownloadSelectionKeywordGroupEditorState
             ),
           ),
           SizedBox(height: spacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: AppButton(
-                  key: const Key('download-selection-keyword-group-cancel'),
-                  label: l10n.commonCancel,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-              SizedBox(width: spacing.sm),
-              Expanded(
-                child: AppButton(
-                  key: const Key('download-selection-keyword-group-save'),
-                  label: l10n.commonSave,
-                  variant: AppButtonVariant.primary,
-                  onPressed: _submit,
-                ),
-              ),
-            ],
+          AppModalActionRow(
+            cancelKey: const Key('download-selection-keyword-group-cancel'),
+            submitKey: const Key('download-selection-keyword-group-save'),
+            cancelLabel: l10n.commonCancel,
+            submitLabel: l10n.commonSave,
+            onCancel: () => Navigator.of(context).pop(),
+            onSubmit: _submit,
           ),
         ],
       ),

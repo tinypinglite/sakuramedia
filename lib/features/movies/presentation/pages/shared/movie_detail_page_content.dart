@@ -1,14 +1,14 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:intl/intl.dart';
+import 'package:sakuramedia/core/format/app_date_format.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_view_model.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_no_pull_down_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
@@ -240,9 +240,7 @@ class MovieDetailPageContent extends StatelessWidget {
                       ? watchLabel
                       : l10n.moviePageWatchLabelWithDate(
                           watchLabel ?? '',
-                          DateFormat(
-                            l10n.moviePageWatchedAtDatePattern,
-                          ).format(watchedAt),
+                          formatAppDateTime(watchedAt),
                         ),
                   isSubscribed: state.isSubscribed,
                   onSubscriptionTap: actions.onSubscriptionTap,
@@ -634,7 +632,7 @@ List<MovieDetailMetaItem> _resolveMetaItems(
       MovieDetailMetaItem(
         icon: Icons.chat_bubble_outline_rounded,
         iconColor: colors.movieDetailCommentCountIcon,
-        text: '${movie.commentCount}',
+        text: formatAppCount(movie.commentCount),
       ),
     if (movie.wantWatchCount > 0)
       MovieDetailMetaItem(
@@ -646,13 +644,11 @@ List<MovieDetailMetaItem> _resolveMetaItems(
       MovieDetailMetaItem(
         icon: Icons.local_fire_department_rounded,
         iconColor: colors.movieDetailHeatIcon,
-        text: '${movie.heat}',
+        text: formatAppCompactCount(movie.heat),
       ),
     if (movie.releaseDate != null)
       MovieDetailMetaItem(
-        text: l10n.moviePageMetaReleased(
-          DateFormat('yyyy/MM/dd').format(movie.releaseDate!),
-        ),
+        text: l10n.moviePageMetaReleased(formatAppDate(movie.releaseDate!)),
       ),
     if (movie.durationMinutes > 0)
       MovieDetailMetaItem(
@@ -742,15 +738,10 @@ class MovieDetailErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        AppEmptyState(message: message),
-        SizedBox(height: context.appSpacing.lg),
-        AppTextButton(
-          label: AppLocalizations.of(context).commonRetry,
-          onPressed: onRetry,
-        ),
-      ],
+    return AppErrorState(
+      title: AppLocalizations.of(context).baseActionFailed,
+      message: message,
+      onRetry: onRetry,
     );
   }
 }

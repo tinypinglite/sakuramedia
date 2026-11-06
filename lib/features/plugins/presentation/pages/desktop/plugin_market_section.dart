@@ -18,6 +18,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_status_chip.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
@@ -299,13 +300,9 @@ class _MarketPluginRow extends StatelessWidget {
           SizedBox(width: spacing.md),
           if (plugin.homepageUrl != null) ...[
             AppIconButton(
-              key: Key(
-                'plugin-market-copy-homepage-button-${plugin.pluginId}',
-              ),
+              key: Key('plugin-market-copy-homepage-button-${plugin.pluginId}'),
               tooltip: l10n.pluginMarketCopyHomepage,
-              semanticLabel: l10n.pluginMarketCopyHomepageSemantic(
-                displayName,
-              ),
+              semanticLabel: l10n.pluginMarketCopyHomepageSemantic(displayName),
               icon: const Icon(Icons.content_copy_rounded),
               onPressed: onCopyHomepage,
             ),
@@ -329,10 +326,12 @@ class _MarketPluginRow extends StatelessWidget {
                 size: AppButtonSize.xSmall,
                 onPressed: onUpgrade,
               ),
-              PluginMarketStatus.installed => AppBadge(
+              PluginMarketStatus.installed => AppStatusChip(
                 label: l10n.pluginMarketInstalled,
-                tone: AppBadgeTone.success,
-                size: AppBadgeSize.compact,
+                palette: AppStatusChipPalette.forSemantic(
+                  AppStatusSemantic.success,
+                ),
+                dense: true,
               ),
             },
         ],
@@ -350,10 +349,7 @@ class _MarketPluginRow extends StatelessWidget {
       );
     }
     if (status == PluginMarketStatus.installed && installedVersion != null) {
-      return l10n.pluginMarketInstalledAuthor(
-        installedVersion!,
-        plugin.author,
-      );
+      return l10n.pluginMarketInstalledAuthor(installedVersion!, plugin.author);
     }
     return 'v${version ?? '-'} · ${plugin.author}';
   }

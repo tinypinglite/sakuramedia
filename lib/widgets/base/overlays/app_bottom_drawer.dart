@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_modal_glass_surface.dart';
 
 Future<T?> showAppBottomDrawer<T>({
@@ -15,6 +16,7 @@ Future<T?> showAppBottomDrawer<T>({
   bool isDismissible = true,
   bool showHandle = true,
   EdgeInsetsGeometry? contentPadding,
+  AppModalDismissController? dismissController,
 }) {
   final shouldUseRouteSafeArea = useSafeArea && !ignoreTopSafeArea;
 
@@ -24,7 +26,8 @@ Future<T?> showAppBottomDrawer<T>({
     useRootNavigator: true,
     useSafeArea: shouldUseRouteSafeArea,
     showDragHandle: false,
-    enableDrag: enableDrag,
+    // 带 dismiss controller 的抽屉使用下方受控拖拽层；原生拖拽会绕过 PopScope。
+    enableDrag: enableDrag && dismissController == null,
     isDismissible: isDismissible,
     barrierColor: context.appColors.modalBarrier,
     backgroundColor: Colors.transparent,
@@ -55,9 +58,66 @@ Future<T?> showAppBottomDrawer<T>({
           child: drawer,
         );
       }
+      if (dismissController != null) {
+        drawer = AppModalDismissScope(
+          controller: dismissController,
+          child: enableDrag
+              ? _ControlledDrawerDrag(
+                  controller: dismissController,
+                  child: drawer,
+                )
+              : drawer,
+        );
+      }
       return drawer;
     },
   );
+}
+
+class _ControlledDrawerDrag extends StatefulWidget {
+  const _ControlledDrawerDrag({required this.controller, required this.child});
+
+  final AppModalDismissController controller;
+  final Widget child;
+
+  @override
+  State<_ControlledDrawerDrag> createState() => _ControlledDrawerDragState();
+}
+
+class _ControlledDrawerDragState extends State<_ControlledDrawerDrag> {
+  double _dragOffset = 0;
+
+  void _handleDragUpdate(DragUpdateDetails details) {
+    final nextOffset = _dragOffset + details.delta.dy;
+    if (nextOffset < 0) {
+      return;
+    }
+    setState(() => _dragOffset = nextOffset);
+  }
+
+  void _handleDragEnd(DragEndDetails details) {
+    final shouldDismiss =
+        _dragOffset > 80 || (details.primaryVelocity ?? 0) > 700;
+    setState(() => _dragOffset = 0);
+    if (shouldDismiss) {
+      Navigator.of(context).maybePop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final offset = widget.controller.locked ? 0.0 : _dragOffset;
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onVerticalDragUpdate: _handleDragUpdate,
+      onVerticalDragEnd: _handleDragEnd,
+      onVerticalDragCancel: () => setState(() => _dragOffset = 0),
+      child: Transform.translate(
+        offset: Offset(0, offset),
+        child: widget.child,
+      ),
+    );
+  }
 }
 
 class AppBottomDrawerSurface extends StatelessWidget {

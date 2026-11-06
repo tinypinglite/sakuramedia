@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_pill_wrap.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 
 class MovieSubtitleSection extends StatelessWidget {
@@ -37,13 +38,14 @@ class MovieSubtitleSection extends StatelessWidget {
 
     final error = errorMessage?.trim();
     if (error != null && error.isNotEmpty) {
-      return AppEmptyState(
+      return AppErrorState(
         key: const Key('movie-subtitles-error'),
         icon: Icons.subtitles_outlined,
         title: AppLocalizations.of(context).movieWidgetSubtitleListLoadFailed,
         message: error,
         onRetry: onRetry == null ? null : () => unawaited(onRetry!()),
         retryKey: const Key('movie-subtitles-retry'),
+        variant: AppStatePanelVariant.section,
       );
     }
 
@@ -58,10 +60,7 @@ class MovieSubtitleSection extends StatelessWidget {
     return _buildPills(context, items);
   }
 
-  Widget _buildPills(
-    BuildContext context,
-    List<MovieSubtitleItemDto> pills,
-  ) {
+  Widget _buildPills(BuildContext context, List<MovieSubtitleItemDto> pills) {
     final l10n = AppLocalizations.of(context);
     return MovieDetailPillWrap(
       key: const Key('movie-subtitles-list'),

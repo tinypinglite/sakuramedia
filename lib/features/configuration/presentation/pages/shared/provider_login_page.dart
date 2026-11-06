@@ -18,6 +18,7 @@ import 'package:sakuramedia/features/configuration/presentation/widgets/shared/p
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 
 const _localStorageSnapshotScript = '''
 (() => {
@@ -475,9 +476,7 @@ class _ProviderLoginPageState extends ConsumerState<ProviderLoginPage> {
         body: Stack(
           children: [
             if (_isPreparingWebView)
-              const Positioned.fill(
-                child: Center(child: CircularProgressIndicator()),
-              )
+              const Positioned.fill(child: Center(child: AppInlineSpinner()))
             else if (_error == null)
               InAppWebView(
                 key: ValueKey(_webViewGeneration),

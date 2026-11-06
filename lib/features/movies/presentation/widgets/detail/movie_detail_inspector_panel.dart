@@ -3,7 +3,8 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
-import 'package:intl/intl.dart';
+import 'package:sakuramedia/core/format/app_date_format.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
@@ -20,12 +21,13 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_
 import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_review_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_thumbnail_provider.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_selectable_text_scroll_configuration.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
@@ -330,6 +332,7 @@ class _MovieDetailReviewTabState extends ConsumerState<_MovieDetailReviewTab> {
     if (_state.sort == sort) {
       return;
     }
+    // 评论列表自身的局部排序，不是吸顶/固定栏场景；回到评论起点即可。
     if (_scrollController.hasClients) {
       _scrollController.jumpTo(0);
     }
@@ -384,11 +387,13 @@ class _MovieDetailReviewTabState extends ConsumerState<_MovieDetailReviewTab> {
                 ),
             ],
           ),
-          AppFilterUpdateBar(
-            state: state.filterUpdate,
-            hasPreviousItems: state.items.isNotEmpty,
-            onRetry: () => unawaited(_controller.retrySort()),
-          ),
+          if (state.filterUpdate.hasFailed)
+            AppInlineErrorBanner(
+              message:
+                  state.filterUpdate.errorMessage ??
+                  l10n.baseFilterUpdateFailedMessage,
+              onRetry: _controller.retrySort,
+            ),
           SizedBox(height: context.appSpacing.sm),
           Expanded(
             child: AppFilterResultLoadingOverlay(
@@ -413,34 +418,18 @@ class _MovieDetailReviewTabState extends ConsumerState<_MovieDetailReviewTab> {
     }
 
     if (state.initialErrorMessage != null && state.items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              state.initialErrorMessage!,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.secondary,
-              ),
-            ),
-            SizedBox(height: context.appSpacing.md),
-            AppButton(
-              key: const Key('movie-detail-review-retry-button'),
-              label: AppLocalizations.of(context).commonRetry,
-              variant: AppButtonVariant.secondary,
-              onPressed: _controller.loadInitial,
-            ),
-          ],
-        ),
+      return AppErrorState(
+        title: AppLocalizations.of(context).baseActionFailed,
+        message: state.initialErrorMessage!,
+        retryKey: const Key('movie-detail-review-retry-button'),
+        onRetry: _controller.loadInitial,
+        variant: AppStatePanelVariant.section,
       );
     }
 
     if (state.items.isEmpty) {
       return Center(
-        child: AppEmptyState(
+        child: AppEmptyState.section(
           message: AppLocalizations.of(context).movieWidgetNoReviews,
         ),
       );
@@ -494,7 +483,7 @@ class _MovieDetailReviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final reviewDate = review.createdAt == null
         ? '--/--/--'
-        : DateFormat('yy/MM/dd').format(review.createdAt!.toLocal());
+        : formatAppDate(review.createdAt!);
     final links = onAddDownload == null
         ? const <DownloadSourceLink>[]
         : extractDownloadLinks(review.content);
@@ -563,7 +552,7 @@ class _MovieDetailReviewCard extends StatelessWidget {
                   ),
                   SizedBox(width: context.appSpacing.xs),
                   Text(
-                    '${review.likeCount}',
+                    formatAppCount(review.likeCount),
                     style: resolveAppTextStyle(
                       context,
                       size: AppTextSize.s12,
@@ -661,8 +650,8 @@ class _MovieDetailReviewFooter extends StatelessWidget {
     if (state.isLoadingMore) {
       return Padding(
         padding: EdgeInsets.symmetric(vertical: context.appSpacing.sm),
-        child: Center(
-          child: CircularProgressIndicator.adaptive(
+        child: const Center(
+          child: AppInlineSpinner(
             key: Key('movie-detail-review-load-more-progress'),
           ),
         ),
@@ -670,27 +659,12 @@ class _MovieDetailReviewFooter extends StatelessWidget {
     }
 
     if (state.loadMoreErrorMessage != null) {
-      return Column(
+      return AppErrorState.inline(
         key: const Key('movie-detail-review-load-more-error'),
-        children: [
-          Text(
-            state.loadMoreErrorMessage!,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.muted,
-            ),
-          ),
-          SizedBox(height: context.appSpacing.sm),
-          AppButton(
-            key: const Key('movie-detail-review-load-more-retry-button'),
-            label: AppLocalizations.of(context).movieWidgetRetryLoadMore,
-            size: AppButtonSize.xSmall,
-            variant: AppButtonVariant.secondary,
-            onPressed: onRetryLoadMore,
-          ),
-        ],
+        message: state.loadMoreErrorMessage!,
+        retryLabel: AppLocalizations.of(context).movieWidgetRetryLoadMore,
+        retryKey: const Key('movie-detail-review-load-more-retry-button'),
+        onRetry: onRetryLoadMore,
       );
     }
 

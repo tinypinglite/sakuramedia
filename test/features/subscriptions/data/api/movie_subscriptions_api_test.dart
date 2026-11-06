@@ -135,7 +135,7 @@ void main() {
     expect(item.wideCoverUrl, '/covers/7-large.jpg');
     expect(item.usesThinCover, isTrue);
     expect(item.hasWideCover, isTrue);
-    expect(item.releaseDate, '2019-05-01');
+    expect(item.releaseDate, DateTime.parse('2019-05-01'));
     expect(item.status, MovieSubscriptionStatus.missing);
     expect(item.isFresh, isFalse);
     expect(item.attemptCount, 2);

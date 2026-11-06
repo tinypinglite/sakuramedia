@@ -98,4 +98,26 @@ void main() {
     await tester.pump();
     expect(controller.text, 'AA\nBB');
   });
+
+  testWidgets('fillColor keeps the field usable', (tester) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+
+    await pumpWithProviders(
+      tester,
+      home: Scaffold(
+        body: AppTextField(
+          fieldKey: const Key('app-text-field'),
+          controller: controller,
+          fillColor: const Color(0x33FFFFFF),
+        ),
+      ),
+      theme: sakuraThemeData,
+      physicalSize: const Size(600, 400),
+    );
+
+    await tester.enterText(find.byKey(const Key('app-text-field')), '填充色');
+    await tester.pump();
+    expect(controller.text, '填充色');
+  });
 }

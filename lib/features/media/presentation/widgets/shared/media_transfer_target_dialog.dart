@@ -2,9 +2,9 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/media/data/media_transfer_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
 
 Future<int?> showMediaTransferTargetDialog(
   BuildContext context, {
@@ -106,26 +106,13 @@ class _MediaTransferTargetDialogBodyState
           ),
         ),
         SizedBox(height: spacing.xl),
-        Row(
-          children: [
-            Expanded(
-              child: AppButton(
-                key: const Key('media-management-transfer-cancel-button'),
-                label: l10n.commonCancel,
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
-            SizedBox(width: spacing.md),
-            Expanded(
-              child: AppButton(
-                key: const Key('media-management-transfer-confirm-button'),
-                label: l10n.mediaListTransferConfirm,
-                variant: AppButtonVariant.danger,
-                icon: const Icon(Icons.drive_file_move_outline),
-                onPressed: () => Navigator.of(context).pop(_targetLibraryId),
-              ),
-            ),
-          ],
+        AppModalActionRow(
+          cancelKey: const Key('media-management-transfer-cancel-button'),
+          submitKey: const Key('media-management-transfer-confirm-button'),
+          cancelLabel: l10n.commonCancel,
+          submitLabel: l10n.mediaListTransferConfirm,
+          onCancel: () => Navigator.of(context).pop(),
+          onSubmit: () => Navigator.of(context).pop(_targetLibraryId),
         ),
       ],
     );

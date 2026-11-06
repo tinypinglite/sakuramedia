@@ -108,7 +108,13 @@ class MovieSubscriptionListSection extends HookConsumerWidget {
       if (previous != null && next != null && previous != next) {
         selection.exitSelection();
         if (effectiveScrollController.hasClients) {
-          effectiveScrollController.jumpTo(0);
+          unawaited(
+            effectiveScrollController.animateTo(
+              0,
+              duration: context.appMotion.fast,
+              curve: context.appMotion.standard,
+            ),
+          );
         }
       }
     });
@@ -372,10 +378,7 @@ void _refresh(WidgetRef ref) {
   final managerProvider = movieSubscriptionManagerProvider(
     ref.read(movieSubscriptionStatusSelectionProvider),
   );
-  unawaited(() async {
-    final message = await ref.read(managerProvider.notifier).refresh();
-    if (message != null) showToast(message);
-  }());
+  unawaited(ref.read(managerProvider.notifier).refresh());
 }
 
 // --- 多选态顶栏 --------------------------------------------------------------
@@ -388,10 +391,6 @@ class _SelectionHeader extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final managerProvider = movieSubscriptionManagerProvider(
-      ref.watch(movieSubscriptionStatusSelectionProvider),
-    );
-    final notifier = ref.read(managerProvider.notifier);
     final loadingDownloads = useState(false);
     final loadingImports = useState(false);
     final busy =
@@ -485,9 +484,6 @@ class _MobileSelectionHeader extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final managerProvider = movieSubscriptionManagerProvider(
-      ref.watch(movieSubscriptionStatusSelectionProvider),
-    );
     final busy = state.isBatchRunning || batchDeleting || batchImporting;
     final loadedIds = state.paged.items
         .map((item) => item.movieNumber)

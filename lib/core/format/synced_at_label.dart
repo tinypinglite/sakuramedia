@@ -1,4 +1,4 @@
-import 'package:intl/intl.dart';
+import 'package:sakuramedia/core/format/app_date_format.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 
 /// 将批次抓取时间格式化为可读标签，如「更新于 05/08 09:00」。
@@ -15,6 +15,6 @@ String? formatSyncedAtLabel(
   if (syncedAt == null) {
     return null;
   }
-  final formatted = DateFormat('MM/dd HH:mm').format(syncedAt);
+  final formatted = formatAppDateTimeCompact(syncedAt);
   return withPrefix ? l10n.syncedAtLabel(formatted) : formatted;
 }

@@ -970,7 +970,7 @@ class _MobileIndexerDetailDrawer extends StatelessWidget {
           ),
           SizedBox(height: spacing.sm),
           AppInfoBlock(
-            label: 'API Key',
+            label: l10n.commonApiKey,
             value: entry.hasApiKey
                 ? l10n.indexerConfigured
                 : l10n.indexerNotConfigured,

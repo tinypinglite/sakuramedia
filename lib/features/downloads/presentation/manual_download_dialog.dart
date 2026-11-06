@@ -26,7 +26,6 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_route.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
-import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
@@ -41,6 +40,7 @@ import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dar
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
 
 /// 手动提交成功后的返回值；`clientName` 用于页面 toast。
 class ManualDownloadResult {
@@ -906,28 +906,15 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
               ),
             ),
             SizedBox(height: spacing.lg),
-            Row(
-              children: [
-                Expanded(
-                  child: AppButton(
-                    key: const Key('manual-download-cancel-button'),
-                    label: l10n.commonCancel,
-                    onPressed: _isSubmitting
-                        ? null
-                        : () => Navigator.of(context).pop(),
-                  ),
-                ),
-                SizedBox(width: spacing.sm),
-                Expanded(
-                  child: AppButton(
-                    key: const Key('manual-download-submit-button'),
-                    label: l10n.downloadSubmit,
-                    variant: AppButtonVariant.primary,
-                    isLoading: _isSubmitting,
-                    onPressed: canSubmit ? _submit : null,
-                  ),
-                ),
-              ],
+            AppModalActionRow(
+              cancelKey: const Key('manual-download-cancel-button'),
+              submitKey: const Key('manual-download-submit-button'),
+              cancelLabel: l10n.commonCancel,
+              submitLabel: l10n.downloadSubmit,
+              onCancel: () => Navigator.of(context).pop(),
+              onSubmit: () => unawaited(_submit()),
+              isSubmitting: _isSubmitting,
+              submitDisabled: !canSubmit,
             ),
           ],
         ),
@@ -1358,14 +1345,10 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
         ),
         if (_fileError != null) ...[
           SizedBox(height: spacing.xs),
-          Text(
-            _fileError!,
+          AppInlineErrorBanner(
             key: const Key('manual-download-file-error'),
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              tone: AppTextTone.error,
-            ),
+            message: _fileError!,
+            tone: AppInlineErrorTone.error,
           ),
         ],
       ],

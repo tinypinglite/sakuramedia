@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -382,7 +383,10 @@ String? _buildBufferLabel({
       ? '${cacheDurationSeconds.toStringAsFixed(1)}s'
       : null;
   final bytesText = (forwardBytes != null && forwardBytes > 0)
-      ? _formatByteSize(forwardBytes.toDouble())
+      ? formatFileSize(
+          forwardBytes,
+          maxDecimals: forwardBytes >= 1024 * 1024 * 1024 ? 2 : 1,
+        )
       : null;
   if (durationText == null && bytesText == null) {
     return null;
@@ -399,20 +403,7 @@ String? _formatDownloadRateLabel(double? bytesPerSecond) {
       bytesPerSecond <= 0) {
     return null;
   }
-  return '${_formatByteSize(bytesPerSecond)}/s';
-}
-
-String _formatByteSize(double bytes) {
-  if (bytes >= 1024 * 1024 * 1024) {
-    return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(2)} GB';
-  }
-  if (bytes >= 1024 * 1024) {
-    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-  }
-  if (bytes >= 1024) {
-    return '${(bytes / 1024).toStringAsFixed(1)} KB';
-  }
-  return '${bytes.toStringAsFixed(0)} B';
+  return '${formatFileSize(bytesPerSecond.round(), maxDecimals: bytesPerSecond >= 1024 * 1024 * 1024 ? 2 : 1)}/s';
 }
 
 @visibleForTesting
@@ -633,9 +624,12 @@ String _buildDynamicRangeDetailLabel(
   AppLocalizations l10n,
 ) {
   final parts = <String>[
-    if (_hasText(videoParams.primaries)) 'Primaries ${videoParams.primaries}',
-    if (_hasText(videoParams.gamma)) 'Gamma ${videoParams.gamma}',
-    if (_hasText(videoParams.light)) 'Light ${videoParams.light}',
+    if (_hasText(videoParams.primaries))
+      '${l10n.moviePlayerPrimaries} ${videoParams.primaries!.trim()}',
+    if (_hasText(videoParams.gamma))
+      '${l10n.moviePlayerGamma} ${videoParams.gamma!.trim()}',
+    if (_hasText(videoParams.light))
+      '${l10n.moviePlayerColorLight} ${videoParams.light!.trim()}',
     if (videoParams.sigPeak != null && videoParams.sigPeak! > 0)
       l10n.widgetMoviePlayerPeak(videoParams.sigPeak!.toStringAsFixed(2)),
   ];

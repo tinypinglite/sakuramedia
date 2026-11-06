@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/app/appearance_store.dart';
 import 'package:sakuramedia/theme/app_theme_color.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 
 part 'appearance_providers.g.dart';
 
@@ -27,6 +28,13 @@ class Appearance extends _$Appearance {
       return;
     }
     await _save(state.copyWith(themeColor: themeColor));
+  }
+
+  Future<void> setSurfaceStyle(AppSurfaceStyle surfaceStyle) async {
+    if (state.surfaceStyle == surfaceStyle) {
+      return;
+    }
+    await _save(state.copyWith(surfaceStyle: surfaceStyle));
   }
 
   Future<void> _save(AppearanceSettings settings) async {

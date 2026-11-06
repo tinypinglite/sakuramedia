@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_sliver_width_builder.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
@@ -34,6 +35,8 @@ class AppAdaptiveCardGrid<T> extends StatelessWidget {
     required this.itemBuilder,
     this.errorMessage,
     this.emptyMessage,
+    this.onErrorRetry,
+    this.errorBuilder,
     this.targetColumnWidth,
     this.orientation,
     this.minColumns = 2,
@@ -55,6 +58,8 @@ class AppAdaptiveCardGrid<T> extends StatelessWidget {
 
   final String? errorMessage;
   final String? emptyMessage;
+  final VoidCallback? onErrorRetry;
+  final WidgetBuilder? errorBuilder;
 
   /// 目标列宽,列公式的 target。null → 按 [orientation] 取统一 token。
   final double? targetColumnWidth;
@@ -86,7 +91,15 @@ class AppAdaptiveCardGrid<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (errorMessage != null) {
-      return AppEmptyState(message: errorMessage!);
+      final builder = errorBuilder;
+      if (builder != null) {
+        return builder(context);
+      }
+      return AppErrorState(
+        title: appL10n(context).baseActionFailed,
+        message: errorMessage!,
+        onRetry: onErrorRetry,
+      );
     }
 
     if (items.isEmpty) {
@@ -208,6 +221,8 @@ class AppAdaptiveCardSliver<T> extends StatelessWidget {
     required this.itemBuilder,
     this.errorMessage,
     this.emptyMessage,
+    this.onErrorRetry,
+    this.errorBuilder,
     this.targetColumnWidth,
     this.orientation,
     this.minColumns = 2,
@@ -226,6 +241,8 @@ class AppAdaptiveCardSliver<T> extends StatelessWidget {
   final Widget Function(BuildContext context, T item, int index) itemBuilder;
   final String? errorMessage;
   final String? emptyMessage;
+  final VoidCallback? onErrorRetry;
+  final WidgetBuilder? errorBuilder;
 
   /// 目标列宽,列公式的 target。null → 按 [orientation] 取统一 token。
   final double? targetColumnWidth;
@@ -243,7 +260,16 @@ class AppAdaptiveCardSliver<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (errorMessage != null) {
-      return SliverToBoxAdapter(child: AppEmptyState(message: errorMessage!));
+      final builder = errorBuilder;
+      return SliverToBoxAdapter(
+        child: builder != null
+            ? builder(context)
+            : AppErrorState(
+                title: appL10n(context).baseActionFailed,
+                message: errorMessage!,
+                onRetry: onErrorRetry,
+              ),
+      );
     }
     if (items.isEmpty) {
       return SliverToBoxAdapter(

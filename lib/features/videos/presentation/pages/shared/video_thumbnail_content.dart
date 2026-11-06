@@ -16,7 +16,8 @@ import 'package:sakuramedia/features/videos/presentation/providers/video_mutatio
 import 'package:sakuramedia/features/videos/presentation/providers/videos_api_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/video_display_title.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
@@ -238,12 +239,13 @@ class _VideoThumbnailContentState extends ConsumerState<VideoThumbnailContent> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const Center(child: AppInlineSpinner());
     }
     if (_errorMessage != null || _video == null || _mediaId == null) {
       final l10n = AppLocalizations.of(context);
       return Center(
-        child: AppEmptyState(
+        child: AppErrorState(
+          title: l10n.videoLoadFailed,
           message: _errorMessage ?? l10n.videoDetailLoadFailed,
           onRetry: () => unawaited(_load()),
           retryLabel: l10n.videoReload,

@@ -18,6 +18,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
 import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
 import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
@@ -37,6 +38,7 @@ class DuplicateMediaSection extends HookConsumerWidget {
     required this.keyPrefix,
     required this.mobile,
     required this.onRefresh,
+    this.refreshError,
     required this.onOpenVideoCollectionDetail,
     this.onOpenMovieDetail,
   });
@@ -47,6 +49,7 @@ class DuplicateMediaSection extends HookConsumerWidget {
   final String keyPrefix;
   final bool mobile;
   final Future<void> Function() onRefresh;
+  final String? refreshError;
   final void Function(BuildContext context, int collectionId)
   onOpenVideoCollectionDetail;
   final void Function(BuildContext context, String movieNumber)?
@@ -180,16 +183,29 @@ class DuplicateMediaSection extends HookConsumerWidget {
     final content = AppFixedHeaderLayout(
       header: selection.selectionMode
           ? selection.buildHeader(context, mobile: mobile)
-          : _DuplicateMediaHeader(
-              mobile: mobile,
-              kind: kind,
-              keyPrefix: keyPrefix,
-              onKindChanged: (next) {
-                selection.exitSelection();
-                onKindChanged(next);
-              },
-              onRefresh: onRefresh,
-              onSelect: groups.isEmpty ? null : selection.enterSelection,
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _DuplicateMediaHeader(
+                  mobile: mobile,
+                  kind: kind,
+                  keyPrefix: keyPrefix,
+                  onKindChanged: (next) {
+                    selection.exitSelection();
+                    onKindChanged(next);
+                  },
+                  onRefresh: onRefresh,
+                  onSelect: groups.isEmpty ? null : selection.enterSelection,
+                ),
+                if (refreshError != null)
+                  Padding(
+                    padding: EdgeInsets.only(top: spacing.sm),
+                    child: AppInlineErrorBanner(
+                      message: refreshError!,
+                      onRetry: onRefresh,
+                    ),
+                  ),
+              ],
             ),
       headerBottomSpacing: context.appSpacing.lg,
       child: CustomScrollView(

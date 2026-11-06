@@ -6,10 +6,9 @@ import 'package:sakuramedia/features/actors/presentation/pages/shared/actor_prof
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
@@ -85,8 +84,9 @@ class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
           ),
         ),
       ),
-      errorBuilder: (context, message, onRetry) => AppEmptyState(
+      errorBuilder: (context, message, onRetry) => AppErrorState(
         key: const Key('mobile-actor-detail-error-state'),
+        title: AppLocalizations.of(context).baseActionFailed,
         message: message,
         onRetry: onRetry,
       ),
@@ -98,10 +98,6 @@ class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
             slivers: <Widget>[child],
           ),
       enableRefresh: true,
-      onRefreshFailure: (_) => showToast(
-        AppLocalizations.of(context).actorRefreshFailed,
-        tone: AppToastTone.error,
-      ),
       // 与移动影片页同一套移动范式：筛选走底部抽屉，多选态顶栏只留退出/计数/
       // 全选、批量动作下沉到底部条。
       useMobileFilterDrawer: true,

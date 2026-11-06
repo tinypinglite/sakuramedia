@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_back_guard.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_ambient_backdrop.dart';
 import 'package:sakuramedia/widgets/shell/mobile/mobile_subpage_app_bar.dart';
 import 'package:sakuramedia/widgets/shell/mobile/mobile_subpage_back_interceptor.dart';
@@ -58,8 +59,9 @@ class AppMobileSubpageShell extends StatefulWidget {
 class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
   /// 子页面报上来的真实标题；为 null 时用路由给的静态标题。
   final ValueNotifier<String?> _titleOverride = ValueNotifier<String?>(null);
-  final AppMobileSubpageBackInterceptorController _backInterceptor =
-      AppMobileSubpageBackInterceptorController();
+  final AppBackGuardController _backGuard = AppBackGuardController();
+  late final AppMobileSubpageBackInterceptorController _backInterceptor =
+      AppMobileSubpageBackInterceptorController(guard: _backGuard);
   late final ValueGetter<Future<bool>> _backButtonHandler =
       _handleBackButtonPressed;
 
@@ -200,12 +202,16 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
     final themedContent = useGlassChrome
         ? AppMobileAmbientBackdrop(child: content)
         : content;
-    if (router == null) return themedContent;
+    final guardedContent = AppBackGuardScope(
+      controller: _backGuard,
+      child: themedContent,
+    );
+    if (router == null) return guardedContent;
     // GoRouter 对无历史可退的深链首屏会直接返回 false；这里补一次回退处理，
     // 同时让 PopScope 保持 true，避免无拦截时禁用 iOS 侧滑返回。
     return BackButtonListener(
       onBackButtonPressed: _backButtonHandler,
-      child: themedContent,
+      child: guardedContent,
     );
   }
 
@@ -215,7 +221,7 @@ class _AppMobileSubpageShellState extends State<AppMobileSubpageShell> {
     final activePath =
         widget.currentPath ??
         (router != null ? GoRouterState.of(context).uri.path : null);
-    if (!await _backInterceptor.shouldPop()) return;
+    if (!await _backGuard.canLeave()) return;
     if (!mounted) return;
     if (_canPop(router, navigator)) {
       if (router != null && router.canPop()) {

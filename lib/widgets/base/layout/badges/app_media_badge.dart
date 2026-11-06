@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/theme.dart';
 
 enum AppMediaBadgeSize { compact, prominent }
@@ -18,6 +19,27 @@ class AppMediaBadge extends StatelessWidget {
     this.padding,
     this.size = AppMediaBadgeSize.compact,
   });
+
+  /// 媒体时长角标；与 4K/热度/排名共用同一份烟熏材质。
+  factory AppMediaBadge.duration({
+    Key? key,
+    required int seconds,
+    Widget? leading,
+    double? width,
+    double? height,
+    EdgeInsetsGeometry? padding,
+    AppMediaBadgeSize size = AppMediaBadgeSize.compact,
+  }) {
+    return AppMediaBadge(
+      key: key,
+      label: formatMediaTimecode(seconds),
+      leading: leading,
+      width: width,
+      height: height,
+      padding: padding,
+      size: size,
+    );
+  }
 
   final String label;
   final Key? labelKey;

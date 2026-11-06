@@ -24,6 +24,7 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
@@ -173,7 +174,8 @@ class _ClipCollectionDetailContentState
     final content = Builder(
       builder: (context) {
         if (!isLoading && async.hasError && state == null) {
-          return AppEmptyState(
+          return AppErrorState(
+            title: AppLocalizations.of(context).clipCollectionDetailLoadFailed,
             message: apiErrorMessage(
               async.error!,
               fallback: AppLocalizations.of(
@@ -181,6 +183,8 @@ class _ClipCollectionDetailContentState
               ).clipCollectionDetailLoadFailed,
               l10n: AppLocalizations.of(context),
             ),
+            retryKey: const Key('clip-collection-detail-error-retry'),
+            onRetry: ref.read(_providerRef.notifier).refresh,
           );
         }
         if (!isLoading && state == null) {
@@ -408,6 +412,7 @@ class _ClipCollectionDetailContentState
           key: Key('${widget.keyPrefix}-batch-remove-button'),
           label: l10n.clipCollectionRemoveFromCollection,
           icon: Icons.playlist_remove_rounded,
+          isLoading: submitting,
           onTap: hasSelection && !submitting ? () => _batchRemove(state) : null,
         ),
         AppGlassSelectionAction(
@@ -415,6 +420,7 @@ class _ClipCollectionDetailContentState
           label: l10n.clipCollectionDeleteClips,
           icon: Icons.delete_outline_rounded,
           foregroundColor: context.appTextPalette.error,
+          isLoading: submitting,
           onTap: hasSelection && !submitting ? () => _batchDelete(state) : null,
         ),
       ],
@@ -438,6 +444,7 @@ class _ClipCollectionDetailContentState
           key: Key('${widget.keyPrefix}-batch-add-collection-button'),
           label: l10n.clipCollectionAddToCollection,
           variant: AppButtonVariant.secondary,
+          isLoading: submitting,
           onPressed: hasSelection && !submitting
               ? () => _batchAddToOtherCollection(state)
               : null,
@@ -446,6 +453,7 @@ class _ClipCollectionDetailContentState
           key: Key('${widget.keyPrefix}-batch-remove-button'),
           label: l10n.clipCollectionRemove,
           variant: AppButtonVariant.secondary,
+          isLoading: submitting,
           onPressed: hasSelection && !submitting
               ? () => _batchRemove(state)
               : null,
@@ -454,6 +462,7 @@ class _ClipCollectionDetailContentState
           key: Key('${widget.keyPrefix}-batch-delete-button'),
           label: l10n.commonDelete,
           variant: AppButtonVariant.danger,
+          isLoading: submitting,
           onPressed: hasSelection && !submitting
               ? () => _batchDelete(state)
               : null,

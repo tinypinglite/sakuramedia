@@ -23,6 +23,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
@@ -40,11 +41,15 @@ class InvalidMediaSection extends ConsumerStatefulWidget {
   const InvalidMediaSection({
     super.key,
     required this.scrollController,
+    required this.onRefresh,
+    this.refreshError,
     this.onOpenMovieDetail,
     this.mobile = false,
   });
 
   final ScrollController scrollController;
+  final Future<void> Function() onRefresh;
+  final String? refreshError;
   final void Function(BuildContext context, String movieNumber)?
   onOpenMovieDetail;
   final bool mobile;
@@ -80,6 +85,8 @@ class _InvalidMediaSectionState extends ConsumerState<InvalidMediaSection>
         onExitSelection: exitSelection,
         onToggleAll: toggleSelectAll,
         onBatchDelete: _batchDelete,
+        onRefresh: widget.onRefresh,
+        refreshError: widget.refreshError,
       ),
       headerBottomSpacing: context.appSpacing.lg,
       child: CustomScrollView(
@@ -182,6 +189,8 @@ class _InvalidMediaHeader extends ConsumerWidget {
     required this.onExitSelection,
     required this.onToggleAll,
     required this.onBatchDelete,
+    required this.onRefresh,
+    required this.refreshError,
   });
 
   final bool mobile;
@@ -192,6 +201,8 @@ class _InvalidMediaHeader extends ConsumerWidget {
   final VoidCallback onExitSelection;
   final void Function(List<int> ids) onToggleAll;
   final Future<void> Function(List<int> mediaIds) onBatchDelete;
+  final Future<void> Function() onRefresh;
+  final String? refreshError;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -270,48 +281,54 @@ class _InvalidMediaHeader extends ConsumerWidget {
     final totalText = l10n.mediaListTotalInvalidItems(state.total);
     final canEnterSelection = loadedIds.isNotEmpty && !state.isInitialLoading;
     if (!mobile) {
-      return AppGlassListHeader(
-        leading: AppGlassHeaderGroup(
-          children: <Widget>[
-            AppGlassHeaderText(
-              key: const Key('invalid-media-total-text'),
-              label: totalText,
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          AppGlassListHeader(
+            leading: AppGlassHeaderGroup(
+              children: <Widget>[
+                AppGlassHeaderText(
+                  key: const Key('invalid-media-total-text'),
+                  label: totalText,
+                ),
+                AppGlassHeaderText(
+                  key: const Key('invalid-media-section-description'),
+                  label: l10n.mediaListInvalidDescription,
+                ),
+              ],
             ),
-            AppGlassHeaderText(
-              key: const Key('invalid-media-section-description'),
-              label: l10n.mediaListInvalidDescription,
+            trailing: AppGlassHeaderGroup(
+              children: <Widget>[
+                AppGlassHeaderButton(
+                  key: const Key('invalid-media-enter-selection-button'),
+                  icon: Icons.check_circle_outline,
+                  label: l10n.mediaListEnterSelection,
+                  enabled: canEnterSelection,
+                  onTap: canEnterSelection ? onEnterSelection : () {},
+                ),
+                AppGlassHeaderButton(
+                  key: const Key('invalid-media-refresh-button'),
+                  icon: Icons.refresh_rounded,
+                  label: state.isInitialLoading
+                      ? l10n.mediaListRefreshing
+                      : l10n.commonRefresh,
+                  enabled: !state.isInitialLoading,
+                  onTap: state.isInitialLoading
+                      ? () {}
+                      : () => unawaited(onRefresh()),
+                ),
+              ],
             ),
-          ],
-        ),
-        trailing: AppGlassHeaderGroup(
-          children: <Widget>[
-            AppGlassHeaderButton(
-              key: const Key('invalid-media-enter-selection-button'),
-              icon: Icons.check_circle_outline,
-              label: l10n.mediaListEnterSelection,
-              enabled: canEnterSelection,
-              onTap: canEnterSelection ? onEnterSelection : () {},
+          ),
+          if (refreshError != null)
+            Padding(
+              padding: EdgeInsets.only(top: context.appSpacing.sm),
+              child: AppInlineErrorBanner(
+                message: refreshError!,
+                onRetry: onRefresh,
+              ),
             ),
-            AppGlassHeaderButton(
-              key: const Key('invalid-media-refresh-button'),
-              icon: Icons.refresh_rounded,
-              label: state.isInitialLoading
-                  ? l10n.mediaListRefreshing
-                  : l10n.commonRefresh,
-              enabled: !state.isInitialLoading,
-              onTap: state.isInitialLoading
-                  ? () {}
-                  : () async {
-                      final message = await ref
-                          .read(invalidMediaProvider.notifier)
-                          .refresh();
-                      if (message != null && context.mounted) {
-                        showToast(message);
-                      }
-                    },
-            ),
-          ],
-        ),
+        ],
       );
     }
     return Column(
@@ -339,15 +356,18 @@ class _InvalidMediaHeader extends ConsumerWidget {
               icon: Icons.refresh_rounded,
               onPressed: state.isInitialLoading
                   ? null
-                  : () async {
-                      final message = await ref
-                          .read(invalidMediaProvider.notifier)
-                          .refresh();
-                      if (message != null) showToast(message);
-                    },
+                  : () => unawaited(onRefresh()),
             ),
           ],
         ),
+        if (refreshError != null)
+          Padding(
+            padding: EdgeInsets.only(top: context.appSpacing.sm),
+            child: AppInlineErrorBanner(
+              message: refreshError!,
+              onRetry: onRefresh,
+            ),
+          ),
       ],
     );
   }

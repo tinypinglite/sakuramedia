@@ -245,7 +245,10 @@ class _SakuraAppState extends ConsumerState<_SakuraApp>
         );
         // Windows 无边框由 runner 原生实现，不需要 Dart 边缘热区。
         // ignore: deprecated_member_use
-        return OKToast(child: MaterialUiCompatibilityBridge(child: content));
+        return AppSurfaceStyleScope(
+          style: appearance.surfaceStyle,
+          child: MaterialUiCompatibilityBridge(child: OKToast(child: content)),
+        );
       },
     );
   }

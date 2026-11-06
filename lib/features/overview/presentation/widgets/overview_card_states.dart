@@ -1,9 +1,7 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
 
-/// 概览卡片的统一错误行：一行说明 + 重试文字按钮。
+/// 概览卡片的统一错误行：复用共享内联错误条。
 class OverviewCardErrorRow extends StatelessWidget {
   const OverviewCardErrorRow({
     super.key,
@@ -18,29 +16,11 @@ class OverviewCardErrorRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            message,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.secondary,
-            ),
-          ),
-        ),
-        if (onRetry != null) ...[
-          SizedBox(width: context.appSpacing.sm),
-          AppTextButton(
-            label: AppLocalizations.of(context).commonRetry,
-            size: AppTextButtonSize.small,
-            labelKey: retryKey,
-            onPressed: onRetry,
-          ),
-        ],
-      ],
+    final retry = onRetry;
+    return AppInlineErrorBanner(
+      message: message,
+      onRetry: retry == null ? null : () async => retry(),
+      retryKey: retryKey,
     );
   }
 }

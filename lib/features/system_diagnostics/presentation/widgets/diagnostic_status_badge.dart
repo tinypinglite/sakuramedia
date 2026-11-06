@@ -36,19 +36,21 @@ class DiagnosticStatusBadge extends StatelessWidget {
   AppStatusChipPalette _resolvePalette(DiagnosticItemStatus status) {
     switch (status) {
       case DiagnosticItemStatus.disabled:
-        return AppStatusChipPalette.neutral();
       case DiagnosticItemStatus.notTested:
-        return AppStatusChipPalette.neutral();
+        return AppStatusChipPalette.forSemantic(AppStatusSemantic.neutral);
       case DiagnosticItemStatus.probing:
-        return AppStatusChipPalette.neutral(icon: Icons.hourglass_top);
+        return AppStatusChipPalette.forSemantic(
+          AppStatusSemantic.neutral,
+          icon: Icons.hourglass_top,
+        );
       case DiagnosticItemStatus.healthy:
-        return AppStatusChipPalette.success();
+        return AppStatusChipPalette.forSemantic(AppStatusSemantic.success);
       case DiagnosticItemStatus.warning:
-        return AppStatusChipPalette.warning();
+        return AppStatusChipPalette.forSemantic(AppStatusSemantic.warning);
       case DiagnosticItemStatus.unhealthy:
-        return AppStatusChipPalette.error();
+        return AppStatusChipPalette.forSemantic(AppStatusSemantic.error);
       case DiagnosticItemStatus.blocked:
-        return AppStatusChipPalette.muted();
+        return AppStatusChipPalette.forSemantic(AppStatusSemantic.muted);
     }
   }
 }

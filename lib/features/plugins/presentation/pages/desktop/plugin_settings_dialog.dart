@@ -2,8 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/plugins/data/dto/plugin_dto.dart';
 import 'package:sakuramedia/features/plugins/presentation/pages/shared/plugin_settings_content.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
 
 /// 打开单个插件的桌面配置编辑器。
 ///
@@ -12,14 +12,18 @@ import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 Future<void> showPluginSettingsDialog(
   BuildContext context, {
   required PluginSummaryDto plugin,
-}) {
-  return showAppDialog<void>(
+}) async {
+  final dismissController = AppModalDismissController();
+  await showAppAdaptiveModal<void>(
     context: context,
-    builder: (_) => AppDesktopDialog(
-      dialogKey: const Key('plugin-settings-dialog'),
-      contentKey: const Key('plugin-settings-dialog-content'),
-      width: context.appLayoutTokens.dialogWidthMd,
-      child: PluginSettingsContent(plugin: plugin),
+    variant: AppAdaptiveModalVariant.dialog,
+    dialogKey: const Key('plugin-settings-dialog'),
+    desktopContentKey: const Key('plugin-settings-dialog-content'),
+    desktopWidth: context.appLayoutTokens.dialogWidthMd,
+    dismissController: dismissController,
+    builder: (_) => PluginSettingsContent(
+      plugin: plugin,
+      dismissController: dismissController,
     ),
   );
 }

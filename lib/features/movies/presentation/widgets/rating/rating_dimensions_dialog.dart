@@ -6,14 +6,15 @@ import 'package:sakuramedia/features/movies/data/dto/rating/rating_dimension_dto
 import 'package:sakuramedia/features/movies/presentation/providers/rating_dimensions_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
 
 Future<void> showRatingDimensionsDialog(
   BuildContext context, {
@@ -182,26 +183,12 @@ class _RatingDimensionsDialogState
         if (dimensions.isLoading && !dimensions.hasValue)
           Padding(
             padding: EdgeInsets.symmetric(vertical: context.appSpacing.xl),
-            child: const Center(child: CircularProgressIndicator()),
+            child: const Center(child: AppInlineSpinner()),
           )
         else if (dimensions.hasError && !dimensions.hasValue)
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.movieWidgetRatingDimensionsLoadFailed,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s14,
-                    tone: AppTextTone.error,
-                  ),
-                ),
-              ),
-              AppTextButton(
-                label: l10n.commonRetry,
-                onPressed: () => ref.invalidate(ratingDimensionsProvider),
-              ),
-            ],
+          AppErrorState.inline(
+            message: l10n.movieWidgetRatingDimensionsLoadFailed,
+            onRetry: () => ref.invalidate(ratingDimensionsProvider),
           )
         else
           _buildDimensionBlock(
@@ -400,21 +387,12 @@ class _RatingDimensionsDialogState
           ),
         ],
         SizedBox(height: context.appSpacing.md),
-        Row(
-          children: [
-            AppButton(
-              label: l10n.commonSave,
-              variant: AppButtonVariant.primary,
-              size: AppButtonSize.small,
-              isLoading: _saving,
-              onPressed: _saving ? null : _save,
-            ),
-            SizedBox(width: context.appSpacing.sm),
-            AppTextButton(
-              label: l10n.commonCancel,
-              onPressed: _saving ? null : _cancelForm,
-            ),
-          ],
+        AppModalActionRow(
+          cancelLabel: l10n.commonCancel,
+          submitLabel: l10n.commonSave,
+          isSubmitting: _saving,
+          onCancel: _cancelForm,
+          onSubmit: _save,
         ),
       ],
     );

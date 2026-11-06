@@ -4,6 +4,7 @@ import 'package:sakuramedia/features/activity/data/task_run_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_status_chip.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/domain/media/media_transfer_result_dialog.dart';
@@ -69,9 +70,12 @@ class ActivityTaskRunCard extends StatelessWidget {
                 ),
               ),
               SizedBox(width: context.appSpacing.md),
-              AppBadge(
+              AppStatusChip(
                 label: activityTaskStateLabel(taskRun.state, l10n),
-                tone: activityTaskStateTone(taskRun.state),
+                palette: AppStatusChipPalette.forSemantic(
+                  activityTaskStateSemantic(taskRun.state),
+                ),
+                dense: true,
               ),
             ],
           ),
@@ -196,13 +200,13 @@ String activityTaskTimeSummary(TaskRunDto item, AppLocalizations l10n) {
   );
 }
 
-AppBadgeTone activityTaskStateTone(String state) {
+AppStatusSemantic activityTaskStateSemantic(String state) {
   return switch (state) {
-    'failed' => AppBadgeTone.error,
-    'completed' => AppBadgeTone.success,
-    'running' => AppBadgeTone.primary,
-    'pending' => AppBadgeTone.warning,
-    _ => AppBadgeTone.neutral,
+    'failed' => AppStatusSemantic.error,
+    'completed' => AppStatusSemantic.success,
+    'running' => AppStatusSemantic.inProgress,
+    'pending' => AppStatusSemantic.queued,
+    _ => AppStatusSemantic.neutral,
   };
 }
 

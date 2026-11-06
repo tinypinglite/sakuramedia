@@ -25,6 +25,7 @@ import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
@@ -256,18 +257,10 @@ class MomentsContent extends HookConsumerWidget {
   }
 
   Future<void> _handleRefresh(BuildContext context, WidgetRef ref) async {
-    final momentsRefresh = ref.read(momentsProvider.notifier).refresh();
-    final collectionsRefresh = ref
-        .read(momentCollectionsOverviewProvider.notifier)
-        .refresh();
-    final errorMessage = await momentsRefresh;
-    await collectionsRefresh;
-    if (errorMessage != null && context.mounted) {
-      showToast(
-        AppLocalizations.of(context).momentErrorRefreshFailed,
-        tone: AppToastTone.error,
-      );
-    }
+    await Future.wait<void>([
+      ref.read(momentsProvider.notifier).refresh(),
+      ref.read(momentCollectionsOverviewProvider.notifier).refresh(),
+    ]);
   }
 
   Widget _buildCollectionsSection(
@@ -312,7 +305,7 @@ class MomentsContent extends HookConsumerWidget {
           ],
         ),
         SizedBox(height: spacing.sm),
-        _buildCollectionsRow(context, collectionsAsync, collections),
+        _buildCollectionsRow(context, ref, collectionsAsync, collections),
         SizedBox(height: spacing.lg),
       ],
     );
@@ -320,6 +313,7 @@ class MomentsContent extends HookConsumerWidget {
 
   Widget _buildCollectionsRow(
     BuildContext context,
+    WidgetRef ref,
     AsyncValue<List<MomentCollectionDto>> collectionsAsync,
     List<MomentCollectionDto> collections,
   ) {
@@ -330,12 +324,13 @@ class MomentsContent extends HookConsumerWidget {
     final itemSpacing = isMobile ? spacing.sm : spacing.md;
     if (collectionsAsync.hasError && collections.isEmpty) {
       final l10n = AppLocalizations.of(context);
-      return CollectionHintBox(
+      return CollectionHintBox.error(
         message: apiErrorMessage(
           collectionsAsync.error!,
           fallback: l10n.momentErrorCollectionLoadFailed,
           l10n: l10n,
         ),
+        onRetry: ref.read(momentCollectionsOverviewProvider.notifier).refresh,
       );
     }
     final isLoading = collectionsAsync.isLoading && collections.isEmpty;
@@ -644,7 +639,12 @@ class MomentsContent extends HookConsumerWidget {
     final l10n = AppLocalizations.of(context);
     if (!isLoading && paged.initialError != null && paged.items.isEmpty) {
       return SliverToBoxAdapter(
-        child: AppEmptyState(message: l10n.errorMomentListLoadFailed),
+        child: AppErrorState(
+          title: l10n.baseActionFailed,
+          message: l10n.errorMomentListLoadFailed,
+          onRetry: () => unawaited(ref.read(momentsProvider.notifier).reload()),
+          variant: AppStatePanelVariant.section,
+        ),
       );
     }
     if (!isLoading && paged.items.isEmpty && paged.filterUpdate.hasFailed) {

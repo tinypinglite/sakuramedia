@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_mask.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
@@ -116,17 +117,10 @@ class PlaylistBannerCard extends StatelessWidget {
       return card;
     }
 
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          mouseCursor: SystemMouseCursors.click,
-          borderRadius: radius,
-          onTap: onTap,
-          child: card,
-        ),
-      ),
+    return AppInteractiveSurface(
+      onTap: onTap,
+      focusRingRadius: radius,
+      child: card,
     );
   }
 }

@@ -23,7 +23,6 @@ import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
@@ -238,12 +237,19 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
                         ? rankedMoviePlaceholders(count: 24)
                         : paged.items,
                     errorMessage: initialErrorMessage,
+                    onErrorRetry: () => unawaited(
+                      ref
+                          .read(rankingSummaryProvider(_scope).notifier)
+                          .reloadFiltersAndData(),
+                    ),
                     onMovieTap: (movie) => selectionAwareTap(
                       movie.movieNumber,
                       () => MobileRoutes.movieDetail(
                         movieNumber: movie.movieNumber,
                       ).push(context),
                     )(),
+                    onMovieLongPress: (movie) =>
+                        selectionLongPressHandler(movie.movieNumber).call(),
                     onMovieMenuRequest: (movie, globalPosition) =>
                         requestMovieCollectionMenu(
                           context,
@@ -286,15 +292,7 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
   }
 
   Future<void> _handleRefresh() async {
-    final error = await ref
-        .read(rankingSummaryProvider(_scope).notifier)
-        .refresh();
-    if (error != null && mounted) {
-      showToast(
-        AppLocalizations.of(context).sharedRefreshFailed,
-        tone: AppToastTone.error,
-      );
-    }
+    await ref.read(rankingSummaryProvider(_scope).notifier).refresh();
   }
 
   Widget _buildHeader(

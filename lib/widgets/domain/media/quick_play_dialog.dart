@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -7,7 +9,7 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/videos/presentation/actions/video_playback_launcher.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/media/video/themed_video_player.dart';
 import 'package:sakuramedia/widgets/base/media/video/throttling_player.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
@@ -112,6 +114,17 @@ class _QuickPlayDialogState extends State<QuickPlayDialog> {
     }
   }
 
+  void _retry() {
+    _player?.dispose();
+    _player = null;
+    _controller = null;
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+    unawaited(_load());
+  }
+
   String get _errorFallback =>
       widget.errorFallback ??
       AppLocalizations.of(context).widgetMediaLoadFailed;
@@ -187,7 +200,16 @@ class _QuickPlayDialogState extends State<QuickPlayDialog> {
 
   Widget _buildVideo() {
     if (_errorMessage != null) {
-      return Center(child: AppEmptyState(message: _errorMessage!));
+      return Center(
+        child: AppErrorState(
+          key: const Key('quick-play-error-state'),
+          title: AppLocalizations.of(context).baseActionFailed,
+          message: _errorMessage!,
+          onRetry: _retry,
+          retryKey: const Key('quick-play-retry-button'),
+          variant: AppStatePanelVariant.section,
+        ),
+      );
     }
     final controller = _controller;
     if (_loading || controller == null) {

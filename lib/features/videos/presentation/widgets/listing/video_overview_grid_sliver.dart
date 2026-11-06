@@ -15,9 +15,11 @@ class VideoOverviewGridSliver extends StatelessWidget {
     required this.videos,
     required this.isLoading,
     this.errorMessage,
+    this.onErrorRetry,
     this.emptyMessage,
     this.placeholderCount = 8,
     this.onVideoTap,
+    this.onVideoLongPress,
     this.onVideoPlay,
     this.onVideoThumbnails,
     this.onVideoAddToCollection,
@@ -32,9 +34,11 @@ class VideoOverviewGridSliver extends StatelessWidget {
   final List<VideoItemListItemDto> videos;
   final bool isLoading;
   final String? errorMessage;
+  final VoidCallback? onErrorRetry;
   final String? emptyMessage;
   final int placeholderCount;
   final ValueChanged<VideoItemListItemDto>? onVideoTap;
+  final ValueChanged<VideoItemListItemDto>? onVideoLongPress;
   final ValueChanged<VideoItemListItemDto>? onVideoPlay;
   final ValueChanged<VideoItemListItemDto>? onVideoThumbnails;
   final ValueChanged<VideoItemListItemDto>? onVideoAddToCollection;
@@ -63,6 +67,7 @@ class VideoOverviewGridSliver extends StatelessWidget {
         gridKey: gridKey,
         items: items,
         errorMessage: errorMessage,
+        onErrorRetry: onErrorRetry,
         emptyMessage: emptyMessage ?? l10n.videoEmptyList,
         layout: AppAdaptiveCardGridLayout.masonry,
         tileAspect: (index) =>
@@ -73,6 +78,9 @@ class VideoOverviewGridSliver extends StatelessWidget {
             onTap: selectionMode
                 ? null
                 : (onVideoTap == null ? null : () => onVideoTap!(video)),
+            onLongPress: selectionMode || onVideoLongPress == null
+                ? null
+                : () => onVideoLongPress!(video),
             onPlay: onVideoPlay == null ? null : () => onVideoPlay!(video),
             onThumbnails: onVideoThumbnails == null
                 ? null

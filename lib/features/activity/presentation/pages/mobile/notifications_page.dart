@@ -1,23 +1,23 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/notification_center_provider.dart';
 import 'package:sakuramedia/core/format/updated_at_label.dart';
-import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/activity/data/activity_notification_dto.dart';
 import 'package:sakuramedia/features/activity/presentation/activity_placeholders.dart';
+import 'package:sakuramedia/features/activity/presentation/activity_filter_state.dart';
 import 'package:sakuramedia/features/activity/presentation/notification_card.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
 
@@ -106,18 +106,8 @@ class _MobileNotificationsPageState
       await ref
           .read(notificationCenterProvider.notifier)
           .refreshNotifications();
-    } catch (error) {
-      if (mounted) {
-        final l10n = AppLocalizations.of(context);
-        showToast(
-          apiErrorMessage(
-            error,
-            fallback: l10n.activityRefreshFailed,
-            l10n: l10n,
-          ),
-          tone: AppToastTone.error,
-        );
-      }
+    } catch (_) {
+      // 刷新失败由 Header 的 AppFilterUpdateBar 单通道呈现。
     }
     if (mounted) {
       setState(() => _snapshotDirty = true);
@@ -140,6 +130,9 @@ class _MobileNotificationsPageState
         return (
           unreadCount: state.unreadCount,
           isMarkingAllRead: state.isMarkingAllRead,
+          filter: state.filter,
+          filterUpdate: state.filterUpdate,
+          hasNotifications: state.notifications.isNotEmpty,
           unreadIds: state.notifications
               .where((item) => !item.isRead)
               .map((item) => item.id)
@@ -158,6 +151,9 @@ class _MobileNotificationsPageState
           context,
           unreadCount: header.unreadCount,
           isMarkingAllRead: header.isMarkingAllRead,
+          filter: header.filter,
+          filterUpdate: header.filterUpdate,
+          hasNotifications: header.hasNotifications,
         ),
         SizedBox(height: spacing.sm),
         Expanded(
@@ -210,34 +206,35 @@ class _MobileNotificationsPageState
     BuildContext context, {
     required int unreadCount,
     required bool isMarkingAllRead,
+    required ActivityNotificationFilterState filter,
+    required FilterUpdateState filterUpdate,
+    required bool hasNotifications,
   }) {
     final l10n = AppLocalizations.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: AppTabBar(
-            key: const Key('mobile-notifications-segments'),
-            variant: AppTabBarVariant.compact,
-            controller: _segmentController,
-            onTap: _onSegmentTap,
-            tabs: <Widget>[
-              Tab(text: l10n.activityAll),
-              Tab(text: l10n.activityUnread),
-            ],
-          ),
-        ),
-        SizedBox(width: context.appSpacing.md),
-        AppGlassIconButton(
-          key: const Key('mobile-notifications-mark-all-read'),
-          tooltip: l10n.activityMarkAllRead,
-          icon: Icons.done_all_rounded,
-          iconWidget: isMarkingAllRead ? const AppInlineSpinner() : null,
-          onPressed: unreadCount > 0 && !isMarkingAllRead
-              ? _handleMarkAllRead
-              : null,
-        ),
-      ],
+    return NotificationFilterBar(
+      filter: filter,
+      onFilterChanged: ref
+          .read(notificationCenterProvider.notifier)
+          .applyNotificationFilter,
+      filterUpdate: filterUpdate,
+      hasPreviousItems: hasNotifications,
+      onRetryFilter: ref
+          .read(notificationCenterProvider.notifier)
+          .refreshNotifications,
+      unreadCount: unreadCount,
+      isMarkingAllRead: isMarkingAllRead,
+      onMarkAllRead: _handleMarkAllRead,
+      showCategoryFilter: false,
+      mobileLeading: AppTabBar(
+        key: const Key('mobile-notifications-segments'),
+        variant: AppTabBarVariant.compact,
+        controller: _segmentController,
+        onTap: _onSegmentTap,
+        tabs: <Widget>[
+          Tab(text: l10n.activityAll),
+          Tab(text: l10n.activityUnread),
+        ],
+      ),
     );
   }
 }
@@ -292,10 +289,12 @@ class _MobileNotificationsBodySliver extends ConsumerWidget {
     if (body.initialError != null && !body.hasNotifications) {
       return SliverFillRemaining(
         hasScrollBody: false,
-        child: AppEmptyState(
+        child: AppErrorState(
           key: const Key('mobile-notifications-error'),
+          title: AppLocalizations.of(context).baseActionFailed,
           message: body.initialError!,
           onRetry: ref.read(notificationCenterProvider.notifier).reloadAll,
+          retryKey: const Key('mobile-notifications-retry-button'),
         ),
       );
     }
@@ -445,15 +444,11 @@ class MobileNotificationCard extends StatelessWidget {
     final colors = context.appColors;
     final spacing = context.appSpacing;
 
-    return Container(
+    return AppContentCard(
       key: Key('mobile-activity-notification-${notification.id}'),
-      width: double.infinity,
       padding: EdgeInsets.all(spacing.md),
-      decoration: BoxDecoration(
-        color: isUnread ? colors.selectionSurface : colors.surfaceCard,
-        borderRadius: context.appRadius.mdBorder,
-        border: Border.all(color: colors.borderSubtle),
-      ),
+      backgroundColor: isUnread ? colors.selectionSurface : colors.surfaceCard,
+      borderRadius: context.appRadius.mdBorder,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

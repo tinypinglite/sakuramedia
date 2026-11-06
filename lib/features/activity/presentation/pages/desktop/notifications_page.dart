@@ -13,11 +13,10 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 
 /// 独立的「通知」消息中心页。列表、分页、筛选和无感已读由全局通知 provider
@@ -70,7 +69,8 @@ class _DesktopNotificationsPageState
       next,
     ) {
       if (previous != next && _scrollController.hasClients) {
-        _scrollController.jumpTo(0);
+        // Header 固定在滚动区外，结果区起点就是 minScrollExtent。
+        _scrollController.jumpTo(_scrollController.position.minScrollExtent);
       }
     });
     return AppPageRefreshScope(
@@ -142,42 +142,19 @@ class _DesktopNotificationsPageState
     required FilterUpdateState filterUpdate,
     required bool hasItems,
   }) {
-    final l10n = AppLocalizations.of(context);
     final notifier = ref.read(notificationCenterProvider.notifier);
     return Padding(
       key: const Key('desktop-notifications-page'),
       padding: EdgeInsets.only(bottom: context.appSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: NotificationFilterBar(
-                  filter: filter,
-                  onFilterChanged: notifier.applyNotificationFilter,
-                ),
-              ),
-              SizedBox(width: context.appSpacing.md),
-              AppButton(
-                key: const Key('notifications-mark-all-read'),
-                label: l10n.activityMarkAllRead,
-                size: AppButtonSize.small,
-                variant: AppButtonVariant.secondary,
-                isLoading: isMarkingAllRead,
-                onPressed: unreadCount > 0 && !isMarkingAllRead
-                    ? notifier.markAllRead
-                    : null,
-              ),
-            ],
-          ),
-          AppFilterUpdateBar(
-            state: filterUpdate,
-            hasPreviousItems: hasItems,
-            onRetry: notifier.refreshNotifications,
-          ),
-        ],
+      child: NotificationFilterBar(
+        filter: filter,
+        onFilterChanged: notifier.applyNotificationFilter,
+        filterUpdate: filterUpdate,
+        hasPreviousItems: hasItems,
+        onRetryFilter: notifier.refreshNotifications,
+        unreadCount: unreadCount,
+        isMarkingAllRead: isMarkingAllRead,
+        onMarkAllRead: notifier.markAllRead,
       ),
     );
   }
@@ -224,11 +201,13 @@ class _NotificationsBodySliver extends ConsumerWidget {
     }
     if (body.initialError != null && body.ids.isEmpty) {
       return SliverToBoxAdapter(
-        child: AppEmptyState(
+        child: AppErrorState(
           key: const Key('desktop-notifications-error'),
+          title: AppLocalizations.of(context).baseActionFailed,
           message: body.initialError!,
           onRetry: () =>
               ref.read(notificationCenterProvider.notifier).reloadAll(),
+          retryKey: const Key('desktop-notifications-retry-button'),
         ),
       );
     }

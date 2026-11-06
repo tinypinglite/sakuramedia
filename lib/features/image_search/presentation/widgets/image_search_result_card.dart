@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_result_item_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
@@ -149,5 +150,5 @@ class ImageSearchResultCard extends StatelessWidget {
 }
 
 String formatImageSearchScore(double score) {
-  return '${(score * 100).toStringAsFixed(1)}%';
+  return formatAppPercent(score);
 }

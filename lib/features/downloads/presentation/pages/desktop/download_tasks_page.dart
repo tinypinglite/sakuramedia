@@ -11,6 +11,7 @@ import 'package:sakuramedia/features/downloads/presentation/manual_download_dial
 import 'package:sakuramedia/features/downloads/presentation/providers/download_task_center_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/selection_controller.dart';
@@ -143,15 +144,18 @@ class _DesktopDownloadTasksPageState
 
   void _scrollToTop() {
     if (_scrollController.hasClients) {
-      _scrollController.jumpTo(0);
+      unawaited(
+        _scrollController.animateTo(
+          0,
+          duration: context.appMotion.fast,
+          curve: context.appMotion.standard,
+        ),
+      );
     }
   }
 
   Future<void> _refresh() async {
-    final error = await _controller.refresh();
-    if (error != null && mounted) {
-      showToast(error, tone: AppToastTone.error);
-    }
+    await _controller.refresh();
   }
 
   /// 手动提交成功后让新任务可见：当前筛选会隐藏它时切到「全部」，
@@ -171,10 +175,7 @@ class _DesktopDownloadTasksPageState
         ref.read(downloadTaskCenterProvider).value?.filter ??
         DownloadTaskFilterState.initial;
     if (_taskVisibleUnderFilter(result.response.task, filter)) {
-      final error = await _controller.refresh();
-      if (error != null && mounted) {
-        showToast(error, tone: AppToastTone.error);
-      }
+      await _controller.refresh();
     } else {
       await _controller.applyFilter(
         const DownloadTaskFilterState(stateFilter: DownloadTaskStateFilter.all),

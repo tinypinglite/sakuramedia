@@ -20,6 +20,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
@@ -110,29 +111,37 @@ Widget buildDownloadTaskHeader({
   }
   // 首次加载也渲染初始筛选栏：骨架列表与数据回来后的最终布局保持一致，
   // 避免头部突然多出一行导致内容下跳。
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      if (selection.active)
-        isMobile
-            ? _MobileSelectionHeader(selection: selection)
-            : _DesktopSelectionHeader(selection: selection)
-      else
+  final notifier = ref.read(downloadTaskCenterProvider.notifier);
+  final filterUpdateBar = AppFilterUpdateBar(
+    key: const Key('download-tasks-reloading-indicator'),
+    state: header.filterUpdate,
+    hasPreviousItems: header.hasItems,
+    onRetry: () => unawaited(notifier.retryFilter()),
+  );
+  if (!selection.active) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         _MobileDownloadFilterEntry(
           filter: header.filter,
           clientOptions: header.clientOptions,
           hasItems: header.hasItems,
           onManualAdd: onManualAdd,
           selection: selection,
+          filterUpdate: header.filterUpdate,
+          onRetryFilter: () => unawaited(notifier.retryFilter()),
         ),
-      AppFilterUpdateBar(
-        key: const Key('download-tasks-reloading-indicator'),
-        state: header.filterUpdate,
-        hasPreviousItems: header.hasItems,
-        onRetry: () => unawaited(
-          ref.read(downloadTaskCenterProvider.notifier).retryFilter(),
-        ),
-      ),
+        SizedBox(height: context.appSpacing.lg),
+      ],
+    );
+  }
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      isMobile
+          ? _MobileSelectionHeader(selection: selection)
+          : _DesktopSelectionHeader(selection: selection),
+      filterUpdateBar,
       SizedBox(height: context.appSpacing.lg),
     ],
   );
@@ -201,6 +210,7 @@ class _DesktopSelectionHeader extends ConsumerWidget {
           label: l10n.downloadSelectionDelete(selectionCount),
           icon: Icons.delete_outline_rounded,
           foregroundColor: context.appTextPalette.error,
+          isLoading: submitting,
           onTap: selectionCount > 0 && !submitting
               ? () => unawaited(_deleteSelectedTasks(context, ref, selection))
               : null,
@@ -281,6 +291,7 @@ Widget _buildBatchDeleteButton(
     size: size,
     variant: AppButtonVariant.danger,
     icon: const Icon(Icons.delete_outline_rounded),
+    isLoading: submitting,
     onPressed: selectionCount > 0 && !submitting
         ? () => unawaited(_deleteSelectedTasks(context, ref, selection))
         : null,
@@ -417,13 +428,15 @@ class _DownloadTasksBodySliver extends ConsumerWidget {
     if (body.hasError && !body.hasValue) {
       final l10n = AppLocalizations.of(context);
       return SliverToBoxAdapter(
-        child: AppEmptyState(
+        child: AppErrorState(
+          title: l10n.baseActionFailed,
           message: apiErrorMessage(
             body.error!,
             fallback: l10n.errorDownloadTaskLoadFailed,
             l10n: l10n,
           ),
           onRetry: () => ref.invalidate(downloadTaskCenterProvider),
+          variant: AppStatePanelVariant.section,
         ),
       );
     }
@@ -490,6 +503,8 @@ class _MobileDownloadFilterEntry extends ConsumerWidget {
     required this.hasItems,
     required this.onManualAdd,
     required this.selection,
+    required this.filterUpdate,
+    required this.onRetryFilter,
   });
 
   final DownloadTaskFilterState filter;
@@ -497,6 +512,8 @@ class _MobileDownloadFilterEntry extends ConsumerWidget {
   final bool hasItems;
   final VoidCallback onManualAdd;
   final SelectionController<int> selection;
+  final FilterUpdateState filterUpdate;
+  final VoidCallback onRetryFilter;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -532,6 +549,9 @@ class _MobileDownloadFilterEntry extends ConsumerWidget {
           ),
         ),
       ],
+      filterUpdate: filterUpdate,
+      hasPreviousFilterItems: hasItems,
+      onRetryFilter: onRetryFilter,
     );
   }
 }

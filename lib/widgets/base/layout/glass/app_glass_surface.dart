@@ -4,22 +4,22 @@ import 'dart:ui' as ui;
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_flat_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_style.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 
 /// 统一玻璃表面。
 ///
-/// 参考 iOS Liquid Glass 与 ColorOS 光场设计的共同点：玻璃不是
-/// 「半透明色 + 一条白边」，而是有厚度的透镜。全站只有一套配方，
-/// 业务页面只选尺寸 / 圆角 / 内边距：
+/// 正常路径完全使用 `liquid_glass_widgets` 的内置 light/dark 默认材质与
+/// 控件默认质量档位，不在这里覆盖 settings / quality；业务页面只选尺寸 /
+/// 圆角 / 内边距。
+///
+/// 高对比、关闭模糊或无法映射圆角时走本地 fallback：
 /// - 光源固定在顶部中央：顶部最亮，向两侧对称衰减，底部保留一圈很淡的
 ///   反射光，描边不会在下半圈消失；
 /// - 1px 外圈用 sweep 渐变，内层圆角同步减 1px，四角描边均匀；
 /// - 内侧顶部叠一层柔和的 specular wash，底部压一道暗边模拟玻璃厚度；
-/// - 背景先模糊、再提高饱和度，让玻璃「聚色」而不是发灰；
-/// - 统一使用最淡的 `track` 配方，不带浮层阴影。
-///
-/// 正常路径使用 `liquid_glass_widgets` 的 shader 玻璃；上面的光感近似规则
-/// 只用于高对比、关闭模糊或无法映射圆角的 fallback。
+/// - 背景先模糊、再提高饱和度，让玻璃「聚色」而不是发灰。
 class AppGlassSurface extends StatelessWidget {
   const AppGlassSurface({
     super.key,
@@ -49,6 +49,16 @@ class AppGlassSurface extends StatelessWidget {
     final radius = borderRadius ?? context.appRadius.mdBorder;
     final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
 
+    if (AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat) {
+      return AppGlassFlatSurface(
+        borderRadius: radius,
+        padding: padding,
+        width: width,
+        height: height,
+        child: child,
+      );
+    }
+
     if (blur && !highContrast) {
       final packageSurface = _buildPackageSurface(context, radius);
       if (packageSurface != null) {
@@ -70,8 +80,7 @@ class AppGlassSurface extends StatelessWidget {
       return null;
     }
 
-    final settings = AppGlassStyle.settings(context);
-    final quality = AppGlassStyle.quality;
+    final settings = AppGlassStyle.surfaceSettings(context);
 
     if (!shape.isLeftOnly) {
       return GlassContainer(
@@ -80,7 +89,6 @@ class AppGlassSurface extends StatelessWidget {
         padding: padding,
         shape: shape.shape,
         settings: settings,
-        quality: quality,
         useOwnLayer: true,
         clipBehavior: Clip.antiAlias,
         child: child,
@@ -104,7 +112,6 @@ class AppGlassSurface extends StatelessWidget {
       alignment: Alignment.centerLeft,
       shape: shape.shape,
       settings: settings,
-      quality: quality,
       useOwnLayer: true,
       clipBehavior: Clip.antiAlias,
       child: SizedBox(width: contentWidth, child: child),

@@ -4,6 +4,7 @@ import 'package:sakuramedia/theme/app_component_tokens.dart';
 import 'package:sakuramedia/theme/app_colors.dart';
 import 'package:sakuramedia/theme/app_form_tokens.dart';
 import 'package:sakuramedia/theme/app_layout_tokens.dart';
+import 'package:sakuramedia/theme/app_motion.dart';
 import 'package:sakuramedia/theme/app_navigation_tokens.dart';
 import 'package:sakuramedia/theme/app_overlay_tokens.dart';
 import 'package:sakuramedia/theme/app_radius.dart';
@@ -19,6 +20,7 @@ export 'package:sakuramedia/theme/app_colors.dart';
 export 'package:sakuramedia/theme/app_form_tokens.dart';
 export 'package:sakuramedia/theme/app_layout_tokens.dart';
 export 'package:sakuramedia/theme/app_mac_traffic_light_colors.dart';
+export 'package:sakuramedia/theme/app_motion.dart';
 export 'package:sakuramedia/theme/app_navigation_tokens.dart';
 export 'package:sakuramedia/theme/app_overlay_tokens.dart';
 export 'package:sakuramedia/theme/app_page_insets.dart';
@@ -169,6 +171,7 @@ ThemeData _buildSakuraThemeData({
       componentTokens,
       formTokens,
       const AppLayoutTokens.defaults(),
+      const AppMotion.defaults(),
       navigationTokens,
       const AppOverlayTokens.defaults(),
       const AppSpacing.defaults(),

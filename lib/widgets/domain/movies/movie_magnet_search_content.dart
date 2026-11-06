@@ -11,6 +11,8 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_selectable_text_scroll_configuration.dart';
 import 'package:sakuramedia/widgets/domain/downloads/download_candidate_selection_summary.dart';
@@ -186,35 +188,20 @@ class MovieMagnetSearchContent extends ConsumerWidget {
 
     if (state.isLoading && items.isEmpty) {
       return const Center(
-        child: CircularProgressIndicator.adaptive(
+        child: AppInlineSpinner(
           key: Key('movie-detail-magnet-loading-indicator'),
         ),
       );
     }
 
     if (state.errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              state.errorMessage!,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.secondary,
-              ),
-            ),
-            SizedBox(height: context.appSpacing.md),
-            AppButton(
-              key: const Key('movie-detail-magnet-retry-button'),
-              label: l10n.commonRetry,
-              variant: AppButtonVariant.secondary,
-              onPressed: controller.search,
-            ),
-          ],
-        ),
+      return AppErrorState(
+        key: const Key('movie-detail-magnet-error'),
+        title: l10n.baseActionFailed,
+        message: state.errorMessage!,
+        retryKey: const Key('movie-detail-magnet-retry-button'),
+        onRetry: controller.search,
+        variant: AppStatePanelVariant.section,
       );
     }
 

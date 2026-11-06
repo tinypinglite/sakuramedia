@@ -19,6 +19,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
 
 const _jsonEncoder = JsonEncoder.withIndent('  ');
 
@@ -30,10 +31,12 @@ class PluginSettingsContent extends ConsumerStatefulWidget {
     super.key,
     required this.plugin,
     this.mobile = false,
+    this.dismissController,
   });
 
   final PluginSummaryDto plugin;
   final bool mobile;
+  final AppModalDismissController? dismissController;
 
   @override
   ConsumerState<PluginSettingsContent> createState() =>
@@ -60,6 +63,7 @@ class _PluginSettingsContentState extends ConsumerState<PluginSettingsContent> {
 
   @override
   void dispose() {
+    widget.dismissController?.setLocked(false);
     _controller.dispose();
     super.dispose();
   }
@@ -150,6 +154,7 @@ class _PluginSettingsContentState extends ConsumerState<PluginSettingsContent> {
       return;
     }
     FocusScope.of(context).unfocus();
+    widget.dismissController?.setLocked(true);
     setState(() => _saving = true);
     try {
       await ref
@@ -169,6 +174,7 @@ class _PluginSettingsContentState extends ConsumerState<PluginSettingsContent> {
         return;
       }
       final l10n = AppLocalizations.of(context);
+      widget.dismissController?.setLocked(false);
       setState(() {
         _saving = false;
         final details = error is ApiException ? error.error?.details : null;
@@ -223,6 +229,7 @@ class _PluginSettingsContentState extends ConsumerState<PluginSettingsContent> {
       subtitle: '${widget.plugin.displayName} · ${widget.plugin.pluginId}',
       submitKey: const Key('plugin-settings-save-button'),
       isSubmitting: _saving,
+      dismissController: widget.dismissController,
       onSubmit: () => unawaited(_save()),
       body: _buildMobileBody(context),
     );
@@ -318,7 +325,10 @@ class _PluginSettingsContentState extends ConsumerState<PluginSettingsContent> {
             'type': 'string',
             'title': l10n.pluginSettingsPlaceholderEndpoint,
           },
-          'api_key': <String, dynamic>{'type': 'string', 'title': 'API Key'},
+          'api_key': <String, dynamic>{
+            'type': 'string',
+            'title': l10n.commonApiKey,
+          },
           'enabled': <String, dynamic>{
             'type': 'boolean',
             'title': l10n.pluginSettingsPlaceholderEnabled,

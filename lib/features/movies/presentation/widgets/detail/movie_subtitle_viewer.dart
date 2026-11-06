@@ -10,7 +10,7 @@ import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/movies/data/dto/player/movie_subtitle_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_selectable_text_scroll_configuration.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
@@ -82,7 +82,7 @@ class _MovieSubtitleViewerContentState
 
     final errorMessage = _errorMessage;
     if (errorMessage != null) {
-      return AppEmptyState(
+      return AppErrorState(
         key: const Key('movie-subtitle-viewer-error'),
         icon: Icons.error_outline_rounded,
         title: AppLocalizations.of(
@@ -91,6 +91,7 @@ class _MovieSubtitleViewerContentState
         message: errorMessage,
         onRetry: _retry,
         retryKey: const Key('movie-subtitle-viewer-retry'),
+        variant: AppStatePanelVariant.section,
       );
     }
 

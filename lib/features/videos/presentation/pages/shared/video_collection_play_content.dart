@@ -23,6 +23,7 @@ import 'package:sakuramedia/features/image_search/presentation/actions/image_sea
 import 'package:sakuramedia/features/videos/presentation/video_display_title.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/video_collection_episode_actions.dart';
@@ -593,7 +594,12 @@ class _VideoCollectionPlayContentState
     if (_errorMessage != null) {
       return wrapWithMoviePlayerBackButton(
         onBackPressed: _handleBack,
-        child: Center(child: AppEmptyState(message: _errorMessage!)),
+        child: Center(
+          child: AppErrorState(
+            title: AppLocalizations.of(context).videoLoadFailed,
+            message: _errorMessage!,
+          ),
+        ),
       );
     }
     final videoController = this.videoController;

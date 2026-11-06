@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_back_button.dart';
 
 class _MoviePlayerOverlayIconButton extends StatelessWidget {
   const _MoviePlayerOverlayIconButton({
@@ -45,9 +46,9 @@ class MoviePlayerBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _MoviePlayerOverlayIconButton(
-      buttonKey: const Key('movie-player-back-button'),
-      icon: Icons.arrow_back_ios_new_rounded,
+    return AppBackButton(
+      key: const Key('movie-player-back-button'),
+      variant: AppBackButtonVariant.mediaOverlay,
       onPressed: onPressed,
     );
   }

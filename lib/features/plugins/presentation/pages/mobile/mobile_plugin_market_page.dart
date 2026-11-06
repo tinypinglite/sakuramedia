@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/app/language/app_language.dart';
 import 'package:sakuramedia/app/language/providers/language_providers.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
@@ -18,6 +19,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_status_chip.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
@@ -72,7 +74,10 @@ class _MobilePluginMarketPageState
         : state.catalog.plugins
               .where(
                 (plugin) =>
-                    pluginMarketStatus(plugin, installedById[plugin.pluginId]) ==
+                    pluginMarketStatus(
+                      plugin,
+                      installedById[plugin.pluginId],
+                    ) ==
                     PluginMarketStatus.updateAvailable,
               )
               .length;
@@ -100,12 +105,14 @@ class _MobilePluginMarketPageState
                     stats: [
                       AppNoticeStat(
                         label: l10n.pluginMarketInstallable,
-                        value: '${state?.catalog.plugins.length ?? 0}',
+                        value: formatAppCount(
+                          state?.catalog.plugins.length ?? 0,
+                        ),
                         valueSize: AppTextSize.s18,
                       ),
                       AppNoticeStat(
                         label: l10n.pluginMarketUpdatable,
-                        value: '$updateCount',
+                        value: formatAppCount(updateCount),
                         valueSize: AppTextSize.s18,
                       ),
                     ],
@@ -391,10 +398,12 @@ class _MobileMarketPluginCard extends StatelessWidget {
                     size: AppButtonSize.xSmall,
                     onPressed: onUpgrade,
                   ),
-                  PluginMarketStatus.installed => AppBadge(
+                  PluginMarketStatus.installed => AppStatusChip(
                     label: l10n.pluginMarketInstalled,
-                    tone: AppBadgeTone.success,
-                    size: AppBadgeSize.compact,
+                    palette: AppStatusChipPalette.forSemantic(
+                      AppStatusSemantic.success,
+                    ),
+                    dense: true,
                   ),
                 },
             ],
@@ -414,10 +423,7 @@ class _MobileMarketPluginCard extends StatelessWidget {
       );
     }
     if (status == PluginMarketStatus.installed && installedVersion != null) {
-      return l10n.pluginMarketInstalledAuthor(
-        installedVersion!,
-        plugin.author,
-      );
+      return l10n.pluginMarketInstalledAuthor(installedVersion!, plugin.author);
     }
     return 'v${version ?? '-'} · ${plugin.author}';
   }

@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/features/plugins/data/dto/plugin_dto.dart';
 import 'package:sakuramedia/features/plugins/presentation/pages/shared/plugin_settings_content.dart';
 import 'package:sakuramedia/features/plugins/presentation/plugin_management_actions.dart';
@@ -16,10 +17,11 @@ import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
-import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_status_chip.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
 
 /// 移动端插件管理页：卡片列表、操作抽屉、zip 安装和配置编辑。
 class MobilePluginsPage extends ConsumerStatefulWidget {
@@ -33,12 +35,18 @@ class _MobilePluginsPageState extends ConsumerState<MobilePluginsPage> {
   PluginManagementActions get _actions =>
       PluginManagementActions(context: context, ref: ref);
 
-  Future<void> _openSettings(PluginSummaryDto plugin) {
-    return showAppBottomDrawer<void>(
+  Future<void> _openSettings(PluginSummaryDto plugin) async {
+    final dismissController = AppModalDismissController();
+    await showAppBottomDrawer<void>(
       context: context,
       drawerKey: Key('mobile-plugin-settings-drawer-${plugin.pluginId}'),
       heightFactor: 0.9,
-      builder: (_) => PluginSettingsContent(plugin: plugin, mobile: true),
+      dismissController: dismissController,
+      builder: (_) => PluginSettingsContent(
+        plugin: plugin,
+        mobile: true,
+        dismissController: dismissController,
+      ),
     );
   }
 
@@ -109,12 +117,12 @@ class _MobilePluginsPageState extends ConsumerState<MobilePluginsPage> {
                           stats: [
                             AppNoticeStat(
                               label: l10n.pluginsTabInstalled,
-                              value: '${state?.plugins.length ?? 0}',
+                              value: formatAppCount(state?.plugins.length ?? 0),
                               valueSize: AppTextSize.s18,
                             ),
                             AppNoticeStat(
                               label: l10n.pluginsUpdatableStat,
-                              value: '${state?.updates.length ?? 0}',
+                              value: formatAppCount(state?.updates.length ?? 0),
                               valueSize: AppTextSize.s18,
                             ),
                           ],
@@ -313,9 +321,6 @@ class _MobilePluginCard extends StatelessWidget {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
     final disabled = busy || installing || checkingUpdates;
-    final statusTone = plugin.enabled
-        ? AppBadgeTone.success
-        : AppBadgeTone.neutral;
     return AppContentCard(
       key: Key('mobile-plugin-card-${plugin.pluginId}'),
       padding: EdgeInsets.zero,
@@ -370,29 +375,37 @@ class _MobilePluginCard extends StatelessWidget {
                                     tone: AppTextTone.primary,
                                   ),
                                 ),
-                                AppBadge(
+                                AppStatusChip(
                                   label: plugin.enabled
                                       ? l10n.pluginsEnabled
                                       : l10n.pluginsDisabled,
-                                  tone: statusTone,
-                                  size: AppBadgeSize.compact,
+                                  palette: AppStatusChipPalette.forSemantic(
+                                    plugin.enabled
+                                        ? AppStatusSemantic.success
+                                        : AppStatusSemantic.neutral,
+                                  ),
+                                  dense: true,
                                 ),
                                 if (plugin.loadStatus == 'error')
                                   Tooltip(
                                     message:
                                         plugin.loadError ??
                                         l10n.pluginsLoadErrorTooltip,
-                                    child: AppBadge(
+                                    child: AppStatusChip(
                                       label: l10n.pluginsLoadErrorBadge,
-                                      tone: AppBadgeTone.error,
-                                      size: AppBadgeSize.compact,
+                                      palette: AppStatusChipPalette.forSemantic(
+                                        AppStatusSemantic.error,
+                                      ),
+                                      dense: true,
                                     ),
                                   ),
                                 if (update != null)
-                                  AppBadge(
+                                  AppStatusChip(
                                     label: l10n.pluginsUpdateAvailable,
-                                    tone: AppBadgeTone.warning,
-                                    size: AppBadgeSize.compact,
+                                    palette: AppStatusChipPalette.forSemantic(
+                                      AppStatusSemantic.warning,
+                                    ),
+                                    dense: true,
                                   ),
                               ],
                             ),

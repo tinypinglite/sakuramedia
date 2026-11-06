@@ -52,6 +52,13 @@ void showMovieSubscriptionFeedback(
 }) {
   _showSubscriptionFeedback(
     movieSubscriptionFeedbackMessage(result, l10n: l10n),
+    tone: switch (result.status) {
+      MovieSubscriptionToggleStatus.subscribed ||
+      MovieSubscriptionToggleStatus.unsubscribed => AppToastTone.success,
+      MovieSubscriptionToggleStatus.blockedByMedia => AppToastTone.warning,
+      MovieSubscriptionToggleStatus.failed => AppToastTone.error,
+      MovieSubscriptionToggleStatus.ignored => AppToastTone.info,
+    },
   );
 }
 
@@ -61,6 +68,12 @@ void showActorSubscriptionFeedback(
 }) {
   _showSubscriptionFeedback(
     actorSubscriptionFeedbackMessage(result, l10n: l10n),
+    tone: switch (result.status) {
+      ActorSubscriptionToggleStatus.subscribed ||
+      ActorSubscriptionToggleStatus.unsubscribed => AppToastTone.success,
+      ActorSubscriptionToggleStatus.failed => AppToastTone.error,
+      ActorSubscriptionToggleStatus.ignored => AppToastTone.info,
+    },
   );
 }
 
@@ -79,11 +92,11 @@ Future<void> toggleActorSubscriptionWithFeedback(
   }
 }
 
-void _showSubscriptionFeedback(String? message) {
+void _showSubscriptionFeedback(String? message, {required AppToastTone tone}) {
   if (message == null || message.isEmpty) {
     return;
   }
-  showToast(message);
+  showToast(message, tone: tone);
 }
 
 /// 影片批量订阅/取消订阅结果反馈：

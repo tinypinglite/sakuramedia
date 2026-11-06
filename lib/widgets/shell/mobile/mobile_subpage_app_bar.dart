@@ -1,8 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
-import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_back_button.dart';
 
 /// 移动子页导航栏：标准、玻璃、沉浸和随滚动收起四种形态。
 class AppMobileSubpageAppBar extends StatelessWidget
@@ -65,7 +64,6 @@ class AppMobileSubpageAppBar extends StatelessWidget
   }
 
   AppBar _buildAppBar(BuildContext context, {required bool useGlassChrome}) {
-    final l10n = appL10n(context);
     return AppBar(
       key: const Key('mobile-subpage-topbar'),
       backgroundColor: immersive || useGlassChrome
@@ -93,29 +91,20 @@ class AppMobileSubpageAppBar extends StatelessWidget
           ? 60
           : context.appComponentTokens.mobileSubpageLeadingWidth,
       titleSpacing: 0, // 默认 16
-      leading: useGlassChrome
-          ? Padding(
-              padding: EdgeInsets.only(left: context.appSpacing.sm),
-              child: Center(
-                child: AppGlassIconButton(
-                  key: const Key('mobile-subpage-back-button'),
-                  tooltip: l10n.shellBack,
-                  icon: Icons.arrow_back_ios_new_rounded,
-                  onPressed: onBack,
-                ),
-              ),
-            )
-          : IconButton(
-              iconSize: context.appComponentTokens.iconSizeSm,
-              key: const Key('mobile-subpage-back-button'),
-              onPressed: onBack,
-              icon: Icon(
-                Icons.arrow_back_ios_new_rounded,
-                // 沉浸页压在封面和顶部压暗渐变上，沿用媒体前景色保证可读。
-                color: immersive ? context.appTextPalette.onMedia : null,
-              ),
-              tooltip: l10n.shellBack,
-            ),
+      leading: Padding(
+        padding: EdgeInsets.only(left: context.appSpacing.sm),
+        child: Center(
+          child: AppBackButton(
+            key: const Key('mobile-subpage-back-button'),
+            variant: useGlassChrome
+                ? AppBackButtonVariant.glass
+                : immersive
+                ? AppBackButtonVariant.mediaOverlay
+                : AppBackButtonVariant.solid,
+            onPressed: onBack,
+          ),
+        ),
+      ),
       title: immersive
           // 沉浸页不占标题位：封面直通状态栏，顶栏只留返回键和渐变。
           ? null

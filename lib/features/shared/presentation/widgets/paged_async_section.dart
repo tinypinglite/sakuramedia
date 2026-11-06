@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 
 /// 分页 `AsyncNotifier` 的 Sliver「四态骨架」：
@@ -94,7 +96,9 @@ class SliverPagedAsyncSection<S, T> extends StatelessWidget {
     }
     if (asyncState.hasError && !asyncState.hasValue) {
       return SliverToBoxAdapter(
-        child: AppEmptyState(
+        child: AppErrorState(
+          key: const Key('paged-async-error'),
+          title: appL10n(context).baseActionFailed,
           message: initialErrorMessage,
           onRetry: onReload,
           retryKey: initialRetryKey,
@@ -113,7 +117,10 @@ class SliverPagedAsyncSection<S, T> extends StatelessWidget {
       return SliverToBoxAdapter(
         child: builder != null
             ? builder(context)
-            : AppEmptyState(message: emptyMessage),
+            : AppEmptyState(
+                key: const Key('paged-async-empty'),
+                message: emptyMessage,
+              ),
       );
     }
 
@@ -145,9 +152,11 @@ class SliverPagedAsyncSection<S, T> extends StatelessWidget {
           child: Padding(
             padding: EdgeInsets.only(top: footerTopSpacing ?? spacing.md),
             child: AppPagedLoadMoreFooter(
+              key: const Key('paged-async-load-more-footer'),
               isLoading: paged.isLoadingMore,
               errorMessage: paged.loadMoreErrorMessage,
               onRetry: onLoadMore,
+              retryKey: const Key('paged-async-load-more-retry'),
             ),
           ),
         ),

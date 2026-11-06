@@ -33,7 +33,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
@@ -147,11 +147,14 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
           }
 
           if (detailAsync.hasError && detailAsync.value == null) {
-            return AppEmptyState(
+            return AppErrorState(
+              title: AppLocalizations.of(context).playlistLoadFailed,
               message: playlistDetailErrorMessage(
                 detailAsync.error!,
                 l10n: AppLocalizations.of(context),
               ),
+              retryKey: const Key('playlist-detail-error-retry'),
+              onRetry: _retryInitialLoad,
             );
           }
 
@@ -333,6 +336,11 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
         showToast(l10n.playlistRefreshFailed, tone: AppToastTone.error);
       }
     }
+  }
+
+  void _retryInitialLoad() {
+    ref.invalidate(playlistDetailProvider(widget.playlistId));
+    ref.invalidate(movieSummaryProvider(_scope));
   }
 
   bool get _isMobile => AppPlatformScope.maybeOf(context) == AppPlatform.mobile;

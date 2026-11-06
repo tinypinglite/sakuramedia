@@ -7,6 +7,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
@@ -168,10 +169,12 @@ class _CastDevicePickerBodyState extends State<CastDevicePickerBody> {
     final l10n = AppLocalizations.of(context);
     if (_devices.isEmpty) {
       if (_scanFailed) {
-        return AppEmptyState(
-          icon: Icons.wifi_off_rounded,
+        return AppErrorState(
           title: l10n.castSearchFailedTitle,
           message: l10n.castSearchFailedMessage,
+          variant: AppStatePanelVariant.section,
+          retryKey: const Key('cast-search-retry'),
+          onRetry: _startScan,
         );
       }
       if (_scanning) {

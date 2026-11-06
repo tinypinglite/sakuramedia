@@ -7,6 +7,7 @@ import 'package:sakuramedia/features/configuration/presentation/widgets/shared/l
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 
 /// 外观设置的共用内容；移动与桌面使用同一份偏好读写逻辑。
 class AppearanceSettingsContent extends ConsumerWidget {
@@ -105,6 +106,43 @@ class AppearanceSettingsContent extends ConsumerWidget {
                 ),
                 onTap: () => unawaited(controller.setThemeColor(themeColor)),
               ),
+          ],
+        ),
+        SizedBox(height: spacing.xl),
+        Text(
+          l10n.appearanceSurfaceStyle,
+          style: resolveAppTextStyle(
+            context,
+            size: AppTextSize.s14,
+            weight: AppTextWeight.medium,
+          ),
+        ),
+        SizedBox(height: spacing.sm),
+        AppSettingsGroup(
+          footer: l10n.appearanceSurfaceStyleDescription,
+          children: [
+            AppSettingCell(
+              key: const Key('appearance-surface-liquid'),
+              icon: Icons.auto_awesome_rounded,
+              title: l10n.appearanceSurfaceLiquid,
+              subtitle: l10n.appearanceSurfaceLiquidDescription,
+              trailing: appearance.surfaceStyle == AppSurfaceStyle.liquid
+                  ? const _SelectionCheckMark()
+                  : null,
+              onTap: () =>
+                  unawaited(controller.setSurfaceStyle(AppSurfaceStyle.liquid)),
+            ),
+            AppSettingCell(
+              key: const Key('appearance-surface-flat'),
+              icon: Icons.layers_outlined,
+              title: l10n.appearanceSurfaceFlat,
+              subtitle: l10n.appearanceSurfaceFlatDescription,
+              trailing: appearance.surfaceStyle == AppSurfaceStyle.flat
+                  ? const _SelectionCheckMark()
+                  : null,
+              onTap: () =>
+                  unawaited(controller.setSurfaceStyle(AppSurfaceStyle.flat)),
+            ),
           ],
         ),
         SizedBox(height: spacing.xl),

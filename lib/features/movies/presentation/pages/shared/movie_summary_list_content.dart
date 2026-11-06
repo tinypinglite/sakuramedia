@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
@@ -12,6 +11,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_summary
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/mutation_events_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/stable_set_selection.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
@@ -20,14 +20,11 @@ import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_s
 import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_state.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
@@ -75,6 +72,8 @@ class MovieSummaryListHeaderArgs {
     required this.onApply,
     required this.total,
     required this.onEnterSelection,
+    required this.filterUpdate,
+    required this.onRetryFilter,
     this.tagSelection,
   });
 
@@ -84,6 +83,12 @@ class MovieSummaryListHeaderArgs {
 
   /// 当前列表可进入多选的入口；没有可选影片时为 null。
   final VoidCallback? onEnterSelection;
+
+  /// 服务端筛选更新状态；由 Header 内的 AppFilterUpdateBar 唯一展示。
+  final FilterUpdateState filterUpdate;
+
+  /// Header 内筛选失败时的重试入口。
+  final VoidCallback onRetryFilter;
 
   /// 当前标签筛选选择；未启用标签筛选的页面为 null。
   final TagSelectionState? tagSelection;
@@ -222,6 +227,17 @@ class _MovieSummaryListContentState
     super.dispose();
   }
 
+  void _scrollToStart() {
+    if (!_scrollController.hasClients) {
+      return;
+    }
+    if (_listHeaderKey.currentContext != null) {
+      AppPinnedListHeader.scrollToStart(_listHeaderKey, _scrollController);
+      return;
+    }
+    _scrollController.jumpTo(_scrollController.position.minScrollExtent);
+  }
+
   void _applyFilter(MovieFilterState nextState) {
     final current =
         ref.read(movieSummaryProvider(widget.scope)).value?.filter.movie ??
@@ -233,9 +249,7 @@ class _MovieSummaryListContentState
     if (selectionMode) {
       exitSelection();
     }
-    if (_scrollController.hasClients) {
-      _scrollController.jumpTo(0);
-    }
+    _scrollToStart();
     unawaited(
       ref
           .read(movieSummaryProvider(widget.scope).notifier)
@@ -248,9 +262,7 @@ class _MovieSummaryListContentState
     if (selectionMode) {
       exitSelection();
     }
-    if (_scrollController.hasClients) {
-      _scrollController.jumpTo(0);
-    }
+    _scrollToStart();
     final notifier = ref.read(movieSummaryProvider(widget.scope).notifier);
     if (selection.hasSelection) {
       unawaited(
@@ -292,26 +304,11 @@ class _MovieSummaryListContentState
       await onRefreshOverride();
       return;
     }
-    try {
-      final error = await ref
-          .read(movieSummaryProvider(widget.scope).notifier)
-          .refresh();
-      if (error != null) {
-        throw Exception(error);
-      }
-    } catch (_) {
-      if (!mounted) {
-        return;
-      }
-      final onRefreshFailure = widget.onRefreshFailure;
-      if (onRefreshFailure != null) {
-        onRefreshFailure(context);
-      } else {
-        showToast(
-          AppLocalizations.of(context).moviePageRefreshFailed,
-          tone: AppToastTone.error,
-        );
-      }
+    final error = await ref
+        .read(movieSummaryProvider(widget.scope).notifier)
+        .refresh();
+    if (error != null && mounted) {
+      widget.onRefreshFailure?.call(context);
     }
   }
 
@@ -406,6 +403,10 @@ class _MovieSummaryListContentState
           onEnterSelection: batchSelectableNumbers.isEmpty
               ? null
               : enterSelection,
+          filterUpdate: paged.filterUpdate,
+          onRetryFilter: () => unawaited(
+            ref.read(movieSummaryProvider(widget.scope).notifier).retryFilter(),
+          ),
           tagSelection: tagSelection,
         ),
       );
@@ -460,76 +461,69 @@ class _MovieSummaryListContentState
               ),
           ],
         ),
+        filterUpdate: paged.filterUpdate,
+        hasPreviousFilterItems: items.isNotEmpty,
+        onRetryFilter: () => unawaited(
+          ref.read(movieSummaryProvider(widget.scope).notifier).retryFilter(),
+        ),
       );
     }
 
-    final Widget moviesSliver;
     final onInitialErrorRetry = widget.onInitialErrorRetry;
-    if (initialErrorMessage != null && onInitialErrorRetry != null) {
-      moviesSliver = SliverToBoxAdapter(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            AppEmptyState(message: initialErrorMessage),
-            SizedBox(height: context.appSpacing.md),
-            Center(
-              child: AppTextButton(
-                key: Key('$batchKeyPrefix-initial-error-retry'),
-                label: l10n.commonRetry,
-                onPressed: onInitialErrorRetry,
-              ),
+    final moviesSliver = AppSkeletonizer.sliver(
+      enabled: isInitialLoading,
+      child: MovieSummarySliver(
+        items: isInitialLoading ? movieListItemPlaceholders(count: 24) : items,
+        errorMessage: initialErrorMessage,
+        onErrorRetry:
+            onInitialErrorRetry ??
+            () => unawaited(
+              ref.read(movieSummaryProvider(widget.scope).notifier).reload(),
             ),
-          ],
-        ),
-      );
-    } else {
-      moviesSliver = AppSkeletonizer.sliver(
-        enabled: isInitialLoading,
-        child: MovieSummarySliver(
-          items: isInitialLoading
-              ? movieListItemPlaceholders(count: 24)
-              : items,
-          errorMessage: initialErrorMessage,
-          trailingLabelForMovie: widget.trailingLabelForMovie,
-          onMovieTap: (movie) => selectionAwareTap(
-            movie.movieNumber,
-            () => widget.onMovieTap(context, movie.movieNumber),
-          )(),
-          onMovieMenuRequest: (movie, globalPosition) {
-            unawaited(
-              showMovieCollectionFeatureActionMenu(
-                context: context,
-                movieNumber: movie.movieNumber,
-                globalPosition: globalPosition,
-                isSubscribed: movie.isSubscribed,
-                onBlacklisted: () => ref
-                    .read(movieSummaryProvider(widget.scope).notifier)
-                    .removeMovies(<String>[movie.movieNumber]),
-                onEnterSelection: widget.useMobileSelectionLayout
-                    ? () => enterSelection(initial: movie.movieNumber)
-                    : null,
-              ),
-            );
-          },
-          onMovieSubscriptionTap: (movie) =>
-              _toggleMovieSubscription(movie.movieNumber),
-          onMovieToggleCollectionType:
-              _hoverFeatureActions.toggleCollectionType,
-          onMovieBlacklist: _hoverFeatureActions.blacklist,
-          isMovieSubscriptionUpdating: (movie) =>
-              updating.contains(movie.movieNumber),
-          emptyMessage:
-              widget.emptyMessage ??
-              (!filter.hasActiveFilters
-                  ? l10n.moviePageEmptyNoMovies
-                  : l10n.moviePageEmptyNoMatches),
-          selectionMode: selectionMode,
-          isMovieSelected: (movie) => isSelected(movie.movieNumber),
-          onMovieSelectedChanged: (movie, _) =>
-              handleSelectTap(movie.movieNumber),
-        ),
-      );
-    }
+        errorRetryKey: onInitialErrorRetry == null
+            ? null
+            : Key('$batchKeyPrefix-initial-error-retry'),
+        trailingLabelForMovie: widget.trailingLabelForMovie,
+        onMovieTap: (movie) => selectionAwareTap(
+          movie.movieNumber,
+          () => widget.onMovieTap(context, movie.movieNumber),
+        )(),
+        onMovieLongPress: widget.useMobileSelectionLayout
+            ? (movie) => selectionLongPressHandler(movie.movieNumber).call()
+            : null,
+        onMovieMenuRequest: (movie, globalPosition) {
+          unawaited(
+            showMovieCollectionFeatureActionMenu(
+              context: context,
+              movieNumber: movie.movieNumber,
+              globalPosition: globalPosition,
+              isSubscribed: movie.isSubscribed,
+              onBlacklisted: () => ref
+                  .read(movieSummaryProvider(widget.scope).notifier)
+                  .removeMovies(<String>[movie.movieNumber]),
+              onEnterSelection: widget.useMobileSelectionLayout
+                  ? () => enterSelection(initial: movie.movieNumber)
+                  : null,
+            ),
+          );
+        },
+        onMovieSubscriptionTap: (movie) =>
+            _toggleMovieSubscription(movie.movieNumber),
+        onMovieToggleCollectionType: _hoverFeatureActions.toggleCollectionType,
+        onMovieBlacklist: _hoverFeatureActions.blacklist,
+        isMovieSubscriptionUpdating: (movie) =>
+            updating.contains(movie.movieNumber),
+        emptyMessage:
+            widget.emptyMessage ??
+            (!filter.hasActiveFilters
+                ? l10n.moviePageEmptyNoMovies
+                : l10n.moviePageEmptyNoMatches),
+        selectionMode: selectionMode,
+        isMovieSelected: (movie) => isSelected(movie.movieNumber),
+        onMovieSelectedChanged: (movie, _) =>
+            handleSelectTap(movie.movieNumber),
+      ),
+    );
 
     final listSliver = SliverMainAxisGroup(
       slivers: [
@@ -548,6 +542,17 @@ class _MovieSummaryListContentState
       ],
     );
 
+    final noHeaderErrorBanner = header == null && paged.filterUpdate.hasFailed
+        ? AppInlineErrorBanner(
+            message:
+                paged.filterUpdate.errorMessage ??
+                l10n.baseFilterUpdateFailedMessage,
+            onRetry: () => ref
+                .read(movieSummaryProvider(widget.scope).notifier)
+                .retryFilter(),
+          )
+        : null;
+
     final headerContent = Column(
       key: widget.contentKey,
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -556,13 +561,7 @@ class _MovieSummaryListContentState
             widget.headerLeading != null)
           widget.headerLeading!,
         ?header,
-        AppFilterUpdateBar(
-          state: paged.filterUpdate,
-          hasPreviousItems: items.isNotEmpty,
-          onRetry: () => unawaited(
-            ref.read(movieSummaryProvider(widget.scope).notifier).retryFilter(),
-          ),
-        ),
+        ?noHeaderErrorBanner,
         SizedBox(height: widget.sectionSpacing),
       ],
     );
@@ -600,18 +599,7 @@ class _MovieSummaryListContentState
               ],
               header: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ?header,
-                  AppFilterUpdateBar(
-                    state: paged.filterUpdate,
-                    hasPreviousItems: items.isNotEmpty,
-                    onRetry: () => unawaited(
-                      ref
-                          .read(movieSummaryProvider(widget.scope).notifier)
-                          .retryFilter(),
-                    ),
-                  ),
-                ],
+                children: [?header, ?noHeaderErrorBanner],
               ),
               headerBottomSpacing: widget.sectionSpacing,
               after: <Widget>[listSliver],

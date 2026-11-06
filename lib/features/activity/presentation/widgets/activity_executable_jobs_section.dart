@@ -12,6 +12,7 @@ import 'package:sakuramedia/features/plugins/presentation/providers/plugins_prov
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
@@ -97,10 +98,10 @@ class ActivityExecutableJobsSliver extends ConsumerWidget {
     if (errorMessage != null && jobs.isEmpty) {
       return <Widget>[
         SliverToBoxAdapter(
-          child: AppEmptyState(
+          child: AppErrorState(
             key: const Key('activity-jobs-overview-error'),
+            title: l10n.baseActionFailed,
             message: errorMessage,
-            icon: Icons.error_outline_rounded,
             onRetry: controller.refreshJobs,
             retryKey: const Key('activity-jobs-overview-retry'),
           ),

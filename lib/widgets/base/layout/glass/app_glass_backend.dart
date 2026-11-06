@@ -1,12 +1,13 @@
 import 'package:flutter/services.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_flat_backend.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_style.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_types.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 import 'package:sakuramedia/theme.dart';
 
-const double appGlassCapsuleRadius = 9999.0;
-
-enum AppGlassButtonStyle { filled, prominent, transparent }
+export 'package:sakuramedia/widgets/base/layout/glass/app_glass_types.dart';
 
 class AppGlassIconButtonBackend extends StatelessWidget {
   const AppGlassIconButtonBackend({
@@ -36,6 +37,19 @@ class AppGlassIconButtonBackend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat) {
+      return AppGlassFlatIconButtonBackend(
+        icon: icon,
+        onTap: onTap,
+        label: label,
+        enabled: enabled,
+        width: width,
+        height: height,
+        iconSize: iconSize,
+        iconColor: iconColor,
+        prominent: prominent,
+      );
+    }
     return GlassButton(
       icon: icon,
       onTap: onTap,
@@ -46,9 +60,7 @@ class AppGlassIconButtonBackend extends StatelessWidget {
       iconSize: iconSize,
       iconColor: iconColor,
       shape: const LiquidOval(),
-      settings: AppGlassStyle.settings(context),
       useOwnLayer: true,
-      quality: AppGlassStyle.quality,
       style: prominent ? GlassButtonStyle.prominent : GlassButtonStyle.filled,
       stretch: 0.15,
       glowColor: glowColor,
@@ -84,19 +96,29 @@ class AppGlassCustomButtonBackend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat) {
+      return AppGlassFlatCustomButtonBackend(
+        onTap: onTap,
+        label: label,
+        enabled: enabled,
+        width: width,
+        height: height,
+        borderRadius: borderRadius,
+        style: style,
+        child: child,
+      );
+    }
     return GlassButton.custom(
-      child: child,
       onTap: onTap,
       label: label,
       enabled: enabled,
       width: width,
       height: height,
       shape: LiquidRoundedRectangle(borderRadius: borderRadius),
-      settings: AppGlassStyle.settings(context),
       useOwnLayer: useOwnLayer,
-      quality: AppGlassStyle.quality,
       style: _mapButtonStyle(style),
       stretch: stretch,
+      child: child,
     );
   }
 }
@@ -115,11 +137,16 @@ class AppGlassButtonGroupBackend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat) {
+      return AppGlassFlatButtonGroupBackend(
+        borderRadius: borderRadius,
+        showDividers: showDividers,
+        children: children,
+      );
+    }
     return GlassButtonGroup(
       borderRadius: borderRadius,
-      quality: AppGlassStyle.quality,
       useOwnLayer: true,
-      settings: AppGlassStyle.settings(context),
       showDividers: showDividers,
       children: children,
     );
@@ -138,12 +165,16 @@ class AppGlassContainerBackend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat) {
+      return AppGlassFlatContainerBackend(
+        borderRadius: borderRadius,
+        child: child,
+      );
+    }
     return GlassContainer(
       useOwnLayer: true,
-      quality: AppGlassStyle.quality,
       clipBehavior: Clip.antiAlias,
       shape: LiquidRoundedSuperellipse(borderRadius: borderRadius),
-      settings: AppGlassStyle.settings(context),
       child: child,
     );
   }
@@ -207,12 +238,35 @@ class AppGlassTextFieldBackend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseSettings = highContrast ? null : AppGlassStyle.settings(context);
-    final settings = baseSettings == null
-        ? null
-        : fillColor == null
-        ? baseSettings
-        : baseSettings.copyWith(glassColor: fillColor!);
+    if (AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat) {
+      return AppGlassFlatTextFieldBackend(
+        controller: controller,
+        focusNode: focusNode,
+        placeholder: placeholder,
+        prefixIcon: prefixIcon,
+        suffixIcon: suffixIcon,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        textInputAction: textInputAction,
+        maxLines: maxLines,
+        minLines: minLines,
+        readOnly: readOnly,
+        inputFormatters: inputFormatters,
+        onChanged: onChanged,
+        onSubmitted: onSubmitted,
+        onTapOutside: onTapOutside,
+        textStyle: textStyle,
+        placeholderStyle: placeholderStyle,
+        padding: padding,
+        height: height,
+        borderRadius: borderRadius,
+        fillColor: fillColor,
+        enabled: enabled,
+      );
+    }
+    final settings = !highContrast && fillColor != null
+        ? AppGlassStyle.settingsWithColor(context, fillColor!)
+        : null;
 
     return GlassTextField(
       controller: controller,
@@ -239,7 +293,6 @@ class AppGlassTextFieldBackend extends StatelessWidget {
       shape: LiquidRoundedSuperellipse(borderRadius: borderRadius),
       settings: settings,
       useOwnLayer: !highContrast,
-      quality: highContrast ? null : AppGlassStyle.quality,
       surfaceStyle: highContrast
           ? GlassSurfaceStyle.solid
           : GlassSurfaceStyle.glass,
@@ -251,20 +304,6 @@ class AppGlassTextFieldBackend extends StatelessWidget {
           : GlassInteractionBehavior.glowOnly,
     );
   }
-}
-
-class AppGlassSegmentData {
-  const AppGlassSegmentData({
-    required this.id,
-    required this.label,
-    this.icon,
-    this.enabled = true,
-  });
-
-  final Object id;
-  final String label;
-  final Widget? icon;
-  final bool enabled;
 }
 
 class AppGlassSegmentedControlBackend extends StatelessWidget {
@@ -307,6 +346,25 @@ class AppGlassSegmentedControlBackend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat) {
+      return AppGlassFlatSegmentedControlBackend(
+        segments: segments,
+        selectedIndex: selectedIndex,
+        onSegmentSelected: onSegmentSelected,
+        height: height,
+        borderRadius: borderRadius,
+        indicatorBorderRadius: indicatorBorderRadius,
+        padding: padding,
+        selectedTextStyle: selectedTextStyle,
+        unselectedTextStyle: unselectedTextStyle,
+        indicatorColor: indicatorColor,
+        labelPadding: labelPadding,
+        iconSize: iconSize,
+        backgroundColor: backgroundColor,
+        neutral: neutral,
+        scrollable: scrollable,
+      );
+    }
     final mappedSegments = <GlassSegment>[
       for (final segment in segments)
         GlassSegment(
@@ -333,9 +391,7 @@ class AppGlassSegmentedControlBackend extends StatelessWidget {
         iconSize: iconSize,
         backgroundColor: backgroundColor,
         indicatorShadow: indicatorShadow,
-        settings: neutral ? null : AppGlassStyle.settings(context),
         useOwnLayer: !neutral,
-        quality: AppGlassStyle.quality,
       );
     }
     return GlassSegmentedControl(
@@ -354,9 +410,7 @@ class AppGlassSegmentedControlBackend extends StatelessWidget {
       iconSize: iconSize,
       backgroundColor: backgroundColor,
       indicatorShadow: indicatorShadow,
-      settings: neutral ? null : AppGlassStyle.settings(context),
       useOwnLayer: !neutral,
-      quality: AppGlassStyle.quality,
     );
   }
 }
@@ -385,30 +439,28 @@ class AppGlassPopoverBackend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat) {
+      return AppGlassFlatPopoverBackend(
+        triggerBuilder: triggerBuilder,
+        contentBuilder: contentBuilder,
+        popoverWidth: popoverWidth,
+        popoverBorderRadius: popoverBorderRadius,
+        autoAdjustToScreen: autoAdjustToScreen,
+        screenPadding: screenPadding,
+        onOpen: onOpen,
+      );
+    }
     return GlassPopover(
       popoverWidth: popoverWidth,
       popoverBorderRadius: popoverBorderRadius,
       autoAdjustToScreen: autoAdjustToScreen,
       screenPadding: screenPadding,
-      quality: AppGlassStyle.quality,
-      settings: AppGlassStyle.settings(context),
+      settings: AppGlassStyle.surfaceSettings(context),
       triggerBuilder: triggerBuilder,
       onOpen: onOpen,
       contentBuilder: contentBuilder,
     );
   }
-}
-
-class AppGlassTabData {
-  const AppGlassTabData({
-    required this.icon,
-    this.activeIcon,
-    required this.label,
-  });
-
-  final Widget icon;
-  final Widget? activeIcon;
-  final String label;
 }
 
 class AppGlassTabBarBackend extends StatelessWidget {
@@ -449,6 +501,25 @@ class AppGlassTabBarBackend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat) {
+      return AppGlassFlatTabBarBackend(
+        tabs: tabs,
+        selectedIndex: selectedIndex,
+        onTabSelected: onTabSelected,
+        barHeight: barHeight,
+        verticalPadding: verticalPadding,
+        horizontalPadding: horizontalPadding,
+        barBorderRadius: barBorderRadius,
+        iconSize: iconSize,
+        labelFontSize: labelFontSize,
+        selectedIconColor: selectedIconColor,
+        unselectedIconColor: unselectedIconColor,
+        selectedLabelColor: selectedLabelColor,
+        unselectedLabelColor: unselectedLabelColor,
+        selectedLabelStyle: selectedLabelStyle,
+        unselectedLabelStyle: unselectedLabelStyle,
+      );
+    }
     return GlassTabBar.bottom(
       tabs: <GlassTab>[
         for (final tab in tabs)
@@ -473,9 +544,6 @@ class AppGlassTabBarBackend extends StatelessWidget {
       unselectedLabelColor: unselectedLabelColor,
       selectedLabelStyle: selectedLabelStyle,
       unselectedLabelStyle: unselectedLabelStyle,
-      settings: AppGlassStyle.settings(context),
-      indicatorSettings: AppGlassStyle.settings(context),
-      quality: AppGlassStyle.quality,
     );
   }
 }
@@ -486,7 +554,12 @@ class AppGlassBackdropGroupBackend extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => GlassBackdropGroup(child: child);
+  Widget build(BuildContext context) {
+    if (AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat) {
+      return child;
+    }
+    return GlassBackdropGroup(child: child);
+  }
 }
 
 class AppGlassDividerBackend extends StatelessWidget {
@@ -501,6 +574,9 @@ class AppGlassDividerBackend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat) {
+      return AppGlassFlatDividerBackend(indent: indent, endIndent: endIndent);
+    }
     return GlassDivider(indent: indent, endIndent: endIndent);
   }
 }
@@ -527,6 +603,17 @@ class AppGlassListTileBackend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat) {
+      return AppGlassFlatListTileBackend(
+        leading: leading,
+        title: title,
+        subtitle: subtitle,
+        trailing: trailing,
+        onTap: onTap,
+        titleStyle: titleStyle,
+        subtitleStyle: subtitleStyle,
+      );
+    }
     return GlassListTile(
       leading: leading,
       title: title,
@@ -551,6 +638,12 @@ class AppGlassGroupedSectionBackend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat) {
+      return AppGlassFlatGroupedSectionBackend(
+        header: header,
+        children: children,
+      );
+    }
     return GlassGroupedSection(
       header: header,
       surfaceStyle: GlassSurfaceStyle.solid,

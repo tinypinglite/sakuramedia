@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_backend.dart';
 
@@ -88,6 +89,7 @@ class AppGlassHeaderButton extends StatelessWidget {
     required this.onTap,
     this.trailingIcon,
     this.enabled = true,
+    this.isLoading = false,
     this.tooltip,
     this.foregroundColor,
   });
@@ -97,6 +99,7 @@ class AppGlassHeaderButton extends StatelessWidget {
   final VoidCallback onTap;
   final IconData? trailingIcon;
   final bool enabled;
+  final bool isLoading;
   final String? tooltip;
   final Color? foregroundColor;
 
@@ -111,8 +114,11 @@ class AppGlassHeaderButton extends StatelessWidget {
       tone: AppTextTone.primary,
     ).copyWith(color: foregroundColor);
     final button = AppGlassCustomButtonBackend(
-      onTap: onTap,
-      enabled: enabled,
+      onTap: () {
+        if (isLoading) return;
+        onTap();
+      },
+      enabled: enabled && !isLoading,
       height: AppGlassHeaderGroup.height,
       borderRadius: AppGlassHeaderGroup.radius,
       style: AppGlassButtonStyle.transparent,
@@ -120,7 +126,14 @@ class AppGlassHeaderButton extends StatelessWidget {
       label: label,
       child: AppGlassGroupContent(
         children: [
-          Icon(icon, size: componentTokens.iconSizeXs, color: foregroundColor),
+          if (isLoading)
+            AppInlineSpinner(color: foregroundColor)
+          else
+            Icon(
+              icon,
+              size: componentTokens.iconSizeXs,
+              color: foregroundColor,
+            ),
           SizedBox(width: spacing.xs),
           ConstrainedBox(
             constraints: BoxConstraints(
@@ -225,6 +238,7 @@ class AppGlassSelectionAction {
     this.key,
     this.icon = Icons.check_circle_outline,
     this.foregroundColor,
+    this.isLoading = false,
   });
 
   final String label;
@@ -232,6 +246,7 @@ class AppGlassSelectionAction {
   final Key? key;
   final IconData icon;
   final Color? foregroundColor;
+  final bool isLoading;
 }
 
 /// 玻璃多选顶栏：左侧退出 + 已选计数，右侧全选 + 批量动作。
@@ -293,6 +308,7 @@ class AppGlassSelectionHeader extends StatelessWidget {
                 onTap: action.onTap ?? () {},
                 enabled: action.onTap != null,
                 foregroundColor: action.foregroundColor,
+                isLoading: action.isLoading,
               ),
           ],
         ),

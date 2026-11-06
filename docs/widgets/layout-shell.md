@@ -32,11 +32,14 @@
 ## 玻璃材质
 
 - `AppSurface`：`lib/widgets/base/layout/surface/app_surface.dart`。页面和域组件使用的材质无关通用面，只接收 child、圆角、padding、宽高；不暴露 blur、quality、settings。`AppSurfaceGroup` 用于需要共享背景读取的一组表面。
+- `AppSurfaceStyle`：外观设置里的 `liquid` / `flat` 二选一，经 `AppSurfaceStyleScope` 向下传递；没有 scope 时默认液态玻璃。
 - `AppSurfaceRuntime`：统一处理玻璃初始化、brightness resolver 和全局 wrap；`main.dart`、`app.dart`、测试和预览 helper 只通过它接入。
+- 正常路径不覆盖 `LiquidGlassSettings` / `GlassQuality`：材质跟随 `liquid_glass_widgets` 内置的 light/dark 默认值，普通控件用包默认 `standard`，`AppGlassTabBar` 的底栏仍由包解析为 `premium`；亮色阴影也使用包默认 elevation。
 - 真正的玻璃实现只允许在 `lib/widgets/base/layout/glass/` 内：材质配置、fallback、内部按钮/输入/分段/弹层/TabBar 后端都在这里。`features`、`widgets/domain`、`widgets/shell` 和 app 启动层不得 import 这个目录或直接依赖 `liquid_glass_widgets`。
 - `AppGlassIconButton`、`AppTextField`、`AppSegmentedControl`、`AppGlassPopover`、`AppGlassToast`、`AppGlassListHeader`、`AppGlassTabBar` 是基础语义组件；它们的公开 API 不出现包类型，内部通过玻璃层后端绘制。
+- 扁平风格是纯 Flutter 实现：不实例化 `liquid_glass_widgets` 组件，不使用 `BackdropFilter`、shader、玻璃阴影；表面使用近实色半透明底、1px 边框和极轻顶部高光，适合低性能设备。高对比度下改为不透明底 + 强边框。
 - 只有左侧圆角的移动播放器抽屉在 `AppSurface` 内部走加宽玻璃层裁切路径：可见宽度和内容布局不变，右侧保持直角。
-- fallback 配方：光源固定在顶部中央，1px sweep 描边从顶部主光向两侧对称衰减，底部保留一圈微反射；内侧顶部叠 specular wash，底部压暗边模拟玻璃厚度；背景先模糊再提高饱和度，让玻璃聚色而不是发灰。正常路径的玻璃参数由玻璃层管理，业务页面只选尺寸 / 圆角 / 内边距，不要自己拼渐变和描边。
+- fallback 配方只在高对比、无 shader 或无法映射圆角时使用：光源固定在顶部中央，1px sweep 描边从顶部主光向两侧对称衰减，底部保留一圈微反射；内侧顶部叠 specular wash，底部压暗边模拟玻璃厚度；背景先模糊再提高饱和度，让玻璃聚色而不是发灰。正常路径的玻璃参数由玻璃层管理，业务页面只选尺寸 / 圆角 / 内边距，不要自己拼渐变和描边。
 - 玻璃只用于可点击的次级控件和必要浮层；普通内容/状态标签（番号、上次看到、评分文字、设置页徽章）保持普通文本或标准材质，不套玻璃。内容卡和正文也不透明，主操作仍用实色品牌色。
 - 背景模糊统一由 `AppSurface` 或基础语义组件管理；播放器菜单/抽屉继续走 `AppSurface`，分段控件由玻璃层后端管理。业务页面不要再拼半透明色 + `BackdropFilter` + 边框。封面上的 4K/8K、热度、排名角标使用 `AppMediaBadge` 的无模糊烟熏渐变，不参与背景滤镜。
 - 页面级搜索使用 `AppGlassSearchField`，顶栏搜索使用 `AppTopBarGlassSearchField`，两者共享 `app_glass_search_field_chrome.dart` 的文本输入玻璃后端和字体配置，但保留各自的尺寸、焦点和前后缀语义；其它文本/搜索输入统一走 `AppTextField` 的液态玻璃基座。合集网格的多卡信息条统一走玻璃层表面。桌面视频合集详情的合集名、排序、成员数和「播放全部 / 选择」收在同一条 `AppGlassListHeader` 里；移动端把封面 Hero、播放按钮和排序栏放进同一个 `CustomScrollView`，成员网格滚动时整块头部随之上移。其它页面的主操作仍默认实色品牌色。
@@ -45,6 +48,7 @@
 ## 固定列表控制栏与吸顶
 
 - `AppFixedHeaderLayout`：`lib/widgets/base/layout/scrolling/app_fixed_header_layout.dart`。`header` 自然占高，`child` 在剩余空间内滚动，适用于影片、女优、排行、搜索和管理列表。结果加载层放在 `child` 内，不覆盖固定控制栏。筛选类固定头通过 `headerBottomSpacing` 保留与滚动区的持久留白；不要把这段间距放进滚动内容的首个 sliver，否则列表滚动后内容会贴住控制栏。
+- 列表 Header 是筛选失败反馈的唯一 owner：`AppGlassListHeader` / `AppMobileListHeader` 内部已经渲染 `AppFilterUpdateBar`，页面不要再外挂同一条 bar。没有 Header 的列表用 `AppInlineErrorBanner`。吸顶列表在筛选/排序变化后统一调用 `AppPinnedListHeader.scrollToStart`，不要用 `jumpTo(0)` 把前置资料区一起滚掉。
 - `AppPinnedSliverSection` / `AppPinnedListHeader`：同目录 `app_pinned_list_header.dart`。吸顶列表统一用 `AppPinnedSliverSection.before / header / after` 三段式，裁剪实现收在组件内部：前置和结果绘制到控制栏边界外时直接停止，页面不再手写裁剪组合。控制条本身固定透明，没有 color / blur 参数，不额外铺页面底色；这样环境背景和玻璃材质保持连续，内容也不会从按钮或分组间隙透出。筛选 / 控制头通过 `headerBottomSpacing` 保留与结果的持久留白；间距不得放进 `after` 或滚动内容首项，否则吸顶后会贴边。女优详情、PornBox 桌面与移动一级页、移动视频合集详情都使用它；移动 PornBox 仍把筛选 / 排序收在「全部视频」标题行，但整行吸顶，并为右上角固定的新建玻璃钮保留横向空间。
 - 吸顶页面切筛选时，使用控制栏的稳定 `GlobalKey` 和原滚动控制器调用 `AppPinnedListHeader.scrollToStart`。已经滚过介绍区时回到结果起点，尚未滚过时保留位置。
 - `AppFilterResultLoadingOverlay` 在吸顶页面传相同的 `protectedHeaderKey` 和 `scrollController`，按实际头部位置裁剪结果遮罩，兼容头部动态高度。

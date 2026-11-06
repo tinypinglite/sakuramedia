@@ -246,7 +246,7 @@ void main() {
   });
 
   testWidgets(
-    'mobile series reports its title and selects from the card menu',
+    'mobile series reports its title and long-presses into selection',
     (tester) async {
       _enqueueSeriesPage(
         bundle,
@@ -277,10 +277,6 @@ void main() {
 
       await tester.longPress(
         find.byKey(const Key('movie-summary-card-ABC-001')),
-      );
-      await _pumpFrames(tester);
-      await tester.tap(
-        find.byKey(const Key('movie-collection-feature-menu-select-item')),
       );
       await _pumpFrames(tester);
 

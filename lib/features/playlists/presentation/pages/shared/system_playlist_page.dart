@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/playlists/presentation/pages/shared/playlis
 import 'package:sakuramedia/features/playlists/presentation/providers/system_playlist_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 
 /// 系统播放列表（收藏 / 最近播放）的双端入口页。
 ///
@@ -37,20 +38,23 @@ class SystemPlaylistPage extends ConsumerWidget {
 
     if (playlist == null) {
       final l10n = AppLocalizations.of(context);
+      if (async.hasError) {
+        return AppErrorState(
+          title: l10n.playlistLoadFailed,
+          message: apiErrorMessage(
+            async.error!,
+            fallback: l10n.playlistLoadFailed,
+            l10n: l10n,
+          ),
+          retryKey: const Key('system-playlist-error-retry'),
+          onRetry: () => ref.invalidate(systemPlaylistProvider(kind)),
+        );
+      }
       return AppEmptyState(
         icon: _emptyIcon,
-        message: async.hasError
-            ? apiErrorMessage(
-                async.error!,
-                fallback: l10n.playlistLoadFailed,
-                l10n: l10n,
-              )
-            : kind == PlaylistKind.favorites
+        message: kind == PlaylistKind.favorites
             ? l10n.playlistFavoritesNotReady
             : l10n.playlistNoWatchHistory,
-        onRetry: async.hasError
-            ? () => ref.invalidate(systemPlaylistProvider(kind))
-            : null,
       );
     }
 

@@ -3,6 +3,8 @@ import 'package:sakuramedia/widgets/base/layout/glass/app_glass_backend.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_runtime.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
 
+export 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
+
 class AppSurface extends StatelessWidget {
   const AppSurface({
     super.key,

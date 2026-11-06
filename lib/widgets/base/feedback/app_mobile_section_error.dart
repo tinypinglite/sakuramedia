@@ -1,11 +1,11 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 
 /// 移动端 section 级错误态卡片。
 ///
 /// 跟桌面版 [`AppSectionError`](app_section_error.dart) 是姊妹关系——
-/// 桌面无卡壳、左对齐；移动有卡壳、内容居中。
+/// 桌面无卡壳；移动有卡壳。两者共用 section 级 [AppErrorState] 布局。
 /// 参数 `{title, message, onRetry}` 与桌面版对齐，方便调用方复用文案。
 class AppMobileSectionError extends StatelessWidget {
   const AppMobileSectionError({
@@ -23,15 +23,12 @@ class AppMobileSectionError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
-      ),
-      child: AppEmptyState(
+    return AppContentCard(
+      padding: EdgeInsets.zero,
+      child: AppErrorState(
         title: title,
         message: message,
+        variant: AppStatePanelVariant.section,
         retryKey: retryButtonKey,
         onRetry: () => onRetry(),
       ),

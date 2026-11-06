@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sakuramedia/core/format/file_size.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/features/overview/presentation/overview_system_info_format.dart';
 import 'package:sakuramedia/features/overview/presentation/widgets/overview_card_icon.dart';
 import 'package:sakuramedia/features/overview/presentation/widgets/overview_surface.dart';
@@ -7,7 +7,7 @@ import 'package:sakuramedia/features/status/data/status_dto.dart';
 import 'package:sakuramedia/features/status/presentation/status_placeholders.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 
 /// 媒体资产卡：概览页的主数据面。
@@ -49,10 +49,13 @@ class AssetSummaryCard extends StatelessWidget {
       );
     }
     if (errorMessage != null) {
-      return _AssetErrorState(
+      return AppErrorState(
+        key: const Key('overview-asset-error-state'),
+        title: AppLocalizations.of(context).baseActionFailed,
         message: errorMessage!,
         onRetry: onRetry,
         retryKey: const Key('overview-asset-retry-button'),
+        variant: AppStatePanelVariant.section,
       );
     }
 
@@ -444,68 +447,6 @@ class _AssetBacklogChip extends StatelessWidget {
                 ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AssetErrorState extends StatelessWidget {
-  const _AssetErrorState({
-    required this.message,
-    required this.onRetry,
-    required this.retryKey,
-  });
-
-  final String message;
-  final VoidCallback? onRetry;
-  final Key retryKey;
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-    return ConstrainedBox(
-      constraints: BoxConstraints(minHeight: spacing.xxxl * 3),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: <Widget>[
-            Container(
-              width: spacing.xxxl,
-              height: spacing.xxxl,
-              decoration: BoxDecoration(
-                color: context.appColors.errorSurface,
-                borderRadius: context.appRadius.pillBorder,
-              ),
-              child: Icon(
-                Icons.error_outline_rounded,
-                size: context.appComponentTokens.iconSizeMd,
-                color: context.appTextPalette.error,
-              ),
-            ),
-            SizedBox(height: spacing.md),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: _heroTextStyle(
-                context,
-                AppTextSize.s12,
-                weight: AppTextWeight.medium,
-                opacity: 0.78,
-              ),
-            ),
-            if (onRetry != null) ...<Widget>[
-              SizedBox(height: spacing.md),
-              AppTextButton(
-                label: AppLocalizations.of(context).commonRetry,
-                labelKey: retryKey,
-                icon: const Icon(Icons.refresh_rounded),
-                emphasis: AppTextButtonEmphasis.accent,
-                size: AppTextButtonSize.small,
-                onPressed: onRetry,
-              ),
-            ],
-          ],
-        ),
       ),
     );
   }

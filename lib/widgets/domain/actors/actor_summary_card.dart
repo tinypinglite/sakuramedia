@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
@@ -129,7 +130,7 @@ class ActorSummaryCard extends StatelessWidget {
     );
     final birthday = actor.birthday;
     final stats = <(String, String)>[
-      (l10n.widgetActorMovieCountLabel, '${actor.movieCount}'),
+      (l10n.widgetActorMovieCountLabel, formatAppCount(actor.movieCount)),
       if (actor.age != null)
         (l10n.widgetActorAgeLabel, l10n.widgetActorAgeValue(actor.age!)),
       if (birthday != null)

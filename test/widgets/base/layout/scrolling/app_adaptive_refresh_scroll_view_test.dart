@@ -27,11 +27,33 @@ void main() {
       moreOrLessEquals(_kContentHeight - _kViewportHeight),
     );
   });
+
+  testWidgets('关闭下拉刷新时保留底部安全区且不触发刷新', (WidgetTester tester) async {
+    var refreshCount = 0;
+    await _pumpScrollView(
+      tester,
+      bottomInset: 34,
+      enableRefresh: false,
+      onRefresh: () async => refreshCount++,
+    );
+
+    expect(
+      _scrollPosition(tester).maxScrollExtent,
+      moreOrLessEquals(_kContentHeight + 34 - _kViewportHeight),
+    );
+
+    await tester.drag(find.byType(CustomScrollView), const Offset(0, 300));
+    await tester.pumpAndSettle();
+
+    expect(refreshCount, 0);
+  });
 }
 
 Future<void> _pumpScrollView(
   WidgetTester tester, {
   required double bottomInset,
+  bool enableRefresh = true,
+  Future<void> Function()? onRefresh,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(400, _kViewportHeight);
@@ -45,7 +67,8 @@ Future<void> _pumpScrollView(
       home: MediaQuery(
         data: MediaQueryData(padding: EdgeInsets.only(bottom: bottomInset)),
         child: AppAdaptiveRefreshScrollView(
-          onRefresh: () async {},
+          onRefresh: onRefresh ?? () async {},
+          enableRefresh: enableRefresh,
           slivers: const <Widget>[
             SliverToBoxAdapter(child: SizedBox(height: _kContentHeight)),
           ],

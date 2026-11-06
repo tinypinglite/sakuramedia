@@ -656,16 +656,7 @@ class _InfoSplitPlayButton extends StatelessWidget {
                   onTap: onMergeTap,
                   child: Center(
                     child: isMergeLoading
-                        ? SizedBox(
-                            width: tokens.iconSizeXs,
-                            height: tokens.iconSizeXs,
-                            child: CircularProgressIndicator.adaptive(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color?>(
-                                primary,
-                              ),
-                            ),
-                          )
+                        ? AppInlineSpinner(color: primary)
                         : Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [

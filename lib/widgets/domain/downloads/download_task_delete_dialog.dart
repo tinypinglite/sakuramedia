@@ -4,6 +4,7 @@ import 'package:sakuramedia/features/downloads/data/download_request_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 
 /// 下载任务删除确认弹窗：返回用户勾选的「同时删除下载器文件」选项；
@@ -65,10 +66,9 @@ class _DeleteFilesCheckbox extends HookWidget {
       onChanged(value);
     }
 
-    return InkWell(
-      mouseCursor: SystemMouseCursors.click,
+    return AppInteractiveSurface(
       onTap: () => toggle(!deleteFiles.value),
-      borderRadius: context.appRadius.smBorder,
+      focusRingRadius: context.appRadius.smBorder,
       child: Padding(
         padding: EdgeInsets.symmetric(vertical: context.appSpacing.xs),
         child: Row(
@@ -84,9 +84,7 @@ class _DeleteFilesCheckbox extends HookWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    AppLocalizations.of(
-                      context,
-                    ).widgetDownloadDeleteFilesLabel,
+                    AppLocalizations.of(context).widgetDownloadDeleteFilesLabel,
                     style: resolveAppTextStyle(
                       context,
                       size: AppTextSize.s12,
@@ -96,9 +94,7 @@ class _DeleteFilesCheckbox extends HookWidget {
                   ),
                   SizedBox(height: context.appSpacing.xs / 2),
                   Text(
-                    AppLocalizations.of(
-                      context,
-                    ).widgetDownloadDeleteFilesHint,
+                    AppLocalizations.of(context).widgetDownloadDeleteFilesHint,
                     style: resolveAppTextStyle(
                       context,
                       size: AppTextSize.s10,

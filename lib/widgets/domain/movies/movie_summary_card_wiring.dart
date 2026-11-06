@@ -15,6 +15,7 @@ import 'package:sakuramedia/widgets/domain/movies/movie_summary_card.dart';
 class MovieSummaryCardWiring {
   const MovieSummaryCardWiring({
     required this.onMovieTap,
+    required this.onMovieLongPress,
     required this.onMovieMenuRequest,
     required this.onMovieSubscriptionTap,
     required this.onMovieToggleCollectionType,
@@ -26,6 +27,7 @@ class MovieSummaryCardWiring {
   });
 
   final ValueChanged<MovieListItemDto>? onMovieTap;
+  final ValueChanged<MovieListItemDto>? onMovieLongPress;
   final void Function(MovieListItemDto movie, Offset globalPosition)?
   onMovieMenuRequest;
   final ValueChanged<MovieListItemDto>? onMovieSubscriptionTap;
@@ -62,15 +64,17 @@ class MovieSummaryCardWiring {
     return MovieSummaryCard(
       movie: movie,
       onTap: onMovieTap == null ? null : () => onMovieTap!(movie),
+      onLongPress: onMovieLongPress == null
+          ? null
+          : () => onMovieLongPress!(movie),
       onRequestMenu: onMovieMenuRequest == null
           ? null
           : (globalPosition) => onMovieMenuRequest!(movie, globalPosition),
       onSubscriptionTap: onMovieSubscriptionTap != null
           ? () => onMovieSubscriptionTap!(movie)
           : _usesDefaultSubscriptionActions
-          ? () => unawaited(
-              _toggleDefaultMovieSubscription(ref, context, movie),
-            )
+          ? () =>
+                unawaited(_toggleDefaultMovieSubscription(ref, context, movie))
           : null,
       onToggleCollectionType: onMovieToggleCollectionType == null
           ? null

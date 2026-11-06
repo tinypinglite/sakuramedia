@@ -24,6 +24,7 @@ import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
@@ -95,12 +96,14 @@ class _MomentCollectionDetailContentState
       builder: (context) {
         final l10n = AppLocalizations.of(context);
         if (!isLoading && async.hasError && state == null) {
-          return AppEmptyState(
+          return AppErrorState(
+            title: l10n.baseActionFailed,
             message: apiErrorMessage(
               async.error!,
               fallback: l10n.momentErrorCollectionDetailLoadFailed,
               l10n: l10n,
             ),
+            onRetry: () => ref.read(_providerRef.notifier).refresh(),
           );
         }
         if (!isLoading && state == null) {
@@ -363,7 +366,7 @@ class _MomentCollectionDetailContentState
   Widget _buildPoints(BuildContext context, MomentCollectionDetailState state) {
     if (state.points.isEmpty) {
       final l10n = AppLocalizations.of(context);
-      return AppEmptyState(
+      return AppEmptyState.section(
         message: _isMobile
             ? l10n.momentCollectionEmptyDetailMobile
             : l10n.momentCollectionEmptyDetailDesktop,

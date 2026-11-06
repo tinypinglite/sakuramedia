@@ -37,6 +37,9 @@ class MaskedImage extends ConsumerStatefulWidget {
     this.memCacheWidth,
     this.memCacheHeight,
     this.placeholderColor,
+    this.placeholderBuilder,
+    this.errorBuilder,
+    this.fadeInDuration = const Duration(milliseconds: 180),
     this.animateReveal = true,
     this.onImageSized,
     this.filterQuality = FilterQuality.low,
@@ -58,6 +61,16 @@ class MaskedImage extends ConsumerStatefulWidget {
   /// 有连续底色的场景传入底色（如详情 Hero 传 veil 色、模糊背景传 base 色），
   /// 避免「骨架 → 占位 → 图片」在占位处再跳一次颜色。
   final Color? placeholderColor;
+
+  /// 自定义占位（加载中/无 URL/遮罩模式）。不传时用 [placeholderColor] 或
+  /// `surfaceMuted` 的纯色块。
+  final WidgetBuilder? placeholderBuilder;
+
+  /// 自定义加载失败 UI。不传时回落到 [placeholderBuilder] 或纯色占位。
+  final ImageErrorWidgetBuilder? errorBuilder;
+
+  /// 「占位 → 图片」淡入时长；默认 180ms。
+  final Duration fadeInDuration;
 
   /// 首帧到达后是否做「占位 → 图片」淡入。罩了重 veil 的背景图传 false：
   /// 解码完成后直接显示，避免与前景图两次先后闪烁。
@@ -154,8 +167,9 @@ class _MaskedImageState extends ConsumerState<MaskedImage> {
       return;
     }
     _resolvedUrl = resolvedUrl;
-    _baseProvider =
-        resolvedUrl == null ? null : buildRemoteImageProvider(resolvedUrl);
+    _baseProvider = resolvedUrl == null
+        ? null
+        : buildRemoteImageProvider(resolvedUrl);
     // decodeHint 关联的派生 provider 需要跟着重算。
     _wrappedProvider = null;
     _lastDecodeWidth = null;
@@ -183,17 +197,19 @@ class _MaskedImageState extends ConsumerState<MaskedImage> {
   @override
   Widget build(BuildContext context) {
     if (AppImageMask.enabled) {
-      return _MaskedImagePlaceholder(
-        color:
-            widget.placeholderColor ??
-            AppImageMask.colorFor(context, AppImageMask.seedForUrl(widget.url)),
+      return _buildPlaceholder(
+        context,
+        defaultColor: AppImageMask.colorFor(
+          context,
+          AppImageMask.seedForUrl(widget.url),
+        ),
       );
     }
 
     // baseUrl 细粒度订阅（登录切后端时精准重建）；url/decodeHint 的缓存策略不变。
     _rebuildBaseProviderIfNeeded(ref.watch(baseUrlProvider));
     if (_baseProvider == null) {
-      return _MaskedImagePlaceholder(color: widget.placeholderColor);
+      return _buildPlaceholder(context);
     }
 
     return LayoutBuilder(
@@ -204,7 +220,7 @@ class _MaskedImageState extends ConsumerState<MaskedImage> {
           widget.memCacheHeight ?? decodeHint.height,
         );
         if (provider == null) {
-          return _MaskedImagePlaceholder(color: widget.placeholderColor);
+          return _buildPlaceholder(context);
         }
         _syncSizeListener(provider);
 
@@ -242,16 +258,13 @@ class _MaskedImageState extends ConsumerState<MaskedImage> {
                   alignment: widget.alignment,
                   filterQuality: widget.filterQuality,
                   gaplessPlayback: true,
-                  errorBuilder: (context, error, stackTrace) =>
-                      _MaskedImagePlaceholder(
-                        color: widget.placeholderColor,
-                      ),
+                  errorBuilder: _buildError,
                 ),
               );
             } else {
-              loadingChild = _MaskedImagePlaceholder(
+              loadingChild = KeyedSubtree(
                 key: const ValueKey<String>('placeholder'),
-                color: widget.placeholderColor,
+                child: _buildPlaceholder(context),
               );
             }
             if (!widget.animateReveal) {
@@ -259,12 +272,24 @@ class _MaskedImageState extends ConsumerState<MaskedImage> {
             }
             return _buildReveal(child: loadingChild);
           },
-          errorBuilder: (context, error, stackTrace) {
-            return _MaskedImagePlaceholder(color: widget.placeholderColor);
-          },
+          errorBuilder: _buildError,
         );
       },
     );
+  }
+
+  Widget _buildPlaceholder(BuildContext context, {Color? defaultColor}) {
+    return widget.placeholderBuilder?.call(context) ??
+        _MaskedImagePlaceholder(color: widget.placeholderColor ?? defaultColor);
+  }
+
+  Widget _buildError(
+    BuildContext context,
+    Object error,
+    StackTrace? stackTrace,
+  ) {
+    return widget.errorBuilder?.call(context, error, stackTrace) ??
+        _buildPlaceholder(context);
   }
 
   /// 「占位 → 图片」的淡入容器。child 必须带不同 key（placeholder /
@@ -280,7 +305,7 @@ class _MaskedImageState extends ConsumerState<MaskedImage> {
         final canFill =
             constraints.hasBoundedWidth && constraints.hasBoundedHeight;
         return AnimatedSwitcher(
-          duration: _revealFadeDuration,
+          duration: widget.fadeInDuration,
           switchInCurve: Curves.easeOut,
           layoutBuilder: canFill
               ? _fillAnimatedSwitcherLayout
@@ -290,7 +315,6 @@ class _MaskedImageState extends ConsumerState<MaskedImage> {
       },
     );
   }
-
 }
 
 /// 同步取「已解码尺寸」：命中内存图片缓存时立即可用（**不触发新解码**），
@@ -331,10 +355,8 @@ Size? resolveCachedMaskedImageSize(
 
   Size? size;
   final listener = ImageStreamListener(
-    (info, _) => size = Size(
-      info.image.width.toDouble(),
-      info.image.height.toDouble(),
-    ),
+    (info, _) =>
+        size = Size(info.image.width.toDouble(), info.image.height.toDouble()),
     // 尺寸探测是尽力而为：失败按未命中处理，交给 Image 自己的 errorBuilder。
     onError: (_, _) {},
   );
@@ -390,9 +412,6 @@ ImageProvider<Object> _wrapDecodeHint(
   return ResizeImage(base, width: width, height: height, allowUpscaling: false);
 }
 
-/// 首帧到达后「占位 → 图片」的切换时长。
-const Duration _revealFadeDuration = Duration(milliseconds: 240);
-
 /// [AnimatedSwitcher] 在有界约束下的 layoutBuilder：用 `StackFit.expand` 让新旧
 /// child 都铺满，避免默认 Stack 的 loose 约束把 `cover` 退化成「contain + 留白」。
 Widget _fillAnimatedSwitcherLayout(
@@ -407,7 +426,7 @@ Widget _fillAnimatedSwitcherLayout(
 /// （纯图片卡的占位与骨架统一为纯块，图标会被 skeletonizer 画成实心方块）。
 /// 有连续底色的场景可传 `color` 与底色对齐，避免占位处再跳一次颜色。
 class _MaskedImagePlaceholder extends StatelessWidget {
-  const _MaskedImagePlaceholder({super.key, this.color});
+  const _MaskedImagePlaceholder({this.color});
 
   final Color? color;
 

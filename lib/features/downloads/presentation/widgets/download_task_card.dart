@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/app/app_platform.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/core/format/updated_at_label.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/downloads/data/download_request_dto.dart';
@@ -14,6 +15,7 @@ import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_status_chip.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
@@ -150,27 +152,27 @@ class DownloadTaskCard extends ConsumerWidget {
               runSpacing: context.appSpacing.xs,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                AppBadge(
+                AppStatusChip(
                   label: _labelForDownloadState(taskState, l10n),
-                  tone: _toneForDownloadState(taskState),
-                  size: AppBadgeSize.compact,
+                  palette: _paletteForDownloadState(taskState),
+                  dense: true,
                 ),
                 Text(
-                  '${(progress * 100).toStringAsFixed(1)}%',
+                  formatAppPercent(progress),
                   style: _statTextStyle(context),
                 ),
                 // 导入 badge 用短标签，完整文案挂 Tooltip 里
                 if (task.importStatusLabel.isNotEmpty)
                   Tooltip(
                     message: task.importStatusLabel,
-                    child: AppBadge(
+                    child: AppStatusChip(
                       label: _shortImportLabel(
                         task.importStatus,
                         fallback: task.importStatusLabel,
                         l10n: l10n,
                       ),
-                      tone: _toneForImportStatus(task.importStatus),
-                      size: AppBadgeSize.compact,
+                      palette: _paletteForImportStatus(task.importStatus),
+                      dense: true,
                     ),
                   ),
               ],
@@ -204,6 +206,7 @@ class DownloadTaskCard extends ConsumerWidget {
                   AppIconButton(
                     key: Key('download-task-files-${task.id}'),
                     icon: const Icon(Icons.folder_open_rounded),
+                    size: AppIconButtonSize.compact,
                     tooltip: l10n.downloadViewFiles,
                     onPressed: () => showDownloadTaskFilesDialog(
                       context: context,
@@ -218,6 +221,7 @@ class DownloadTaskCard extends ConsumerWidget {
                   AppIconButton(
                     key: Key('download-task-retrigger-import-${task.id}'),
                     icon: const Icon(Icons.refresh_rounded),
+                    size: AppIconButtonSize.compact,
                     tooltip: l10n.downloadRetriggerImport,
                     onPressed: isPending
                         ? null
@@ -230,6 +234,7 @@ class DownloadTaskCard extends ConsumerWidget {
                   AppIconButton(
                     key: Key('download-task-delete-${task.id}'),
                     icon: const Icon(Icons.delete_outline_rounded),
+                    size: AppIconButtonSize.compact,
                     tooltip: isImportRunning
                         ? l10n.downloadDeleteBlockedImporting
                         : l10n.commonDelete,
@@ -286,8 +291,9 @@ Color _progressBarColor(BuildContext context, String state) {
   final palette = context.appTextPalette;
   final colors = context.appColors;
   return switch (state) {
-    'downloading' => palette.accent,
+    'downloading' => palette.info,
     'failed' => palette.error,
+    'completed' => palette.success,
     _ => colors.borderStrong,
   };
 }
@@ -426,22 +432,29 @@ String _labelForDownloadState(String state, AppLocalizations l10n) {
   };
 }
 
-AppBadgeTone _toneForDownloadState(String state) {
+AppStatusChipPalette _paletteForDownloadState(String state) {
   return switch (state) {
-    'downloading' => AppBadgeTone.primary,
-    'queued' => AppBadgeTone.neutral,
-    'completed' => AppBadgeTone.success,
-    'failed' => AppBadgeTone.error,
-    _ => AppBadgeTone.neutral,
+    'downloading' => AppStatusChipPalette.forSemantic(
+      AppStatusSemantic.inProgress,
+      icon: Icons.downloading_rounded,
+    ),
+    'queued' => AppStatusChipPalette.forSemantic(AppStatusSemantic.queued),
+    'completed' => AppStatusChipPalette.forSemantic(AppStatusSemantic.success),
+    'failed' => AppStatusChipPalette.forSemantic(AppStatusSemantic.error),
+    _ => AppStatusChipPalette.neutral(),
   };
 }
 
-AppBadgeTone _toneForImportStatus(String state) {
+AppStatusChipPalette _paletteForImportStatus(String state) {
   return switch (state) {
-    'running' => AppBadgeTone.primary,
-    'completed' => AppBadgeTone.success,
-    'failed' => AppBadgeTone.error,
-    'pending' || 'skipped' => AppBadgeTone.neutral,
-    _ => AppBadgeTone.neutral,
+    'running' => AppStatusChipPalette.forSemantic(
+      AppStatusSemantic.inProgress,
+      icon: Icons.sync_rounded,
+    ),
+    'completed' => AppStatusChipPalette.forSemantic(AppStatusSemantic.success),
+    'failed' => AppStatusChipPalette.forSemantic(AppStatusSemantic.error),
+    'pending' => AppStatusChipPalette.forSemantic(AppStatusSemantic.queued),
+    'skipped' => AppStatusChipPalette.muted(icon: Icons.skip_next_rounded),
+    _ => AppStatusChipPalette.neutral(),
   };
 }

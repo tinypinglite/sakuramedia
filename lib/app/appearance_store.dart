@@ -1,30 +1,36 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sakuramedia/theme/app_theme_color.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 
-/// 外观偏好：主题模式（跟随系统/浅色/深色） + 主题色。
+/// 外观偏好：主题模式（跟随系统/浅色/深色） + 主题色 + 表面风格。
 @immutable
 class AppearanceSettings {
   const AppearanceSettings({
     required this.themeMode,
     required this.themeColor,
+    this.surfaceStyle = AppSurfaceStyle.liquid,
   });
 
   static const AppearanceSettings defaults = AppearanceSettings(
     themeMode: ThemeMode.system,
     themeColor: AppThemeColor.crimson,
+    surfaceStyle: AppSurfaceStyle.liquid,
   );
 
   final ThemeMode themeMode;
   final AppThemeColor themeColor;
+  final AppSurfaceStyle surfaceStyle;
 
   AppearanceSettings copyWith({
     ThemeMode? themeMode,
     AppThemeColor? themeColor,
+    AppSurfaceStyle? surfaceStyle,
   }) {
     return AppearanceSettings(
       themeMode: themeMode ?? this.themeMode,
       themeColor: themeColor ?? this.themeColor,
+      surfaceStyle: surfaceStyle ?? this.surfaceStyle,
     );
   }
 }
@@ -52,6 +58,7 @@ class SharedPreferencesAppearanceStore implements AppearanceStore {
   /// 历史 key 名保留；值域已扩展为 `system/light/dark`，老用户偏好不丢。
   static const String themeModeKey = 'appearance.brightness';
   static const String themeColorKey = 'appearance.theme_color';
+  static const String surfaceStyleKey = 'appearance.surface_style';
 
   final SharedPreferences _preferences;
 
@@ -65,6 +72,9 @@ class SharedPreferencesAppearanceStore implements AppearanceStore {
     return AppearanceSettings(
       themeMode: _themeModeFromId(_preferences.getString(themeModeKey)),
       themeColor: AppThemeColor.fromId(_preferences.getString(themeColorKey)),
+      surfaceStyle: _surfaceStyleFromId(
+        _preferences.getString(surfaceStyleKey),
+      ),
     );
   }
 
@@ -73,6 +83,7 @@ class SharedPreferencesAppearanceStore implements AppearanceStore {
     try {
       await _preferences.setString(themeModeKey, settings.themeMode.name);
       await _preferences.setString(themeColorKey, settings.themeColor.id);
+      await _preferences.setString(surfaceStyleKey, settings.surfaceStyle.name);
     } catch (_) {
       // 持久化失败不阻塞切换。
     }
@@ -84,6 +95,13 @@ ThemeMode _themeModeFromId(String? id) {
     'light' => ThemeMode.light,
     'dark' => ThemeMode.dark,
     _ => ThemeMode.system,
+  };
+}
+
+AppSurfaceStyle _surfaceStyleFromId(String? id) {
+  return switch (id) {
+    'flat' => AppSurfaceStyle.flat,
+    _ => AppSurfaceStyle.liquid,
   };
 }
 

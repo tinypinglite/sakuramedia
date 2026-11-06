@@ -1,18 +1,15 @@
-import 'package:intl/intl.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/features/status/data/status_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 
 /// 系统概览的纯展示格式化与状态口径（不依赖状态对象，输入即 DTO）。
 
-final _countFormatter = NumberFormat.decimalPattern();
-final _percentFormatter = NumberFormat.decimalPercentPattern(decimalDigits: 1);
-
 /// 千分位计数：`1286` → `1,286`。
-String formatCount(int value) => _countFormatter.format(value);
+String formatCount(int value) => formatAppCount(value);
 
 /// 比例格式化：`0.049` → `4.9%`，跟随当前语言的小数符号。
-String formatPercent(double value) => _percentFormatter.format(value);
+String formatPercent(double value) => formatAppPercent(value);
 
 /// 订阅率；分母为 0 时显示 `0.0%`。
 String formatSubscriptionRate(int subscribed, int total) {

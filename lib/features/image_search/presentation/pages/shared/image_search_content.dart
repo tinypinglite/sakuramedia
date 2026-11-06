@@ -15,6 +15,7 @@ import 'package:sakuramedia/features/image_search/data/image_search_result_item_
 import 'package:sakuramedia/features/image_search/presentation/actions/image_search_launcher.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_filter_state.dart';
+import 'package:sakuramedia/features/image_search/presentation/image_search_placeholders.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_provider.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_scope.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_state.dart';
@@ -28,8 +29,11 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
@@ -41,6 +45,7 @@ import 'package:sakuramedia/features/image_search/presentation/widgets/image_sea
 import 'package:sakuramedia/features/moment_collections/presentation/widgets/add_to_moment_collection_dialog.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
@@ -229,8 +234,9 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
     final l10n = AppLocalizations.of(context);
     final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
     final capabilities = ref.watch(serverCapabilitiesProvider);
-    if (capabilities.isLoading)
-      return const Center(child: CircularProgressIndicator());
+    if (capabilities.isLoading) {
+      return _buildCapabilitiesLoading(context);
+    }
     Future<void> retryCapabilities() async {
       ref.invalidate(serverCapabilitiesProvider);
       _scheduleInitialSourceBootstrap(initialize: true);
@@ -272,35 +278,63 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
         child: AppPagedLoadMoreScope(
           canLoadMore: _canAutoLoadMore,
           onLoadMore: _autoLoadMoreForViewport,
-          child: CustomScrollView(
-            key: PageStorageKey<String>(
-              'image-search-scroll:${_scope.cacheKey}',
-            ),
-            controller: _scrollController,
-            slivers: [
-              SliverToBoxAdapter(child: _buildSearchComposer(context)),
-              if (searchState.inputKind == ImageSearchInputKind.image &&
-                  searchState.hasSource &&
-                  searchState.isPreviewExpanded) ...[
-                SliverToBoxAdapter(child: SizedBox(height: spacing.sm)),
-                SliverToBoxAdapter(child: _buildPreviewPanel(context)),
-              ],
-              SliverToBoxAdapter(child: SizedBox(height: spacing.md)),
-              _buildResultSectionSliver(context),
-              if (loadMoreFooter != null)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.only(top: spacing.md),
-                    child: loadMoreFooter,
+          child: AppFilterResultLoadingOverlay(
+            surfaceColor: widget.surfaceColor,
+            isLoading: searchState.isSearching && searchState.items.isNotEmpty,
+            hasPreviousItems: searchState.items.isNotEmpty,
+            child: CustomScrollView(
+              key: PageStorageKey<String>(
+                'image-search-scroll:${_scope.cacheKey}',
+              ),
+              controller: _scrollController,
+              slivers: [
+                SliverToBoxAdapter(child: _buildSearchComposer(context)),
+                if (searchState.inputKind == ImageSearchInputKind.image &&
+                    searchState.hasSource &&
+                    searchState.isPreviewExpanded) ...[
+                  SliverToBoxAdapter(child: SizedBox(height: spacing.sm)),
+                  SliverToBoxAdapter(child: _buildPreviewPanel(context)),
+                ],
+                SliverToBoxAdapter(child: SizedBox(height: spacing.md)),
+                _buildResultSectionSliver(context),
+                if (loadMoreFooter != null)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.only(top: spacing.md),
+                      child: loadMoreFooter,
+                    ),
                   ),
-                ),
-              ...bottomSafeAreaSliver(context),
-            ],
+                ...bottomSafeAreaSliver(context),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+
+  Widget _buildCapabilitiesLoading(BuildContext context) {
+    final spacing = context.appSpacing;
+    return AppSkeletonizer(
+      enabled: true,
+      child: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(child: _buildSearchComposer(context)),
+          SliverToBoxAdapter(child: SizedBox(height: spacing.md)),
+          ImageSearchResultSliver(
+            items: imageSearchResultPlaceholders(
+              count: AppPlatformScope.maybeOf(context) == AppPlatform.mobile
+                  ? 6
+                  : 8,
+            ),
+            onItemTap: _ignoreResult,
+          ),
+        ],
+      ),
+    );
+  }
+
+  static void _ignoreResult(ImageSearchResultItemDto _) {}
 
   Widget _buildSearchComposer(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -594,23 +628,29 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
       return const SliverToBoxAdapter(child: SizedBox.shrink());
     }
     if (searchState.isSearching && searchState.items.isEmpty) {
-      return SliverToBoxAdapter(
-        child: Center(
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              vertical: context.appLayoutTokens.emptySectionVerticalPadding,
-            ),
-            child: CircularProgressIndicator.adaptive(
-              key: Key('desktop-image-search-loading-indicator'),
-            ),
+      return AppSkeletonizer.sliver(
+        enabled: true,
+        child: ImageSearchResultSliver(
+          key: const Key('desktop-image-search-loading-indicator'),
+          items: imageSearchResultPlaceholders(
+            count: AppPlatformScope.maybeOf(context) == AppPlatform.mobile
+                ? 6
+                : 8,
           ),
+          onItemTap: _ignoreResult,
         ),
       );
     }
 
     if (searchState.errorMessage != null && searchState.items.isEmpty) {
       return SliverToBoxAdapter(
-        child: AppEmptyState(message: searchState.errorMessage!),
+        child: AppErrorState(
+          title: AppLocalizations.of(context).baseActionFailed,
+          message: searchState.errorMessage!,
+          variant: AppStatePanelVariant.section,
+          retryKey: const Key('image-search-initial-error-retry'),
+          onRetry: () => unawaited(_runSearch()),
+        ),
       );
     }
 
@@ -641,71 +681,25 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
     }
 
     final spacing = context.appSpacing;
-    final colors = context.appColors;
-    final componentTokens = context.appComponentTokens;
 
-    if (searchState.isLoadingMore) {
-      return Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: spacing.md),
-          child: SizedBox(
-            width: componentTokens.movieCardLoaderSize,
-            height: componentTokens.movieCardLoaderSize,
-            child: CircularProgressIndicator.adaptive(
-              strokeWidth: componentTokens.movieCardLoaderStrokeWidth,
-            ),
-          ),
-        ),
+    if (searchState.isLoadingMore || _hasLoadMoreError) {
+      return AppPagedLoadMoreFooter(
+        isLoading: searchState.isLoadingMore,
+        errorMessage: _hasLoadMoreError ? searchState.errorMessage : null,
+        retryKey: const Key('image-search-load-more-retry'),
+        onRetry: () => unawaited(_notifier.loadMore()),
       );
     }
 
-    if (!_hasLoadMoreError) {
-      if (!_autoLoadHalted || !searchState.hasMore) {
-        return null;
-      }
-      // 连续多页没有可见新增时自动补页会主动停下；保留一个显式出口，避免
-      // hasMore 仍为 true 时列表被静默截断。
-      return Center(
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: colors.surfaceMuted,
-            borderRadius: context.appRadius.mdBorder,
-          ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: spacing.lg,
-              vertical: spacing.sm,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  l10n.imageSearchAutoLoadPaused,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s12,
-                    weight: AppTextWeight.regular,
-                    tone: AppTextTone.secondary,
-                  ),
-                ),
-                SizedBox(width: spacing.sm),
-                AppTextButton(
-                  label: l10n.imageSearchContinueLoading,
-                  onPressed: _loadMoreManually,
-                  size: AppTextButtonSize.xSmall,
-                  emphasis: AppTextButtonEmphasis.accent,
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
+    if (!_autoLoadHalted || !searchState.hasMore) {
+      return null;
     }
-
+    // 连续多页没有可见新增时自动补页会主动停下；保留一个显式出口，避免
+    // hasMore 仍为 true 时列表被静默截断。
     return Center(
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: colors.surfaceMuted,
+          color: context.appColors.surfaceMuted,
           borderRadius: context.appRadius.mdBorder,
         ),
         child: Padding(
@@ -716,14 +710,8 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.error_outline_rounded,
-                size: componentTokens.iconSizeXl,
-                color: context.appTextPalette.secondary,
-              ),
-              SizedBox(width: spacing.sm),
               Text(
-                searchState.errorMessage!,
+                l10n.imageSearchAutoLoadPaused,
                 style: resolveAppTextStyle(
                   context,
                   size: AppTextSize.s12,
@@ -733,8 +721,8 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
               ),
               SizedBox(width: spacing.sm),
               AppTextButton(
-                label: l10n.commonRetry,
-                onPressed: _notifier.loadMore,
+                label: l10n.imageSearchContinueLoading,
+                onPressed: _loadMoreManually,
                 size: AppTextButtonSize.xSmall,
                 emphasis: AppTextButtonEmphasis.accent,
               ),

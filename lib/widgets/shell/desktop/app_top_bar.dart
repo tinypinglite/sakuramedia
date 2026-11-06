@@ -5,6 +5,7 @@ import 'package:sakuramedia/app/providers/app_shell_providers.dart';
 import 'package:sakuramedia/features/search/presentation/widgets/top_bar_search_actions.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_back_guard.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_back_button.dart';
 import 'package:sakuramedia/widgets/shell/desktop/desktop_chrome_policy.dart';
 import 'package:sakuramedia/widgets/shell/desktop/app_sidebar_toggle_button.dart';
@@ -129,7 +130,9 @@ class AppTopBar extends ConsumerWidget {
             child: Center(
               child: AppBackButton(
                 key: const Key('topbar-back-button'),
-                glass: translucent,
+                variant: translucent
+                    ? AppBackButtonVariant.glass
+                    : AppBackButtonVariant.solid,
                 onPressed: () => _handleBack(context),
               ),
             ),
@@ -175,12 +178,11 @@ class AppTopBar extends ConsumerWidget {
         SizedBox(width: isSidebarCollapsed ? collapsedLeading : leftInset),
         if (config.isBackEnabled)
           SizedBox(
-            width: 40.0,
+            width: 44.0,
             child: Center(
               child: AppBackButton(
                 key: const Key('topbar-back-button'),
-                glass: true,
-                overlay: true,
+                variant: AppBackButtonVariant.mediaOverlay,
                 onPressed: () => _handleBack(context),
               ),
             ),
@@ -195,6 +197,13 @@ class AppTopBar extends ConsumerWidget {
   }
 
   Future<void> _handleBack(BuildContext context) async {
+    final guard = AppBackGuardScope.maybeOf(context);
+    if (guard != null && !await guard.canLeave()) {
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
     final shellNavigator = shellNavigatorKey?.currentState;
     if (shellNavigator != null && shellNavigator.canPop()) {
       shellNavigator.pop();

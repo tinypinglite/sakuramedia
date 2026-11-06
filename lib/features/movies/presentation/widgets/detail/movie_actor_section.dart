@@ -7,6 +7,7 @@ import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_de
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_view_model.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 
 /// 影片详情页的演员区块：浏览态只读，进入管理态后可就地移除，并通过弹层添加。
@@ -267,16 +268,7 @@ class _AddActorTile extends StatelessWidget {
           ),
           child: Center(
             child: isLoading
-                ? SizedBox(
-                    width: tokens.iconSizeSm,
-                    height: tokens.iconSizeSm,
-                    child: CircularProgressIndicator.adaptive(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color?>(
-                        context.appTextPalette.secondary,
-                      ),
-                    ),
-                  )
+                ? AppInlineSpinner(color: context.appTextPalette.secondary)
                 : Icon(
                     Icons.person_add_alt_1_rounded,
                     size: tokens.iconSizeSm,

@@ -2,30 +2,45 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 
-/// 全局固定的玻璃配置。
+/// 液态玻璃材质配置。
 ///
-/// 全站只有一套材质：premium shader 档 + 最淡的 `track` 配方。
+/// 正常路径不覆盖 [LiquidGlassSettings] / [GlassQuality]，完全使用
+/// `liquid_glass_widgets` 内置的 light/dark 默认材质与各控件默认质量档位。
+/// 这里只保留共享玻璃面的染色、本地 fallback 配方，以及需要替换
+/// `glassColor` 的文本输入材质。
 abstract final class AppGlassStyle {
-  static const GlassQuality quality = GlassQuality.premium;
-
-  static LiquidGlassSettings settings(BuildContext context) {
-    return LiquidGlassSettings(
-      thickness: 12,
-      blur: 10,
-      saturation: 2,
-      chromaticAberration: 0,
-      lightIntensity: 0.35,
-      glassColor: context.appColors.surfaceMuted.withValues(alpha: 0.6),
-      shadowElevation: 0,
+  /// 以包当前明暗默认材质为基底，只覆盖玻璃染色。
+  static LiquidGlassSettings settingsWithColor(
+    BuildContext context,
+    Color color,
+  ) {
+    final override = GlassThemeData.of(context).settingsFor(context);
+    final base = (override ?? const GlassThemeSettings()).applyTo(
+      const LiquidGlassSettings(),
     );
+    return base.copyWith(glassColor: color);
+  }
+
+  /// 共享玻璃面的默认染色；只覆盖 `glassColor`，其余仍走包默认。
+  static LiquidGlassSettings surfaceSettings(BuildContext context) {
+    final dark = GlassTheme.brightnessOf(context) == Brightness.dark;
+    final tint =
+        (dark
+                ? context.appColors.surfaceElevated
+                : context.appColors.surfaceCard)
+            .withValues(alpha: dark ? 0.38 : 0.30);
+    return settingsWithColor(context, tint);
   }
 
   static AppGlassFallbackRecipe fallbackRecipe(BuildContext context) {
+    final dark = GlassTheme.brightnessOf(context) == Brightness.dark;
     return AppGlassFallbackRecipe(
-      tint: context.appColors.surfaceMuted,
-      tintAlpha: 0.10,
-      blurSigma: 10,
-      saturation: 1.0,
+      tint: dark
+          ? AppColors.glassFallbackTintDark
+          : AppColors.glassFallbackTintLight,
+      tintAlpha: dark ? 0.38 : 0.30,
+      blurSigma: dark ? 4 : 5,
+      saturation: 1.2,
       topRimAlpha: 0.35,
       sideRimAlpha: 0.12,
       lowRimAlpha: 0.04,

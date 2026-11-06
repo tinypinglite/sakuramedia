@@ -11,6 +11,8 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_footer.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
@@ -70,8 +72,9 @@ class TaskRunHistorySheet extends ConsumerWidget {
           ],
         ),
       ),
-      error: (error, _) => AppEmptyState(
+      error: (error, _) => AppErrorState(
         key: const Key('activity-history-error'),
+        title: l10n.baseActionFailed,
         message: apiErrorMessage(
           error,
           fallback: l10n.errorActivityLoadFailed,
@@ -179,27 +182,11 @@ class _HistoryRefreshError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            message,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.error,
-            ),
-          ),
-        ),
-        SizedBox(width: context.appSpacing.sm),
-        AppTextButton(
-          label: l10n.commonRetry,
-          size: AppTextButtonSize.xSmall,
-          onPressed: onRetry,
-        ),
-      ],
+    return AppInlineErrorBanner(
+      key: const Key('activity-history-refresh-error'),
+      message: message,
+      tone: AppInlineErrorTone.error,
+      onRetry: () async => onRetry(),
     );
   }
 }

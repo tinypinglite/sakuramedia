@@ -320,6 +320,9 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent> {
             iconOnly: true,
           ),
         ],
+        filterUpdate: args.filterUpdate,
+        hasPreviousFilterItems: args.total > 0,
+        onRetryFilter: args.onRetryFilter,
       );
     }
     return AppGlassListHeader(
@@ -371,6 +374,9 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent> {
             ),
         ],
       ),
+      filterUpdate: args.filterUpdate,
+      hasPreviousFilterItems: args.total > 0,
+      onRetryFilter: args.onRetryFilter,
     );
   }
 

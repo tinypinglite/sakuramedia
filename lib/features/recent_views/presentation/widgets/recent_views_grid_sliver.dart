@@ -5,7 +5,9 @@ import 'package:sakuramedia/features/recent_views/data/dto/recent_view_dto.dart'
 import 'package:sakuramedia/features/recent_views/presentation/providers/recent_views_provider.dart';
 import 'package:sakuramedia/features/recent_views/presentation/widgets/recent_view_card.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 
@@ -34,14 +36,17 @@ class RecentViewsGridSliver extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     if (async.hasError && entries == null) {
       return SliverToBoxAdapter(
-        child: AppEmptyState(
+        child: AppErrorState(
+          key: const Key('recent-views-error'),
+          title: l10n.baseActionFailed,
           message: l10n.recentLoadFailed,
           onRetry: onRetry,
+          retryKey: const Key('recent-views-retry-button'),
         ),
       );
     }
     final isInitialLoading = async.isLoading && entries == null;
-    return AppSkeletonizer.sliver(
+    final grid = AppSkeletonizer.sliver(
       enabled: isInitialLoading,
       child: AppAdaptiveCardSliver<RecentViewEntryDto>(
         gridKey: const Key('recent-views-grid'),
@@ -55,6 +60,25 @@ class RecentViewsGridSliver extends ConsumerWidget {
           onActorTap: onActorTap,
         ),
       ),
+    );
+    if (!async.hasError || entries == null) {
+      return grid;
+    }
+    return SliverMainAxisGroup(
+      slivers: <Widget>[
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: context.appSpacing.md),
+            child: AppInlineErrorBanner(
+              key: const Key('recent-views-refresh-error'),
+              message: l10n.recentRefreshFailed,
+              onRetry: () async => onRetry(),
+              retryKey: const Key('recent-views-refresh-retry'),
+            ),
+          ),
+        ),
+        grid,
+      ],
     );
   }
 }

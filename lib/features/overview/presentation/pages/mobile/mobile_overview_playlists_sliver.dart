@@ -12,6 +12,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/domain/playlists/playlist_banner_card.dart';
 import 'package:skeletonizer/skeletonizer.dart';
@@ -32,12 +33,16 @@ class MobileOverviewPlaylistsSliver extends ConsumerWidget {
     if (overview.error case final error?) {
       final l10n = AppLocalizations.of(context);
       return SliverToBoxAdapter(
-        child: AppEmptyState(
+        child: AppErrorState(
+          key: const Key('mobile-overview-playlists-error'),
+          title: l10n.baseActionFailed,
           message: apiErrorMessage(
             error,
             fallback: l10n.overviewPlaylistsLoadFailed,
             l10n: l10n,
           ),
+          onRetry: () => ref.invalidate(playlistsOverviewProvider(scope)),
+          retryKey: const Key('mobile-overview-playlists-retry'),
         ),
       );
     }

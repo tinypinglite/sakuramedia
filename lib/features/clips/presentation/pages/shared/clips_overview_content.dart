@@ -33,6 +33,7 @@ import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
@@ -170,12 +171,15 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
         builder: (context) {
           final l10n = AppLocalizations.of(context);
           if (clipsView.initialError case final error?) {
-            return AppEmptyState(
+            return AppErrorState(
+              title: l10n.errorClipLoadFailed,
               message: apiErrorMessage(
                 error,
                 fallback: l10n.errorClipLoadFailed,
                 l10n: l10n,
               ),
+              retryKey: const Key('clips-initial-error-retry'),
+              onRetry: () => ref.read(clipsOverviewProvider.notifier).refresh(),
             );
           }
           return _buildFilterableBody(
@@ -318,11 +322,15 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
   ) {
     final l10n = AppLocalizations.of(context);
     if (collectionsAsync.hasError && collections.isEmpty) {
-      return CollectionHintBox(
+      return CollectionHintBox.error(
         message: apiErrorMessage(
           collectionsAsync.error!,
           fallback: l10n.clipCollectionsLoadFailedFallback,
           l10n: l10n,
+        ),
+        retryKey: const Key('clips-collections-retry'),
+        onRetry: () => unawaited(
+          ref.read(clipCollectionsOverviewProvider.notifier).refresh(),
         ),
       );
     }
@@ -525,6 +533,7 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
           key: const Key('clips-batch-add-collection-button'),
           label: l10n.clipAddToCollection,
           icon: Icons.playlist_add_rounded,
+          isLoading: submitting,
           onTap: hasSelection && !submitting ? _batchAddToCollection : null,
         ),
         AppGlassSelectionAction(
@@ -532,6 +541,7 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
           label: l10n.commonDelete,
           icon: Icons.delete_outline_rounded,
           foregroundColor: context.appTextPalette.error,
+          isLoading: submitting,
           onTap: hasSelection && !submitting ? _batchDelete : null,
         ),
       ],
@@ -569,12 +579,14 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
           key: const Key('mobile-clips-batch-add-collection-button'),
           label: l10n.clipAddToCollection,
           variant: AppButtonVariant.secondary,
+          isLoading: submitting,
           onPressed: hasSelection && !submitting ? _batchAddToCollection : null,
         ),
         AppButton(
           key: const Key('mobile-clips-batch-delete-button'),
           label: l10n.commonDelete,
           variant: AppButtonVariant.danger,
+          isLoading: submitting,
           onPressed: hasSelection && !submitting ? _batchDelete : null,
         ),
       ],
@@ -594,15 +606,16 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
     if (!isLoading && clips.isEmpty && view.initialError != null) {
       final error = view.initialError!;
       return SliverToBoxAdapter(
-        child: SizedBox(
-          height: 200,
-          child: AppEmptyState(
-            message: apiErrorMessage(
-              error,
-              fallback: l10n.errorClipLoadFailed,
-              l10n: l10n,
-            ),
+        child: AppErrorState(
+          title: l10n.errorClipLoadFailed,
+          message: apiErrorMessage(
+            error,
+            fallback: l10n.errorClipLoadFailed,
+            l10n: l10n,
           ),
+          variant: AppStatePanelVariant.section,
+          retryKey: const Key('clips-grid-error-retry'),
+          onRetry: () => ref.read(clipsOverviewProvider.notifier).refresh(),
         ),
       );
     }

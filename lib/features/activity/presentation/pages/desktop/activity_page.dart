@@ -20,6 +20,7 @@ import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
@@ -311,7 +312,10 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
             next != null &&
             previous != next &&
             _historyScrollController.hasClients) {
-          _historyScrollController.jumpTo(0);
+          // Header 固定在滚动区外，结果区起点就是 minScrollExtent。
+          _historyScrollController.jumpTo(
+            _historyScrollController.position.minScrollExtent,
+          );
         }
       },
     );
@@ -511,7 +515,13 @@ class _InitialErrorState extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return ActivitySection(
       title: l10n.activityCenterTitle,
-      child: AppEmptyState(message: message, onRetry: () => onRetry()),
+      child: AppErrorState(
+        key: const Key('activity-initial-error'),
+        title: l10n.baseActionFailed,
+        message: message,
+        onRetry: () => onRetry(),
+        retryKey: const Key('activity-initial-retry-button'),
+      ),
     );
   }
 }

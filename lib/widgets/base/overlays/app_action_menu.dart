@@ -372,7 +372,6 @@ class _AppContextMenuPanel<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final borderColor = context.appColors.borderStrong;
     final firstEnabledIndex = items.indexWhere((item) => item.enabled);
 
@@ -392,30 +391,23 @@ class _AppContextMenuPanel<T> extends StatelessWidget {
               side: BorderSide(color: borderColor, width: 0.5),
             ),
           ),
-          child: ColoredBox(
-            color:
-                (isDark
-                        ? context.appColors.surfaceElevated
-                        : context.appColors.surfaceCard)
-                    .withValues(alpha: isDark ? 0.38 : 0.30),
-            child: SingleChildScrollView(
-              padding: EdgeInsets.all(metrics.outerPadding),
-              child: FocusTraversalGroup(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: <Widget>[
-                    for (var index = 0; index < items.length; index++)
-                      _AppContextMenuActionRow<T>(
-                        key: items[index].key,
-                        item: items[index],
-                        metrics: metrics,
-                        autofocus: index == firstEnabledIndex,
-                        onSelected: () =>
-                            Navigator.of(context).pop<T>(items[index].value),
-                      ),
-                  ],
-                ),
+          child: SingleChildScrollView(
+            padding: EdgeInsets.all(metrics.outerPadding),
+            child: FocusTraversalGroup(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  for (var index = 0; index < items.length; index++)
+                    _AppContextMenuActionRow<T>(
+                      key: items[index].key,
+                      item: items[index],
+                      metrics: metrics,
+                      autofocus: index == firstEnabledIndex,
+                      onSelected: () =>
+                          Navigator.of(context).pop<T>(items[index].value),
+                    ),
+                ],
               ),
             ),
           ),

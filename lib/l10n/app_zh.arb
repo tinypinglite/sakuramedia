@@ -186,6 +186,9 @@
     }
   },
   "commonUnknown": "未知",
+  "commonApiKey": "API Key",
+  "commonProvider": "Provider",
+  "commonSubmittingPleaseWait": "正在提交，请稍候…",
   "accountTitle": "账号",
   "accountProfileTitle": "账号资料",
   "accountUsername": "用户名",
@@ -1103,13 +1106,19 @@
     }
   },
   "shellNavMediaTags": "媒体文件标签",
-  "appearanceDescription": "调整界面明暗与主题色，设置保存在本机。",
+  "appearanceDescription": "调整界面明暗、主题色与表面风格，设置保存在本机。",
   "appearanceThemeMode": "主题模式",
   "appearanceSystem": "跟随系统",
   "appearanceLight": "浅色",
   "appearanceDark": "深色",
   "appearanceThemeColor": "主题色",
   "appearanceThemeColorFooter": "主题色会应用到按钮、选中态和强调元素。",
+  "appearanceSurfaceStyle": "界面风格",
+  "appearanceSurfaceStyleDescription": "液态玻璃更精致；扁平风格不使用实时模糊，适合低性能设备。",
+  "appearanceSurfaceLiquid": "液态玻璃",
+  "appearanceSurfaceLiquidDescription": "折射与高光，适合较新设备",
+  "appearanceSurfaceFlat": "扁平风格",
+  "appearanceSurfaceFlatDescription": "无实时模糊，适合低性能设备",
   "providerConfigFieldRequired": "请输入{label}",
   "@providerConfigFieldRequired": {
     "placeholders": {
@@ -2344,7 +2353,6 @@
   "momentErrorInfoLoadFailed": "时刻信息加载失败，请稍后重试",
   "momentErrorGone": "该时刻已不存在，无法加入合集",
   "momentErrorResultImageLoadFailed": "读取结果图片失败，请稍后重试",
-  "momentErrorRefreshFailed": "刷新失败",
   "momentCollectionSectionTitle": "时刻合集",
   "momentCollectionCreateTitle": "新建合集",
   "momentCollectionEditTitle": "编辑合集",
@@ -2614,7 +2622,6 @@
   "activityEmptyNotificationsFiltered": "当前筛选下暂无通知",
   "activityNoUnreadNotifications": "没有未读消息",
   "activityNoNotifications": "暂无消息",
-  "activityRefreshFailed": "刷新失败，请稍后重试",
   "activityCenterTitle": "任务中心",
   "activityTabOverview": "概览",
   "activityTabHistory": "任务历史",
@@ -3135,7 +3142,6 @@
   "imageSearchIndexRebuildRequired": "嵌入空间已变更，请先重建图搜索索引",
   "imageSearchNoSubscribedActors": "暂无已订阅女优",
   "imageSearchClearSelection": "清空已选",
-  "moviePageRefreshFailed": "刷新失败",
   "moviePageFilterTooltip": "筛选",
   "moviePageAllMoviesTitle": "全部影片",
   "moviePageMovieCount": "{count} 部",
@@ -3224,7 +3230,6 @@
       }
     }
   },
-  "moviePageWatchedAtDatePattern": "yyyy年M月d日 HH:mm",
   "moviePageSectionRankings": "榜单",
   "moviePageSectionTags": "标签",
   "moviePageSectionMediaSources": "媒体源",
@@ -3752,17 +3757,6 @@
   },
   "mediaListThumbnailRegenerateConfirm": "重新生成",
   "mediaListThumbnailSingleRegenerateMessage": "将删除该媒体现有的缩略图并重新生成，生成完成前缩略图将不可用。确认继续吗？",
-  "mediaListThumbnailResetRefreshFailed": "已重置 {count} 项，但列表刷新失败：{message}",
-  "@mediaListThumbnailResetRefreshFailed": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      },
-      "message": {
-        "type": "String"
-      }
-    }
-  },
   "mediaListThumbnailNothingToRegenerate": "没有可重新生成的媒体",
   "mediaListThumbnailNothingToRetry": "媒体已无可重试的失败状态",
   "mediaListThumbnailRegenerateSubmitted": "已提交 {count} 项缩略图重新生成，生成完成后自动恢复",
@@ -4199,7 +4193,6 @@
   "widgetMediaImportKeepInPlaceTitle": "源文件保留在原位置",
   "widgetMediaImportKeepInPlaceDescription": "移动、重命名或修改源文件会导致媒体失效；删除媒体记录不会删除源文件。",
   "widgetMediaImportLibraryLoadFailed": "媒体库加载失败，请重试。",
-  "widgetMediaImportReloadLibraries": "重新加载媒体库",
   "widgetMediaImportNoLibraries": "暂无媒体库，请先在系统设置中添加媒体库。",
   "widgetMediaImportLibraryLabel": "导入到媒体库",
   "widgetDownloadDeleteTitle": "删除下载任务",
@@ -5344,22 +5337,6 @@
   "widgetTagSearchHint": "搜索标签",
   "widgetTagClearAll": "清空",
   "widgetTagMatchLabel": "匹配",
-  "widgetTagSearchResultCount": "搜索结果 · {count}",
-  "@widgetTagSearchResultCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "widgetTagAllCount": "全部标签 · {count}",
-  "@widgetTagAllCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "widgetTagSearchResult": "搜索结果",
   "widgetTagPopular": "热门标签",
   "widgetTagCollapse": "收起",
@@ -5419,6 +5396,9 @@
       }
     }
   },
+  "moviePlayerPrimaries": "原色域",
+  "moviePlayerGamma": "伽马",
+  "moviePlayerColorLight": "亮度",
   "widgetMoviePlayerSubtitleLoadFailed": "加载字幕失败，请稍后重试",
   "widgetMoviePlayerLoading": "正在加载影片…",
   "widgetMoviePlayerSectionMedia": "媒体",

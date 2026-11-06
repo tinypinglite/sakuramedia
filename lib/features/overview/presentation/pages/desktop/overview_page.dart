@@ -1,6 +1,5 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_provider.dart';
@@ -22,8 +21,8 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_route.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
-import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_section_header.dart';
@@ -41,9 +40,15 @@ const double _wideTopRowMinHeight = 220;
 /// 两套高度不一致的窄布局。
 const double _wideTopRowMinWidth = 1000;
 
-class DesktopOverviewPage extends ConsumerWidget {
+class DesktopOverviewPage extends ConsumerStatefulWidget {
   const DesktopOverviewPage({super.key});
 
+  @override
+  ConsumerState<DesktopOverviewPage> createState() =>
+      _DesktopOverviewPageState();
+}
+
+class _DesktopOverviewPageState extends ConsumerState<DesktopOverviewPage> {
   static const _latestScope = MovieSummaryScope.latest();
   static const _recentlySubscribedScope =
       MovieSummaryScope.recentlySubscribed();
@@ -52,7 +57,9 @@ class DesktopOverviewPage extends ConsumerWidget {
   /// rail，更多内容进各自页面）。
   static const int _previewItemCount = 12;
 
-  Future<void> _refreshOverview(BuildContext context, WidgetRef ref) async {
+  bool _refreshFailed = false;
+
+  Future<void> _refreshOverview(BuildContext context) async {
     final recentPlaylist = ref.read(_recentlyPlayedPlaylistProvider).value;
     final futures = <Future<void>>[
       // 沿用旧行为:桌面刷新走 load()(不置 loading 标志),卡片不闪骨架。
@@ -83,12 +90,12 @@ class DesktopOverviewPage extends ConsumerWidget {
         ref.read(_recentlyPlayedPlaylistProvider.future).then<void>((_) {}),
         ref.read(recentViewsProvider.future).then<void>((_) {}),
       ]);
+      if (mounted && _refreshFailed) {
+        setState(() => _refreshFailed = false);
+      }
     } catch (_) {
-      if (context.mounted) {
-        showToast(
-          AppLocalizations.of(context).overviewRefreshFailed,
-          tone: AppToastTone.error,
-        );
+      if (mounted) {
+        setState(() => _refreshFailed = true);
       }
     }
   }
@@ -107,7 +114,7 @@ class DesktopOverviewPage extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final systemInfo = ref.watch(overviewSystemInfoProvider);
     final systemInfoNotifier = ref.read(overviewSystemInfoProvider.notifier);
@@ -128,7 +135,7 @@ class DesktopOverviewPage extends ConsumerWidget {
         const StatusDownloadTaskSummaryDto();
 
     return AppPageRefreshScope(
-      onRefresh: () => _refreshOverview(context, ref),
+      onRefresh: () => _refreshOverview(context),
       child: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -142,6 +149,19 @@ class DesktopOverviewPage extends ConsumerWidget {
               ),
             ),
           ),
+          if (_refreshFailed) ...<Widget>[
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: EdgeInsets.only(top: context.appSpacing.md),
+                child: AppInlineErrorBanner(
+                  key: const Key('overview-refresh-error'),
+                  message: l10n.overviewRefreshFailed,
+                  retryKey: const Key('overview-refresh-retry'),
+                  onRetry: () => _refreshOverview(context),
+                ),
+              ),
+            ),
+          ],
           SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.lg)),
           SliverToBoxAdapter(
             child: _buildTopRow(

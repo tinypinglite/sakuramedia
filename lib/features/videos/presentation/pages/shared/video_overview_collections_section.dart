@@ -94,7 +94,7 @@ class VideoOverviewCollectionsSection extends ConsumerWidget {
                 ),
                 Padding(
                   padding: EdgeInsets.only(top: spacing.md),
-                  child: _buildRow(context, async, collections),
+                  child: _buildRow(context, ref, async, collections),
                 ),
                 SizedBox(height: spacing.sm),
               ],
@@ -105,7 +105,7 @@ class VideoOverviewCollectionsSection extends ConsumerWidget {
             children: [
               header,
               SizedBox(height: spacing.sm),
-              _buildRow(context, async, collections),
+              _buildRow(context, ref, async, collections),
             ],
           );
 
@@ -114,18 +114,20 @@ class VideoOverviewCollectionsSection extends ConsumerWidget {
 
   Widget _buildRow(
     BuildContext context,
+    WidgetRef ref,
     AsyncValue<List<VideoCollectionDto>> async,
     List<VideoCollectionDto> collections,
   ) {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
     if (async.hasError && collections.isEmpty) {
-      return CollectionHintBox(
+      return CollectionHintBox.error(
         message: apiErrorMessage(
           async.error!,
           fallback: l10n.videoCollectionsLoadFailed,
           l10n: l10n,
         ),
+        onRetry: ref.read(videoCollectionsOverviewProvider.notifier).refresh,
       );
     }
     final isLoading = async.isLoading && collections.isEmpty;

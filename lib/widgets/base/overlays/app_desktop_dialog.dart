@@ -17,6 +17,7 @@ class AppDesktopDialog extends StatelessWidget {
     this.shape,
     this.clipBehavior = Clip.antiAlias,
     this.showCloseButton = true,
+    this.closeButtonEnabled = true,
     this.closeButtonKey,
     this.closeButtonTooltip,
     this.closeButtonInset,
@@ -39,6 +40,7 @@ class AppDesktopDialog extends StatelessWidget {
   final ShapeBorder? shape;
   final Clip clipBehavior;
   final bool showCloseButton;
+  final bool closeButtonEnabled;
   final Key? closeButtonKey;
   final String? closeButtonTooltip;
   final EdgeInsets? closeButtonInset;
@@ -72,7 +74,9 @@ class AppDesktopDialog extends StatelessWidget {
             child: AppIconButton(
               key: closeButtonKey,
               tooltip: closeButtonTooltip ?? l10n.baseClose,
-              onPressed: onClose ?? () => Navigator.of(context).pop(),
+              onPressed: closeButtonEnabled
+                  ? onClose ?? () => Navigator.of(context).maybePop()
+                  : null,
               backgroundColor: closeButtonBackgroundColor,
               iconColor: closeButtonIconColor,
               icon: const Icon(Icons.close_rounded),

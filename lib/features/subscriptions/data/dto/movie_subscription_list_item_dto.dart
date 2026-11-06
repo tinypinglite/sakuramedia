@@ -32,7 +32,7 @@ class MovieSubscriptionListItemDto with MovieCoverSelection {
   final MovieImageDto? coverImage;
   @override
   final MovieImageDto? thinCoverImage;
-  final String? releaseDate;
+  final DateTime? releaseDate;
   final DateTime? subscribedAt;
   final MovieSubscriptionStatus status;
   final bool isFresh;
@@ -58,7 +58,9 @@ class MovieSubscriptionListItemDto with MovieCoverSelection {
       thinCoverImage: thinCoverImage == null
           ? null
           : MovieImageDto.fromJson(thinCoverImage),
-      releaseDate: asStringOrNull(json['release_date'], trim: true),
+      releaseDate: DateTime.tryParse(
+        asStringOrNull(json['release_date'], trim: true) ?? '',
+      ),
       subscribedAt: asDateTime(json['subscribed_at']),
       status: MovieSubscriptionStatusX.fromWire(json['status']),
       isFresh: json['is_fresh'] as bool? ?? false,

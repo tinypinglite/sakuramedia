@@ -1,10 +1,12 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/core/format/app_date_format.dart';
 import 'package:sakuramedia/core/format/relative_time_label.dart';
 import 'package:sakuramedia/features/subscriptions/data/dto/movie_subscription_list_item_dto.dart';
 import 'package:sakuramedia/features/subscriptions/data/dto/movie_subscription_status.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_status_chip.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
@@ -208,30 +210,40 @@ class _HeadingLine extends StatelessWidget {
           ),
         ),
         SizedBox(width: spacing.sm),
-        AppBadge(
+        AppStatusChip(
           key: Key('movie-subscription-row-status-${item.movieNumber}'),
           label: item.displayStatusLabel(AppLocalizations.of(context)),
-          tone: _statusBadgeTone(item),
-          size: AppBadgeSize.compact,
+          palette: _statusPalette(item),
+          dense: true,
         ),
       ],
     );
   }
 }
 
-AppBadgeTone _statusBadgeTone(MovieSubscriptionListItemDto item) {
+AppStatusChipPalette _statusPalette(MovieSubscriptionListItemDto item) {
   if (item.isImportedMediaRemoved) {
-    return AppBadgeTone.neutral;
+    return AppStatusChipPalette.muted(icon: Icons.link_off_rounded);
   }
   return switch (item.status) {
-    MovieSubscriptionStatus.imported => AppBadgeTone.success,
-    MovieSubscriptionStatus.importFailed => AppBadgeTone.error,
-    MovieSubscriptionStatus.downloading => AppBadgeTone.info,
-    MovieSubscriptionStatus.exhausted => AppBadgeTone.warning,
-    MovieSubscriptionStatus.failed => AppBadgeTone.error,
-    MovieSubscriptionStatus.missing => AppBadgeTone.neutral,
-    MovieSubscriptionStatus.pending => AppBadgeTone.info,
-    MovieSubscriptionStatus.unknown => AppBadgeTone.neutral,
+    MovieSubscriptionStatus.imported => AppStatusChipPalette.success(),
+    MovieSubscriptionStatus.importFailed => AppStatusChipPalette.error(),
+    MovieSubscriptionStatus.downloading => AppStatusChipPalette.info(
+      icon: Icons.download_outlined,
+    ),
+    MovieSubscriptionStatus.exhausted => AppStatusChipPalette.warning(
+      icon: Icons.search_off_rounded,
+    ),
+    MovieSubscriptionStatus.failed => AppStatusChipPalette.error(),
+    MovieSubscriptionStatus.missing => AppStatusChipPalette.neutral(
+      icon: Icons.search_rounded,
+    ),
+    MovieSubscriptionStatus.pending => AppStatusChipPalette.forSemantic(
+      AppStatusSemantic.queued,
+    ),
+    MovieSubscriptionStatus.unknown => AppStatusChipPalette.neutral(
+      icon: Icons.help_outline_rounded,
+    ),
   };
 }
 
@@ -375,7 +387,7 @@ class _FooterLine extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final facts = <String>[
       if (item.releaseDate != null)
-        l10n.subscriptionReleasedAt(item.releaseDate!),
+        l10n.subscriptionReleasedAt(formatAppDate(item.releaseDate!)),
       if (item.subscribedAt != null)
         l10n.subscriptionSubscribedAt(
           formatRelativeTimeLabel(item.subscribedAt!, l10n: l10n),

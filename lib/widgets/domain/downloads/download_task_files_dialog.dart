@@ -10,6 +10,8 @@ import 'package:sakuramedia/features/downloads/presentation/providers/downloads_
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 /// 打开某个下载任务的文件清单：桌面为居中对话框，移动端为底部抽屉。
@@ -135,10 +137,12 @@ class _DownloadTaskFilesDialogBodyState
       future: _filesFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator.adaptive());
+          return const Center(child: AppInlineSpinner());
         }
         if (snapshot.hasError) {
-          return AppEmptyState(
+          return AppErrorState(
+            key: const Key('download-task-files-error'),
+            title: AppLocalizations.of(context).baseActionFailed,
             message: apiErrorMessage(
               snapshot.error!,
               fallback: AppLocalizations.of(
@@ -148,6 +152,7 @@ class _DownloadTaskFilesDialogBodyState
             ),
             retryKey: const Key('download-task-files-retry'),
             onRetry: _retry,
+            variant: AppStatePanelVariant.section,
           );
         }
         // 文件按大小降序展示，大文件优先。

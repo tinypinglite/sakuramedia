@@ -10,6 +10,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_status_chip.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_left_cover_card.dart';
 
@@ -194,6 +195,7 @@ class _MediaListItemBody extends StatelessWidget {
         AppIconButton(
           key: Key('$keyPrefix-edit-tags-${item.id}'),
           icon: const Icon(Icons.sell_outlined),
+          size: AppIconButtonSize.compact,
           tooltip: l10n.mediaListTagsEdit,
           semanticLabel: l10n.mediaListTagsEdit,
           onPressed: onEditTags,
@@ -210,6 +212,7 @@ class _MediaListItemBody extends StatelessWidget {
             : AppIconButton(
                 key: Key('$keyPrefix-transfer-${item.id}'),
                 icon: const Icon(Icons.drive_file_move_outline),
+                size: AppIconButtonSize.compact,
                 tooltip: l10n.mediaListActionTransfer,
                 semanticLabel: l10n.mediaListActionTransferToLibrary,
                 onPressed: canTransfer ? onTransfer : null,
@@ -223,6 +226,7 @@ class _MediaListItemBody extends StatelessWidget {
             : AppIconButton(
                 key: Key('$keyPrefix-delete-${item.id}'),
                 icon: const Icon(Icons.delete_outline_rounded),
+                size: AppIconButtonSize.compact,
                 iconColor: context.appTextPalette.error,
                 tooltip: l10n.commonDelete,
                 semanticLabel: l10n.commonDelete,
@@ -441,10 +445,12 @@ class _MediaListItemHeading extends StatelessWidget {
         ],
         if (!item.valid) ...[
           SizedBox(width: spacing.sm),
-          AppBadge(
+          AppStatusChip(
             label: l10n.mediaListInvalidBadge,
-            tone: AppBadgeTone.error,
-            size: AppBadgeSize.compact,
+            palette: AppStatusChipPalette.error(
+              icon: Icons.broken_image_outlined,
+            ),
+            dense: true,
           ),
         ],
       ],

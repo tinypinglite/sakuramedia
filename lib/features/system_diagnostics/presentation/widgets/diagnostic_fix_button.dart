@@ -4,7 +4,6 @@ import 'package:sakuramedia/features/configuration/presentation/providers/config
 import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_fix_target.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_route.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 

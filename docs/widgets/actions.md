@@ -28,13 +28,19 @@
 
 路径：`lib/widgets/base/interaction/app_interactive_surface.dart`
 
-全项目统一的可点表面，所有可点元素都应经过它，不要再手写 `InkWell`。默认无水波纹、无 hover / 按下底色，按下整块透明度降到 `0.7`（整体变淡）；`onTap` / `onLongPress` / `onSecondaryTap` 都走这一层手势，可同时配合 `semanticLabel`。`onLongPress` 触发时统一播放一次选择触感（`core/platform/haptic_feedback.dart`，桌面端无副作用），调用方不要重复触发。禁用时只负责不响应，视觉禁用（降透明度、换前景色）由调用方决定。完整交互基线见 `docs/interaction-design.md`。
+全项目统一的可点表面，所有可点元素都应经过它，不要再手写 `InkWell`。默认无水波纹、无 hover / 按下底色，按下整块透明度降到 `0.7`（整体变淡）；`onTap` / `onTapDown` / `onLongPress` / `onSecondaryTap` 都走这一层手势，可同时配合 `semanticLabel`。`focusRing` 默认开启，键盘聚焦时绘制 2px 主题色焦点环；需要自定义焦点顺序时传 `focusNode`。`onLongPress` 触发时统一播放一次选择触感（`core/platform/haptic_feedback.dart`，桌面端无副作用），调用方不要重复触发。禁用时只负责不响应，视觉禁用（降透明度、换前景色）由调用方决定。完整交互基线见 `docs/interaction-design.md`。
 
 ## `AppClickable`
 
 路径：`lib/widgets/base/interaction/app_clickable.dart`
 
-只为没有内置鼠标指针的自定义点击区域提供鼠标指针，不负责点击回调和按下反馈。**需要点击反馈时用 `AppInteractiveSurface`**；只有确实要自行实现手势（例如自定义 `GestureDetector` 的拖拽 / 多指逻辑）时才在它外层包 `AppClickable`。调用方必须根据实际交互状态传入 `enabled`；禁用区域使用系统默认箭头指针。
+只为没有内置鼠标指针的自定义点击区域提供鼠标指针。传 `onTap` / `onLongPress` / `onSecondaryTap` 时内部委托给 `AppInteractiveSurface`，自动获得按下反馈、焦点环和语义；不传手势时保持纯 `MouseRegion`。只有确实要自行实现手势（例如自定义 `GestureDetector` 的拖拽 / 多指逻辑）时才在它外层包 `AppClickable`。调用方必须根据实际交互状态传入 `enabled`；禁用区域使用系统默认箭头指针。
+
+## `AppModalActionRow`
+
+路径：`lib/widgets/base/overlays/app_modal_action_row.dart`
+
+弹层底部双按钮的统一布局：取消在左、确认在右、默认等宽；提交中 `isSubmitting` 让确认按钮转圈并禁用取消；`submitVariant: AppButtonVariant.danger` 只用于删除等不可恢复操作。`extraAction` 存在时三等分。`AppConfirmDialog`、`AppDesktopFormDialog`、`AppBottomFormSheet`、`AppMobileConfirmActions` 都走它，页面不要再手写底部 Row。
 
 ## `AppSwitch`
 

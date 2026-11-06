@@ -62,7 +62,15 @@ class IndexerConnectionTestPanel extends StatelessWidget {
             ),
             AppStatusChip(
               label: _statusLabel(l10n),
-              palette: _statusPalette(),
+              palette: AppStatusChipPalette.forSemantic(
+                isTesting
+                    ? AppStatusSemantic.inProgress
+                    : !_hasResult
+                    ? AppStatusSemantic.neutral
+                    : _isHealthy
+                    ? AppStatusSemantic.success
+                    : AppStatusSemantic.error,
+              ),
               isBusy: isTesting,
               dense: true,
             ),
@@ -110,19 +118,6 @@ class IndexerConnectionTestPanel extends StatelessWidget {
       ],
     );
   }
-
-  AppStatusChipPalette _statusPalette() {
-    if (isTesting) {
-      // 独有的 "radar 检测中" 态：accent 色（选中面），非标 4 态之一。
-      return AppStatusChipPalette.primary(icon: Icons.radar_rounded);
-    }
-    if (!_hasResult) {
-      return AppStatusChipPalette.neutral(icon: Icons.hourglass_empty_rounded);
-    }
-    return _isHealthy
-        ? AppStatusChipPalette.success()
-        : AppStatusChipPalette.error();
-  }
 }
 
 class _ResultSummary extends StatelessWidget {
@@ -142,8 +137,9 @@ class _ResultSummary extends StatelessWidget {
     final spacing = context.appSpacing;
     final colors = context.appColors;
     final l10n = AppLocalizations.of(context);
-    final backgroundColor =
-        _isHealthy ? colors.successSurface : colors.errorSurface;
+    final backgroundColor = _isHealthy
+        ? colors.successSurface
+        : colors.errorSurface;
     final tone = _isHealthy ? AppTextTone.success : AppTextTone.error;
     final result = this.result;
 

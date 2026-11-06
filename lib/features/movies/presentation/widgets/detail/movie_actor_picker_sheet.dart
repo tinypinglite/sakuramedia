@@ -9,8 +9,10 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_back_button.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_picker_results.dart';
 
 /// 影片演员表的添加弹层：搜索女优库、多选，或原地新建本地女优。
@@ -20,16 +22,23 @@ Future<List<ActorListItemDto>?> showMovieActorPickerSheet(
   BuildContext context, {
   required ActorsApi actorsApi,
   required Set<int> existingActorIds,
-}) {
-  return showAppAdaptiveModal<List<ActorListItemDto>>(
-    context: context,
-    modalKey: const Key('movie-actor-picker'),
-    desktopWidth: context.appLayoutTokens.dialogWidthMd,
-    builder: (_) => MovieActorPickerSheet(
-      actorsApi: actorsApi,
-      existingActorIds: existingActorIds,
-    ),
-  );
+}) async {
+  final dismissController = AppModalDismissController();
+  try {
+    return await showAppAdaptiveModal<List<ActorListItemDto>>(
+      context: context,
+      modalKey: const Key('movie-actor-picker'),
+      desktopWidth: context.appLayoutTokens.dialogWidthMd,
+      dismissController: dismissController,
+      builder: (_) => MovieActorPickerSheet(
+        actorsApi: actorsApi,
+        existingActorIds: existingActorIds,
+        dismissController: dismissController,
+      ),
+    );
+  } finally {
+    dismissController.dispose();
+  }
 }
 
 enum _PickerMode { pick, create }
@@ -39,10 +48,12 @@ class MovieActorPickerSheet extends StatefulWidget {
     super.key,
     required this.actorsApi,
     required this.existingActorIds,
+    this.dismissController,
   });
 
   final ActorsApi actorsApi;
   final Set<int> existingActorIds;
+  final AppModalDismissController? dismissController;
 
   @override
   State<MovieActorPickerSheet> createState() => _MovieActorPickerSheetState();
@@ -154,6 +165,7 @@ class _MovieActorPickerSheetState extends State<MovieActorPickerSheet> {
                     ? l10n.movieWidgetAddActorTitle
                     : l10n.movieWidgetAddActorsCount(selectedCount)),
           isSubmitting: _isCreating,
+          dismissController: widget.dismissController,
           submitDisabled: !isCreate && selectedCount == 0,
           onSubmit: () {
             if (isCreate) {
@@ -187,7 +199,7 @@ class _MovieActorPickerSheetState extends State<MovieActorPickerSheet> {
               key: const Key('movie-actor-create-back'),
               label: l10n.movieWidgetBackToSelection,
               icon: Icon(
-                Icons.arrow_back_rounded,
+                AppBackButton.icon,
                 size: context.appComponentTokens.iconSizeXs,
               ),
               size: AppTextButtonSize.xSmall,

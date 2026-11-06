@@ -606,8 +606,8 @@ class _DesktopDownloaderCard extends StatelessWidget {
               spacing: spacing.md,
               runSpacing: spacing.sm,
               children: [
-                AppInfoPill(label: 'Provider', value: providerName),
-                AppInfoPill(
+                AppInfoTile(label: l10n.commonProvider, value: providerName),
+                AppInfoTile(
                   label: l10n.downloaderMediaLibraryLabel,
                   value: libraryName,
                 ),
@@ -664,7 +664,7 @@ class _MobileDownloaderCard extends StatelessWidget {
       ),
       body: [
         SizedBox(height: spacing.xs),
-        _DownloaderMetaLine(label: 'Provider', value: providerName),
+        _DownloaderMetaLine(label: l10n.commonProvider, value: providerName),
         _DownloaderMetaLine(
           label: l10n.downloaderMediaLibraryLabel,
           value: libraryName,

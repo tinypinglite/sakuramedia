@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/features/discovery/presentation/providers/taste_profile_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/tags/data/tag_list_item_dto.dart';
@@ -16,6 +17,7 @@ import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_glass_search_field.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
@@ -203,8 +205,11 @@ class _TagBrowseSurfaceState extends ConsumerState<TagBrowseSurface> {
       return _buildLoading(context);
     }
     if (selection.errorMessage != null && !selection.hasLoadedOnce) {
-      return AppEmptyState(
+      return AppErrorState(
+        title: AppLocalizations.of(context).tagRefreshFailed,
         message: selection.errorMessage!,
+        variant: AppStatePanelVariant.section,
+        retryKey: const Key('tags-browse-error-retry'),
         onRetry: () => unawaited(notifier.retry()),
       );
     }
@@ -326,7 +331,7 @@ class _TagBrowseSurfaceState extends ConsumerState<TagBrowseSurface> {
               for (final tag in visible)
                 AppTextButton(
                   key: Key('tags-search-option-${tag.tagId}'),
-                  label: '${tag.name} · ${tag.movieCount}',
+                  label: '${tag.name} · ${formatAppCount(tag.movieCount)}',
                   size: AppTextButtonSize.xSmall,
                   isSelected: selection.isSelected(tag.tagId),
                   onPressed: () => notifier.toggle(tag.tagId),
@@ -377,7 +382,7 @@ class _TagBrowseSurfaceState extends ConsumerState<TagBrowseSurface> {
             label: tag.name,
             size: AppTextButtonSize.xSmall,
             isSelected: true,
-            trailingIcon: const Icon(Icons.close),
+            trailingIcon: const Icon(Icons.close_rounded),
             onPressed: () => notifier.remove(tag.tagId),
           ),
         AppIconButton(

@@ -71,6 +71,30 @@ void main() {
 
     expect(violations, isEmpty, reason: violations.join('\n'));
   });
+
+  test('flat glass implementation stays package-free and blur-free', () {
+    const paths = <String>[
+      'lib/widgets/base/layout/glass/app_glass_flat_backend.dart',
+      'lib/widgets/base/layout/glass/app_glass_flat_surface.dart',
+      'lib/widgets/base/layout/glass/app_glass_flat_style.dart',
+    ];
+    final violations = <String>[];
+
+    for (final path in paths) {
+      final source = File(path).readAsStringSync();
+      if (source.contains('liquid_glass_widgets')) {
+        violations.add('$path references liquid_glass_widgets');
+      }
+      if (source.contains('BackdropFilter')) {
+        violations.add('$path references BackdropFilter');
+      }
+      if (source.contains('ImageFilter.blur')) {
+        violations.add('$path references ImageFilter.blur');
+      }
+    }
+
+    expect(violations, isEmpty, reason: violations.join('\n'));
+  });
 }
 
 Iterable<File> _dartFiles() {

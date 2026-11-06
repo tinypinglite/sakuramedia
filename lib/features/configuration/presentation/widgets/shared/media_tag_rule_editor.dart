@@ -6,33 +6,44 @@ import 'package:sakuramedia/features/media/data/media_tag_dto.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_tags_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_switch.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
 
 Future<MediaTagDto?> showMediaTagRuleEditor(
   BuildContext context, {
   required bool mobile,
   MediaTagDto? initialTag,
-}) {
-  return showAppAdaptiveModal<MediaTagDto>(
-    context: context,
-    variant: mobile
-        ? AppAdaptiveModalVariant.drawer
-        : AppAdaptiveModalVariant.dialog,
-    dialogKey: const Key('media-tag-rule-editor-dialog'),
-    drawerKey: const Key('media-tag-rule-editor-drawer'),
-    desktopConstraints: const BoxConstraints(maxWidth: 620, maxHeight: 760),
-    mobileHeightFactor: 0.88,
-    builder: (_) => _MediaTagRuleEditor(initialTag: initialTag),
-  );
+}) async {
+  final dismissController = AppModalDismissController();
+  try {
+    return await showAppAdaptiveModal<MediaTagDto>(
+      context: context,
+      variant: mobile
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
+      dialogKey: const Key('media-tag-rule-editor-dialog'),
+      drawerKey: const Key('media-tag-rule-editor-drawer'),
+      desktopConstraints: const BoxConstraints(maxWidth: 620, maxHeight: 760),
+      mobileHeightFactor: 0.88,
+      dismissController: dismissController,
+      builder: (_) => _MediaTagRuleEditor(
+        initialTag: initialTag,
+        dismissController: dismissController,
+      ),
+    );
+  } finally {
+    dismissController.dispose();
+  }
 }
 
 class _MediaTagRuleEditor extends ConsumerStatefulWidget {
-  const _MediaTagRuleEditor({this.initialTag});
+  const _MediaTagRuleEditor({this.initialTag, this.dismissController});
 
   final MediaTagDto? initialTag;
+  final AppModalDismissController? dismissController;
 
   @override
   ConsumerState<_MediaTagRuleEditor> createState() =>
@@ -100,6 +111,7 @@ class _MediaTagRuleEditorState extends ConsumerState<_MediaTagRuleEditor> {
       excludeTerms: _parseTerms(_excludeController),
       enabled: _enabled,
     );
+    widget.dismissController?.setLocked(true);
     setState(() => _isSubmitting = true);
     try {
       final notifier = ref.read(mediaTagsProvider.notifier);
@@ -127,6 +139,7 @@ class _MediaTagRuleEditorState extends ConsumerState<_MediaTagRuleEditor> {
         ),
         tone: AppToastTone.error,
       );
+      widget.dismissController?.setLocked(false);
       setState(() => _isSubmitting = false);
     }
   }
@@ -236,27 +249,13 @@ class _MediaTagRuleEditorState extends ConsumerState<_MediaTagRuleEditor> {
             ),
           ),
           SizedBox(height: spacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: AppButton(
-                  label: l10n.commonCancel,
-                  onPressed: _isSubmitting
-                      ? null
-                      : () => Navigator.of(context).pop(),
-                ),
-              ),
-              SizedBox(width: spacing.md),
-              Expanded(
-                child: AppButton(
-                  key: const Key('media-tag-rule-save'),
-                  label: l10n.commonSave,
-                  variant: AppButtonVariant.primary,
-                  isLoading: _isSubmitting,
-                  onPressed: _isSubmitting ? null : _submit,
-                ),
-              ),
-            ],
+          AppModalActionRow(
+            cancelLabel: l10n.commonCancel,
+            submitLabel: l10n.commonSave,
+            submitKey: const Key('media-tag-rule-save'),
+            isSubmitting: _isSubmitting,
+            onCancel: _isSubmitting ? null : () => Navigator.of(context).pop(),
+            onSubmit: _submit,
           ),
         ],
       ),

@@ -23,13 +23,13 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/badges/app_media_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
-const double _desktopBreakpoint = 980;
 const double _wideViewportMinHeight = 700;
 const double _scrollFallbackMinHeight = 560;
 const double _largeTextThreshold = 1.25;
@@ -196,9 +196,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       Uri.parse(_deployGuideUrl),
     );
     if (!opened && mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(l10n.loginOpenBrowserFailed)));
+      showToast(
+        l10n.loginOpenBrowserFailed,
+        context: context,
+        tone: AppToastTone.error,
+      );
     }
   }
 
@@ -355,7 +357,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     MediaQuery.textScalerOf(context).scale(14) / 14 >
                     _largeTextThreshold;
                 final wideLayout =
-                    constraints.maxWidth >= _desktopBreakpoint &&
+                    constraints.maxWidth >=
+                        context.appLayoutTokens.breakpointDesktop &&
                     constraints.maxHeight >= _wideViewportMinHeight &&
                     !largeText;
                 final scrollFallback =
@@ -1129,7 +1132,8 @@ class _LoginAtmosphere extends StatelessWidget {
           return ColoredBox(color: colors.surfacePage);
         }
 
-        final compact = constraints.maxWidth < _desktopBreakpoint;
+        final compact =
+            constraints.maxWidth < context.appLayoutTokens.breakpointDesktop;
         final width = constraints.maxWidth;
         final height = constraints.maxHeight;
         final primaryGlow = scheme.primary.withValues(alpha: dark ? 0.22 : 0.3);

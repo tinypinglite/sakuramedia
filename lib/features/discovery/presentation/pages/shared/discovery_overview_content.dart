@@ -1,7 +1,8 @@
 import 'dart:async';
 
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/discovery/data/hot_actress_release_movie_dto.dart';
 import 'package:sakuramedia/features/discovery/data/moment_recommendation_dto.dart';
@@ -25,8 +26,8 @@ import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_section_header.dart';
@@ -34,7 +35,7 @@ import 'package:sakuramedia/widgets/domain/moments/moment_rail.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_rail.dart';
 
 /// 发现首页共享内容：移动 tab 与桌面独立页只在壳和路由上不同。
-class DiscoveryOverviewContent extends ConsumerWidget {
+class DiscoveryOverviewContent extends HookConsumerWidget {
   const DiscoveryOverviewContent({
     super.key,
     required this.mobile,
@@ -50,10 +51,39 @@ class DiscoveryOverviewContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final previewSize = this.previewSize;
     final l10n = AppLocalizations.of(context);
+    final refreshError = useState<String?>(null);
     final followScope = MovieSummaryScope.subscribedActorsLatest(
       pageSize: previewSize,
     );
+    Future<void> handleRefresh() async {
+      String? errorMessage;
+      try {
+        final errors = await Future.wait<String?>([
+          ref.read(movieSummaryProvider(followScope).notifier).refresh(),
+          ref
+              .read(hotActressReleaseFeedProvider(previewSize).notifier)
+              .refresh(),
+          ref
+              .read(dailyRecommendationFeedProvider(previewSize).notifier)
+              .refresh(),
+          ref
+              .read(momentRecommendationFeedProvider(previewSize).notifier)
+              .refresh(),
+          ref.read(tasteProfileProvider.notifier).refresh(),
+        ]);
+        for (final error in errors) {
+          errorMessage ??= error;
+        }
+      } catch (_) {
+        errorMessage = l10n.sharedRefreshFailed;
+      }
+      if (context.mounted) {
+        refreshError.value = errorMessage;
+      }
+    }
+
     final follow = ref.watch(movieSummaryProvider(followScope));
     final hot = ref.watch(hotActressReleaseFeedProvider(previewSize));
     final daily = ref.watch(dailyRecommendationFeedProvider(previewSize));
@@ -80,6 +110,15 @@ class DiscoveryOverviewContent extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (mobile) SizedBox(height: context.appSpacing.sm),
+        if (refreshError.value case final message?) ...[
+          AppInlineErrorBanner(
+            key: Key('$_keyPrefix-discover-refresh-error'),
+            message: message,
+            retryKey: Key('$_keyPrefix-discover-refresh-retry'),
+            onRetry: handleRefresh,
+          ),
+          SizedBox(height: sectionGap),
+        ],
         TasteProfileSection(
           onTagTap: (tagId) => _openTag(context, tagId),
           onActorTap: (actorId) => _openActor(context, actorId),
@@ -230,46 +269,15 @@ class DiscoveryOverviewContent extends ConsumerWidget {
     if (mobile) {
       return AppAdaptiveRefreshScrollView(
         key: const Key('mobile-overview-discover-tab'),
-        onRefresh: () => _handleRefresh(context, ref, followScope),
+        onRefresh: handleRefresh,
         physics: const AlwaysScrollableScrollPhysics(),
         slivers: <Widget>[SliverToBoxAdapter(child: content)],
       );
     }
 
     return AppPageRefreshScope(
-      onRefresh: () => _handleRefresh(context, ref, followScope),
+      onRefresh: handleRefresh,
       child: SingleChildScrollView(child: content),
-    );
-  }
-
-  Future<void> _handleRefresh(
-    BuildContext context,
-    WidgetRef ref,
-    MovieSummaryScope followScope,
-  ) async {
-    var failed = false;
-    try {
-      final errors = await Future.wait<String?>([
-        ref.read(movieSummaryProvider(followScope).notifier).refresh(),
-        ref.read(hotActressReleaseFeedProvider(previewSize).notifier).refresh(),
-        ref
-            .read(dailyRecommendationFeedProvider(previewSize).notifier)
-            .refresh(),
-        ref
-            .read(momentRecommendationFeedProvider(previewSize).notifier)
-            .refresh(),
-        ref.read(tasteProfileProvider.notifier).refresh(),
-      ]);
-      failed = errors.any((error) => error != null);
-    } catch (_) {
-      failed = true;
-    }
-    if (!context.mounted || !failed) {
-      return;
-    }
-    showToast(
-      AppLocalizations.of(context).sharedRefreshFailed,
-      tone: AppToastTone.error,
     );
   }
 

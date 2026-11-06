@@ -16,6 +16,7 @@ import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
@@ -67,12 +68,15 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
             return const _DesktopPlaylistsLoadingState();
           }
           if (overview.error case final error?) {
-            return AppEmptyState(
+            return AppErrorState(
+              title: l10n.playlistLoadFailed,
               message: apiErrorMessage(
                 error,
                 fallback: l10n.playlistLoadFailed,
                 l10n: l10n,
               ),
+              retryKey: const Key('playlists-error-retry'),
+              onRetry: notifier.refresh,
             );
           }
           return Column(

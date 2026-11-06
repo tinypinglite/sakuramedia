@@ -16,6 +16,7 @@ import 'package:sakuramedia/widgets/base/forms/form_submit_state.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_form_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
 
 Future<DownloadClientDto?> showDownloadClientEditor(
   BuildContext context, {
@@ -23,7 +24,8 @@ Future<DownloadClientDto?> showDownloadClientEditor(
   required List<MediaLibraryDto> libraries,
   required List<MediaProviderDto> providers,
   DownloadClientDto? initialClient,
-}) {
+}) async {
+  final dismissController = AppModalDismissController();
   return showAppAdaptiveModal<DownloadClientDto>(
     context: context,
     variant: mobile
@@ -36,11 +38,13 @@ Future<DownloadClientDto?> showDownloadClientEditor(
       vertical: context.appLayoutTokens.dialogInsetPadding,
     ),
     mobileHeightFactor: 0.9,
+    dismissController: dismissController,
     builder: (_) => _DownloadClientEditor(
       mobile: mobile,
       libraries: libraries,
       providers: providers,
       initialClient: initialClient,
+      dismissController: dismissController,
     ),
   );
 }
@@ -51,12 +55,14 @@ class _DownloadClientEditor extends ConsumerStatefulWidget {
     required this.libraries,
     required this.providers,
     this.initialClient,
+    this.dismissController,
   });
 
   final bool mobile;
   final List<MediaLibraryDto> libraries;
   final List<MediaProviderDto> providers;
   final DownloadClientDto? initialClient;
+  final AppModalDismissController? dismissController;
 
   @override
   ConsumerState<_DownloadClientEditor> createState() =>
@@ -240,6 +246,7 @@ class _DownloadClientEditorState extends ConsumerState<_DownloadClientEditor>
       submitKey: const Key('mobile-downloader-submit-button'),
       isSubmitting: isSubmitting,
       submitDisabled: _isTesting,
+      dismissController: widget.dismissController,
       onSubmit: _submit,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -266,6 +273,7 @@ class _DownloadClientEditorState extends ConsumerState<_DownloadClientEditor>
       body: _buildFields(context),
       isSubmitting: isSubmitting,
       isBusy: isSubmitting || _isTesting,
+      dismissController: widget.dismissController,
       onSubmit: _submit,
       extraAction: AppButton(
         key: const Key('download-client-test-button'),

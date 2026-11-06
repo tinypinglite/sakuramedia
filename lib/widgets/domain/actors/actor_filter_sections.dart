@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_filter_options_dto.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_placeholders.dart';
@@ -362,7 +363,7 @@ class ActorCupFilterSection extends StatelessWidget {
             children: options
                 .map(
                   (option) => AppFilterChip(
-                    label: '${option.value} (${option.count})',
+                    label: '${option.value} (${formatAppCount(option.count)})',
                     selected: selectedCups.contains(option.value),
                     onPressed: () {
                       final next = Set<String>.of(selectedCups);

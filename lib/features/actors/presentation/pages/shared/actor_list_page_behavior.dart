@@ -17,7 +17,7 @@ import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_summary_grid.dart';
 
 /// 女优列表双端共享的 scope、缓存、搜索、筛选、刷新与订阅行为。
@@ -109,9 +109,7 @@ mixin ActorListPageBehaviorMixin<W extends ConsumerStatefulWidget>
         actorSearchController.text.isNotEmpty) {
       actorSearchController.clear();
     }
-    if (actorScrollController.hasClients) {
-      actorScrollController.jumpTo(0);
-    }
+    _scrollActorListToStart();
     unawaited(
       ref
           .read(actorSummaryProvider(actorScope).notifier)
@@ -143,20 +141,23 @@ mixin ActorListPageBehaviorMixin<W extends ConsumerStatefulWidget>
     );
   }
 
-  Future<void> refreshActorList() async {
-    if (isMobile) {
-      final error = await ref
-          .read(actorSummaryProvider(actorScope).notifier)
-          .refresh();
-      await ref.read(tasteProfileProvider.notifier).refresh();
-      if (error != null && mounted) {
-        showToast(
-          AppLocalizations.of(context).actorRefreshFailed,
-          tone: AppToastTone.error,
-        );
-      }
+  void _scrollActorListToStart() {
+    if (!actorScrollController.hasClients) {
       return;
     }
+    if (isMobile && actorListHeaderKey.currentContext != null) {
+      AppPinnedListHeader.scrollToStart(
+        actorListHeaderKey,
+        actorScrollController,
+      );
+      return;
+    }
+    actorScrollController.jumpTo(
+      actorScrollController.position.minScrollExtent,
+    );
+  }
+
+  Future<void> refreshActorList() async {
     await Future.wait<void>([
       ref.read(actorSummaryProvider(actorScope).notifier).refresh(),
       ref.read(tasteProfileProvider.notifier).refresh(),
@@ -200,6 +201,9 @@ mixin ActorListPageBehaviorMixin<W extends ConsumerStatefulWidget>
                     ? actorListItemPlaceholders(count: 24)
                     : items,
                 errorMessage: initialErrorMessage,
+                onErrorRetry: () => unawaited(
+                  ref.read(actorSummaryProvider(actorScope).notifier).reload(),
+                ),
                 onActorTap: (actor) => onActorTap(actor.id),
                 onActorSubscriptionTap: (actor) =>
                     toggleActorSubscription(actor.id),

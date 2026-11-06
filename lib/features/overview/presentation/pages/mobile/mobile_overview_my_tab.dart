@@ -20,6 +20,7 @@ import 'package:sakuramedia/features/image_search/presentation/actions/image_sea
 import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
@@ -45,6 +46,7 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
 
   late final TextEditingController _searchController;
   late final PlaylistsOverviewScope _playlistsScope;
+  bool _refreshFailed = false;
 
   @override
   void initState() {
@@ -103,6 +105,15 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
                 onTextImageSearchTap: _openTextImageSearch,
               ),
               SizedBox(height: spacing.sm),
+              if (_refreshFailed) ...<Widget>[
+                AppInlineErrorBanner(
+                  key: const Key('mobile-overview-refresh-error'),
+                  message: l10n.overviewRefreshFailed,
+                  retryKey: const Key('mobile-overview-refresh-retry'),
+                  onRetry: _handleRefresh,
+                ),
+                SizedBox(height: spacing.sm),
+              ],
               AppSectionHeader(
                 title: l10n.overviewRecentlyAdded,
                 actionLabel: l10n.overviewMore,
@@ -156,22 +167,20 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
             .then<Object?>((_) => null),
         ref.read(recentViewsProvider.future).then<Object?>((_) => null),
       ]);
-      if (results.any((result) => result is String)) {
-        _showRefreshFailure();
+      if (!mounted) {
+        return;
       }
+      setState(() {
+        _refreshFailed = results.any((result) => result is String);
+      });
     } catch (_) {
-      _showRefreshFailure();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _refreshFailed = true;
+      });
     }
-  }
-
-  void _showRefreshFailure() {
-    if (!mounted) {
-      return;
-    }
-    showToast(
-      AppLocalizations.of(context).overviewRefreshFailed,
-      tone: AppToastTone.error,
-    );
   }
 
   Widget _buildLatestMoviesSection(
@@ -266,7 +275,9 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
   }
 
   void _openTextImageSearch() {
-    MobileRoutes.imageSearch(mode: ImageSearchInputKind.text.name).push(context);
+    MobileRoutes.imageSearch(
+      mode: ImageSearchInputKind.text.name,
+    ).push(context);
   }
 
   Future<void> _openImageSearch() async {

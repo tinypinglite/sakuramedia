@@ -16,6 +16,7 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
@@ -257,14 +258,18 @@ class _AccountSecurityContentState
 
   Widget _buildProfileError(BuildContext context, String message) {
     if (!widget.mobile) {
-      return AppEmptyState(
+      return AppErrorState(
+        title: AppLocalizations.of(context).errorAccountProfileLoadFailed,
         message: message,
+        variant: AppStatePanelVariant.section,
         retryKey: const Key('configuration-username-retry-button'),
         onRetry: () => ref.read(accountProfileProvider.notifier).load(),
       );
     }
-    return AppEmptyState(
+    return AppErrorState(
+      title: AppLocalizations.of(context).errorAccountProfileLoadFailed,
       message: message,
+      variant: AppStatePanelVariant.section,
       retryKey: const Key('mobile-account-retry-button'),
       onRetry: () => ref.read(accountProfileProvider.notifier).load(),
     );
@@ -552,42 +557,23 @@ class _AccountSecurityContentState
               ),
             )
           else if (asyncKeys.hasError && !asyncKeys.hasValue)
-            Column(
-              crossAxisAlignment: widget.mobile
-                  ? CrossAxisAlignment.stretch
-                  : CrossAxisAlignment.start,
-              children: [
-                Text(
-                  apiErrorMessage(
-                    asyncKeys.error!,
-                    fallback: l10n.errorApiKeysLoadFailed,
-                    l10n: l10n,
-                  ),
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s12,
-                    tone: AppTextTone.error,
-                  ),
-                ),
-                SizedBox(height: spacing.sm),
-                AppButton(
-                  key: widget.mobile
-                      ? const Key('mobile-account-apikeys-retry-button')
-                      : const Key('configuration-api-keys-retry-button'),
-                  label: l10n.commonRetry,
-                  size: AppButtonSize.small,
-                  onPressed: () => ref.invalidate(apiKeysProvider),
-                ),
-              ],
+            AppErrorState(
+              title: l10n.apiKeysTitle,
+              message: apiErrorMessage(
+                asyncKeys.error!,
+                fallback: l10n.errorApiKeysLoadFailed,
+                l10n: l10n,
+              ),
+              variant: AppStatePanelVariant.section,
+              retryKey: widget.mobile
+                  ? const Key('mobile-account-apikeys-retry-button')
+                  : const Key('configuration-api-keys-retry-button'),
+              onRetry: () => ref.invalidate(apiKeysProvider),
             )
           else if (keys.isEmpty)
-            Text(
-              l10n.apiKeysEmpty,
-              style: resolveAppTextStyle(
-                context,
-                size: widget.mobile ? AppTextSize.s12 : AppTextSize.s14,
-                tone: AppTextTone.muted,
-              ),
+            AppEmptyState.section(
+              icon: Icons.key_off_outlined,
+              message: l10n.apiKeysEmpty,
             )
           else
             Column(

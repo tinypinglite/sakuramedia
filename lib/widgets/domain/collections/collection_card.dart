@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/features/clip_collections/data/dto/clip_collection_dto.dart';
 import 'package:sakuramedia/features/moment_collections/data/dto/moment_collection_dto.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
@@ -310,7 +311,7 @@ class _GlassCollectionInfoBar extends StatelessWidget {
         ),
         SizedBox(width: spacing.xs),
         Text(
-          '$count',
+          formatAppCount(count),
           style: resolveAppTextStyle(
             context,
             size: AppTextSize.s12,
@@ -365,7 +366,7 @@ class _CountBadge extends StatelessWidget {
             Icon(icon, color: Colors.white, size: 12),
             SizedBox(width: context.appSpacing.xs),
             Text(
-              '$count',
+              formatAppCount(count),
               style: resolveAppTextStyle(
                 context,
                 size: AppTextSize.s12,

@@ -10,6 +10,7 @@ import 'package:sakuramedia/features/movies/presentation/widgets/rating/rating_d
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
@@ -247,25 +248,7 @@ class _MovieRatingInlinePanelState
     String message,
     VoidCallback onRetry,
   ) {
-    return Wrap(
-      spacing: context.appSpacing.sm,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        Text(
-          message,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            tone: AppTextTone.error,
-          ),
-        ),
-        AppTextButton(
-          label: AppLocalizations.of(context).commonRetry,
-          size: AppTextButtonSize.xSmall,
-          onPressed: onRetry,
-        ),
-      ],
-    );
+    return AppErrorState.inline(message: message, onRetry: onRetry);
   }
 
   Widget _messageLine(

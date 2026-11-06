@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
 import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
@@ -135,6 +136,106 @@ void main() {
     expect(harness.exitCount, 1);
     expect(harness.toggleAllCount, 1);
     expect(harness.addCount, 1);
+  });
+
+  testWidgets('批量动作 loading 时忽略点击', (tester) async {
+    var taps = 0;
+    await pumpWithProviders(
+      tester,
+      home: Scaffold(
+        body: AppGlassSelectionHeader(
+          selectionLabel: '已选 1 个',
+          selectAllLabel: '全选',
+          onExitSelection: () {},
+          onToggleAll: () {},
+          actions: <AppGlassSelectionAction>[
+            AppGlassSelectionAction(
+              key: const Key('selection-busy'),
+              label: '提交',
+              isLoading: true,
+              onTap: () => taps++,
+            ),
+          ],
+        ),
+      ),
+      theme: sakuraDesktopThemeData,
+      physicalSize: const Size(1100, 300),
+    );
+
+    await tester.tap(find.byKey(const Key('selection-busy')));
+    expect(taps, 0);
+
+    await pumpWithProviders(
+      tester,
+      home: Scaffold(
+        body: AppGlassSelectionHeader(
+          selectionLabel: '已选 1 个',
+          selectAllLabel: '全选',
+          onExitSelection: () {},
+          onToggleAll: () {},
+          actions: <AppGlassSelectionAction>[
+            AppGlassSelectionAction(
+              key: const Key('selection-busy'),
+              label: '提交',
+              onTap: () => taps++,
+            ),
+          ],
+        ),
+      ),
+      theme: sakuraDesktopThemeData,
+      physicalSize: const Size(1100, 300),
+    );
+
+    await tester.tap(find.byKey(const Key('selection-busy')));
+    expect(taps, 1);
+  });
+
+  testWidgets('单个玻璃按钮 loading 时忽略点击', (tester) async {
+    var taps = 0;
+    await pumpWithProviders(
+      tester,
+      home: Scaffold(
+        body: Center(
+          child: AppGlassHeaderGroup(
+            children: <Widget>[
+              AppGlassHeaderButton(
+                key: const Key('busy-header-button'),
+                icon: Icons.refresh_rounded,
+                label: '刷新',
+                isLoading: true,
+                onTap: () => taps++,
+              ),
+            ],
+          ),
+        ),
+      ),
+      theme: sakuraDesktopThemeData,
+      physicalSize: const Size(600, 300),
+    );
+
+    await tester.tap(find.byKey(const Key('busy-header-button')));
+
+    expect(taps, 0);
+  });
+
+  testWidgets('筛选失败在控制条内只出现一条反馈', (tester) async {
+    await pumpWithProviders(
+      tester,
+      home: Scaffold(
+        body: AppGlassListHeader(
+          filterUpdate: const FilterUpdateState.failed('加载失败'),
+          hasPreviousFilterItems: true,
+        ),
+      ),
+      theme: sakuraDesktopThemeData,
+      physicalSize: const Size(900, 300),
+    );
+
+    expect(find.byKey(const Key('app-filter-update-error')), findsOneWidget);
+    expect(
+      find.byKey(const Key('app-filter-update-empty-error')),
+      findsNothing,
+    );
   });
 }
 

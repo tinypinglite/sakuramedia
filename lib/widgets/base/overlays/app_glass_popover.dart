@@ -64,7 +64,11 @@ class AppGlassPopover extends StatelessWidget {
             constraints: BoxConstraints(
               maxHeight: MediaQuery.sizeOf(context).height * 0.65,
             ),
-            child: SingleChildScrollView(key: scrollViewKey, child: body),
+            child: SingleChildScrollView(
+              key: scrollViewKey,
+              primary: false,
+              child: body,
+            ),
           )
         : body;
     final content = Padding(

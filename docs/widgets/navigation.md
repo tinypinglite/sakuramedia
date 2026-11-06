@@ -1,5 +1,13 @@
 # navigation —— Tab、列表头和筛选入口
 
+## `AppBackButton`
+
+路径：`lib/widgets/base/navigation/app_back_button.dart`
+
+全项目统一的返回按钮。`variant` 区分实色、玻璃和播放器 `mediaOverlay`，`size` 区分 `compact`（28/20）、`toolbar`（实色 28/20、玻璃 32/16）和 `touch`（44/20）。播放器返回固定 44/18、使用 `onMedia` 前景色。tooltip 和语义标签默认取 `shellBack`，调用方只在语义确实不同（如“返回失败列表”）时覆盖。步骤内“文字 + 返回”继续用 `AppTextButton`，图标取 `AppBackButton.icon`。
+
+`AppBackGuardController` / `AppBackGuardScope`（`app_back_guard.dart`）负责离开前确认：桌面顶栏和移动子页返回都先 `await canLeave()`。页面在 `initState` 注册、`dispose` 注销；未保存修改的页面必须注册 guard，不能只拦截 Tab 切换。
+
 ## `AppTabBar`
 
 路径：`lib/widgets/base/navigation/app_tab_bar.dart`

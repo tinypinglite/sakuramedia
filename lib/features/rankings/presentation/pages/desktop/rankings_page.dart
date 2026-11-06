@@ -109,7 +109,7 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
 
   void _applyFilterChange(Future<void> Function() action) {
     if (_scrollController.hasClients) {
-      _scrollController.jumpTo(0);
+      _scrollController.jumpTo(_scrollController.position.minScrollExtent);
     }
     unawaited(action());
   }
@@ -309,6 +309,11 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
                               ? rankedMoviePlaceholders(count: 24)
                               : paged.items,
                           errorMessage: initialErrorMessage,
+                          onErrorRetry: () => unawaited(
+                            ref
+                                .read(rankingSummaryProvider(_scope).notifier)
+                                .reloadFiltersAndData(),
+                          ),
                           onMovieTap: (movie) => selectionAwareTap(
                             movie.movieNumber,
                             () => DesktopRoutes.movieDetail(

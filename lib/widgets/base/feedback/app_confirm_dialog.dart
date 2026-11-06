@@ -5,6 +5,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
 
 /// 统一的二次确认弹窗：标题 + 正文 + 「取消 / 确认」两个按钮。
 ///
@@ -176,30 +177,17 @@ class _ConfirmBodyState extends State<_ConfirmBody> {
             ),
           ),
           SizedBox(height: spacing.xl),
-          Row(
-            children: [
-              Expanded(
-                child: AppButton(
-                  key: widget.cancelKey,
-                  label: widget.cancelLabel,
-                  onPressed: _isConfirming
-                      ? null
-                      : () => Navigator.of(context).pop(false),
-                ),
-              ),
-              SizedBox(width: spacing.md),
-              Expanded(
-                child: AppButton(
-                  key: widget.confirmKey,
-                  label: widget.confirmLabel,
-                  variant: widget.danger
-                      ? AppButtonVariant.danger
-                      : AppButtonVariant.primary,
-                  isLoading: _isConfirming,
-                  onPressed: _handleConfirm,
-                ),
-              ),
-            ],
+          AppModalActionRow(
+            cancelKey: widget.cancelKey,
+            submitKey: widget.confirmKey,
+            cancelLabel: widget.cancelLabel,
+            submitLabel: widget.confirmLabel,
+            isSubmitting: _isConfirming,
+            submitVariant: widget.danger
+                ? AppButtonVariant.danger
+                : AppButtonVariant.primary,
+            onCancel: () => Navigator.of(context).pop(false),
+            onSubmit: _handleConfirm,
           ),
         ],
       ),

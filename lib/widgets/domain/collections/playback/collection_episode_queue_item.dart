@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/interaction/app_clickable.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
 /// [CollectionEpisodeQueueItem] 封面 fit 策略。
@@ -55,88 +55,83 @@ class CollectionEpisodeQueueItem extends StatelessWidget {
         );
         break;
     }
-    return AppClickable(
+    return AppInteractiveSurface(
+      key: itemKey,
       enabled: onTap != null,
+      onTap: onTap,
+      focusRingRadius: context.appRadius.smBorder,
       child: Material(
         color: isCurrent ? colors.surfaceMuted : Colors.transparent,
         borderRadius: context.appRadius.smBorder,
-        child: InkWell(
-          mouseCursor: onTap != null
-              ? SystemMouseCursors.click
-              : SystemMouseCursors.basic,
-          key: itemKey,
-          borderRadius: context.appRadius.smBorder,
-          onTap: onTap,
-          child: Padding(
-            padding: EdgeInsets.all(spacing.xs),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: context.appRadius.xsBorder,
-                  child: SizedBox(
-                    width: 88,
-                    child: AspectRatio(aspectRatio: 16 / 9, child: coverBox),
-                  ),
+        child: Padding(
+          padding: EdgeInsets.all(spacing.xs),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: context.appRadius.xsBorder,
+                child: SizedBox(
+                  width: 88,
+                  child: AspectRatio(aspectRatio: 16 / 9, child: coverBox),
                 ),
-                SizedBox(width: spacing.sm),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s12,
-                          weight: isCurrent
-                              ? AppTextWeight.semibold
-                              : AppTextWeight.regular,
-                          tone: isCurrent
-                              ? AppTextTone.primary
-                              : AppTextTone.secondary,
-                        ),
+              ),
+              SizedBox(width: spacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s12,
+                        weight: isCurrent
+                            ? AppTextWeight.semibold
+                            : AppTextWeight.regular,
+                        tone: isCurrent
+                            ? AppTextTone.primary
+                            : AppTextTone.secondary,
                       ),
-                      SizedBox(height: spacing.xs),
-                      Row(
-                        children: [
-                          if (isCurrent && trailing != null) ...[
-                            Icon(
-                              Icons.equalizer_rounded,
-                              size: context.appComponentTokens.iconSizeSm,
-                              color: Theme.of(context).colorScheme.primary,
-                            ),
-                            SizedBox(width: spacing.xs),
-                          ],
-                          Flexible(
-                            child: Text(
-                              subtitle,
-                              style: resolveAppTextStyle(
-                                context,
-                                size: AppTextSize.s12,
-                                weight: AppTextWeight.regular,
-                                tone: AppTextTone.tertiary,
-                              ),
+                    ),
+                    SizedBox(height: spacing.xs),
+                    Row(
+                      children: [
+                        if (isCurrent && trailing != null) ...[
+                          Icon(
+                            Icons.equalizer_rounded,
+                            size: context.appComponentTokens.iconSizeSm,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          SizedBox(width: spacing.xs),
+                        ],
+                        Flexible(
+                          child: Text(
+                            subtitle,
+                            style: resolveAppTextStyle(
+                              context,
+                              size: AppTextSize.s12,
+                              weight: AppTextWeight.regular,
+                              tone: AppTextTone.tertiary,
                             ),
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              if (trailing != null) trailing!,
+              if (isCurrent && trailing == null)
+                Padding(
+                  padding: EdgeInsets.only(left: spacing.xs),
+                  child: Icon(
+                    Icons.equalizer_rounded,
+                    size: context.appComponentTokens.iconSizeSm,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                 ),
-                if (trailing != null) trailing!,
-                if (isCurrent && trailing == null)
-                  Padding(
-                    padding: EdgeInsets.only(left: spacing.xs),
-                    child: Icon(
-                      Icons.equalizer_rounded,
-                      size: context.appComponentTokens.iconSizeSm,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                  ),
-              ],
-            ),
+            ],
           ),
         ),
       ),

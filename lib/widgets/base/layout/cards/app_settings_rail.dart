@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
 /// 设置页左侧分类栏的单项描述。
 class AppSettingsRailItem {
@@ -75,7 +76,6 @@ class _RailItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final colors = context.appColors;
     final primary = Theme.of(context).colorScheme.primary;
 
     final labelStyle = resolveAppTextStyle(
@@ -86,15 +86,13 @@ class _RailItem extends StatelessWidget {
     ).copyWith(color: selected ? primary : null);
     final iconColor = selected ? primary : context.appTextPalette.muted;
 
-    return Material(
+    return AppInteractiveSurface(
       key: item.itemKey,
-      color: selected ? primary.withValues(alpha: 0.08) : Colors.transparent,
-      borderRadius: context.appRadius.mdBorder,
-      child: InkWell(
-        mouseCursor: SystemMouseCursors.click,
-        onTap: onTap,
+      onTap: onTap,
+      focusRingRadius: context.appRadius.mdBorder,
+      child: Material(
+        color: selected ? primary.withValues(alpha: 0.08) : Colors.transparent,
         borderRadius: context.appRadius.mdBorder,
-        hoverColor: colors.surfaceMuted,
         child: Padding(
           padding: EdgeInsets.symmetric(
             horizontal: spacing.md,

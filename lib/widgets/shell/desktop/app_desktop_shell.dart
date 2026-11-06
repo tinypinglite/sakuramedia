@@ -11,6 +11,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_controller.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_back_guard.dart';
 import 'package:sakuramedia/widgets/shell/desktop/app_sidebar.dart';
 import 'package:sakuramedia/widgets/shell/desktop/app_top_bar.dart';
 import 'package:sakuramedia/widgets/shell/desktop/desktop_chrome_policy.dart';
@@ -50,6 +51,7 @@ class AppDesktopShell extends ConsumerStatefulWidget {
 class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
   late final AppPageRefreshController _refreshController =
       AppPageRefreshController();
+  final AppBackGuardController _backGuard = AppBackGuardController();
 
   /// 单例 in-flight 闸门：按钮点击和 Cmd/Ctrl+R 快捷键共用同一份状态，
   /// 避免其中一条路径绕过对方的 debounce。
@@ -167,102 +169,106 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
       // fullscreen：顶栏在流内占位，内容不再额外留白。
       contentPadding = EdgeInsets.only(top: titleBarHeight);
     }
-    return AppPageRefreshRegistrarScope(
-      registrar: _refreshController.registrar,
-      child: CallbackShortcuts(
-        bindings: <ShortcutActivator, VoidCallback>{
-          const SingleActivator(LogicalKeyboardKey.keyR, meta: true):
-              _triggerCurrentRefresh,
-          const SingleActivator(LogicalKeyboardKey.keyR, control: true):
-              _triggerCurrentRefresh,
-        },
-        child: Scaffold(
-          backgroundColor: chrome.usesGlassSidebar
-              ? Colors.transparent
-              : context.appColors.surfacePage,
-          body: SafeArea(
-            child: Stack(
-              children: [
-                Positioned.fill(
-                  child: IgnorePointer(
-                    child: DesktopAmbientBackdrop(
-                      enabled: chrome.usesGlassSidebar,
-                    ),
-                  ),
-                ),
-                Row(
-                  children: [
-                    AppSidebar(
-                      currentPath: widget.currentPath,
-                      navItems: widget.navItems,
-                    ),
-                    Expanded(
-                      child: Container(
-                        key: const Key('desktop-shell-content-surface'),
-                        color: ambientSurface
-                            ? Colors.transparent
-                            : context.appColors.surfaceElevated,
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: AnimatedPadding(
-                                duration: immersive || _isLayoutTransitioning
-                                    ? Duration.zero
-                                    : const Duration(milliseconds: 180),
-                                curve: Curves.easeOutCubic,
-                                padding: contentPadding,
-                                child: widget.child,
-                              ),
-                            ),
-                            if (showTopBar)
-                              Positioned(
-                                top: 0,
-                                left: 0,
-                                right: 0,
-                                child:
-                                    ValueListenableBuilder<
-                                      AppPageRefreshCallback?
-                                    >(
-                                      valueListenable:
-                                          _refreshController.listenable,
-                                      builder: (context, current, _) =>
-                                          _buildTopBar(
-                                            context,
-                                            current: current,
-                                            immersive: immersive,
-                                            ambientSurface: ambientSurface,
-                                            sidebarCollapsed: sidebarCollapsed,
-                                          ),
-                                    ),
-                              )
-                            else if (chrome.usesWindowsCaption) ...[
-                              // Windows 的窗口按钮由顶栏承载；隐藏顶栏时
-                              // 只保留按钮和拖拽区，避免丢失窗口操作。
-                              Positioned(
-                                top: 0,
-                                right: 0,
-                                child: AppWindowsCaption(),
-                              ),
-                              Positioned(
-                                top: 0,
-                                left: 0,
-                                right: titleBarHeight * 3,
-                                height: titleBarHeight,
-                                child: AppWindowDragArea(
-                                  child: SizedBox.expand(),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
+    return AppBackGuardScope(
+      controller: _backGuard,
+      child: AppPageRefreshRegistrarScope(
+        registrar: _refreshController.registrar,
+        child: CallbackShortcuts(
+          bindings: <ShortcutActivator, VoidCallback>{
+            const SingleActivator(LogicalKeyboardKey.keyR, meta: true):
+                _triggerCurrentRefresh,
+            const SingleActivator(LogicalKeyboardKey.keyR, control: true):
+                _triggerCurrentRefresh,
+          },
+          child: Scaffold(
+            backgroundColor: chrome.usesGlassSidebar
+                ? Colors.transparent
+                : context.appColors.surfacePage,
+            body: SafeArea(
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: DesktopAmbientBackdrop(
+                        enabled: chrome.usesGlassSidebar,
                       ),
                     ),
-                  ],
-                ),
-                // 红绿灯和收起/展开按钮固定在窗口坐标系，
-                // 不随侧栏宽度动画和顶栏布局切换移动。
-                Positioned.fill(child: DesktopWindowControls(policy: chrome)),
-              ],
+                  ),
+                  Row(
+                    children: [
+                      AppSidebar(
+                        currentPath: widget.currentPath,
+                        navItems: widget.navItems,
+                      ),
+                      Expanded(
+                        child: Container(
+                          key: const Key('desktop-shell-content-surface'),
+                          color: ambientSurface
+                              ? Colors.transparent
+                              : context.appColors.surfaceElevated,
+                          child: Stack(
+                            children: [
+                              Positioned.fill(
+                                child: AnimatedPadding(
+                                  duration: immersive || _isLayoutTransitioning
+                                      ? Duration.zero
+                                      : const Duration(milliseconds: 180),
+                                  curve: Curves.easeOutCubic,
+                                  padding: contentPadding,
+                                  child: widget.child,
+                                ),
+                              ),
+                              if (showTopBar)
+                                Positioned(
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child:
+                                      ValueListenableBuilder<
+                                        AppPageRefreshCallback?
+                                      >(
+                                        valueListenable:
+                                            _refreshController.listenable,
+                                        builder: (context, current, _) =>
+                                            _buildTopBar(
+                                              context,
+                                              current: current,
+                                              immersive: immersive,
+                                              ambientSurface: ambientSurface,
+                                              sidebarCollapsed:
+                                                  sidebarCollapsed,
+                                            ),
+                                      ),
+                                )
+                              else if (chrome.usesWindowsCaption) ...[
+                                // Windows 的窗口按钮由顶栏承载；隐藏顶栏时
+                                // 只保留按钮和拖拽区，避免丢失窗口操作。
+                                Positioned(
+                                  top: 0,
+                                  right: 0,
+                                  child: AppWindowsCaption(),
+                                ),
+                                Positioned(
+                                  top: 0,
+                                  left: 0,
+                                  right: titleBarHeight * 3,
+                                  height: titleBarHeight,
+                                  child: AppWindowDragArea(
+                                    child: SizedBox.expand(),
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  // 红绿灯和收起/展开按钮固定在窗口坐标系，
+                  // 不随侧栏宽度动画和顶栏布局切换移动。
+                  Positioned.fill(child: DesktopWindowControls(policy: chrome)),
+                ],
+              ),
             ),
           ),
         ),

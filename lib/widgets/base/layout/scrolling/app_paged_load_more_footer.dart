@@ -9,11 +9,15 @@ class AppPagedLoadMoreFooter extends StatelessWidget {
     required this.isLoading,
     required this.errorMessage,
     required this.onRetry,
+    this.retryKey,
   });
 
   final bool isLoading;
   final String? errorMessage;
   final VoidCallback onRetry;
+
+  /// 页脚重试按钮的 Key，供页面或测试定位。
+  final Key? retryKey;
 
   @override
   Widget build(BuildContext context) {
@@ -74,6 +78,7 @@ class AppPagedLoadMoreFooter extends StatelessWidget {
               ),
               SizedBox(width: spacing.sm),
               AppTextButton(
+                key: retryKey,
                 label: l10n.commonRetry,
                 onPressed: onRetry,
                 size: AppTextButtonSize.xSmall,

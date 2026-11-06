@@ -10,6 +10,7 @@ class ActorSummarySliver extends StatelessWidget {
     super.key,
     required this.items,
     this.errorMessage,
+    this.onErrorRetry,
     this.onActorTap,
     this.onActorSubscriptionTap,
     this.isActorSubscriptionUpdating,
@@ -18,6 +19,7 @@ class ActorSummarySliver extends StatelessWidget {
 
   final List<ActorListItemDto> items;
   final String? errorMessage;
+  final VoidCallback? onErrorRetry;
   final ValueChanged<ActorListItemDto>? onActorTap;
   final ValueChanged<ActorListItemDto>? onActorSubscriptionTap;
   final bool Function(ActorListItemDto actor)? isActorSubscriptionUpdating;
@@ -32,18 +34,17 @@ class ActorSummarySliver extends StatelessWidget {
       gridKey: const Key('actor-summary-grid'),
       items: items,
       errorMessage: errorMessage,
+      onErrorRetry: onErrorRetry,
       emptyMessage: emptyMessage ?? l10n.widgetActorEmptyList,
-      itemBuilder:
-          (context, actor, index) => ActorSummaryCard(
-            actor: actor,
-            onTap: onActorTap == null ? null : () => onActorTap!(actor),
-            onSubscriptionTap:
-                onActorSubscriptionTap == null
-                    ? null
-                    : () => onActorSubscriptionTap!(actor),
-            isSubscriptionUpdating:
-                isActorSubscriptionUpdating?.call(actor) ?? false,
-          ),
+      itemBuilder: (context, actor, index) => ActorSummaryCard(
+        actor: actor,
+        onTap: onActorTap == null ? null : () => onActorTap!(actor),
+        onSubscriptionTap: onActorSubscriptionTap == null
+            ? null
+            : () => onActorSubscriptionTap!(actor),
+        isSubscriptionUpdating:
+            isActorSubscriptionUpdating?.call(actor) ?? false,
+      ),
     );
   }
 }

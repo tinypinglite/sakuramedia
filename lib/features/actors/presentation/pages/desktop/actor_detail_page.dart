@@ -8,8 +8,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
@@ -196,15 +195,10 @@ class _ActorDetailErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        AppEmptyState(message: message),
-        SizedBox(height: context.appSpacing.lg),
-        AppTextButton(
-          label: AppLocalizations.of(context).commonRetry,
-          onPressed: onRetry,
-        ),
-      ],
+    return AppErrorState(
+      title: AppLocalizations.of(context).baseActionFailed,
+      message: message,
+      onRetry: onRetry,
     );
   }
 }

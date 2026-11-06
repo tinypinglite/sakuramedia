@@ -20,6 +20,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_status_chip.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
@@ -295,10 +296,12 @@ class _PluginRow extends StatelessWidget {
                         Tooltip(
                           message:
                               plugin.loadError ?? l10n.pluginsLoadErrorTooltip,
-                          child: AppBadge(
+                          child: AppStatusChip(
                             label: l10n.pluginsLoadErrorBadge,
-                            tone: AppBadgeTone.error,
-                            size: AppBadgeSize.compact,
+                            palette: AppStatusChipPalette.forSemantic(
+                              AppStatusSemantic.error,
+                            ),
+                            dense: true,
                           ),
                         ),
                       ],

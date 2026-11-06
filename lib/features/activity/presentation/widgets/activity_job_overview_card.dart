@@ -9,7 +9,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_status_chip.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 
 /// 概览中的任务卡：说明、运行状态、最近运行与直接执行入口。
@@ -169,29 +169,33 @@ class ActivityJobOverviewCard extends StatelessWidget {
 
   Widget? _buildStatusBadge(AppLocalizations l10n, TaskRunDto? lastTaskRun) {
     if (job.disabledReason != null) {
-      return AppBadge(
+      return AppStatusChip(
         label: l10n.activityJobDisabled,
-        tone: AppBadgeTone.warning,
-        size: AppBadgeSize.compact,
+        palette: AppStatusChipPalette.forSemantic(AppStatusSemantic.warning),
+        dense: true,
       );
     }
     if (lastTaskRun == null) return null;
     if (lastTaskRun.isActive) {
-      return AppBadge(
+      return AppStatusChip(
         label: activityTaskStateLabel(lastTaskRun.state, l10n),
-        tone: activityTaskStateTone(lastTaskRun.state),
-        size: AppBadgeSize.compact,
+        palette: AppStatusChipPalette.forSemantic(
+          activityTaskStateSemantic(lastTaskRun.state),
+        ),
+        dense: true,
       );
     }
     if (lastTaskRun.needsAttention) {
-      return AppBadge(
+      return AppStatusChip(
         label: lastTaskRun.hasWarning
             ? l10n.activityRunCompletedWithWarning
             : activityTaskStateLabel(lastTaskRun.state, l10n),
-        tone: lastTaskRun.hasWarning
-            ? AppBadgeTone.warning
-            : AppBadgeTone.error,
-        size: AppBadgeSize.compact,
+        palette: AppStatusChipPalette.forSemantic(
+          lastTaskRun.hasWarning
+              ? AppStatusSemantic.warning
+              : AppStatusSemantic.error,
+        ),
+        dense: true,
       );
     }
     return null;

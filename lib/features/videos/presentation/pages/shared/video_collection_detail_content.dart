@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-import 'package:intl/intl.dart';
+import 'package:sakuramedia/core/format/app_date_format.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
@@ -29,6 +29,7 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
@@ -282,10 +283,8 @@ class _VideoCollectionDetailContentState
       fallback: l10n.videoCollectionsLoadFailed,
       l10n: l10n,
     );
-    if (_isMobile) {
-      return AppEmptyState(message: message);
-    }
-    return AppEmptyState(
+    return AppErrorState(
+      title: l10n.baseActionFailed,
       message: message,
       onRetry: () => ref.read(_providerRef.notifier).refresh(),
     );
@@ -592,7 +591,16 @@ class _VideoCollectionDetailContentState
 
   void _applySort({required VideoSortField? field, SortDirection? direction}) {
     if (_itemsScrollController.hasClients) {
-      _itemsScrollController.jumpTo(0);
+      if (_isMobile && _listHeaderKey.currentContext != null) {
+        AppPinnedListHeader.scrollToStart(
+          _listHeaderKey,
+          _itemsScrollController,
+        );
+      } else {
+        _itemsScrollController.jumpTo(
+          _itemsScrollController.position.minScrollExtent,
+        );
+      }
     }
     ref
         .read(_providerRef.notifier)
@@ -638,6 +646,7 @@ class _VideoCollectionDetailContentState
           key: Key('${widget.keyPrefix}-batch-add-collection-button'),
           label: l10n.videoAddToCollection,
           icon: Icons.playlist_add_rounded,
+          isLoading: submitting && hasSelection,
           onTap: hasSelection && !submitting
               ? () => _batchAddToOtherCollection(state)
               : null,
@@ -646,6 +655,7 @@ class _VideoCollectionDetailContentState
           key: Key('${widget.keyPrefix}-batch-remove-button'),
           label: l10n.videoRemoveFromCollectionTitle,
           icon: Icons.playlist_remove_rounded,
+          isLoading: submitting && hasSelection,
           onTap: hasSelection && !submitting ? () => _batchRemove(state) : null,
         ),
         AppGlassSelectionAction(
@@ -653,6 +663,7 @@ class _VideoCollectionDetailContentState
           label: l10n.videoDeleteTitle,
           icon: Icons.delete_outline_rounded,
           foregroundColor: context.appTextPalette.error,
+          isLoading: submitting && hasSelection,
           onTap: hasSelection && !submitting ? () => _batchDelete(state) : null,
         ),
       ],
@@ -1167,5 +1178,5 @@ String? _formatReleaseDate(DateTime? value) {
   if (value == null) {
     return null;
   }
-  return DateFormat('yyyy-MM-dd').format(value.toLocal());
+  return formatAppDate(value);
 }

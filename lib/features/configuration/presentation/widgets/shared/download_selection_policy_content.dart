@@ -23,7 +23,9 @@ import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_mobile_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
@@ -91,22 +93,38 @@ class _DownloadSelectionPolicyContentState
 
     if (policyAsync.isLoading && policyState == null) {
       return _buildBodyShell(
-        const Center(child: CircularProgressIndicator.adaptive()),
+        widget.mobile
+            ? _buildMobileLoading(context)
+            : const Center(child: CircularProgressIndicator.adaptive()),
       );
     }
     if (policyAsync.hasError && policyState == null) {
       final l10n = AppLocalizations.of(context);
+      Future<void> retry() =>
+          ref.read(downloadSelectionPolicyProvider.notifier).reload();
       return _buildBodyShell(
-        AppSectionError(
-          title: l10n.downloadSelectionLoadFailed,
-          message: apiErrorMessage(
-            policyAsync.error!,
-            fallback: l10n.downloadSelectionLoadFailedFallback,
-            l10n: l10n,
-          ),
-          onRetry: () =>
-              ref.read(downloadSelectionPolicyProvider.notifier).reload(),
-        ),
+        widget.mobile
+            ? AppMobileSectionError(
+                title: l10n.downloadSelectionLoadFailed,
+                message: apiErrorMessage(
+                  policyAsync.error!,
+                  fallback: l10n.downloadSelectionLoadFailedFallback,
+                  l10n: l10n,
+                ),
+                onRetry: retry,
+                retryButtonKey: const Key(
+                  'mobile-download-selection-retry-button',
+                ),
+              )
+            : AppSectionError(
+                title: l10n.downloadSelectionLoadFailed,
+                message: apiErrorMessage(
+                  policyAsync.error!,
+                  fallback: l10n.downloadSelectionLoadFailedFallback,
+                  l10n: l10n,
+                ),
+                onRetry: retry,
+              ),
       );
     }
     if (policyState == null) return const SizedBox.shrink();
@@ -178,6 +196,53 @@ class _DownloadSelectionPolicyContentState
           ),
           if (widget.mobile) _buildSaveFooter(policyState, dirty),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMobileLoading(BuildContext context) {
+    final spacing = context.appSpacing;
+    return AppSkeletonizer(
+      enabled: true,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.only(top: spacing.md, bottom: spacing.xxl),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              height: 96,
+              decoration: BoxDecoration(
+                color: context.appColors.surfaceMuted,
+                borderRadius: context.appRadius.mdBorder,
+              ),
+            ),
+            for (var section = 0; section < 3; section++) ...[
+              SizedBox(height: spacing.lg),
+              Container(
+                padding: EdgeInsets.all(spacing.lg),
+                decoration: BoxDecoration(
+                  color: context.appColors.surfaceMuted,
+                  borderRadius: context.appRadius.mdBorder,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (var row = 0; row < 3; row++) ...[
+                      if (row > 0) SizedBox(height: spacing.md),
+                      Container(
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: context.appColors.surfaceCard,
+                          borderRadius: context.appRadius.smBorder,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -723,7 +788,9 @@ class _DownloadSelectionPolicyContentState
                     : () => unawaited(_preview(state)),
               );
               final error = _previewValidationMessage;
-              final content = constraints.maxWidth < 520
+              final content =
+                  constraints.maxWidth <
+                      context.appLayoutTokens.breakpointMedium
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -1436,7 +1503,7 @@ class _AdaptiveFieldRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (constraints.maxWidth < 420) {
+    if (constraints.maxWidth < context.appLayoutTokens.breakpointCompact) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [

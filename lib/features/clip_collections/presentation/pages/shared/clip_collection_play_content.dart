@@ -15,7 +15,7 @@ import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_episode_queue_item.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_filmstrip_controller.dart';
@@ -228,7 +228,14 @@ class _ClipCollectionPlayContentState
     if (_errorMessage != null) {
       return wrapWithMoviePlayerBackButton(
         onBackPressed: _handleBack,
-        child: Center(child: AppEmptyState(message: _errorMessage!)),
+        child: Center(
+          child: AppErrorState(
+            title: AppLocalizations.of(context).clipCollectionPlayLoadFailed,
+            message: _errorMessage!,
+            retryKey: const Key('clip-collection-play-error-retry'),
+            onRetry: _retryLoad,
+          ),
+        ),
       );
     }
     final videoController = this.videoController;
@@ -279,6 +286,17 @@ class _ClipCollectionPlayContentState
       ),
       right: buildFilmstripPanel(),
     );
+  }
+
+  void _retryLoad() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    unawaited(_load());
   }
 
   Widget _buildPlayerSurface(

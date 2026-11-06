@@ -11,7 +11,9 @@ class RankedMovieSummarySliver extends StatelessWidget {
     super.key,
     required this.items,
     this.errorMessage,
+    this.onErrorRetry,
     this.onMovieTap,
+    this.onMovieLongPress,
     this.onMovieMenuRequest,
     this.onMovieSubscriptionTap,
     this.onMovieToggleCollectionType,
@@ -25,7 +27,9 @@ class RankedMovieSummarySliver extends StatelessWidget {
 
   final List<RankedMovieListItemDto> items;
   final String? errorMessage;
+  final VoidCallback? onErrorRetry;
   final ValueChanged<RankedMovieListItemDto>? onMovieTap;
+  final ValueChanged<RankedMovieListItemDto>? onMovieLongPress;
   final void Function(RankedMovieListItemDto movie, Offset globalPosition)?
   onMovieMenuRequest;
   final ValueChanged<RankedMovieListItemDto>? onMovieSubscriptionTap;
@@ -55,12 +59,16 @@ class RankedMovieSummarySliver extends StatelessWidget {
       gridKey: const Key('ranked-movie-summary-grid'),
       items: items,
       errorMessage: errorMessage,
+      onErrorRetry: onErrorRetry,
       emptyMessage:
           emptyMessage ?? AppLocalizations.of(context).rankingEmptyData,
       itemBuilder: (context, item, index) => MovieSummaryCard(
         movie: item.toMovieListItem(),
         rank: item.rank,
         onTap: onMovieTap == null ? null : () => onMovieTap!(item),
+        onLongPress: onMovieLongPress == null
+            ? null
+            : () => onMovieLongPress!(item),
         onRequestMenu: onMovieMenuRequest == null
             ? null
             : (globalPosition) => onMovieMenuRequest!(item, globalPosition),

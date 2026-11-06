@@ -20,13 +20,15 @@ import 'package:sakuramedia/widgets/base/forms/form_submit_state.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_form_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
 
 Future<MediaLibraryDto?> showMediaLibraryEditor(
   BuildContext context, {
   required bool mobile,
   required List<MediaProviderDto> providers,
   MediaLibraryDto? initialLibrary,
-}) {
+}) async {
+  final dismissController = AppModalDismissController();
   return showAppAdaptiveModal<MediaLibraryDto>(
     context: context,
     variant: mobile
@@ -39,10 +41,12 @@ Future<MediaLibraryDto?> showMediaLibraryEditor(
       vertical: context.appLayoutTokens.dialogInsetPadding,
     ),
     mobileHeightFactor: 0.78,
+    dismissController: dismissController,
     builder: (_) => _MediaLibraryEditor(
       mobile: mobile,
       providers: providers,
       initialLibrary: initialLibrary,
+      dismissController: dismissController,
     ),
   );
 }
@@ -52,11 +56,13 @@ class _MediaLibraryEditor extends ConsumerStatefulWidget {
     required this.mobile,
     required this.providers,
     this.initialLibrary,
+    this.dismissController,
   });
 
   final bool mobile;
   final List<MediaProviderDto> providers;
   final MediaLibraryDto? initialLibrary;
+  final AppModalDismissController? dismissController;
 
   @override
   ConsumerState<_MediaLibraryEditor> createState() =>
@@ -265,6 +271,7 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor>
           : l10n.mediaLibraryEditSubtitle,
       submitKey: const Key('mobile-media-library-submit-button'),
       isSubmitting: isSubmitting,
+      dismissController: widget.dismissController,
       onSubmit: _submit,
       body: _buildBody(context),
     );
@@ -278,6 +285,7 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor>
       body: _buildBody(context),
       isSubmitting: isSubmitting,
       isBusy: isSubmitting,
+      dismissController: widget.dismissController,
       onSubmit: _submit,
     );
   }

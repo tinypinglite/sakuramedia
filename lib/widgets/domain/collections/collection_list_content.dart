@@ -7,6 +7,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_glass_search_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
@@ -259,12 +260,15 @@ class _CollectionListContentState<T>
       return [
         SliverFillRemaining(
           hasScrollBody: false,
-          child: AppEmptyState(
+          child: AppErrorState(
+            title: widget.loadErrorMessage,
             message: apiErrorMessage(
               error,
               fallback: widget.loadErrorMessage,
               l10n: l10n,
             ),
+            retryKey: Key('${widget.keyPrefix}-error-retry'),
+            onRetry: widget.onRefresh,
           ),
         ),
       ];

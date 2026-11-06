@@ -128,6 +128,9 @@ class RatedMoviesHeader extends ConsumerWidget {
             ),
           ],
         ),
+        filterUpdate: args.filterUpdate,
+        hasPreviousFilterItems: args.total > 0,
+        onRetryFilter: args.onRetryFilter,
       );
     }
     return AppMobileListHeader(
@@ -151,6 +154,9 @@ class RatedMoviesHeader extends ConsumerWidget {
           onPressed: () => showRatingDimensionsDialog(context, ref: ref),
         ),
       ],
+      filterUpdate: args.filterUpdate,
+      hasPreviousFilterItems: args.total > 0,
+      onRetryFilter: args.onRetryFilter,
     );
   }
 }

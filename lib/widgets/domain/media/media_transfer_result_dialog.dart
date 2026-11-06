@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/media/presentation/providers/media_api_prov
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
@@ -126,7 +127,9 @@ class _MediaTransferResultDialogBodyState
       return const Center(child: AppInlineSpinner());
     }
     if (snapshot.hasError) {
-      return AppEmptyState(
+      return AppErrorState(
+        key: const Key('media-transfer-result-error'),
+        title: l10n.baseActionFailed,
         message: apiErrorMessage(
           snapshot.error!,
           fallback: l10n.widgetMediaTransferFilesLoadFailed,
@@ -134,6 +137,7 @@ class _MediaTransferResultDialogBodyState
         ),
         onRetry: _retry,
         retryKey: const Key('media-transfer-result-retry'),
+        variant: AppStatePanelVariant.section,
       );
     }
     final files = snapshot.data ?? const <MediaTransferFileDto>[];

@@ -2,6 +2,34 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_pill.dart';
 
+/// 状态徽章的跨业务语义。
+enum AppStatusSemantic {
+  neutral,
+  inProgress,
+  queued,
+  success,
+  warning,
+  error,
+  muted;
+
+  /// 把后端/业务状态字符串归一为共享语义；未知值回落到 [neutral]。
+  static AppStatusSemantic fromWire(String? status) {
+    final normalized = status?.trim().toLowerCase().replaceAll(
+      RegExp(r'[\s-]+'),
+      '_',
+    );
+    return switch (normalized) {
+      'in_progress' || 'inprogress' => AppStatusSemantic.inProgress,
+      'queued' || 'pending' => AppStatusSemantic.queued,
+      'success' || 'succeeded' => AppStatusSemantic.success,
+      'warning' || 'partial' => AppStatusSemantic.warning,
+      'error' || 'failed' => AppStatusSemantic.error,
+      'blocked' => AppStatusSemantic.muted,
+      _ => AppStatusSemantic.neutral,
+    };
+  }
+}
+
 /// 已解析好的状态徽章语义。各业务方维护自己的状态枚举 →
 /// [AppStatusChipPalette] 映射，只共享 [AppStatusChip] 的渲染逻辑。
 ///
@@ -27,6 +55,11 @@ class AppStatusChipPalette {
     return AppStatusChipPalette(tone: AppPillTone.primary, icon: icon);
   }
 
+  /// 进行中/信息态——`infoSurface` + info tone。
+  factory AppStatusChipPalette.info({IconData icon = Icons.info_outline}) {
+    return AppStatusChipPalette(tone: AppPillTone.info, icon: icon);
+  }
+
   /// 成功态——`successSurface` + success tone。
   factory AppStatusChipPalette.success({
     IconData icon = Icons.check_circle_outline,
@@ -49,6 +82,36 @@ class AppStatusChipPalette {
   /// 灰态（禁用/blocked）——与 [neutral] 同底色但 muted 文本。
   factory AppStatusChipPalette.muted({IconData icon = Icons.block}) {
     return AppStatusChipPalette(tone: AppPillTone.muted, icon: icon);
+  }
+
+  /// 按跨业务语义取标准调色板；[icon] 可覆盖该语义的默认图标。
+  factory AppStatusChipPalette.forSemantic(
+    AppStatusSemantic semantic, {
+    IconData? icon,
+  }) {
+    return switch (semantic) {
+      AppStatusSemantic.neutral => AppStatusChipPalette.neutral(
+        icon: icon ?? Icons.radio_button_unchecked,
+      ),
+      AppStatusSemantic.inProgress => AppStatusChipPalette.info(
+        icon: icon ?? Icons.autorenew,
+      ),
+      AppStatusSemantic.queued => AppStatusChipPalette.neutral(
+        icon: icon ?? Icons.schedule,
+      ),
+      AppStatusSemantic.success => AppStatusChipPalette.success(
+        icon: icon ?? Icons.check_circle_outline,
+      ),
+      AppStatusSemantic.warning => AppStatusChipPalette.warning(
+        icon: icon ?? Icons.warning_amber_rounded,
+      ),
+      AppStatusSemantic.error => AppStatusChipPalette.error(
+        icon: icon ?? Icons.error_outline,
+      ),
+      AppStatusSemantic.muted => AppStatusChipPalette.muted(
+        icon: icon ?? Icons.block,
+      ),
+    };
   }
 
   final AppPillTone tone;

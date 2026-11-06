@@ -1,5 +1,8 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter/services.dart';
 import 'package:sakuramedia/core/platform/haptic_feedback.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_focus_ring.dart';
 
 /// 全项目统一的**交互态表面**：所有可点元素都应经过它，不要各自写 `InkWell`。
 ///
@@ -19,16 +22,22 @@ class AppInteractiveSurface extends StatefulWidget {
     super.key,
     required this.child,
     this.onTap,
+    this.onTapDown,
     this.onLongPress,
     this.onSecondaryTap,
     this.enabled = true,
     this.pressedOpacity = 0.7,
     this.semanticLabel,
     this.excludeFromSemantics = false,
+    this.focusRing = true,
+    this.focusRingRadius,
+    this.focusRingColor,
+    this.focusNode,
   });
 
   final Widget child;
   final VoidCallback? onTap;
+  final GestureTapDownCallback? onTapDown;
   final VoidCallback? onLongPress;
   final VoidCallback? onSecondaryTap;
 
@@ -42,12 +51,47 @@ class AppInteractiveSurface extends StatefulWidget {
   final String? semanticLabel;
   final bool excludeFromSemantics;
 
+  /// 键盘聚焦时是否绘制 2px 焦点环。默认开启。
+  final bool focusRing;
+
+  /// 焦点环圆角；不传时使用主题的小圆角。
+  final BorderRadius? focusRingRadius;
+  final Color? focusRingColor;
+
+  /// 可选外部焦点节点；不传时由 InkWell 自持。
+  final FocusNode? focusNode;
+
   @override
   State<AppInteractiveSurface> createState() => _AppInteractiveSurfaceState();
 }
 
 class _AppInteractiveSurfaceState extends State<AppInteractiveSurface> {
   bool _pressed = false;
+  bool _focused = false;
+
+  void _handleFocusChange(bool focused) {
+    if (_focused == focused) {
+      return;
+    }
+    setState(() => _focused = focused);
+  }
+
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    final interactive =
+        widget.enabled &&
+        (widget.onTap != null ||
+            widget.onLongPress != null ||
+            widget.onSecondaryTap != null);
+    if (!interactive ||
+        widget.onTap == null ||
+        (event is! KeyDownEvent && event is! KeyRepeatEvent) ||
+        (event.logicalKey != LogicalKeyboardKey.enter &&
+            event.logicalKey != LogicalKeyboardKey.space)) {
+      return KeyEventResult.ignored;
+    }
+    widget.onTap!();
+    return KeyEventResult.handled;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,40 +101,49 @@ class _AppInteractiveSurfaceState extends State<AppInteractiveSurface> {
             widget.onLongPress != null ||
             widget.onSecondaryTap != null);
 
-    Widget surface = Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: interactive ? widget.onTap : null,
-        // 长按统一补一次轻触感（移动端长按进多选/弹菜单的高频入口）。
-        onLongPress: interactive && widget.onLongPress != null
-            ? () {
-                triggerSelectionHaptic();
-                widget.onLongPress!();
-              }
-            : null,
-        onSecondaryTap: interactive ? widget.onSecondaryTap : null,
-        onHighlightChanged: interactive
-            ? (highlighted) {
-                if (_pressed != highlighted) {
-                  setState(() => _pressed = highlighted);
+    Widget surface = Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      onKeyEvent: _handleKeyEvent,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: interactive ? widget.onTap : null,
+          onTapDown: interactive ? widget.onTapDown : null,
+          // 长按统一补一次轻触感（移动端长按进多选/弹菜单的高频入口）。
+          onLongPress: interactive && widget.onLongPress != null
+              ? () {
+                  triggerSelectionHaptic();
+                  widget.onLongPress!();
                 }
-              }
-            : null,
-        mouseCursor: interactive
-            ? SystemMouseCursors.click
-            : SystemMouseCursors.basic,
-        // InkWell 自带的 ink 反馈全部关掉，按下视觉统一由 Opacity 表达。
-        splashFactory: NoSplash.splashFactory,
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        hoverColor: Colors.transparent,
-        focusColor: Colors.transparent,
-        excludeFromSemantics: widget.excludeFromSemantics,
-        child: AnimatedOpacity(
-          opacity: _pressed ? widget.pressedOpacity : 1,
-          duration: const Duration(milliseconds: 80),
-          curve: Curves.easeOut,
-          child: widget.child,
+              : null,
+          onSecondaryTap: interactive ? widget.onSecondaryTap : null,
+          onHighlightChanged: interactive
+              ? (highlighted) {
+                  if (_pressed != highlighted) {
+                    setState(() => _pressed = highlighted);
+                  }
+                }
+              : null,
+          mouseCursor: interactive
+              ? SystemMouseCursors.click
+              : SystemMouseCursors.basic,
+          // InkWell 自带的 ink 反馈全部关掉，按下视觉统一由 Opacity 表达。
+          splashFactory: NoSplash.splashFactory,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          hoverColor: Colors.transparent,
+          focusColor: Colors.transparent,
+          canRequestFocus: interactive && widget.onTap != null,
+          focusNode: widget.focusNode,
+          onFocusChange: interactive ? _handleFocusChange : null,
+          excludeFromSemantics: widget.excludeFromSemantics,
+          child: AnimatedOpacity(
+            opacity: _pressed ? widget.pressedOpacity : 1,
+            duration: const Duration(milliseconds: 80),
+            curve: Curves.easeOut,
+            child: widget.child,
+          ),
         ),
       ),
     );
@@ -99,6 +152,11 @@ class _AppInteractiveSurfaceState extends State<AppInteractiveSurface> {
     if (resolvedLabel != null && resolvedLabel.isNotEmpty) {
       surface = Semantics(button: true, label: resolvedLabel, child: surface);
     }
-    return surface;
+    return AppFocusRing(
+      focused: interactive && widget.focusRing && _focused,
+      borderRadius: widget.focusRingRadius ?? context.appRadius.smBorder,
+      color: widget.focusRingColor,
+      child: surface,
+    );
   }
 }

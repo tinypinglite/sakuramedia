@@ -19,6 +19,7 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_back_button.dart';
 import 'package:sakuramedia/widgets/domain/media/movie_player_thumbnail_panel.dart';
 
 /// 投屏遥控页：进度同步 + 播放控制 + 缩略图浏览/点击跳转。
@@ -182,8 +183,9 @@ class _CastRemotePageState extends ConsumerState<CastRemotePage> {
                               usesAutoColumns: _columns == null,
                               onColumnsChanged: (count) =>
                                   setState(() => _columns = count),
-                              onToggleScrollLock: () =>
-                                  setState(() => _scrollLocked = !_scrollLocked),
+                              onToggleScrollLock: () => setState(
+                                () => _scrollLocked = !_scrollLocked,
+                              ),
                               onThumbnailTap: (index) {
                                 setState(() => _previewPosition = null);
                                 unawaited(
@@ -314,7 +316,9 @@ class _CastRemotePageState extends ConsumerState<CastRemotePage> {
             style: resolveAppTextStyle(
               context,
               size: AppTextSize.s12,
-              tone: state.isSeeking ? AppTextTone.accent : AppTextTone.secondary,
+              tone: state.isSeeking
+                  ? AppTextTone.accent
+                  : AppTextTone.secondary,
             ),
           ),
         ],
@@ -339,9 +343,8 @@ class _CastRemotePageState extends ConsumerState<CastRemotePage> {
             key: const Key('cast-remote-back-10'),
             tooltip: l10n.castSeekBack10,
             onPressed: enabled
-                ? () => unawaited(
-                    controller.seekBy(const Duration(seconds: -10)),
-                  )
+                ? () =>
+                      unawaited(controller.seekBy(const Duration(seconds: -10)))
                 : null,
             icon: const Icon(Icons.replay_10_rounded),
           ),
@@ -363,9 +366,8 @@ class _CastRemotePageState extends ConsumerState<CastRemotePage> {
             key: const Key('cast-remote-forward-10'),
             tooltip: l10n.castSeekForward10,
             onPressed: enabled
-                ? () => unawaited(
-                    controller.seekBy(const Duration(seconds: 10)),
-                  )
+                ? () =>
+                      unawaited(controller.seekBy(const Duration(seconds: 10)))
                 : null,
             icon: const Icon(Icons.forward_10_rounded),
           ),
@@ -436,11 +438,10 @@ class _CastRemoteTopBar extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(spacing.xs, topInset, spacing.lg, 0),
       child: Row(
         children: [
-          AppIconButton(
+          AppBackButton(
             key: const Key('cast-remote-back'),
             tooltip: l10n.castBack,
             onPressed: onBack,
-            icon: const Icon(Icons.arrow_back_rounded),
           ),
           SizedBox(width: spacing.xs),
           Container(

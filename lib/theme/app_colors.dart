@@ -3,6 +3,9 @@ import 'package:sakuramedia/theme/app_theme_color.dart';
 
 @immutable
 class AppColors extends ThemeExtension<AppColors> {
+  static const Color glassFallbackTintDark = Color(0xFFFFFFFF);
+  static const Color glassFallbackTintLight = Color(0xFFD2DCF0);
+
   const AppColors({
     required this.surfacePage,
     required this.surfaceCard,

@@ -16,7 +16,6 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_sort_menu_button.dart';
@@ -121,7 +120,6 @@ class _TagsPageState extends ConsumerState<TagsPage> {
           : context.appSpacing.lg,
       enableRefresh: widget.mobile,
       registerPageRefresh: !widget.mobile,
-      onRefreshFailure: widget.mobile ? _showRefreshFailure : null,
       onMovieTap: _openMovieDetail,
       headerBuilder: widget.mobile ? _buildMobileHeader : null,
       usePinnedMobileHeader: widget.mobile,
@@ -182,6 +180,9 @@ class _TagsPageState extends ConsumerState<TagsPage> {
           iconOnly: true,
         ),
       ],
+      filterUpdate: args.filterUpdate,
+      hasPreviousFilterItems: args.total > 0,
+      onRetryFilter: args.onRetryFilter,
     );
   }
 
@@ -205,13 +206,6 @@ class _TagsPageState extends ConsumerState<TagsPage> {
       movieNumber: movieNumber,
       fallbackPath: desktopTagsPath,
     ).push(context);
-  }
-
-  void _showRefreshFailure(BuildContext context) {
-    showToast(
-      AppLocalizations.of(context).tagRefreshFailed,
-      tone: AppToastTone.error,
-    );
   }
 
   void _confirmBrowse() {

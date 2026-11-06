@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
 /// 分组卡片：浅灰底上浮起的白色圆角卡片，承载一组语义相关的设置行/内容。
 ///
@@ -183,15 +184,7 @@ class AppSettingCell extends StatelessWidget {
     if (onTap == null) {
       return content;
     }
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        mouseCursor: SystemMouseCursors.click,
-        onTap: onTap,
-        hoverColor: context.appColors.surfaceMuted,
-        child: content,
-      ),
-    );
+    return AppInteractiveSurface(onTap: onTap, child: content);
   }
 }
 

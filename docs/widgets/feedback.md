@@ -2,11 +2,11 @@
 
 ## 空态和错误
 
-- `AppEmptyState`：路径 `lib/widgets/base/feedback/app_empty_state.dart`，用于无数据、无匹配结果或无可用功能。
-- `AppSectionError`：路径 `lib/widgets/base/feedback/app_section_error.dart`，桌面内容区的错误和重试。
-- `AppMobileSectionError`：路径 `lib/widgets/base/feedback/app_mobile_section_error.dart`，移动内容区的错误和重试。
-
-错误态要提供用户能执行的重试或返回动作；没有旧内容时才用整块错误态。
+- `AppEmptyState`：路径 `lib/widgets/base/feedback/app_empty_state.dart`，用于无数据、无匹配结果或无可用功能。`variant` 分三档：`page`（页面级）、`section`（区块级）、`inline`（行内单行）；`retryStyle` 决定重试是实色按钮还是文字按钮。
+- `AppErrorState`：路径 `lib/widgets/base/feedback/app_error_state.dart`，错误态的唯一入口。页面/区块用 `AppErrorState` + 重试，行内错误用 `AppErrorState.inline`。错误不得再用 `AppEmptyState` 渲染。
+- `AppSectionError` / `AppMobileSectionError`：桌面/移动的 section 错误薄包装，保留“桌面无卡壳、移动有卡壳”的平台差异，内部统一 `AppErrorState`。
+- `AppInlineErrorBanner`：表单、弹层或没有列表 Header 的页面使用的行内错误条。
+- 刷新失败只保留一个通道：有 Header 的列表由 Header 内 `AppFilterUpdateBar` 负责；没有 Header 的页面用 `AppInlineErrorBanner`。同一失败不要同时 toast + bar。
 
 ## 骨架和加载
 

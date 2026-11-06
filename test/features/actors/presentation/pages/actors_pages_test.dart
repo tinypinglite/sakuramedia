@@ -143,7 +143,7 @@ void main() {
     final refreshView = tester.widget<AppAdaptiveRefreshScrollView>(
       find.byType(AppAdaptiveRefreshScrollView),
     );
-    final refreshFuture = refreshView.onRefresh();
+    final refreshFuture = refreshView.onRefresh!();
     await tester.pump(const Duration(seconds: 1));
     await refreshFuture;
     await tester.pumpAndSettle();

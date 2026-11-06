@@ -1,8 +1,7 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 
+/// 桌面 section 级错误态：无卡壳，内容使用共享 section 布局。
 class AppSectionError extends StatelessWidget {
   const AppSectionError({
     super.key,
@@ -16,37 +15,10 @@ class AppSectionError extends StatelessWidget {
   final Future<void> Function() onRetry;
 
   @override
-  Widget build(BuildContext context) {
-    final l10n = appL10n(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s14,
-            weight: AppTextWeight.semibold,
-            tone: AppTextTone.primary,
-          ),
-        ),
-        SizedBox(height: context.appSpacing.md),
-        Text(
-          message,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s14,
-            weight: AppTextWeight.regular,
-            tone: AppTextTone.secondary,
-          ),
-        ),
-        SizedBox(height: context.appSpacing.lg),
-        AppButton(
-          onPressed: () => onRetry(),
-          icon: const Icon(Icons.refresh_rounded),
-          label: l10n.commonRetry,
-        ),
-      ],
-    );
-  }
+  Widget build(BuildContext context) => AppErrorState(
+    title: title,
+    message: message,
+    onRetry: onRetry,
+    variant: AppStatePanelVariant.section,
+  );
 }

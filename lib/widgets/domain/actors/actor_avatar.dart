@@ -22,19 +22,26 @@ class ActorAvatar extends StatelessWidget {
       width: size,
       height: size,
       child: ClipOval(
-        child:
-            hasImage
-                ? MaskedImage(url: imageUrl!, fit: BoxFit.cover)
-                : DecoratedBox(
-                  key: placeholderKey,
-                  decoration: BoxDecoration(
-                    color: context.appColors.movieDetailEmptyBackground,
-                  ),
-                  child: Icon(
-                    Icons.person_outline_rounded,
-                    color: context.appTextPalette.muted,
-                  ),
-                ),
+        child: hasImage
+            ? MaskedImage(
+                url: imageUrl!,
+                fit: BoxFit.cover,
+                placeholderBuilder: _buildPlaceholder,
+                errorBuilder: (context, error, stackTrace) =>
+                    _buildPlaceholder(context),
+              )
+            : _buildPlaceholder(context),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(BuildContext context) {
+    return DecoratedBox(
+      key: placeholderKey,
+      decoration: BoxDecoration(color: context.appColors.surfaceMuted),
+      child: Icon(
+        Icons.person_outline_rounded,
+        color: context.appTextPalette.muted,
       ),
     );
   }

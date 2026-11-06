@@ -6,9 +6,9 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/media_libraries_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 
 /// 媒体导入弹窗顶部的媒体库选择器：读取共享的媒体库 provider，渲染
@@ -131,20 +131,15 @@ class _MediaLibrarySelectorFieldState
             l10n: l10n,
           );
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator.adaptive());
+      return const Center(child: AppInlineSpinner());
     }
     if (errorMessage != null) {
-      return Column(
-        children: [
-          AppEmptyState(message: errorMessage),
-          SizedBox(height: context.appSpacing.sm),
-          AppButton(
-            key: const Key('media-import-library-retry-button'),
-            label: l10n.widgetMediaImportReloadLibraries,
-            size: AppButtonSize.small,
-            onPressed: () => unawaited(_load(forceReload: true)),
-          ),
-        ],
+      return AppErrorState(
+        title: l10n.widgetMediaImportLibraryLoadFailed,
+        message: errorMessage,
+        variant: AppStatePanelVariant.section,
+        retryKey: const Key('media-import-library-retry-button'),
+        onRetry: () => unawaited(_load(forceReload: true)),
       );
     }
     if (_libraries.isEmpty) {

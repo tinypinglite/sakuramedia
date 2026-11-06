@@ -186,6 +186,9 @@
     }
   },
   "commonUnknown": "Unknown",
+  "commonApiKey": "API Key",
+  "commonProvider": "Provider",
+  "commonSubmittingPleaseWait": "Submitting, please wait…",
   "accountTitle": "Account",
   "accountProfileTitle": "Account profile",
   "accountUsername": "Username",
@@ -1103,13 +1106,19 @@
     }
   },
   "shellNavMediaTags": "Media file tags",
-  "appearanceDescription": "Adjust the interface brightness and accent color; settings are saved on this device.",
+  "appearanceDescription": "Adjust brightness, accent color, and surface style; settings are saved on this device.",
   "appearanceThemeMode": "Theme mode",
   "appearanceSystem": "Follow system",
   "appearanceLight": "Light",
   "appearanceDark": "Dark",
   "appearanceThemeColor": "Accent color",
   "appearanceThemeColorFooter": "The accent color applies to buttons, selected states, and emphasized elements.",
+  "appearanceSurfaceStyle": "Interface style",
+  "appearanceSurfaceStyleDescription": "Liquid glass is more detailed; the flat style uses no real-time blur and suits lower-performance devices.",
+  "appearanceSurfaceLiquid": "Liquid glass",
+  "appearanceSurfaceLiquidDescription": "Refraction and highlights for newer devices",
+  "appearanceSurfaceFlat": "Flat",
+  "appearanceSurfaceFlatDescription": "No live blur; for lower-performance devices",
   "providerConfigFieldRequired": "Enter {label}",
   "@providerConfigFieldRequired": {
     "placeholders": {
@@ -2344,7 +2353,6 @@
   "momentErrorInfoLoadFailed": "Moment information could not be loaded. Please try again later.",
   "momentErrorGone": "This moment no longer exists and cannot be added to a collection.",
   "momentErrorResultImageLoadFailed": "The result image could not be read. Please try again later.",
-  "momentErrorRefreshFailed": "Refresh failed",
   "momentCollectionSectionTitle": "Moment collections",
   "momentCollectionCreateTitle": "New collection",
   "momentCollectionEditTitle": "Edit collection",
@@ -2614,7 +2622,6 @@
   "activityEmptyNotificationsFiltered": "No notifications match the current filters",
   "activityNoUnreadNotifications": "No unread notifications",
   "activityNoNotifications": "No notifications",
-  "activityRefreshFailed": "Refresh failed. Please try again later.",
   "activityCenterTitle": "Task center",
   "activityTabOverview": "Overview",
   "activityTabHistory": "Task history",
@@ -3135,7 +3142,6 @@
   "imageSearchIndexRebuildRequired": "The embedding space changed. Rebuild the image search index first.",
   "imageSearchNoSubscribedActors": "No subscribed actors",
   "imageSearchClearSelection": "Clear selection",
-  "moviePageRefreshFailed": "Failed to refresh",
   "moviePageFilterTooltip": "Filter",
   "moviePageAllMoviesTitle": "All movies",
   "moviePageMovieCount": "{count} movies",
@@ -3224,7 +3230,6 @@
       }
     }
   },
-  "moviePageWatchedAtDatePattern": "MM/dd/yyyy HH:mm",
   "moviePageSectionRankings": "Rankings",
   "moviePageSectionTags": "Tags",
   "moviePageSectionMediaSources": "Media sources",
@@ -3752,17 +3757,6 @@
   },
   "mediaListThumbnailRegenerateConfirm": "Regenerate",
   "mediaListThumbnailSingleRegenerateMessage": "The existing thumbnails of this media will be deleted and regenerated; thumbnails stay unavailable until generation finishes. Continue?",
-  "mediaListThumbnailResetRefreshFailed": "{count} items were reset, but the list failed to refresh: {message}",
-  "@mediaListThumbnailResetRefreshFailed": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      },
-      "message": {
-        "type": "String"
-      }
-    }
-  },
   "mediaListThumbnailNothingToRegenerate": "No media left to regenerate",
   "mediaListThumbnailNothingToRetry": "No failed media left to retry",
   "mediaListThumbnailRegenerateSubmitted": "{count} thumbnail regenerations submitted; they are restored automatically once done",
@@ -4101,7 +4095,6 @@
   "widgetMediaImportKeepInPlaceTitle": "Source files stay in place",
   "widgetMediaImportKeepInPlaceDescription": "Moving, renaming, or editing source files will break the media; deleting the media record does not delete the source files.",
   "widgetMediaImportLibraryLoadFailed": "Failed to load media libraries. Try again.",
-  "widgetMediaImportReloadLibraries": "Reload media libraries",
   "widgetMediaImportNoLibraries": "No media libraries yet. Add one in settings first.",
   "widgetMediaImportLibraryLabel": "Import to media library",
   "widgetDownloadDeleteTitle": "Delete download tasks",
@@ -5191,22 +5184,6 @@
   "widgetTagSearchHint": "Search tags",
   "widgetTagClearAll": "Clear",
   "widgetTagMatchLabel": "Match",
-  "widgetTagSearchResultCount": "Search results · {count}",
-  "@widgetTagSearchResultCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "widgetTagAllCount": "All tags · {count}",
-  "@widgetTagAllCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "widgetTagSearchResult": "Search results",
   "widgetTagPopular": "Popular tags",
   "widgetTagCollapse": "Collapse",
@@ -5266,6 +5243,9 @@
       }
     }
   },
+  "moviePlayerPrimaries": "Primaries",
+  "moviePlayerGamma": "Gamma",
+  "moviePlayerColorLight": "Light",
   "widgetMoviePlayerSubtitleLoadFailed": "Failed to load subtitles, please try again later",
   "widgetMoviePlayerLoading": "Loading movie…",
   "widgetMoviePlayerSectionMedia": "Media",

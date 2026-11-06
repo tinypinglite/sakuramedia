@@ -3,7 +3,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
@@ -11,6 +10,8 @@ import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
 
 enum CollectionEditorPresentation { dialog, drawer, bottomFormSheet, adaptive }
 
@@ -131,6 +132,8 @@ class _CollectionEditorDialogState<T>
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _nameController;
   late final TextEditingController _descriptionController;
+  final AppModalDismissController _dismissController =
+      AppModalDismissController();
   bool _isSubmitting = false;
   bool _hasAttemptedSubmit = false;
 
@@ -163,6 +166,7 @@ class _CollectionEditorDialogState<T>
 
   @override
   void dispose() {
+    _dismissController.dispose();
     _nameController.dispose();
     _descriptionController.dispose();
     super.dispose();
@@ -200,39 +204,30 @@ class _CollectionEditorDialogState<T>
     final l10n = AppLocalizations.of(context);
     final isEditHeader =
         _config.headerStyle == CollectionEditorHeaderStyle.edit;
-    return Form(
-      key: _formKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(context),
-          SizedBox(height: isEditHeader ? spacing.lg : spacing.md),
-          _buildFields(context),
-          SizedBox(height: isEditHeader ? spacing.lg : spacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: AppButton(
-                  label: l10n.commonCancel,
-                  onPressed: _isSubmitting
-                      ? null
-                      : () => Navigator.of(context).pop(),
-                ),
-              ),
-              SizedBox(width: spacing.md),
-              Expanded(
-                child: AppButton(
-                  key: _config.submitKey,
-                  label: _config.copy.submitLabel,
-                  variant: AppButtonVariant.primary,
-                  isLoading: _isSubmitting,
-                  onPressed: _submit,
-                ),
-              ),
-            ],
-          ),
-        ],
+    return AppModalDismissScope(
+      controller: _dismissController,
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(context),
+            SizedBox(height: isEditHeader ? spacing.lg : spacing.md),
+            _buildFields(context),
+            SizedBox(height: isEditHeader ? spacing.lg : spacing.md),
+            AppModalActionRow(
+              cancelLabel: l10n.commonCancel,
+              submitLabel: _config.copy.submitLabel,
+              submitKey: _config.submitKey,
+              isSubmitting: _isSubmitting,
+              onCancel: _isSubmitting
+                  ? null
+                  : () => Navigator.of(context).pop(),
+              onSubmit: _submit,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -335,6 +330,7 @@ class _CollectionEditorDialogState<T>
       return;
     }
 
+    _dismissController.setLocked(true);
     setState(() => _isSubmitting = true);
     try {
       final result = await _config.onSubmit(
@@ -360,6 +356,7 @@ class _CollectionEditorDialogState<T>
         ),
         tone: AppToastTone.error,
       );
+      _dismissController.setLocked(false);
       setState(() => _isSubmitting = false);
     }
   }

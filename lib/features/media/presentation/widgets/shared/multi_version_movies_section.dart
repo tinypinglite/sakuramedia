@@ -22,6 +22,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
 import 'package:sakuramedia/widgets/base/forms/app_filter_chip.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
@@ -35,6 +36,8 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
     required this.keyPrefix,
     required this.mobile,
     required this.onOpenMovieDetail,
+    this.onRefresh,
+    this.refreshError,
     required this.includeVr,
     required this.includeFc2,
     required this.includeProcessed,
@@ -47,6 +50,8 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
   final String keyPrefix;
   final bool mobile;
   final void Function(BuildContext, String) onOpenMovieDetail;
+  final Future<void> Function()? onRefresh;
+  final String? refreshError;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -78,8 +83,12 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
     );
 
     Future<void> refresh() async {
-      final message = await ref.read(provider.notifier).refresh();
-      if (message != null && context.mounted) showToast(message);
+      final callback = onRefresh;
+      if (callback != null) {
+        await callback();
+        return;
+      }
+      await ref.read(provider.notifier).refresh();
     }
 
     Future<void> deleteVersion(
@@ -191,7 +200,13 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
                       selection.exitSelection();
                       filter.state.value = !filter.state.value;
                       if (scrollController.hasClients) {
-                        scrollController.jumpTo(0);
+                        unawaited(
+                          scrollController.animateTo(
+                            0,
+                            duration: context.appMotion.fast,
+                            curve: context.appMotion.standard,
+                          ),
+                        );
                       }
                     },
                   ),
@@ -214,7 +229,15 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
             includeVr.value = false;
             includeFc2.value = false;
             includeProcessed.value = false;
-            if (scrollController.hasClients) scrollController.jumpTo(0);
+            if (scrollController.hasClients) {
+              unawaited(
+                scrollController.animateTo(
+                  0,
+                  duration: context.appMotion.fast,
+                  curve: context.appMotion.standard,
+                ),
+              );
+            }
           },
         );
       },
@@ -300,7 +323,9 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
                 key: Key('$keyPrefix-versions-refresh'),
                 tooltip: l10n.commonRefresh,
                 icon: Icons.refresh_rounded,
-                onPressed: asyncState.isLoading ? null : refresh,
+                onPressed: asyncState.isLoading
+                    ? null
+                    : () => unawaited(refresh()),
               ),
             ],
           )
@@ -344,7 +369,20 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
     final content = AppFixedHeaderLayout(
       header: selection.selectionMode
           ? selection.buildHeader(context, mobile: mobile)
-          : filterHeader,
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                filterHeader,
+                if (refreshError != null)
+                  Padding(
+                    padding: EdgeInsets.only(top: spacing.sm),
+                    child: AppInlineErrorBanner(
+                      message: refreshError!,
+                      onRetry: refresh,
+                    ),
+                  ),
+              ],
+            ),
       headerBottomSpacing: context.appSpacing.lg,
       child: CustomScrollView(
         key: Key('$keyPrefix-versions-scroll'),

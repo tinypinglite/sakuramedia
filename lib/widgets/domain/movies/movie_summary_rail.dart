@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_scroll_rail.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_card_wiring.dart';
 
@@ -63,6 +64,7 @@ class MovieSummaryRail extends ConsumerWidget {
 
   MovieSummaryCardWiring get _wiring => MovieSummaryCardWiring(
     onMovieTap: onMovieTap,
+    onMovieLongPress: null,
     onMovieMenuRequest: onMovieMenuRequest,
     onMovieSubscriptionTap: onMovieSubscriptionTap,
     onMovieToggleCollectionType: onMovieToggleCollectionType,
@@ -75,7 +77,11 @@ class MovieSummaryRail extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     if (errorMessage != null) {
-      return AppEmptyState(message: errorMessage!, onRetry: onErrorRetry);
+      return AppErrorState(
+        title: AppLocalizations.of(context).baseActionFailed,
+        message: errorMessage!,
+        onRetry: onErrorRetry,
+      );
     }
     if (items.isEmpty) {
       return AppEmptyState(

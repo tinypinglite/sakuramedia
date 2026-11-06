@@ -10,9 +10,10 @@ import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thum
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/staggered_layout.dart';
-import 'package:sakuramedia/widgets/base/interaction/app_clickable.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_trigger.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_mask.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
@@ -249,8 +250,7 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
       if (oldThumbnail.thumbnailId != nextThumbnail.thumbnailId ||
           oldThumbnail.mediaId != nextThumbnail.mediaId ||
           oldThumbnail.offsetSeconds != nextThumbnail.offsetSeconds ||
-          oldThumbnail.image.origin !=
-              nextThumbnail.image.origin ||
+          oldThumbnail.image.origin != nextThumbnail.image.origin ||
           oldThumbnail.width != nextThumbnail.width ||
           oldThumbnail.height != nextThumbnail.height) {
         return true;
@@ -647,9 +647,10 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
       );
     }
     if (widget.errorMessage != null) {
-      return AppEmptyState(
-        icon: Icons.broken_image_outlined,
+      return AppErrorState(
+        key: Key('${widget.keyPrefix}-thumbnail-error'),
         title: AppLocalizations.of(context).widgetMediaThumbnailLoadFailedTitle,
+        icon: Icons.broken_image_outlined,
         message: widget.errorMessage!,
         onRetry: widget.onRetry,
         retryKey: Key('${widget.keyPrefix}-thumbnail-retry'),
@@ -886,12 +887,9 @@ class _MovieMediaThumbnailGridState extends State<MovieMediaThumbnailGrid> {
 
     final menuHandler = widget.onThumbnailMenuRequested;
     if (menuHandler == null) {
-      return AppClickable(
-        enabled: true,
-        child: GestureDetector(
-          onTap: () => widget.onThumbnailTap(index),
-          child: child,
-        ),
+      return AppInteractiveSurface(
+        onTap: () => widget.onThumbnailTap(index),
+        child: child,
       );
     }
 
@@ -1063,21 +1061,18 @@ class _AdaptiveFitThumbnailImageState
       return;
     }
     final stream = provider.resolve(createLocalImageConfiguration(context));
-    final listener = ImageStreamListener(
-      (ImageInfo info, bool _) {
-        final width = info.image.width.toDouble();
-        final height = info.image.height.toDouble();
-        if (!mounted || width <= 0 || height <= 0) {
-          return;
-        }
-        final ratio = width / height;
-        if (_aspectRatio == ratio) {
-          return;
-        }
-        setState(() => _aspectRatio = ratio);
-      },
-      onError: (Object error, StackTrace? stackTrace) {},
-    );
+    final listener = ImageStreamListener((ImageInfo info, bool _) {
+      final width = info.image.width.toDouble();
+      final height = info.image.height.toDouble();
+      if (!mounted || width <= 0 || height <= 0) {
+        return;
+      }
+      final ratio = width / height;
+      if (_aspectRatio == ratio) {
+        return;
+      }
+      setState(() => _aspectRatio = ratio);
+    }, onError: (Object error, StackTrace? stackTrace) {});
     stream.addListener(listener);
     _imageStream = stream;
     _imageStreamListener = listener;

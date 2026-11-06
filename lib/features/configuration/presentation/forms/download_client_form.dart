@@ -4,7 +4,7 @@ import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.da
 import 'package:sakuramedia/features/configuration/presentation/forms/provider_config_form.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_status_chip.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
@@ -161,10 +161,7 @@ class DownloadClientFormFields extends StatelessWidget {
 }
 
 class DownloadClientDiagnosticResultView extends StatelessWidget {
-  const DownloadClientDiagnosticResultView({
-    super.key,
-    required this.report,
-  });
+  const DownloadClientDiagnosticResultView({super.key, required this.report});
 
   final DownloadClientDiagnosticReportDto report;
 
@@ -172,7 +169,6 @@ class DownloadClientDiagnosticResultView extends StatelessWidget {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    final tone = _tone(report.status);
     final colors = context.appColors;
     final surface = switch (report.status) {
       'ok' => colors.successSurface,
@@ -202,10 +198,12 @@ class DownloadClientDiagnosticResultView extends StatelessWidget {
                   ),
                 ),
               ),
-              AppBadge(
+              AppStatusChip(
                 label: _statusLabel(l10n, report.status),
-                tone: tone,
-                size: AppBadgeSize.compact,
+                palette: AppStatusChipPalette.forSemantic(
+                  _semantic(report.status),
+                ),
+                dense: true,
               ),
             ],
           ),
@@ -235,10 +233,10 @@ class DownloadClientDiagnosticResultView extends StatelessWidget {
         _ => l10n.downloaderTestStatusFailed,
       };
 
-  static AppBadgeTone _tone(String status) => switch (status) {
-    'ok' => AppBadgeTone.success,
-    'warning' => AppBadgeTone.warning,
-    _ => AppBadgeTone.error,
+  static AppStatusSemantic _semantic(String status) => switch (status) {
+    'ok' => AppStatusSemantic.success,
+    'warning' => AppStatusSemantic.warning,
+    _ => AppStatusSemantic.error,
   };
 
   static String _summary(AppLocalizations l10n, String status) =>
@@ -261,10 +259,10 @@ class _DiagnosticCheckRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppBadge(
+        AppStatusChip(
           label: _statusLabel(l10n, check.status),
-          tone: _tone(check.status),
-          size: AppBadgeSize.compact,
+          palette: AppStatusChipPalette.forSemantic(_semantic(check.status)),
+          dense: true,
         ),
         SizedBox(width: spacing.sm),
         Expanded(
@@ -304,20 +302,19 @@ class _DiagnosticCheckRow extends StatelessWidget {
         _ => l10n.downloaderCheckStatusFailed,
       };
 
-  static AppBadgeTone _tone(String status) => switch (status) {
-    'ok' => AppBadgeTone.success,
-    'warning' => AppBadgeTone.warning,
-    'skipped' => AppBadgeTone.neutral,
-    _ => AppBadgeTone.error,
+  static AppStatusSemantic _semantic(String status) => switch (status) {
+    'ok' => AppStatusSemantic.success,
+    'warning' => AppStatusSemantic.warning,
+    'skipped' => AppStatusSemantic.neutral,
+    _ => AppStatusSemantic.error,
   };
 
-  static String _checkLabel(AppLocalizations l10n, String key) =>
-      switch (key) {
-        'qbittorrent_connection' => l10n.downloaderCheckQbittorrent,
-        'directory_mapping' => l10n.downloaderCheckDirectoryMapping,
-        'hardlink' => l10n.downloaderCheckHardlink,
-        'cleanup' => l10n.downloaderCheckCleanup,
-        'provider' => l10n.downloaderCheckProvider,
-        _ => key,
-      };
+  static String _checkLabel(AppLocalizations l10n, String key) => switch (key) {
+    'qbittorrent_connection' => l10n.downloaderCheckQbittorrent,
+    'directory_mapping' => l10n.downloaderCheckDirectoryMapping,
+    'hardlink' => l10n.downloaderCheckHardlink,
+    'cleanup' => l10n.downloaderCheckCleanup,
+    'provider' => l10n.downloaderCheckProvider,
+    _ => key,
+  };
 }

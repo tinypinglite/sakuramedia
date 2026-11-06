@@ -1,6 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_summary_list_content.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/rated_movies_header.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
@@ -38,10 +37,6 @@ class MobileRatedMoviesPage extends ConsumerWidget {
             slivers: <Widget>[sliver],
           ),
       enableRefresh: true,
-      onRefreshFailure: (context) => showToast(
-        AppLocalizations.of(context).moviePageRefreshFailed,
-        tone: AppToastTone.error,
-      ),
     );
   }
 }

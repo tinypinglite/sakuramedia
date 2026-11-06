@@ -30,6 +30,7 @@ class VideoSummaryCard extends StatelessWidget {
     super.key,
     required this.video,
     this.onTap,
+    this.onLongPress,
     this.onPlay,
     this.onThumbnails,
     this.onAddToCollection,
@@ -43,6 +44,7 @@ class VideoSummaryCard extends StatelessWidget {
 
   /// 点击卡片：桌面走动作弹窗、移动走 sheet；两端弹窗内承载播放/加入合集/删除等。
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   /// 悬停面板里的播放主按钮回调；为 `null` 或 [VideoItemListItemDto.canPlay]
   /// 为 false 时不显示按钮。
@@ -81,6 +83,7 @@ class VideoSummaryCard extends StatelessWidget {
             ? Key('video-summary-card-select-${video.id}')
             : Key('video-summary-card-tap-${video.id}'),
         onTap: handleTap,
+        onLongPress: onLongPress,
         child: AppCoverCard(
           hoverEnabled: !selectionMode,
           selectionMode: selectionMode,

@@ -1,7 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/series_movies_content.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
@@ -34,10 +32,6 @@ class MobileSeriesMoviesPage extends StatelessWidget {
             slivers: <Widget>[sliver],
           ),
       enableRefresh: true,
-      onRefreshFailure: (context) => showToast(
-        AppLocalizations.of(context).moviePageRefreshFailed,
-        tone: AppToastTone.error,
-      ),
       // 与移动影片页同一套移动范式：多选入口挂卡片长按、批量动作下沉到底部条。
       useMobileSelectionLayout: true,
       // 系列名进返回栏——信息槽里会被压成省略号。

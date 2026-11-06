@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_card_wiring.dart';
 
@@ -11,7 +12,10 @@ class MovieSummarySliver extends ConsumerWidget {
     super.key,
     required this.items,
     this.errorMessage,
+    this.onErrorRetry,
+    this.errorRetryKey,
     this.onMovieTap,
+    this.onMovieLongPress,
     this.onMovieMenuRequest,
     this.onMovieSubscriptionTap,
     this.onMovieToggleCollectionType,
@@ -28,7 +32,10 @@ class MovieSummarySliver extends ConsumerWidget {
 
   final List<MovieListItemDto> items;
   final String? errorMessage;
+  final VoidCallback? onErrorRetry;
+  final Key? errorRetryKey;
   final ValueChanged<MovieListItemDto>? onMovieTap;
+  final ValueChanged<MovieListItemDto>? onMovieLongPress;
   final void Function(MovieListItemDto movie, Offset globalPosition)?
   onMovieMenuRequest;
   final ValueChanged<MovieListItemDto>? onMovieSubscriptionTap;
@@ -57,6 +64,7 @@ class MovieSummarySliver extends ConsumerWidget {
 
   MovieSummaryCardWiring get _wiring => MovieSummaryCardWiring(
     onMovieTap: onMovieTap,
+    onMovieLongPress: onMovieLongPress,
     onMovieMenuRequest: onMovieMenuRequest,
     onMovieSubscriptionTap: onMovieSubscriptionTap,
     onMovieToggleCollectionType: onMovieToggleCollectionType,
@@ -74,6 +82,15 @@ class MovieSummarySliver extends ConsumerWidget {
       gridKey: const Key('movie-summary-grid'),
       items: items,
       errorMessage: errorMessage,
+      onErrorRetry: onErrorRetry,
+      errorBuilder: errorRetryKey == null
+          ? null
+          : (context) => AppErrorState(
+              title: l10n.baseActionFailed,
+              message: errorMessage ?? l10n.baseEmptyData,
+              onRetry: onErrorRetry,
+              retryKey: errorRetryKey,
+            ),
       emptyMessage: emptyMessage ?? l10n.widgetMovieEmptyList,
       itemBuilder: (context, movie, index) => _wiring.build(
         context,

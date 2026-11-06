@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
 
 class MovieActorWrap extends StatelessWidget {
@@ -62,15 +63,8 @@ class MovieActorWrap extends StatelessWidget {
                     ),
                     child: Center(
                       child: isRemoving
-                          ? SizedBox(
-                              width: tokens.iconSizeSm,
-                              height: tokens.iconSizeSm,
-                              child: CircularProgressIndicator.adaptive(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color?>(
-                                  context.appTextPalette.onMedia,
-                                ),
-                              ),
+                          ? AppInlineSpinner(
+                              color: context.appTextPalette.onMedia,
                             )
                           : Icon(
                               Icons.remove_rounded,

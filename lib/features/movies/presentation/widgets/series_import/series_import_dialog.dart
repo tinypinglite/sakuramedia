@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/series_import
 import 'package:sakuramedia/features/search/data/catalog_search_stream_stats.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
@@ -226,18 +227,7 @@ class _StatusRow extends StatelessWidget {
     } else if (state.hasFailed) {
       icon = Icon(Icons.error_rounded, color: _errorColor(context), size: 22);
     } else {
-      icon = SizedBox(
-        width: 20,
-        height: 20,
-        child: CircularProgressIndicator.adaptive(
-          backgroundColor: switch (Theme.of(context).platform) {
-            TargetPlatform.iOS || TargetPlatform.macOS => _accentColor(context),
-            _ => null,
-          },
-          strokeWidth: 2.5,
-          valueColor: AlwaysStoppedAnimation<Color?>(_accentColor(context)),
-        ),
-      );
+      icon = AppInlineSpinner(color: _accentColor(context));
     }
 
     return Row(

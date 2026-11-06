@@ -20,7 +20,6 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
-import 'package:sakuramedia/widgets/base/interaction/app_context_menu_trigger.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
@@ -119,26 +118,23 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
                           errorMessage: paged.initialError != null
                               ? l10n.errorVideoListLoadFailed
                               : null,
+                          onErrorRetry: () => unawaited(
+                            ref
+                                .read(videoSummaryProvider(_scope).notifier)
+                                .reload(),
+                          ),
                           emptyMessage: l10n.videoEmptyList,
                           onVideoTap: (video) => selectionAwareTap(
                             video.id,
                             () => openActions(video),
                           )(),
+                          onVideoLongPress: (video) =>
+                              selectionLongPressHandler(video.id).call(),
                           selectionMode: selectionMode,
                           selectedIds: selectedIds,
                           onVideoToggleSelect: (video) =>
                               handleSelectTap(video.id),
-                          wrapCard: selectionMode
-                              ? null
-                              : (cardContext, video, card) =>
-                                    AppContextMenuTrigger(
-                                      onRequestMenu: (position) => openCardMenu(
-                                        cardContext,
-                                        video,
-                                        position,
-                                      ),
-                                      child: card,
-                                    ),
+                          wrapCard: null,
                         ),
                       PagedLoadMoreFooterSliver(
                         hiddenSpacing: PagedFooterSpacing.lg,

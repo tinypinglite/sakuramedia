@@ -5,7 +5,6 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layou
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/discovery/data/daily_recommendation_movie_dto.dart';
 import 'package:sakuramedia/features/discovery/data/hot_actress_release_movie_dto.dart';
 import 'package:sakuramedia/features/discovery/data/moment_recommendation_dto.dart';
@@ -21,11 +20,12 @@ import 'package:sakuramedia/features/shared/presentation/providers/paged_async_n
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/domain/moments/moment_grid.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
@@ -211,6 +211,14 @@ class _DiscoveryMovieListContent<T> extends HookConsumerWidget {
     final async = watch(ref);
     final paged = async.value ?? PagedListState<T>();
     final scrollController = useScrollController();
+    final refreshError = useState<String?>(null);
+
+    Future<void> handleRefresh() async {
+      final errorMessage = await refresh(ref);
+      if (context.mounted) {
+        refreshError.value = errorMessage;
+      }
+    }
 
     final sliver = SliverMainAxisGroup(
       key: Key('$keyPrefix-page'),
@@ -234,16 +242,31 @@ class _DiscoveryMovieListContent<T> extends HookConsumerWidget {
     );
 
     return AppFixedHeaderLayout(
-      header: SizedBox(height: headerGap),
+      header: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(height: headerGap),
+          if (refreshError.value case final message?)
+            Padding(
+              padding: EdgeInsets.only(bottom: context.appSpacing.sm),
+              child: AppInlineErrorBanner(
+                key: Key('$keyPrefix-refresh-error'),
+                message: message,
+                retryKey: Key('$keyPrefix-refresh-retry'),
+                onRetry: handleRefresh,
+              ),
+            ),
+        ],
+      ),
       child: AppPageRefreshScope(
-        onRefresh: () => _handleRefresh(context, ref),
+        onRefresh: handleRefresh,
         child: AppPagedLoadMoreScope(
           canLoadMore: () => canLoadMore(ref),
           onLoadMore: () => loadMore(ref),
           child: enablePullToRefresh
               ? AppAdaptiveRefreshScrollView(
                   controller: scrollController,
-                  onRefresh: () => _handleRefresh(context, ref),
+                  onRefresh: handleRefresh,
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: <Widget>[sliver],
                 )
@@ -254,16 +277,6 @@ class _DiscoveryMovieListContent<T> extends HookConsumerWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _handleRefresh(BuildContext context, WidgetRef ref) async {
-    final errorMessage = await refresh(ref);
-    if (errorMessage != null && context.mounted) {
-      showToast(
-        AppLocalizations.of(context).sharedRefreshFailed,
-        tone: AppToastTone.error,
-      );
-    }
   }
 
   Widget _buildBody(
@@ -362,6 +375,15 @@ class DiscoveryMomentsContent extends HookConsumerWidget {
     final paged =
         async.value ?? const PagedListState<MomentRecommendationDto>();
     final scrollController = useScrollController();
+    final refreshError = useState<String?>(null);
+
+    Future<void> handleRefresh() async {
+      final provider = momentRecommendationFeedProvider(pageSize);
+      final errorMessage = await ref.read(provider.notifier).refresh();
+      if (context.mounted) {
+        refreshError.value = errorMessage;
+      }
+    }
 
     final sliver = SliverMainAxisGroup(
       key: Key('$keyPrefix-page'),
@@ -388,16 +410,31 @@ class DiscoveryMomentsContent extends HookConsumerWidget {
     );
 
     return AppFixedHeaderLayout(
-      header: SizedBox(height: headerGap),
+      header: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(height: headerGap),
+          if (refreshError.value case final message?)
+            Padding(
+              padding: EdgeInsets.only(bottom: context.appSpacing.sm),
+              child: AppInlineErrorBanner(
+                key: Key('$keyPrefix-refresh-error'),
+                message: message,
+                retryKey: Key('$keyPrefix-refresh-retry'),
+                onRetry: handleRefresh,
+              ),
+            ),
+        ],
+      ),
       child: AppPageRefreshScope(
-        onRefresh: () => _handleRefresh(context, ref),
+        onRefresh: handleRefresh,
         child: AppPagedLoadMoreScope(
           canLoadMore: () => ref.read(provider).value?.canAutoLoadMore ?? false,
           onLoadMore: () => ref.read(provider.notifier).loadMore(),
           child: enablePullToRefresh
               ? AppAdaptiveRefreshScrollView(
                   controller: scrollController,
-                  onRefresh: () => _handleRefresh(context, ref),
+                  onRefresh: handleRefresh,
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: <Widget>[sliver],
                 )
@@ -408,17 +445,6 @@ class DiscoveryMomentsContent extends HookConsumerWidget {
         ),
       ),
     );
-  }
-
-  Future<void> _handleRefresh(BuildContext context, WidgetRef ref) async {
-    final provider = momentRecommendationFeedProvider(pageSize);
-    final errorMessage = await ref.read(provider.notifier).refresh();
-    if (errorMessage != null && context.mounted) {
-      showToast(
-        AppLocalizations.of(context).sharedRefreshFailed,
-        tone: AppToastTone.error,
-      );
-    }
   }
 
   Widget _buildBody(
@@ -505,17 +531,12 @@ class DiscoveryRetryEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        AppEmptyState(message: message),
-        SizedBox(height: context.appSpacing.md),
-        AppButton(
-          key: retryKey,
-          label: AppLocalizations.of(context).commonRetry,
-          size: AppButtonSize.small,
-          onPressed: () => unawaited(onRetry()),
-        ),
-      ],
+    return AppErrorState(
+      title: AppLocalizations.of(context).baseActionFailed,
+      message: message,
+      retryKey: retryKey,
+      onRetry: () => unawaited(onRetry()),
+      variant: AppStatePanelVariant.section,
     );
   }
 }

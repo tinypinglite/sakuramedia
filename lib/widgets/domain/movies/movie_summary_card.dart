@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/core/format/app_date_format.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/core/platform/haptic_feedback.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
@@ -36,6 +38,7 @@ class MovieSummaryCard extends StatelessWidget {
     this.secondaryLabel,
     this.trailingLabel,
     this.onTap,
+    this.onLongPress,
     this.onRequestMenu,
     this.onSubscriptionTap,
     this.onToggleCollectionType,
@@ -53,6 +56,7 @@ class MovieSummaryCard extends StatelessWidget {
   /// 收起态底部番号行右侧的补充文案（如「总分 4.0」）；null 时不显示。
   final String? trailingLabel;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
   final ValueChanged<Offset>? onRequestMenu;
   final VoidCallback? onSubscriptionTap;
 
@@ -165,7 +169,7 @@ class MovieSummaryCard extends StatelessWidget {
         child: card,
       );
     }
-    if (onTap == null && onRequestMenu == null) {
+    if (onTap == null && onRequestMenu == null && onLongPress == null) {
       return card;
     }
     return AppImageActionTrigger(
@@ -192,6 +196,7 @@ class MovieSummaryCard extends StatelessWidget {
             }
           : null,
       onRequestMenu: onRequestMenu,
+      onLongPress: onLongPress,
       child: card,
     );
   }
@@ -400,7 +405,7 @@ class MovieSummaryCard extends StatelessWidget {
     final tokens = context.appComponentTokens;
     final heatText = TextPainter(
       text: TextSpan(
-        text: _formatMovieHeat(movie.heat),
+        text: formatAppCompactCount(movie.heat),
         style: resolveCoverOverlayTextStyle(context, size: AppTextSize.s10),
       ),
       textDirection: Directionality.of(context),
@@ -488,7 +493,7 @@ class _HeatBadge extends StatelessWidget {
     return AppMediaBadge(
       key: Key('movie-summary-card-heat-$movieNumber'),
       labelKey: Key('movie-summary-card-heat-text-$movieNumber'),
-      label: _formatMovieHeat(heat),
+      label: formatAppCompactCount(heat),
       leading: Icon(
         Icons.local_fire_department_rounded,
         color: context.appColors.movieDetailHeatIcon,
@@ -529,28 +534,12 @@ class _StatusBadge extends StatelessWidget {
 
 String _metaLine(MovieListItemDto movie, AppLocalizations l10n) {
   final date = movie.releaseDate;
-  final datePart = date == null
-      ? ''
-      : '${date.year}.${date.month.toString().padLeft(2, '0')}.'
-            '${date.day.toString().padLeft(2, '0')}';
+  final datePart = date == null ? '' : formatAppDate(date);
   final duration = l10n.durationMinutes(movie.durationMinutes);
   if (datePart.isEmpty) {
     return duration;
   }
   return l10n.widgetMovieDurationWithDate(duration, datePart);
-}
-
-String _formatMovieHeat(int heat) {
-  if (heat < 1000) {
-    return '$heat';
-  }
-
-  final valueInK = heat / 1000;
-  final fixed = valueInK.toStringAsFixed(1);
-  final trimmed = fixed.endsWith('.0')
-      ? fixed.substring(0, fixed.length - 2)
-      : fixed;
-  return '${trimmed}k';
 }
 
 class _RankBadge extends StatelessWidget {

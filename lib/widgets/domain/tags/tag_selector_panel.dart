@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/tags/data/tag_list_item_dto.dart';
 import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_state.dart';
@@ -8,6 +9,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_filter_chip.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
@@ -175,7 +177,7 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
             focusNode: _searchFocusNode,
             hintText: l10n.widgetTagSearchHint,
             prefix: Icon(
-              Icons.search,
+              Icons.search_rounded,
               size: context.appComponentTokens.iconSizeSm,
               color: context.appTextPalette.secondary,
             ),
@@ -183,7 +185,7 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
                 ? null
                 : AppIconButton(
                     icon: Icon(
-                      Icons.close,
+                      Icons.close_rounded,
                       size: context.appComponentTokens.iconSizeSm,
                     ),
                     tooltip: l10n.baseClearSearch,
@@ -212,17 +214,12 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
     }
 
     if (selection.errorMessage != null && !selection.hasLoadedOnce) {
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppEmptyState(message: selection.errorMessage!),
-          SizedBox(height: spacing.sm),
-          AppTextButton(
-            label: l10n.commonRetry,
-            size: AppTextButtonSize.xSmall,
-            onPressed: widget.onRetry,
-          ),
-        ],
+      return AppErrorState(
+        title: l10n.tagRefreshFailed,
+        message: selection.errorMessage!,
+        variant: AppStatePanelVariant.section,
+        retryKey: Key('${widget.keyPrefix}-error-retry'),
+        onRetry: widget.onRetry,
       );
     }
 
@@ -264,7 +261,7 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
             key: Key('${widget.keyPrefix}-selected-${tag.tagId}'),
             label: tag.name,
             selected: true,
-            trailing: const Icon(Icons.close),
+            trailing: const Icon(Icons.close_rounded),
             onPressed: () => widget.onRemoveTag(tag.tagId),
           ),
         AppTextButton(
@@ -385,7 +382,7 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
           AppFilterChip(
             key: Key('${widget.keyPrefix}-option-${tag.tagId}'),
             label: widget.showTagCounts
-                ? '${tag.name} · ${tag.movieCount}'
+                ? '${tag.name} · ${formatAppCount(tag.movieCount)}'
                 : tag.name,
             selected: selection.isSelected(tag.tagId),
             onPressed: () => widget.onToggleTag(tag.tagId),

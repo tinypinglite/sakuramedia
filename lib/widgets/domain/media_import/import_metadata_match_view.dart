@@ -9,13 +9,13 @@ import 'package:sakuramedia/features/media_import/presentation/providers/media_i
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_left_cover_card.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_back_button.dart';
 import 'package:sakuramedia/widgets/domain/search/catalog_search_field.dart';
 
 /// 失败文件的人工元数据匹配视图：输入番号 → 选择候选 → 提交重试。
@@ -114,10 +114,9 @@ class _ImportMetadataMatchViewState
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            AppIconButton(
+            AppBackButton(
               key: const Key('import-metadata-match-back'),
               tooltip: l10n.widgetMediaImportBackToFailedList,
-              icon: const Icon(Icons.arrow_back_rounded),
               onPressed: widget.onBack,
             ),
             SizedBox(width: spacing.sm),

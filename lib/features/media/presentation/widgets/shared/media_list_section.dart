@@ -6,7 +6,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/presentation/actions/media_row_action_flow.dart';
@@ -258,17 +257,10 @@ class _MediaListHeader extends ConsumerWidget {
   final VoidCallback onToggleSearchExpanded;
 
   Future<void> _defaultRefresh(WidgetRef ref) async {
-    await Future.wait<void>([_refreshBrowse(ref), _refreshLibraries(ref)]);
-  }
-
-  Future<void> _refreshBrowse(WidgetRef ref) async {
-    final message = await ref.read(mediaBrowseProvider.notifier).refresh();
-    if (message != null) showToast(message);
-  }
-
-  Future<void> _refreshLibraries(WidgetRef ref) async {
-    final message = await ref.read(mediaLibrariesProvider.notifier).refresh();
-    if (message != null) showToast(message);
+    await Future.wait<void>([
+      ref.read(mediaBrowseProvider.notifier).refresh(),
+      ref.read(mediaLibrariesProvider.notifier).refresh(),
+    ]);
   }
 
   void _applyFilter(WidgetRef ref, MediaBrowseFilterState next) {
@@ -949,16 +941,6 @@ class _MediaMobileSelectionBar extends ConsumerWidget {
     };
     final busy = isDeleting || isTransferring || isResettingThumbnails;
     return AppSelectionBottomBar(
-      leading: Text(
-        l10n.mediaListSelectedItems(selectionCount),
-        key: Key('$keyPrefix-bottom-selection-count'),
-        style: resolveAppTextStyle(
-          context,
-          size: AppTextSize.s14,
-          weight: AppTextWeight.semibold,
-          tone: AppTextTone.primary,
-        ),
-      ),
       actions: [
         AppButton(
           key: Key('$keyPrefix-batch-transfer-button'),

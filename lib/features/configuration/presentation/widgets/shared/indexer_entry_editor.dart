@@ -12,6 +12,7 @@ import 'package:sakuramedia/widgets/base/forms/form_submit_state.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_form_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
 
 Future<IndexerEntryDto?> showIndexerEntryEditor(
   BuildContext context, {
@@ -19,7 +20,8 @@ Future<IndexerEntryDto?> showIndexerEntryEditor(
   required List<IndexerEntryDto> existingEntries,
   required List<DownloadClientDto> downloadClients,
   IndexerEntryDto? initialEntry,
-}) {
+}) async {
+  final dismissController = AppModalDismissController();
   return showAppAdaptiveModal<IndexerEntryDto>(
     context: context,
     variant: mobile
@@ -32,11 +34,13 @@ Future<IndexerEntryDto?> showIndexerEntryEditor(
       vertical: context.appLayoutTokens.dialogInsetPadding,
     ),
     mobileHeightFactor: 0.8,
+    dismissController: dismissController,
     builder: (_) => _IndexerEntryEditor(
       mobile: mobile,
       existingEntries: existingEntries,
       downloadClients: downloadClients,
       initialEntry: initialEntry,
+      dismissController: dismissController,
     ),
   );
 }
@@ -47,12 +51,14 @@ class _IndexerEntryEditor extends ConsumerStatefulWidget {
     required this.existingEntries,
     required this.downloadClients,
     this.initialEntry,
+    this.dismissController,
   });
 
   final bool mobile;
   final List<IndexerEntryDto> existingEntries;
   final List<DownloadClientDto> downloadClients;
   final IndexerEntryDto? initialEntry;
+  final AppModalDismissController? dismissController;
 
   @override
   ConsumerState<_IndexerEntryEditor> createState() =>
@@ -152,6 +158,7 @@ class _IndexerEntryEditorState extends ConsumerState<_IndexerEntryEditor>
       subtitle: l10n.indexerFormSubtitle,
       submitKey: const Key('mobile-indexer-submit-button'),
       isSubmitting: isSubmitting,
+      dismissController: widget.dismissController,
       onSubmit: _submitMobile,
       body: _buildFields(context),
     );
@@ -164,6 +171,7 @@ class _IndexerEntryEditorState extends ConsumerState<_IndexerEntryEditor>
       title: _isEditing ? l10n.indexerEditTitle : l10n.indexerAdd,
       body: _buildFields(context),
       submitKey: const Key('indexer-entry-submit-button'),
+      dismissController: widget.dismissController,
       onSubmit: widget.downloadClients.isEmpty ? null : _submitDesktop,
     );
   }

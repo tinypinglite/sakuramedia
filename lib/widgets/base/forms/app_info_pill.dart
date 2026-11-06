@@ -1,8 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 
-class AppInfoPill extends StatelessWidget {
-  const AppInfoPill({super.key, required this.label, required this.value});
+class AppInfoTile extends StatelessWidget {
+  const AppInfoTile({super.key, required this.label, required this.value});
 
   final String label;
   final String value;
@@ -30,4 +30,9 @@ class AppInfoPill extends StatelessWidget {
       ),
     );
   }
+}
+
+@Deprecated('Use AppInfoTile instead.')
+class AppInfoPill extends AppInfoTile {
+  const AppInfoPill({super.key, required super.label, required super.value});
 }
