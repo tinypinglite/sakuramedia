@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/theme.dart';
@@ -166,6 +166,7 @@ class _ConfirmBodyState extends State<_ConfirmBody> {
           fallback: widget.failureFallback,
           l10n: appL10n(context),
         ),
+        tone: AppToastTone.error,
       );
     }
   }
@@ -222,10 +223,9 @@ class _ConfirmBodyState extends State<_ConfirmBody> {
                 child: AppButton(
                   key: widget.cancelKey,
                   label: widget.cancelLabel,
-                  onPressed:
-                      _isConfirming
-                          ? null
-                          : () => Navigator.of(context).pop(false),
+                  onPressed: _isConfirming
+                      ? null
+                      : () => Navigator.of(context).pop(false),
                 ),
               ),
               SizedBox(width: spacing.md),
@@ -233,10 +233,9 @@ class _ConfirmBodyState extends State<_ConfirmBody> {
                 child: AppButton(
                   key: widget.confirmKey,
                   label: widget.confirmLabel,
-                  variant:
-                      widget.danger
-                          ? AppButtonVariant.danger
-                          : AppButtonVariant.primary,
+                  variant: widget.danger
+                      ? AppButtonVariant.danger
+                      : AppButtonVariant.primary,
                   isLoading: _isConfirming,
                   onPressed: _handleConfirm,
                 ),

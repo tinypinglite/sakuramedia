@@ -11,6 +11,7 @@ import 'package:sakuramedia/theme/app_shadows.dart';
 import 'package:sakuramedia/theme/app_sidebar_tokens.dart';
 import 'package:sakuramedia/theme/app_spacing.dart';
 import 'package:sakuramedia/theme/app_theme_color.dart';
+import 'package:sakuramedia/theme/app_toast_tokens.dart';
 import 'package:sakuramedia/theme/app_typography.dart';
 
 export 'package:sakuramedia/theme/app_component_tokens.dart';
@@ -26,35 +27,9 @@ export 'package:sakuramedia/theme/app_shadows.dart';
 export 'package:sakuramedia/theme/app_sidebar_tokens.dart';
 export 'package:sakuramedia/theme/app_spacing.dart';
 export 'package:sakuramedia/theme/app_theme_color.dart';
+export 'package:sakuramedia/theme/app_toast_tokens.dart';
 export 'package:sakuramedia/theme/app_typography.dart';
 export 'package:sakuramedia/widgets/base/typography/app_text.dart';
-
-/// oktoast 在 MaterialApp 之外用独立 overlay 树显示 toast, 拿不到 ThemeData
-const TextStyle kAppToastTextStyle = TextStyle(
-  fontSize: 15,
-  color: Colors.white,
-);
-
-/// oktoast 的 toast 底色。
-///
-/// 库默认是 `0xDD000000` 的裸黑，不属于项目色板；这里统一为文字主色
-/// `AppTextPalette.primary` 的中性深色带 0xDD 透明度，让 toast 与项目暖
-/// 中性色体系一致，而不是库自带的纯黑。
-final Color kAppToastBackgroundColor = AppTextPalette.defaults().primary
-    .withValues(alpha: 0xDD / 0xFF);
-
-/// 深色模式下 toast 保持「深底浅字」，底色抬到层级面而不是纯黑。
-TextStyle appToastTextStyleFor(Brightness brightness) {
-  return brightness == Brightness.dark
-      ? const TextStyle(fontSize: 15, color: Color(0xFFF5F3F2))
-      : kAppToastTextStyle;
-}
-
-Color appToastBackgroundColorFor(Brightness brightness) {
-  return brightness == Brightness.dark
-      ? const Color(0xFF3A3A3A).withValues(alpha: 0xEB / 0xFF)
-      : kAppToastBackgroundColor;
-}
 
 final sakuraThemeData = sakuraDesktopThemeData;
 
@@ -108,10 +83,11 @@ ThemeData _buildSakuraThemeData({
 }) {
   final brand = themeColor.forBrightness(brightness);
   final colors = AppColors.of(themeColor: themeColor, brightness: brightness);
-  final textPalette = (brightness == Brightness.dark
-          ? const AppTextPalette.dark()
-          : baseTextPalette)
-      .copyWith(accent: brand.accent);
+  final textPalette =
+      (brightness == Brightness.dark
+              ? const AppTextPalette.dark()
+              : baseTextPalette)
+          .copyWith(accent: brand.accent);
   final shadows = brightness == Brightness.dark
       ? const AppShadows.dark()
       : const AppShadows.defaults();
@@ -197,6 +173,7 @@ ThemeData _buildSakuraThemeData({
       const AppOverlayTokens.defaults(),
       const AppSpacing.defaults(),
       const AppRadius.defaults(),
+      const AppToastTokens.defaults(),
       const AppSidebarTokens.defaults(),
       shadows,
       textScale,

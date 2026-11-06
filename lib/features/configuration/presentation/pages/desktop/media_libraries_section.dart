@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/api/provider_login_api.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
@@ -64,6 +64,7 @@ class _MediaLibrariesSectionState extends ConsumerState<MediaLibrariesSection> {
             fallback: l10n.mediaLibraryProviderCatalogLoadFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
       return null;
@@ -83,7 +84,10 @@ class _MediaLibrariesSectionState extends ConsumerState<MediaLibrariesSection> {
       return;
     }
     if (providers.isEmpty) {
-      showToast(AppLocalizations.of(context).mediaLibraryNoProviderInstalled);
+      showToast(
+        AppLocalizations.of(context).mediaLibraryNoProviderInstalled,
+        tone: AppToastTone.warning,
+      );
       return;
     }
     await showDialog<void>(
@@ -429,7 +433,7 @@ class _MediaLibraryDialogState extends ConsumerState<MediaLibraryDialog> {
         !useManualLogin &&
         authSessionId == null &&
         !_isEditing) {
-      showToast(l10n.providerLoginRequired);
+      showToast(l10n.providerLoginRequired, tone: AppToastTone.warning);
       return;
     }
     final value = MediaLibraryFormValue.fromControllers(
@@ -462,6 +466,7 @@ class _MediaLibraryDialogState extends ConsumerState<MediaLibraryDialog> {
       _loginSession = null;
       showToast(
         _isEditing ? l10n.mediaLibraryUpdated : l10n.mediaLibraryCreated,
+        tone: AppToastTone.success,
       );
       Navigator.of(context).pop();
     } catch (error) {
@@ -475,6 +480,7 @@ class _MediaLibraryDialogState extends ConsumerState<MediaLibraryDialog> {
               : l10n.mediaLibraryCreateFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }

@@ -2,7 +2,7 @@ import 'package:sakuramedia/features/status/presentation/providers/server_capabi
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
@@ -349,11 +349,12 @@ class _MediaPreviewDialogState extends ConsumerState<MediaPreviewDialog> {
       isLoading: _isLoadingPreviewData,
       loadingItemCount: _loadingActionCount,
       actions: [
-        if (ref.watch(imageSearchEnabledProvider)) MediaPreviewActionItem(
-          label: l10n.widgetMediaActionSearchSimilar,
-          icon: Icons.image_search_outlined,
-          onTap: _canSearchSimilar ? _handleSearchSimilar : null,
-        ),
+        if (ref.watch(imageSearchEnabledProvider))
+          MediaPreviewActionItem(
+            label: l10n.widgetMediaActionSearchSimilar,
+            icon: Icons.image_search_outlined,
+            onTap: _canSearchSimilar ? _handleSearchSimilar : null,
+          ),
         MediaPreviewActionItem(
           label: l10n.commonSave,
           icon: Icons.download_outlined,
@@ -511,9 +512,7 @@ class _MediaPreviewDialogState extends ConsumerState<MediaPreviewDialog> {
     }
     final movieNumber = widget.item.movieNumber;
     if (widget.item.isVideo) {
-      fragments.add(
-        l10n.widgetMediaVideoLabel('${widget.item.videoItemId}'),
-      );
+      fragments.add(l10n.widgetMediaVideoLabel('${widget.item.videoItemId}'));
     } else if (movieNumber != null && movieNumber.isNotEmpty) {
       fragments.add(l10n.widgetMediaMovieNumberLabel(movieNumber));
     }
@@ -645,10 +644,16 @@ class _MediaPreviewDialogState extends ConsumerState<MediaPreviewDialog> {
             l10n: l10n,
           );
       if (mounted && result.status == ImageSaveStatus.success) {
-        showToast(result.message ?? l10n.widgetMediaImageSaved);
+        showToast(
+          result.message ?? l10n.widgetMediaImageSaved,
+          tone: AppToastTone.success,
+        );
       }
       if (mounted && result.status == ImageSaveStatus.failed) {
-        showToast(result.message ?? l10n.widgetMediaSaveImageFailed);
+        showToast(
+          result.message ?? l10n.widgetMediaSaveImageFailed,
+          tone: AppToastTone.error,
+        );
       }
     } catch (error) {
       if (mounted) {
@@ -658,6 +663,7 @@ class _MediaPreviewDialogState extends ConsumerState<MediaPreviewDialog> {
             fallback: l10n.widgetMediaSaveImageFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     } finally {
@@ -688,7 +694,7 @@ class _MediaPreviewDialogState extends ConsumerState<MediaPreviewDialog> {
         setState(() {
           _pointId = point.pointId;
         });
-        showToast(l10n.widgetMediaMarkAdded);
+        showToast(l10n.widgetMediaMarkAdded, tone: AppToastTone.success);
       } else {
         await ref.read(mediaApiProvider).deleteMediaPoint(pointId: pointId);
         if (!mounted) {
@@ -698,7 +704,7 @@ class _MediaPreviewDialogState extends ConsumerState<MediaPreviewDialog> {
           _pointId = null;
         });
         widget.onPointRemoved?.call();
-        showToast(l10n.widgetMediaMarkRemoved);
+        showToast(l10n.widgetMediaMarkRemoved, tone: AppToastTone.success);
         if (widget.closeOnPointRemoved) {
           Navigator.of(context).pop();
         }
@@ -711,6 +717,7 @@ class _MediaPreviewDialogState extends ConsumerState<MediaPreviewDialog> {
             fallback: l10n.widgetMediaMarkUpdateFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     } finally {

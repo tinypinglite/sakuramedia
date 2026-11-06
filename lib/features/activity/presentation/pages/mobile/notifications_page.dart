@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/notification_center_provider.dart';
 import 'package:sakuramedia/core/format/updated_at_label.dart';
@@ -114,6 +114,7 @@ class _MobileNotificationsPageState
             fallback: l10n.activityRefreshFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     }
@@ -167,38 +168,38 @@ class _MobileNotificationsPageState
             onLoadMore: () => ref
                 .read(notificationCenterProvider.notifier)
                 .loadMoreNotifications(),
-          child: AppAdaptiveRefreshScrollView(
-            controller: _scrollController,
-            onRefresh: _handleRefresh,
-            // 收敛视口外预构建,避免「无感已读」把未展示的卡片提前标已读。
-            cacheExtent: 0,
-            slivers: <Widget>[
-              _MobileNotificationsBodySliver(
-                segment: _segment,
-                unreadSnapshotIds: _unreadSnapshotIds,
-              ),
-              // 页脚常驻：loading / 失败时显示行，空闲只留上下间距（与原逻辑一致）。
-              PagedLoadMoreFooterSliver(
-                topSpacing: PagedFooterSpacing.md,
-                bottomSpacing: PagedFooterSpacing.xl,
-                padWhenIdle: true,
-                watchFooter: (ref) => ref.watch(
-                  notificationCenterProvider.select(
-                    (state) => (
-                      isLoading: state.isLoadingMore,
-                      errorMessage: state.loadMoreErrorMessage,
+            child: AppAdaptiveRefreshScrollView(
+              controller: _scrollController,
+              onRefresh: _handleRefresh,
+              // 收敛视口外预构建,避免「无感已读」把未展示的卡片提前标已读。
+              cacheExtent: 0,
+              slivers: <Widget>[
+                _MobileNotificationsBodySliver(
+                  segment: _segment,
+                  unreadSnapshotIds: _unreadSnapshotIds,
+                ),
+                // 页脚常驻：loading / 失败时显示行，空闲只留上下间距（与原逻辑一致）。
+                PagedLoadMoreFooterSliver(
+                  topSpacing: PagedFooterSpacing.md,
+                  bottomSpacing: PagedFooterSpacing.xl,
+                  padWhenIdle: true,
+                  watchFooter: (ref) => ref.watch(
+                    notificationCenterProvider.select(
+                      (state) => (
+                        isLoading: state.isLoadingMore,
+                        errorMessage: state.loadMoreErrorMessage,
+                      ),
                     ),
                   ),
+                  onLoadMore: (ref) => unawaited(
+                    ref
+                        .read(notificationCenterProvider.notifier)
+                        .loadMoreNotifications(),
+                  ),
                 ),
-                onLoadMore: (ref) => unawaited(
-                  ref
-                      .read(notificationCenterProvider.notifier)
-                      .loadMoreNotifications(),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
         ),
       ],
     );

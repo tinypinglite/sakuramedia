@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
@@ -29,13 +29,13 @@ Future<MediaClipDto?> showCreateClipDialog(
     context: context,
     barrierDismissible: false,
     builder: (dialogContext) => CreateClipDialog(
-          mediaId: mediaId,
-          movieNumber: movieNumber,
-          startThumbnailId: startThumbnailId,
-          endThumbnailId: endThumbnailId,
-          startSeconds: startSeconds,
-          endSeconds: endSeconds,
-        ),
+      mediaId: mediaId,
+      movieNumber: movieNumber,
+      startThumbnailId: startThumbnailId,
+      endThumbnailId: endThumbnailId,
+      startSeconds: startSeconds,
+      endSeconds: endSeconds,
+    ),
   );
 }
 
@@ -103,11 +103,11 @@ class _CreateClipDialogState extends ConsumerState<CreateClipDialog> {
     final l10n = AppLocalizations.of(context);
     final spacing = context.appSpacing;
     final lo = widget.startSeconds < widget.endSeconds
-            ? widget.startSeconds
-            : widget.endSeconds;
+        ? widget.startSeconds
+        : widget.endSeconds;
     final hi = widget.startSeconds < widget.endSeconds
-            ? widget.endSeconds
-            : widget.startSeconds;
+        ? widget.endSeconds
+        : widget.startSeconds;
     final duration = hi - lo;
 
     return AppDesktopDialog(
@@ -207,7 +207,7 @@ class _CreateClipDialogState extends ConsumerState<CreateClipDialog> {
       Navigator.of(context).pop(clip);
     } catch (error) {
       final isTimeout = _isTimeout(error);
-      showToast(_clipErrorMessage(error, l10n));
+      showToast(_clipErrorMessage(error, l10n), tone: AppToastTone.error);
       if (!mounted) {
         return;
       }

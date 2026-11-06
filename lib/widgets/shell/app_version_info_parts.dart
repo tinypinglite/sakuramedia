@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/providers/external_url_provider.dart';
 import 'package:sakuramedia/config/app_release_channels.dart';
 import 'package:sakuramedia/core/platform/clipboard_copy.dart';
@@ -165,6 +165,7 @@ Future<void> _openRelease(
   }
   showToast(
     copied ? l10n.shellBrowserOpenFailedCopied : l10n.shellBrowserOpenFailed,
+    tone: AppToastTone.error,
   );
 }
 

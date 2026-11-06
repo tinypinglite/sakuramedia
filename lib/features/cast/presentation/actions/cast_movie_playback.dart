@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/cast/data/cast_director.dart';
@@ -34,7 +34,10 @@ Future<void> launchMovieCast(
   required MovieMediaItemDto? selectedMedia,
 }) async {
   if (selectedMedia == null || !selectedMedia.hasPlayableUrl) {
-    showToast(AppLocalizations.of(context).castNoPlayableMedia);
+    showToast(
+      AppLocalizations.of(context).castNoPlayableMedia,
+      tone: AppToastTone.error,
+    );
     return;
   }
   final baseUrl = ProviderScope.containerOf(
@@ -46,7 +49,10 @@ Future<void> launchMovieCast(
     baseUrl: baseUrl,
   );
   if (resolvedUrl == null || resolvedUrl.isEmpty) {
-    showToast(AppLocalizations.of(context).castPlayUrlUnavailable);
+    showToast(
+      AppLocalizations.of(context).castPlayUrlUnavailable,
+      tone: AppToastTone.error,
+    );
     return;
   }
   final title = movie.preferredTitle.isNotEmpty

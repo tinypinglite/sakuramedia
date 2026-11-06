@@ -3,7 +3,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/page_cache_keys.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
@@ -493,6 +493,7 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
             fallback: l10n.moviePageImageLoadFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
       return false;
@@ -612,6 +613,7 @@ class _MobileMovieDetailPageState extends ConsumerState<MobileMovieDetailPage>
           fallback: l10n.moviePageImageLoadFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }

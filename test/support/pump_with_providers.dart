@@ -53,23 +53,25 @@ Future<void> pumpWithProviders(
     child: MaterialApp(
       home: child,
       theme: theme,
+      builder: wrapInOkToast
+          ? (context, child) => OKToast(child: child ?? const SizedBox.shrink())
+          : null,
       locale: locale ?? (withAppLocalizations ? const Locale('zh') : null),
-      localizationsDelegates: localizationsDelegates ??
+      localizationsDelegates:
+          localizationsDelegates ??
           (withAppLocalizations
               ? <LocalizationsDelegate<dynamic>>[
                   AppLocalizations.delegate,
                   ...GlobalMaterialLocalizations.delegates,
                 ]
               : null),
-      supportedLocales: supportedLocales ??
+      supportedLocales:
+          supportedLocales ??
           (withAppLocalizations
               ? const <Locale>[Locale('zh'), Locale('en')]
               : const <Locale>[Locale('en', 'US')]),
     ),
   );
-  if (wrapInOkToast) {
-    app = OKToast(child: app);
-  }
 
   if (physicalSize != null) {
     tester.view.physicalSize = physicalSize;

@@ -8,7 +8,6 @@ import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/appearance_store.dart';
-import 'package:sakuramedia/app/language/app_language.dart';
 import 'package:sakuramedia/app/language/language_store.dart';
 import 'package:sakuramedia/app/language/providers/language_providers.dart';
 import 'package:sakuramedia/app/providers/appearance_providers.dart';
@@ -192,7 +191,6 @@ class _SakuraAppState extends ConsumerState<_SakuraApp>
   Widget build(BuildContext context) {
     final appearance = ref.watch(appearanceProvider);
     final language = ref.watch(appLanguageControllerProvider);
-    final effective = effectiveBrightness(appearance, _platformBrightness);
 
     ref.listen(appearanceProvider, (previous, next) {
       if (previous == null) {
@@ -222,37 +220,33 @@ class _SakuraAppState extends ConsumerState<_SakuraApp>
             brightness: Brightness.dark,
           );
 
-    return OKToast(
-      textStyle: appToastTextStyleFor(effective),
-      backgroundColor: appToastBackgroundColorFor(effective),
-      child: MaterialApp.router(
-        onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
-        debugShowCheckedModeBanner: false,
-        locale: language.locale,
-        localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-          AppLocalizations.delegate,
-          ...GlobalMaterialLocalizations.delegates,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        theme: lightTheme,
-        darkTheme: darkTheme,
-        themeMode: appearance.themeMode,
-        routerConfig: widget.router,
-        builder: (context, child) {
-          final content = AppImageFullscreenHost(
-            child: ScrollConfiguration(
-              behavior: const MaterialScrollBehavior().copyWith(
-                dragDevices: kAppScrollDragDevices,
-                scrollbars: false,
-              ),
-              child: child ?? const SizedBox.shrink(),
+    return MaterialApp.router(
+      onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
+      debugShowCheckedModeBanner: false,
+      locale: language.locale,
+      localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+        AppLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
+      supportedLocales: AppLocalizations.supportedLocales,
+      theme: lightTheme,
+      darkTheme: darkTheme,
+      themeMode: appearance.themeMode,
+      routerConfig: widget.router,
+      builder: (context, child) {
+        final content = AppImageFullscreenHost(
+          child: ScrollConfiguration(
+            behavior: const MaterialScrollBehavior().copyWith(
+              dragDevices: kAppScrollDragDevices,
+              scrollbars: false,
             ),
-          );
-          // Windows 无边框由 runner 原生实现，不需要 Dart 边缘热区。
-          // ignore: deprecated_member_use
-          return MaterialUiCompatibilityBridge(child: content);
-        },
-      ),
+            child: child ?? const SizedBox.shrink(),
+          ),
+        );
+        // Windows 无边框由 runner 原生实现，不需要 Dart 边缘热区。
+        // ignore: deprecated_member_use
+        return OKToast(child: MaterialUiCompatibilityBridge(child: content));
+      },
     );
   }
 }

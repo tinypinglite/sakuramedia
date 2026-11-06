@@ -6,7 +6,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/presentation/actions/media_row_action_flow.dart';
@@ -344,9 +344,7 @@ class _MediaListHeader extends ConsumerWidget {
       semanticLabel: searchExpanded
           ? l10n.mediaListCollapseSearchTooltip
           : l10n.mediaListSearchFileNameTooltip,
-      icon: Icon(
-        searchExpanded ? Icons.close_rounded : Icons.search_rounded,
-      ),
+      icon: Icon(searchExpanded ? Icons.close_rounded : Icons.search_rounded),
       isSelected: searchExpanded || filter.hasSearch,
       backgroundColor: Colors.transparent,
       selectedBackgroundColor: Colors.transparent,

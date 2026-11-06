@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/providers/clip_collections_api_provider.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/providers/clip_collections_overview_provider.dart';
@@ -64,7 +64,6 @@ class AddToClipCollectionDialog extends ConsumerStatefulWidget {
 
 class _AddToClipCollectionDialogState
     extends ConsumerState<AddToClipCollectionDialog> {
-
   List<ClipCollectionDto> _collections = const <ClipCollectionDto>[];
   final Set<int> _selectedIds = <int>{};
   final Set<int> _updatingIds = <int>{};
@@ -259,8 +258,9 @@ class _AddToClipCollectionDialogState
             enabled: !isAnyUpdating,
             onTap: () => _toggle(collection),
             title: collection.name,
-            trailingText:
-                collection.clipCount > 0 ? '${collection.clipCount}' : null,
+            trailingText: collection.clipCount > 0
+                ? '${collection.clipCount}'
+                : null,
             optionKey: Key('add-to-clip-collection-option-${collection.id}'),
             checkboxKey: Key(
               'add-to-clip-collection-checkbox-${collection.id}',
@@ -312,6 +312,7 @@ class _AddToClipCollectionDialogState
               : l10n.clipCollectionAddFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     } finally {
       if (mounted) {

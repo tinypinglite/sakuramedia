@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_channel.dart';
 import 'package:sakuramedia/features/external_player/presentation/providers/external_player_preference_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -47,7 +47,10 @@ Future<bool> tryLaunchConfiguredExternalPlayer(
     if (!context.mounted || launched) {
       return true;
     }
-    showToast(AppLocalizations.of(context).externalPlayerUnavailable);
+    showToast(
+      AppLocalizations.of(context).externalPlayerUnavailable,
+      tone: AppToastTone.error,
+    );
   } on Object {
     // 无 ProviderScope、偏好读取或地址解析失败时，交给既有内置播放流程
     // 展示对应的错误状态。

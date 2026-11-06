@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/actors/data/api/actors_api.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
@@ -81,15 +81,24 @@ class _MovieActorSectionState extends State<MovieActorSection> {
     setState(() => _isAdding = false);
     final l10n = AppLocalizations.of(context);
     if (added == 0) {
-      showToast(l10n.movieWidgetAddActorFailed);
+      showToast(l10n.movieWidgetAddActorFailed, tone: AppToastTone.error);
     } else if (failed > 0) {
-      showToast(l10n.movieWidgetActorsAddedWithFailures(added, failed));
+      showToast(
+        l10n.movieWidgetActorsAddedWithFailures(added, failed),
+        tone: AppToastTone.warning,
+      );
     } else if (!refreshed) {
-      showToast(l10n.movieWidgetActorsAddedRefreshFailed(added));
+      showToast(
+        l10n.movieWidgetActorsAddedRefreshFailed(added),
+        tone: AppToastTone.warning,
+      );
     } else if (added == 1) {
-      showToast(l10n.movieWidgetActorAdded(selected.single.displayName));
+      showToast(
+        l10n.movieWidgetActorAdded(selected.single.displayName),
+        tone: AppToastTone.success,
+      );
     } else {
-      showToast(l10n.movieWidgetActorsAdded(added));
+      showToast(l10n.movieWidgetActorsAdded(added), tone: AppToastTone.success);
     }
   }
 
@@ -111,6 +120,7 @@ class _MovieActorSectionState extends State<MovieActorSection> {
         refreshed
             ? l10n.movieWidgetActorRemoved(actor.displayName)
             : l10n.movieWidgetActorRemovedRefreshFailed(actor.displayName),
+        tone: refreshed ? AppToastTone.success : AppToastTone.error,
       );
     } catch (error) {
       if (mounted) {
@@ -121,6 +131,7 @@ class _MovieActorSectionState extends State<MovieActorSection> {
             fallback: l10n.movieWidgetRemoveActorFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     } finally {

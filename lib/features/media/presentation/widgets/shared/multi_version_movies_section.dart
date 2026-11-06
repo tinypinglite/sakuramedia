@@ -9,7 +9,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_filter_popover.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/data/multi_version_movie_dto.dart';
@@ -105,7 +105,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
             (group) => group.mediaItems.every((item) => ids.contains(item.id)),
           )) {
         exitSelection();
-        showToast(l10n.mediaListVersionsChanged);
+        showToast(l10n.mediaListVersionsChanged, tone: AppToastTone.success);
         return;
       }
       deleting.value = true;
@@ -155,7 +155,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
         failureFallback: l10n.mediaListVersionsDeleteFailed,
       );
       if (confirmed && context.mounted) {
-        showToast(l10n.mediaListVersionsDeleted);
+        showToast(l10n.mediaListVersionsDeleted, tone: AppToastTone.success);
       }
     }
 
@@ -177,6 +177,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
             processed
                 ? l10n.mediaListVersionsMarkedProcessed
                 : l10n.mediaListVersionsMarkedPending,
+            tone: AppToastTone.success,
           );
         }
       } catch (error) {
@@ -187,6 +188,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
               fallback: l10n.mediaListVersionsProcessFailed,
               l10n: l10n,
             ),
+            tone: AppToastTone.error,
           );
         }
       } finally {

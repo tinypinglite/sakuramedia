@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/providers/clip_collections_api_provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
@@ -46,19 +46,18 @@ Future<ClipCollectionDto?> _showClipCollectionEditDialog(
     case ClipCollectionEditPresentation.dialog:
       return showDialog<ClipCollectionDto>(
         context: context,
-        builder:
-            (dialogContext) => ClipCollectionEditDialog(collection: collection),
+        builder: (dialogContext) =>
+            ClipCollectionEditDialog(collection: collection),
       );
     case ClipCollectionEditPresentation.bottomDrawer:
       return showAppBottomDrawer<ClipCollectionDto>(
         context: context,
         drawerKey: const Key('clip-collection-edit-bottom-sheet'),
         maxHeightFactor: 0.62,
-        builder:
-            (sheetContext) => ClipCollectionEditDialog(
-              collection: collection,
-              presentation: ClipCollectionEditPresentation.bottomDrawer,
-            ),
+        builder: (sheetContext) => ClipCollectionEditDialog(
+          collection: collection,
+          presentation: ClipCollectionEditPresentation.bottomDrawer,
+        ),
       );
   }
 }
@@ -143,11 +142,9 @@ class _ClipCollectionEditDialogState
             controller: _nameController,
             hintText: l10n.clipCollectionNameHint,
             enabled: !_isSubmitting,
-            validator:
-                (value) =>
-                    value == null || value.trim().isEmpty
-                        ? l10n.clipCollectionNameRequired
-                        : null,
+            validator: (value) => value == null || value.trim().isEmpty
+                ? l10n.clipCollectionNameRequired
+                : null,
           ),
           SizedBox(height: spacing.sm),
           AppTextField(
@@ -162,8 +159,9 @@ class _ClipCollectionEditDialogState
               Expanded(
                 child: AppButton(
                   label: l10n.commonCancel,
-                  onPressed:
-                      _isSubmitting ? null : () => Navigator.of(context).pop(),
+                  onPressed: _isSubmitting
+                      ? null
+                      : () => Navigator.of(context).pop(),
                 ),
               ),
               SizedBox(width: spacing.md),
@@ -221,6 +219,7 @@ class _ClipCollectionEditDialogState
               : l10n.clipCollectionCreateFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
       if (mounted) {
         setState(() => _isSubmitting = false);

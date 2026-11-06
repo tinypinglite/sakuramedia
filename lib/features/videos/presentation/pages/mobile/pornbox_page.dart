@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_mutation_events_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/videos_api_provider.dart';
@@ -207,7 +207,7 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
       return;
     }
     ref.read(videoMutationEventsProvider.notifier).reportDeleted(video.id);
-    showToast(l10n.videoDeletedToast);
+    showToast(l10n.videoDeletedToast, tone: AppToastTone.success);
   }
 
   // --------------------------------------------------------- 批量动作
@@ -279,7 +279,10 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
     }
     await ref.read(videoCollectionsOverviewProvider.notifier).refresh();
     if (mounted) {
-      showToast(AppLocalizations.of(context).videoCollectionCreated);
+      showToast(
+        AppLocalizations.of(context).videoCollectionCreated,
+        tone: AppToastTone.success,
+      );
     }
   }
 

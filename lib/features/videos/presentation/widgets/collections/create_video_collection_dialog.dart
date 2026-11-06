@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/videos_api_provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
@@ -26,19 +26,18 @@ Future<VideoCollectionDto?> showVideoCollectionDialog(
     case VideoCollectionEditPresentation.dialog:
       return showDialog<VideoCollectionDto>(
         context: context,
-        builder:
-            (dialogContext) => CreateVideoCollectionDialog(existing: existing),
+        builder: (dialogContext) =>
+            CreateVideoCollectionDialog(existing: existing),
       );
     case VideoCollectionEditPresentation.bottomDrawer:
       return showAppBottomDrawer<VideoCollectionDto>(
         context: context,
         drawerKey: const Key('video-collection-edit-bottom-sheet'),
         maxHeightFactor: 0.62,
-        builder:
-            (sheetContext) => CreateVideoCollectionDialog(
-              existing: existing,
-              presentation: VideoCollectionEditPresentation.bottomDrawer,
-            ),
+        builder: (sheetContext) => CreateVideoCollectionDialog(
+          existing: existing,
+          presentation: VideoCollectionEditPresentation.bottomDrawer,
+        ),
       );
   }
 }
@@ -93,8 +92,7 @@ class _CreateVideoCollectionDialogState
       formKey: _formKey,
       title: _isEditing ? l10n.videoEditCollection : l10n.videoNewCollection,
       submitKey: const Key('video-collection-submit-button'),
-      submitLabel:
-          _isEditing ? l10n.commonSave : l10n.videoCreateCollection,
+      submitLabel: _isEditing ? l10n.commonSave : l10n.videoCreateCollection,
       isSubmitting: _isSubmitting,
       onSubmit: _submit,
       body: _buildFieldsBody(context),
@@ -113,11 +111,9 @@ class _CreateVideoCollectionDialogState
           controller: _nameController,
           hintText: l10n.videoCollectionNameHint,
           enabled: !_isSubmitting,
-          validator:
-              (value) =>
-                  value == null || value.trim().isEmpty
-                      ? l10n.videoCollectionNameRequired
-                      : null,
+          validator: (value) => value == null || value.trim().isEmpty
+              ? l10n.videoCollectionNameRequired
+              : null,
         ),
         SizedBox(height: spacing.sm),
         AppTextField(
@@ -156,16 +152,18 @@ class _CreateVideoCollectionDialogState
               Expanded(
                 child: AppButton(
                   label: l10n.commonCancel,
-                  onPressed:
-                      _isSubmitting ? null : () => Navigator.of(context).pop(),
+                  onPressed: _isSubmitting
+                      ? null
+                      : () => Navigator.of(context).pop(),
                 ),
               ),
               SizedBox(width: spacing.md),
               Expanded(
                 child: AppButton(
                   key: const Key('video-collection-submit-button'),
-                  label:
-                      _isEditing ? l10n.commonSave : l10n.videoCreateCollection,
+                  label: _isEditing
+                      ? l10n.commonSave
+                      : l10n.videoCreateCollection,
                   variant: AppButtonVariant.primary,
                   isLoading: _isSubmitting,
                   onPressed: _submit,
@@ -209,10 +207,10 @@ class _CreateVideoCollectionDialogState
       showToast(
         apiErrorMessage(
           error,
-          fallback:
-              _isEditing ? l10n.videoSaveFailed : l10n.videoCreateFailed,
+          fallback: _isEditing ? l10n.videoSaveFailed : l10n.videoCreateFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
       if (mounted) {
         setState(() => _isSubmitting = false);

@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/providers/riverpod_page_cache_provider.dart';
 import 'package:sakuramedia/app/riverpod_page_cache.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
@@ -110,8 +110,10 @@ class _MobileTagsPageState extends ConsumerState<MobileTagsPage> {
       totalKey: const Key('tags-page-total'),
       sectionSpacing: context.appSpacing.md,
       enableRefresh: true,
-      onRefreshFailure: (_) =>
-          showToast(AppLocalizations.of(context).tagRefreshFailed),
+      onRefreshFailure: (_) => showToast(
+        AppLocalizations.of(context).tagRefreshFailed,
+        tone: AppToastTone.error,
+      ),
       onMovieTap: (context, movieNumber) =>
           MobileMovieDetailRouteData(movieNumber: movieNumber).push(context),
       headerBuilder: _buildMobileHeader,

@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/account/presentation/providers/account_api_provider.dart';
 import 'package:sakuramedia/features/auth/presentation/providers/auth_api_provider.dart';
@@ -108,7 +108,10 @@ class _AccountSecuritySectionState
     final state = ref.read(accountProfileProvider);
     if (saved) {
       _usernameController.text = state.account?.username ?? '';
-      showToast(AppLocalizations.of(context).accountUsernameUpdated);
+      showToast(
+        AppLocalizations.of(context).accountUsernameUpdated,
+        tone: AppToastTone.success,
+      );
       return;
     }
 
@@ -150,9 +153,8 @@ class _AccountSecuritySectionState
           return;
         }
         showToast(
-          AppLocalizations.of(
-            context,
-          ).accountPasswordChangedReloginFailed,
+          AppLocalizations.of(context).accountPasswordChangedReloginFailed,
+          tone: AppToastTone.error,
         );
         return;
       }
@@ -160,7 +162,10 @@ class _AccountSecuritySectionState
       if (!mounted) {
         return;
       }
-      showToast(AppLocalizations.of(context).accountPasswordChangedRelogin);
+      showToast(
+        AppLocalizations.of(context).accountPasswordChangedRelogin,
+        tone: AppToastTone.success,
+      );
       await context.logOut();
     } catch (error) {
       if (!mounted) {
@@ -173,6 +178,7 @@ class _AccountSecuritySectionState
           fallback: l10n.errorChangePasswordFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     } finally {
       if (mounted) {
@@ -592,6 +598,7 @@ class _AccountSecuritySectionState
             fallback: l10n.errorApiKeyDeleteFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     }
@@ -643,8 +650,7 @@ class _AccountProfileSummary extends StatelessWidget {
         ),
         _AccountProfilePill(
           label: l10n.accountCreatedAt,
-          value:
-              formatUpdatedAtLabel(account.createdAt) ?? l10n.commonUnknown,
+          value: formatUpdatedAtLabel(account.createdAt) ?? l10n.commonUnknown,
         ),
         _AccountProfilePill(
           label: l10n.accountLastLogin,

@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/clips/presentation/widgets/create_clip_dialog.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
@@ -91,9 +91,7 @@ class _VideoThumbnailContentState extends ConsumerState<VideoThumbnailContent> {
       if (detail.mediaItems.isEmpty) {
         setState(() {
           _isLoading = false;
-          _errorMessage = AppLocalizations.of(
-            context,
-          ).videoNoAvailableMedia;
+          _errorMessage = AppLocalizations.of(context).videoNoAvailableMedia;
         });
         return;
       }
@@ -184,7 +182,10 @@ class _VideoThumbnailContentState extends ConsumerState<VideoThumbnailContent> {
       ref
           .read(videoMutationEventsProvider.notifier)
           .reportCoverChanged(videoId: widget.videoId);
-      showToast(AppLocalizations.of(context).videoCoverSet);
+      showToast(
+        AppLocalizations.of(context).videoCoverSet,
+        tone: AppToastTone.success,
+      );
     } catch (error) {
       if (mounted) {
         showToast(
@@ -193,6 +194,7 @@ class _VideoThumbnailContentState extends ConsumerState<VideoThumbnailContent> {
             fallback: AppLocalizations.of(context).videoCoverSetFailed,
             l10n: AppLocalizations.of(context),
           ),
+          tone: AppToastTone.error,
         );
       }
     }
@@ -218,7 +220,10 @@ class _VideoThumbnailContentState extends ConsumerState<VideoThumbnailContent> {
     if (!mounted || created == null) {
       return;
     }
-    showToast(AppLocalizations.of(context).videoClipCreated);
+    showToast(
+      AppLocalizations.of(context).videoClipCreated,
+      tone: AppToastTone.success,
+    );
     _thumbnailController.toggleClipSelectionMode();
   }
 

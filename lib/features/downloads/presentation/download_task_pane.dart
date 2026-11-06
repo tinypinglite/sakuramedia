@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/format/updated_at_label.dart';
 import 'package:sakuramedia/features/downloads/data/download_request_dto.dart';
@@ -777,7 +777,10 @@ Future<void> _triggerImport(
   try {
     await ref.read(downloadTaskCenterProvider.notifier).triggerImport(taskId);
     if (context.mounted) {
-      showToast(AppLocalizations.of(context).downloadImportSubmitted);
+      showToast(
+        AppLocalizations.of(context).downloadImportSubmitted,
+        tone: AppToastTone.success,
+      );
     }
   } catch (error) {
     if (context.mounted) {
@@ -788,6 +791,7 @@ Future<void> _triggerImport(
           fallback: l10n.downloadImportSubmitFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }

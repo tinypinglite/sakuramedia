@@ -5,7 +5,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/widgets/domain/media/media_playback_info_button.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/collection_playback_handoff_provider.dart';
@@ -414,6 +414,7 @@ class _VideoCollectionPlayContentState
                 fallback: l10n.videoRemoveFailed,
                 l10n: l10n,
               ),
+              tone: AppToastTone.error,
             );
           }
         }
@@ -466,9 +467,8 @@ class _VideoCollectionPlayContentState
       );
       if (mounted) {
         showToast(
-          deleteMedia
-              ? l10n.videoEpisodeDeleted
-              : l10n.videoEpisodeRemoved,
+          deleteMedia ? l10n.videoEpisodeDeleted : l10n.videoEpisodeRemoved,
+          tone: AppToastTone.success,
         );
       }
     } catch (error) {
@@ -476,7 +476,7 @@ class _VideoCollectionPlayContentState
       if (mounted) {
         await player?.stop();
         _errorMessage = l10n.videoEpisodeQueueUpdateFailed;
-        showToast(_errorMessage!);
+        showToast(_errorMessage!, tone: AppToastTone.error);
       }
     } finally {
       _mutatingVideoId = null;

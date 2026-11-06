@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
@@ -116,12 +116,13 @@ Future<bool> executeMovieDetailRemoteAction({
       );
       onMovieApplied(applyResult);
     }
-    showToast(spec.successMessage);
+    showToast(spec.successMessage, tone: AppToastTone.success);
     return true;
   } catch (error) {
     if (context.mounted) {
       showToast(
         apiErrorMessage(error, fallback: spec.failureMessage, l10n: l10n),
+        tone: AppToastTone.error,
       );
     }
     return false;

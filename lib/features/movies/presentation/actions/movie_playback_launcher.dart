@@ -13,7 +13,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/desktop_routes.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 
 /// 统一的影片播放入口：根据用户是否设置了默认外部播放器，决定跳应用内播放页
 /// 还是直接拉起外部播放器。
@@ -104,6 +104,7 @@ Future<void> launchMoviePlayback(
     // 外部播放器不可用（可能已卸载），提示并回落到应用内播放。
     showToast(
       AppLocalizations.of(context).movieActionExternalPlayerUnavailableInApp,
+      tone: AppToastTone.error,
     );
     _pushInAppPlayer(
       context,
@@ -150,6 +151,7 @@ Future<void> launchMovieMergedPlayback(
     if (resolvedUrl == null || resolvedUrl.isEmpty) {
       showToast(
         AppLocalizations.of(context).movieActionMergedPlaybackUrlUnavailable,
+        tone: AppToastTone.error,
       );
       return;
     }
@@ -162,6 +164,7 @@ Future<void> launchMovieMergedPlayback(
     if (context.mounted && !launched) {
       showToast(
         AppLocalizations.of(context).movieActionExternalPlayerUnavailable,
+        tone: AppToastTone.error,
       );
     }
   } catch (error) {
@@ -173,6 +176,7 @@ Future<void> launchMovieMergedPlayback(
           fallback: l10n.movieActionMergedPlaybackStartFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }

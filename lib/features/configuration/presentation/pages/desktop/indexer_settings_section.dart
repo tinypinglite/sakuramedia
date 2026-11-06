@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/indexer_settings_api_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/download_clients_provider.dart';
@@ -143,23 +143,26 @@ class _IndexerSettingsSectionState
     final l10n = AppLocalizations.of(context);
     final duplicateNames = findDuplicateIndexerNames(indexers);
     if (duplicateNames.isNotEmpty) {
-      showToast(l10n.indexerNameDuplicateWithName(duplicateNames.first));
+      showToast(
+        l10n.indexerNameDuplicateWithName(duplicateNames.first),
+        tone: AppToastTone.warning,
+      );
       return;
     }
     for (final item in indexers) {
       if (!isValidIndexerHttpUrl(item.url)) {
-        showToast(l10n.indexerUrlMustBeHttp);
+        showToast(l10n.indexerUrlMustBeHttp, tone: AppToastTone.warning);
         return;
       }
       if (!isSupportedIndexerKind(item.kind)) {
-        showToast(l10n.indexerUnsupportedKind);
+        showToast(l10n.indexerUnsupportedKind, tone: AppToastTone.warning);
         return;
       }
       final availableClientIds = _currentDownloadClients
           .map((client) => client.id)
           .toSet();
       if (!item.downloadClientIds.every(availableClientIds.contains)) {
-        showToast(l10n.indexerDownloadersInvalid);
+        showToast(l10n.indexerDownloadersInvalid, tone: AppToastTone.error);
         return;
       }
     }
@@ -178,7 +181,7 @@ class _IndexerSettingsSectionState
         _applySettings(saved);
         _isSaving = false;
       });
-      showToast(successToast);
+      showToast(successToast, tone: AppToastTone.success);
     } catch (error) {
       if (!mounted) {
         return;
@@ -187,11 +190,8 @@ class _IndexerSettingsSectionState
         _isSaving = false;
       });
       showToast(
-        apiErrorMessage(
-          error,
-          fallback: l10n.indexerSaveFailed,
-          l10n: l10n,
-        ),
+        apiErrorMessage(error, fallback: l10n.indexerSaveFailed, l10n: l10n),
+        tone: AppToastTone.error,
       );
     }
   }
@@ -213,6 +213,7 @@ class _IndexerSettingsSectionState
       result.healthy
           ? l10n.indexerConnectionHealthy
           : l10n.indexerConnectionTestFailed,
+      tone: result.healthy ? AppToastTone.success : AppToastTone.error,
     );
   }
 
@@ -605,7 +606,10 @@ class _IndexerEntryDialogState extends ConsumerState<IndexerEntryDialog> {
     }
     final selectedDownloadClients = _selectedDownloadClients();
     if (selectedDownloadClients.isEmpty) {
-      showToast(AppLocalizations.of(context).indexerSelectDownloader);
+      showToast(
+        AppLocalizations.of(context).indexerSelectDownloader,
+        tone: AppToastTone.warning,
+      );
       return;
     }
     Navigator.of(context).pop(

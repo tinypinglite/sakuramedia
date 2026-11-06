@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
@@ -115,9 +115,7 @@ class _MoviePlaylistPickerDialogState
         return;
       }
       setState(() {
-        _errorMessage = AppLocalizations.of(
-          context,
-        ).playlistPickerLoadFailed;
+        _errorMessage = AppLocalizations.of(context).playlistPickerLoadFailed;
         _isLoading = false;
       });
     }
@@ -389,6 +387,7 @@ class _MoviePlaylistPickerDialogState
               : l10n.playlistAddFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     } finally {
       if (mounted) {

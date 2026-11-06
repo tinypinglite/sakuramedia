@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_summary_list_content.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -35,7 +35,8 @@ class MobileFollowPage extends StatelessWidget {
             slivers: <Widget>[sliver],
           ),
       enableRefresh: true,
-      onRefreshFailure: (_) => showToast(l10n.subscriptionRefreshFailed),
+      onRefreshFailure: (_) =>
+          showToast(l10n.subscriptionRefreshFailed, tone: AppToastTone.error),
     );
   }
 }

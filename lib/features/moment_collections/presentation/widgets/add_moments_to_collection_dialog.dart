@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
@@ -485,7 +485,7 @@ class _AddMomentsToCollectionDialogState
         if (!mounted) {
           return;
         }
-        showToast(l10n.momentMovedOutToast);
+        showToast(l10n.momentMovedOutToast, tone: AppToastTone.success);
       } else {
         await api.addPoint(
           collectionId: widget.collectionId,
@@ -503,7 +503,7 @@ class _AddMomentsToCollectionDialogState
             _nextOffset = math.max(0, _nextOffset - 1);
           }
         });
-        showToast(l10n.momentAddedToast);
+        showToast(l10n.momentAddedToast, tone: AppToastTone.success);
       }
     } catch (error) {
       if (!mounted) {
@@ -524,6 +524,7 @@ class _AddMomentsToCollectionDialogState
               : l10n.momentErrorAddToCollectionFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     } finally {
       if (mounted) {

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/presentation/media_browse_filter_state.dart';
@@ -422,7 +422,8 @@ class MediaManagementContent extends HookConsumerWidget {
     try {
       await ref.read(mediaBrowseProvider.notifier).deleteMediaFile(item);
       _reportDeletedPornboxVideos(ref, [item]);
-      if (context.mounted) showToast(l10n.mediaListDeleteSuccess);
+      if (context.mounted)
+        showToast(l10n.mediaListDeleteSuccess, tone: AppToastTone.success);
     } catch (error) {
       if (context.mounted) {
         showToast(
@@ -431,6 +432,7 @@ class MediaManagementContent extends HookConsumerWidget {
             fallback: l10n.mediaListDeleteFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     } finally {
@@ -483,7 +485,7 @@ class MediaManagementContent extends HookConsumerWidget {
       // 选目标库期间不显示卡片 loading，避免转圈一直转。
       transferringMediaId?.value = null;
       if (candidates.targets.isEmpty) {
-        showToast(l10n.mediaListTransferNoTarget);
+        showToast(l10n.mediaListTransferNoTarget, tone: AppToastTone.warning);
         return;
       }
       final targetLibraryId = await showMediaTransferTargetDialog(
@@ -500,7 +502,10 @@ class MediaManagementContent extends HookConsumerWidget {
       );
       ref.read(mediaBrowseProvider.notifier).clearSelection();
       selectionMode?.value = false;
-      showToast(l10n.mediaListTransferSubmitted(accepted.taskRunId));
+      showToast(
+        l10n.mediaListTransferSubmitted(accepted.taskRunId),
+        tone: AppToastTone.success,
+      );
     } catch (error) {
       if (context.mounted) {
         showToast(
@@ -509,6 +514,7 @@ class MediaManagementContent extends HookConsumerWidget {
             fallback: l10n.mediaListTransferSubmitFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     } finally {
@@ -687,7 +693,10 @@ class MediaManagementContent extends HookConsumerWidget {
           tags: assignment.tags,
           isManuallyManaged: assignment.isManuallyManaged,
         );
-    showToast(AppLocalizations.of(context).mediaTagsAssignmentSaved);
+    showToast(
+      AppLocalizations.of(context).mediaTagsAssignmentSaved,
+      tone: AppToastTone.success,
+    );
   }
 
   /// 批量与单项共用的缩略图重置：置忙、重置、清选、刷新，并按结果提示。
@@ -721,17 +730,25 @@ class MediaManagementContent extends HookConsumerWidget {
       if (refreshMessage != null) {
         showToast(
           l10n.mediaListThumbnailResetRefreshFailed(resetCount, refreshMessage),
+          tone: AppToastTone.error,
         );
       } else if (resetCount == 0) {
         showToast(
           force
               ? l10n.mediaListThumbnailNothingToRegenerate
               : l10n.mediaListThumbnailNothingToRetry,
+          tone: AppToastTone.warning,
         );
       } else if (force) {
-        showToast(l10n.mediaListThumbnailRegenerateSubmitted(resetCount));
+        showToast(
+          l10n.mediaListThumbnailRegenerateSubmitted(resetCount),
+          tone: AppToastTone.success,
+        );
       } else {
-        showToast(l10n.mediaListThumbnailRetrySubmitted(resetCount));
+        showToast(
+          l10n.mediaListThumbnailRetrySubmitted(resetCount),
+          tone: AppToastTone.success,
+        );
       }
     } catch (error) {
       if (context.mounted) {
@@ -743,6 +760,7 @@ class MediaManagementContent extends HookConsumerWidget {
                 : l10n.mediaListThumbnailRetryFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     } finally {

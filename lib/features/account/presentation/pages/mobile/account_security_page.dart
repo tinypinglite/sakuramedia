@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/format/updated_at_label.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/account/data/account_dto.dart';
@@ -231,7 +231,10 @@ class _MobileAccountSecurityPageState
     final state = ref.read(accountProfileProvider);
     if (saved) {
       _usernameController.text = state.account?.username ?? '';
-      showToast(AppLocalizations.of(context).accountUsernameUpdated);
+      showToast(
+        AppLocalizations.of(context).accountUsernameUpdated,
+        tone: AppToastTone.success,
+      );
       return;
     }
 
@@ -366,9 +369,8 @@ class _MobileAccountSecurityPageState
           return;
         }
         showToast(
-          AppLocalizations.of(
-            context,
-          ).accountPasswordChangedReloginFailed,
+          AppLocalizations.of(context).accountPasswordChangedReloginFailed,
+          tone: AppToastTone.error,
         );
         return;
       }
@@ -376,7 +378,10 @@ class _MobileAccountSecurityPageState
       if (!mounted) {
         return;
       }
-      showToast(AppLocalizations.of(context).accountPasswordChangedRelogin);
+      showToast(
+        AppLocalizations.of(context).accountPasswordChangedRelogin,
+        tone: AppToastTone.success,
+      );
       await context.logOut();
     } catch (error) {
       if (!mounted) {
@@ -389,6 +394,7 @@ class _MobileAccountSecurityPageState
           fallback: l10n.errorChangePasswordFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     } finally {
       if (mounted) {
@@ -599,6 +605,7 @@ class _MobileAccountSecurityPageState
             fallback: l10n.errorApiKeyDeleteFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     }

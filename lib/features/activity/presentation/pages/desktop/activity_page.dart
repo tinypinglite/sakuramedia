@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
@@ -99,7 +99,7 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
       }
       await _controller.triggerJob(job.taskKey, params: params);
       if (mounted) {
-        showToast(l10n.activityJobSubmitted);
+        showToast(l10n.activityJobSubmitted, tone: AppToastTone.success);
       }
     } catch (error) {
       if (!mounted) {
@@ -108,7 +108,7 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
       if (error is ApiException &&
           error.statusCode == 409 &&
           error.error?.code == 'task_conflict') {
-        showToast(l10n.activityJobAlreadyRunning);
+        showToast(l10n.activityJobAlreadyRunning, tone: AppToastTone.info);
         return;
       }
       showToast(
@@ -117,6 +117,7 @@ class _DesktopActivityPageState extends ConsumerState<DesktopActivityPage>
           fallback: l10n.activityJobSubmitFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }

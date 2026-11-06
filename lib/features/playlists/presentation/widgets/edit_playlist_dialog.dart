@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
@@ -144,11 +144,9 @@ class _EditPlaylistDialogState extends ConsumerState<EditPlaylistDialog> {
             hintText: l10n.playlistNameHint,
             enabled: !_isSubmitting,
             autovalidateMode: _autovalidateMode,
-            validator:
-                (value) =>
-                    value == null || value.trim().isEmpty
-                        ? l10n.playlistNameRequired
-                        : null,
+            validator: (value) => value == null || value.trim().isEmpty
+                ? l10n.playlistNameRequired
+                : null,
           ),
           SizedBox(height: spacing.sm),
           AppTextField(
@@ -215,7 +213,10 @@ class _EditPlaylistDialogState extends ConsumerState<EditPlaylistDialog> {
       if (!mounted) {
         return;
       }
-      showToast(AppLocalizations.of(context).playlistUpdatedToast);
+      showToast(
+        AppLocalizations.of(context).playlistUpdatedToast,
+        tone: AppToastTone.success,
+      );
       Navigator.of(context).pop(playlist);
     } catch (error) {
       if (!mounted) {
@@ -223,11 +224,8 @@ class _EditPlaylistDialogState extends ConsumerState<EditPlaylistDialog> {
       }
       final l10n = AppLocalizations.of(context);
       showToast(
-        apiErrorMessage(
-          error,
-          fallback: l10n.playlistUpdateFailed,
-          l10n: l10n,
-        ),
+        apiErrorMessage(error, fallback: l10n.playlistUpdateFailed, l10n: l10n),
+        tone: AppToastTone.error,
       );
       setState(() => _isSubmitting = false);
     }

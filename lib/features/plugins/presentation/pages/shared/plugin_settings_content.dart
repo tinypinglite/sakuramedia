@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/plugins/presentation/widgets/plugin_settings_schema.dart';
@@ -159,7 +159,10 @@ class _PluginSettingsContentState extends ConsumerState<PluginSettingsContent> {
         return;
       }
       final l10n = AppLocalizations.of(context);
-      showToast(buildRestartRequiredMessage(l10n.pluginSettingsSaved, l10n));
+      showToast(
+        buildRestartRequiredMessage(l10n.pluginSettingsSaved, l10n),
+        tone: AppToastTone.warning,
+      );
       Navigator.of(context).pop();
     } catch (error) {
       if (!mounted) {
@@ -184,6 +187,7 @@ class _PluginSettingsContentState extends ConsumerState<PluginSettingsContent> {
           fallback: l10n.pluginSettingsSaveFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _formKey.currentState?.validate();
@@ -308,19 +312,19 @@ class _PluginSettingsContentState extends ConsumerState<PluginSettingsContent> {
   /// 加载态占位 Schema：让骨架按「有 Schema 的插件表单」形态渲染。
   static Map<String, dynamic> _placeholderSchema(AppLocalizations l10n) =>
       <String, dynamic>{
-    'type': 'object',
-    'properties': <String, dynamic>{
-      'endpoint': <String, dynamic>{
-        'type': 'string',
-        'title': l10n.pluginSettingsPlaceholderEndpoint,
-      },
-      'api_key': <String, dynamic>{'type': 'string', 'title': 'API Key'},
-      'enabled': <String, dynamic>{
-        'type': 'boolean',
-        'title': l10n.pluginSettingsPlaceholderEnabled,
-      },
-    },
-  };
+        'type': 'object',
+        'properties': <String, dynamic>{
+          'endpoint': <String, dynamic>{
+            'type': 'string',
+            'title': l10n.pluginSettingsPlaceholderEndpoint,
+          },
+          'api_key': <String, dynamic>{'type': 'string', 'title': 'API Key'},
+          'enabled': <String, dynamic>{
+            'type': 'boolean',
+            'title': l10n.pluginSettingsPlaceholderEnabled,
+          },
+        },
+      };
 
   Widget _buildDesktopBody(BuildContext context) {
     if (_errorMessage != null) {
@@ -332,12 +336,8 @@ class _PluginSettingsContentState extends ConsumerState<PluginSettingsContent> {
     }
     // loading 用占位 Schema / 空表单渲染真实表单结构，由 [AppSkeletonizer] 灰化。
     final l10n = AppLocalizations.of(context);
-    final schema = _schema ?? (
-      _loading ? _placeholderSchema(l10n) : null
-    );
-    final values = _loading
-        ? <String, dynamic>{}
-        : _formSettings;
+    final schema = _schema ?? (_loading ? _placeholderSchema(l10n) : null);
+    final values = _loading ? <String, dynamic>{} : _formSettings;
     return AppSkeletonizer(
       enabled: _loading,
       child: Form(

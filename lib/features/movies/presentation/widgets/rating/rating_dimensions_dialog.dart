@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/movies/data/dto/rating/rating_dimension_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/rating_dimensions_provider.dart';
@@ -87,7 +87,10 @@ class _RatingDimensionsDialogState
   Future<void> _save() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      showToast(AppLocalizations.of(context).movieWidgetDimensionNameRequired);
+      showToast(
+        AppLocalizations.of(context).movieWidgetDimensionNameRequired,
+        tone: AppToastTone.warning,
+      );
       return;
     }
     setState(() => _saving = true);
@@ -118,6 +121,7 @@ class _RatingDimensionsDialogState
           fallback: l10n.movieWidgetRatingDimensionSaveFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -144,6 +148,7 @@ class _RatingDimensionsDialogState
           fallback: l10n.movieWidgetRatingDimensionDeleteFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }

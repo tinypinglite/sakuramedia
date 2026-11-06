@@ -19,7 +19,7 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_sc
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart' show HookConsumerWidget;
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/subscriptions/data/dto/movie_subscription_list_item_dto.dart';
 import 'package:sakuramedia/features/subscriptions/data/dto/movie_subscription_status.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/movie_subscription_filter_state.dart';
@@ -603,7 +603,10 @@ Future<void> _deleteSelectedDownloads(
     onLoadingChanged(false);
     if (result.failed.isNotEmpty) return;
     if (tasks.isEmpty) {
-      showToast(AppLocalizations.of(context).subscriptionBatchNoDownloadTasks);
+      showToast(
+        AppLocalizations.of(context).subscriptionBatchNoDownloadTasks,
+        tone: AppToastTone.warning,
+      );
       return;
     }
     final deleteFiles = await showDownloadTaskDeleteDialog(
@@ -628,6 +631,7 @@ Future<void> _deleteSelectedDownloads(
           ).subscriptionDownloadTasksLoadFailed,
           l10n: AppLocalizations.of(context),
         ),
+        tone: AppToastTone.error,
       );
     }
   } finally {
@@ -673,7 +677,10 @@ Future<void> _retriggerSelectedImports(
     onLoadingChanged(false);
     if (result.failed.isNotEmpty) return;
     if (taskIds.isEmpty) {
-      showToast(AppLocalizations.of(context).subscriptionBatchNoRetriggerTasks);
+      showToast(
+        AppLocalizations.of(context).subscriptionBatchNoRetriggerTasks,
+        tone: AppToastTone.warning,
+      );
       return;
     }
     final accepted = await ref
@@ -692,6 +699,7 @@ Future<void> _retriggerSelectedImports(
                 skipped,
               )
             : l10n.subscriptionBatchRetriggerSubmitted(accepted.acceptedCount),
+        tone: AppToastTone.warning,
       );
     }
   } catch (error) {
@@ -703,6 +711,7 @@ Future<void> _retriggerSelectedImports(
           fallback: l10n.subscriptionBatchRetriggerSubmitFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   } finally {
@@ -987,7 +996,10 @@ class _RowConsumer extends HookConsumerWidget {
       try {
         await ref.read(downloadsApiProvider).triggerDownloadTaskImport(task.id);
         if (!context.mounted) return;
-        showToast(AppLocalizations.of(context).subscriptionImportTaskSubmitted);
+        showToast(
+          AppLocalizations.of(context).subscriptionImportTaskSubmitted,
+          tone: AppToastTone.success,
+        );
         ref.invalidate(downloadTaskCenterProvider);
         await notifier.refresh();
       } catch (error) {
@@ -999,6 +1011,7 @@ class _RowConsumer extends HookConsumerWidget {
               fallback: l10n.subscriptionImportSubmitFailed,
               l10n: l10n,
             ),
+            tone: AppToastTone.error,
           );
         }
       } finally {
@@ -1014,6 +1027,7 @@ class _RowConsumer extends HookConsumerWidget {
         if (currentTasks.isEmpty) {
           showToast(
             AppLocalizations.of(context).subscriptionDownloadTaskMissing,
+            tone: AppToastTone.warning,
           );
           await notifier.refresh();
           return;
@@ -1041,6 +1055,7 @@ class _RowConsumer extends HookConsumerWidget {
               ).subscriptionDownloadTasksLoadFailed,
               l10n: AppLocalizations.of(context),
             ),
+            tone: AppToastTone.error,
           );
         }
       } finally {

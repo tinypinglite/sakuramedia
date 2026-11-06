@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/moment_collections/data/dto/moment_collection_dto.dart';
 import 'package:sakuramedia/features/moment_collections/presentation/providers/moment_collections_api_provider.dart';
@@ -103,8 +103,7 @@ class _MomentCollectionEditorState
             controller: _nameController,
             hintText: l10n.momentCollectionNameHint,
             enabled: !_isSubmitting,
-            validator: (value) =>
-                value == null || value.trim().isEmpty
+            validator: (value) => value == null || value.trim().isEmpty
                 ? l10n.momentCollectionNameRequired
                 : null,
           ),
@@ -128,9 +127,7 @@ class _MomentCollectionEditorState
               Expanded(
                 child: AppButton(
                   key: const Key('moment-collection-submit-button'),
-                  label: _isEditing
-                      ? l10n.commonSave
-                      : l10n.momentCreateAction,
+                  label: _isEditing ? l10n.commonSave : l10n.momentCreateAction,
                   variant: AppButtonVariant.primary,
                   isLoading: _isSubmitting,
                   onPressed: _submit,
@@ -171,6 +168,7 @@ class _MomentCollectionEditorState
               : l10n.momentErrorCreateFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
       if (mounted) setState(() => _isSubmitting = false);
     }

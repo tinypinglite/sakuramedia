@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/media/data/duplicate_media_group_dto.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/presentation/media_placeholders.dart';
@@ -104,7 +104,7 @@ class DuplicateMediaSection extends HookConsumerWidget {
             (group) => group.mediaItems.every((item) => ids.contains(item.id)),
           )) {
         exitSelection();
-        showToast(l10n.mediaListDuplicateChanged);
+        showToast(l10n.mediaListDuplicateChanged, tone: AppToastTone.success);
         return;
       }
       deleting.value = true;
@@ -140,7 +140,10 @@ class DuplicateMediaSection extends HookConsumerWidget {
       final confirmed = await showAppConfirmDialog(
         context,
         title: l10n.mediaListDuplicateDeleteTitle,
-        message: l10n.mediaListDuplicateDeleteMessage(item.fileName, remainingHint),
+        message: l10n.mediaListDuplicateDeleteMessage(
+          item.fileName,
+          remainingHint,
+        ),
         confirmLabel: l10n.commonDelete,
         danger: true,
         dialogKey: Key('$keyPrefix-duplicate-delete-dialog-${item.id}'),
@@ -156,7 +159,7 @@ class DuplicateMediaSection extends HookConsumerWidget {
         failureFallback: l10n.mediaListDuplicateDeleteFailed,
       );
       if (confirmed && context.mounted) {
-        showToast(l10n.mediaListDuplicateDeleted);
+        showToast(l10n.mediaListDuplicateDeleted, tone: AppToastTone.success);
       }
     }
 
@@ -186,8 +189,7 @@ class DuplicateMediaSection extends HookConsumerWidget {
         },
         itemSupplement: (item) {
           final headingDiffers =
-              item.displayHeading(l10n) !=
-              first.displayHeading(l10n);
+              item.displayHeading(l10n) != first.displayHeading(l10n);
           final showCollections = item.isVideo && item.collections.isNotEmpty;
           if (!headingDiffers && !showCollections) {
             return null;
@@ -296,9 +298,11 @@ class DuplicateMediaSection extends HookConsumerWidget {
                 enabled: true,
                 child: Column(
                   children: [
-                    for (var index = 0;
-                        index < placeholders.length;
-                        index++) ...[
+                    for (
+                      var index = 0;
+                      index < placeholders.length;
+                      index++
+                    ) ...[
                       if (index > 0) SizedBox(height: spacing.lg),
                       buildGroup(context, placeholders[index]),
                     ],

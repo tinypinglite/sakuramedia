@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
@@ -69,7 +69,10 @@ class _MediaImportPageState extends ConsumerState<MediaImportPage>
                 sourceDisposition: request.sourceDisposition,
               );
           if (mounted) {
-            showToast(l10n.mediaImportTaskSubmitted(accepted.taskRunId));
+            showToast(
+              l10n.mediaImportTaskSubmitted(accepted.taskRunId),
+              tone: AppToastTone.success,
+            );
           }
         case _ImportTab.video:
           final request = await showVideoImportDialog(context);
@@ -85,7 +88,10 @@ class _MediaImportPageState extends ConsumerState<MediaImportPage>
                 collectionId: request.collectionId,
               );
           if (mounted) {
-            showToast(l10n.mediaImportVideoTaskSubmitted(accepted.taskRunId));
+            showToast(
+              l10n.mediaImportVideoTaskSubmitted(accepted.taskRunId),
+              tone: AppToastTone.success,
+            );
           }
       }
     } catch (error) {
@@ -96,6 +102,7 @@ class _MediaImportPageState extends ConsumerState<MediaImportPage>
             fallback: l10n.mediaImportSubmitFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     } finally {
@@ -146,7 +153,10 @@ class _MediaImportPageState extends ConsumerState<MediaImportPage>
           child: AppTabBar(
             controller: _tabController,
             tabs: [
-              Tab(key: const Key('media-import-tab-jav'), text: l10n.mediaImportTabJav),
+              Tab(
+                key: const Key('media-import-tab-jav'),
+                text: l10n.mediaImportTabJav,
+              ),
               Tab(
                 key: const Key('media-import-tab-video'),
                 text: l10n.mediaImportTabVideo,

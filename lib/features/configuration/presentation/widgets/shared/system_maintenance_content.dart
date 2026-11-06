@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/activity_api_provider.dart';
@@ -329,7 +329,7 @@ class _SystemMaintenanceContentState
     try {
       await ref.read(activityApiProvider).triggerJob(taskKey: taskKey);
       if (mounted) {
-        showToast(successMessage);
+        showToast(successMessage, tone: AppToastTone.success);
       }
     } catch (error) {
       if (!mounted) {
@@ -338,7 +338,10 @@ class _SystemMaintenanceContentState
       if (error is ApiException &&
           error.statusCode == 409 &&
           error.error?.code == 'task_conflict') {
-        showToast(AppLocalizations.of(context).systemMaintenanceTaskRunning);
+        showToast(
+          AppLocalizations.of(context).systemMaintenanceTaskRunning,
+          tone: AppToastTone.info,
+        );
       } else {
         final l10n = AppLocalizations.of(context);
         showToast(
@@ -347,6 +350,7 @@ class _SystemMaintenanceContentState
             fallback: l10n.systemMaintenanceSubmitFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     } finally {
@@ -530,7 +534,7 @@ class _SystemMaintenanceContentState
     }
     await _load();
     if (mounted) {
-      showToast(l10n.systemMaintenanceRebuildStarted);
+      showToast(l10n.systemMaintenanceRebuildStarted, tone: AppToastTone.info);
     }
   }
 }

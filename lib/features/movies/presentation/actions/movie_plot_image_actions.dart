@@ -1,7 +1,7 @@
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/features/status/presentation/providers/server_capabilities_provider.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
 import 'package:sakuramedia/core/media/image_save_service.dart';
@@ -140,6 +140,7 @@ Future<void> _searchSimilarWithCallback({
           fallback: l10n.movieActionReadImageFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }
@@ -181,6 +182,7 @@ Future<void> _searchSimilar({
                 fallback: l10n.movieActionReadImageFailed,
                 l10n: l10n,
               ),
+              tone: AppToastTone.error,
             );
           }
         }
@@ -197,6 +199,7 @@ Future<void> _searchSimilar({
           fallback: l10n.movieActionReadImageFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }
@@ -224,9 +227,15 @@ Future<void> _saveToLocal({
     return;
   }
   if (result.status == ImageSaveStatus.success) {
-    showToast(result.message ?? l10n.movieActionImageSaved);
+    showToast(
+      result.message ?? l10n.movieActionImageSaved,
+      tone: AppToastTone.success,
+    );
   }
   if (result.status == ImageSaveStatus.failed) {
-    showToast(result.message ?? l10n.movieActionImageSaveFailed);
+    showToast(
+      result.message ?? l10n.movieActionImageSaveFailed,
+      tone: AppToastTone.error,
+    );
   }
 }

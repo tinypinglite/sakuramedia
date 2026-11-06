@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/features/downloads/data/download_request_dto.dart';
 import 'package:sakuramedia/features/downloads/presentation/download_task_filter_state.dart';
@@ -132,7 +132,7 @@ class _DesktopDownloadTasksPageState
   Future<void> _refresh() async {
     final error = await _controller.refresh();
     if (error != null && mounted) {
-      showToast(error);
+      showToast(error, tone: AppToastTone.error);
     }
   }
 
@@ -146,6 +146,9 @@ class _DesktopDownloadTasksPageState
       result.response.created
           ? l10n.downloadSubmittedToClient(result.clientName)
           : l10n.downloadTaskAlreadyExists,
+      tone: result.response.created
+          ? AppToastTone.success
+          : AppToastTone.info,
     );
 
     final filter =
@@ -154,7 +157,7 @@ class _DesktopDownloadTasksPageState
     if (_taskVisibleUnderFilter(result.response.task, filter)) {
       final error = await _controller.refresh();
       if (error != null && mounted) {
-        showToast(error);
+        showToast(error, tone: AppToastTone.error);
       }
     } else {
       await _controller.applyFilter(

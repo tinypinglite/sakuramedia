@@ -99,9 +99,7 @@ void main() {
       await tester.pumpAndSettle();
       // 选合集：点击字段打开可搜索单选弹层，选中目标合集。
       await _tap(tester, 'video-import-collection-field');
-      await tester.tap(
-        find.byKey(const Key('pick-video-collection-single-7')),
-      );
+      await tester.tap(find.byKey(const Key('pick-video-collection-single-7')));
       await tester.pumpAndSettle();
       await _tap(tester, 'video-import-submit-button');
       expect(bundle.adapter.requests.last.body, {
@@ -171,7 +169,6 @@ void main() {
     expect(bundle.adapter.hitCount('POST', '/imports'), 1);
     await tester.pump(const Duration(seconds: 4));
   });
-
 }
 
 AppButton _button(WidgetTester tester, String key) =>
@@ -201,21 +198,21 @@ Future<TestApiBundle> _pumpPage(
       overrides: bundle.riverpodOverrides(),
       child: AppPlatformScope(
         platform: AppPlatform.mobile,
-        child: OKToast(
-          child: MaterialApp(
-            theme: sakuraMobileThemeData,
-            locale: const Locale('zh'),
-            localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-              AppLocalizations.delegate,
-              ...GlobalMaterialLocalizations.delegates,
-            ],
-            supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
-            home: const Scaffold(
-              body: SafeArea(
-                child: Padding(
-                  padding: AppPageInsets.compactStandard,
-                  child: MediaImportPage(),
-                ),
+        child: MaterialApp(
+          theme: sakuraMobileThemeData,
+          locale: const Locale('zh'),
+          localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+            AppLocalizations.delegate,
+            ...GlobalMaterialLocalizations.delegates,
+          ],
+          supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+          builder: (context, child) =>
+              OKToast(child: child ?? const SizedBox.shrink()),
+          home: const Scaffold(
+            body: SafeArea(
+              child: Padding(
+                padding: AppPageInsets.compactStandard,
+                child: MediaImportPage(),
               ),
             ),
           ),

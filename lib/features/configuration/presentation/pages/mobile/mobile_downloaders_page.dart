@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
@@ -71,6 +71,7 @@ class _MobileDownloadersPageState extends ConsumerState<MobileDownloadersPage>
             fallback: l10n.downloaderLoadFailedFallback,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     }
@@ -625,6 +626,7 @@ class _MobileDownloaderEditorDrawerState
       if (!mounted) return;
       showToast(
         _isEditing ? l10n.downloaderUpdated : l10n.downloaderCreated,
+        tone: AppToastTone.success,
       );
       Navigator.of(context).pop(client);
     } catch (error) {
@@ -638,6 +640,7 @@ class _MobileDownloaderEditorDrawerState
               : l10n.downloaderCreateFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }
@@ -682,6 +685,7 @@ class _MobileDownloaderEditorDrawerState
             fallback: l10n.downloaderTestFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     } finally {

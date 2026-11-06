@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/mutation_events_provider.dart';
@@ -193,7 +193,7 @@ Future<void> blacklistMovie({
   );
   if (confirmed && context.mounted) {
     onBlacklisted?.call();
-    showToast(l10n.movieActionMovieBlacklisted);
+    showToast(l10n.movieActionMovieBlacklisted, tone: AppToastTone.success);
   }
 }
 
@@ -296,6 +296,7 @@ Future<void> _handleCollectionTypeToggleAction({
   if (status == null) {
     showToast(
       statusResult.errorMessage ?? l10n.movieActionCollectionStatusLoadFailed,
+      tone: AppToastTone.error,
     );
     return;
   }
@@ -317,7 +318,10 @@ Future<void> _handleCollectionTypeToggleAction({
       return;
     }
     if (result.updatedCount <= 0) {
-      showToast(l10n.movieActionCollectionStatusUnmatched);
+      showToast(
+        l10n.movieActionCollectionStatusUnmatched,
+        tone: AppToastTone.warning,
+      );
       return;
     }
     ProviderScope.containerOf(context, listen: false)
@@ -330,6 +334,7 @@ Future<void> _handleCollectionTypeToggleAction({
       targetCollectionType == MovieCollectionType.collection
           ? l10n.movieActionMovieMarkedAsCollection(displayMovieNumber)
           : l10n.movieActionMovieMarkedAsSingle(displayMovieNumber),
+      tone: AppToastTone.success,
     );
   } catch (error) {
     if (!context.mounted) {
@@ -341,6 +346,7 @@ Future<void> _handleCollectionTypeToggleAction({
         fallback: l10n.movieActionCollectionStatusUpdateFailed,
         l10n: l10n,
       ),
+      tone: AppToastTone.error,
     );
   }
 }

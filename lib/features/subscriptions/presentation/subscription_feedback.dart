@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actor_subscription_toggle_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_toggle_result.dart';
@@ -108,6 +108,7 @@ Future<MovieSubscriptionBatchToggleResult> showMovieSubscriptionBatchFeedback(
           (subscribe
               ? l10n.subscriptionBatchSubscribeFailed
               : l10n.errorBatchUnsubscribeMoviesFailed),
+      tone: AppToastTone.error,
     );
     return result;
   }
@@ -121,6 +122,7 @@ Future<MovieSubscriptionBatchToggleResult> showMovieSubscriptionBatchFeedback(
       subscribe
           ? l10n.subscriptionBatchSubscribedCount(result.updatedCount)
           : l10n.subscriptionBatchUnsubscribedCount(result.updatedCount),
+      tone: AppToastTone.success,
     );
     return result;
   }
@@ -136,9 +138,13 @@ Future<MovieSubscriptionBatchToggleResult> showMovieSubscriptionBatchFeedback(
               result.updatedCount,
               result.skippedCount,
             ),
+      tone: AppToastTone.warning,
     );
   } else {
-    showToast(l10n.subscriptionBatchSkippedCount(result.skippedCount));
+    showToast(
+      l10n.subscriptionBatchSkippedCount(result.skippedCount),
+      tone: AppToastTone.info,
+    );
   }
 
   if (!context.mounted) {
@@ -224,7 +230,7 @@ Future<MovieSubscriptionBatchToggleResult> showMovieSubscriptionBatchFeedback(
   final forced = forcedResult;
   if (!confirmed || forced == null) return result;
   if (forced.hasError) {
-    showToast(forced.errorMessage!);
+    showToast(forced.errorMessage!, tone: AppToastTone.error);
     return result;
   }
   final combined = MovieSubscriptionBatchToggleResult(

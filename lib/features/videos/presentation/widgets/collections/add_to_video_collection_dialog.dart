@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
@@ -38,23 +38,21 @@ Future<void> showAddToVideoCollectionDialog(
     case AddToVideoCollectionPresentation.dialog:
       return showDialog<void>(
         context: context,
-        builder:
-            (dialogContext) => AddToVideoCollectionDialog(
-              videoItemId: videoItemId,
-              collectedRefs: collectedRefs,
-            ),
+        builder: (dialogContext) => AddToVideoCollectionDialog(
+          videoItemId: videoItemId,
+          collectedRefs: collectedRefs,
+        ),
       );
     case AddToVideoCollectionPresentation.bottomDrawer:
       return showAppBottomDrawer<void>(
         context: context,
         drawerKey: const Key('add-to-video-collection-bottom-sheet'),
         maxHeightFactor: 0.7,
-        builder:
-            (sheetContext) => AddToVideoCollectionDialog(
-              videoItemId: videoItemId,
-              collectedRefs: collectedRefs,
-              presentation: AddToVideoCollectionPresentation.bottomDrawer,
-            ),
+        builder: (sheetContext) => AddToVideoCollectionDialog(
+          videoItemId: videoItemId,
+          collectedRefs: collectedRefs,
+          presentation: AddToVideoCollectionPresentation.bottomDrawer,
+        ),
       );
   }
 }
@@ -159,13 +157,12 @@ class _AddToVideoCollectionDialogState
     final isAnyUpdating = _updatingIds.isNotEmpty;
     // 抽屉形态：列表占据抽屉剩余空间并内部滚动，表头/按钮常驻，整体由抽屉 maxHeightFactor
     // 约束，避免矮屏上「表头 + 固定高列表 + 按钮」超过抽屉封顶导致溢出。桌面弹窗仍用固定上限。
-    final listSection =
-        _isBottomDrawer
-            ? Flexible(child: _buildBody(context))
-            : ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 320),
-              child: _buildBody(context),
-            );
+    final listSection = _isBottomDrawer
+        ? Flexible(child: _buildBody(context))
+        : ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 320),
+            child: _buildBody(context),
+          );
     return Stack(
       alignment: Alignment.center,
       children: [
@@ -191,9 +188,7 @@ class _AddToVideoCollectionDialogState
                 hintText: l10n.videoSearchCollections,
                 onChanged: (value) =>
                     setState(() => _keyword = value.trim().toLowerCase()),
-                clearKey: const Key(
-                  'add-to-video-collection-search-clear',
-                ),
+                clearKey: const Key('add-to-video-collection-search-clear'),
               ),
               SizedBox(height: spacing.md),
               listSection,
@@ -203,7 +198,9 @@ class _AddToVideoCollectionDialogState
                   Expanded(
                     child: AppButton(
                       label: l10n.videoCreateCollectionAndAdd,
-                      onPressed: _isLoading || isAnyUpdating ? null : _createAndAdd,
+                      onPressed: _isLoading || isAnyUpdating
+                          ? null
+                          : _createAndAdd,
                     ),
                   ),
                   SizedBox(width: spacing.md),
@@ -264,7 +261,9 @@ class _AddToVideoCollectionDialogState
           enabled: !isAnyUpdating,
           onTap: () => _toggle(collection),
           title: collection.name,
-          trailingText: collection.itemCount > 0 ? '${collection.itemCount}' : null,
+          trailingText: collection.itemCount > 0
+              ? '${collection.itemCount}'
+              : null,
           optionKey: Key('add-to-video-collection-option-${collection.id}'),
           checkboxKey: Key('add-to-video-collection-checkbox-${collection.id}'),
         );
@@ -310,12 +309,12 @@ class _AddToVideoCollectionDialogState
       showToast(
         apiErrorMessage(
           error,
-          fallback:
-              isSelected
-                  ? l10n.videoRemoveFromCollectionFailed
-                  : l10n.videoAddToCollectionFailedShort,
+          fallback: isSelected
+              ? l10n.videoRemoveFromCollectionFailed
+              : l10n.videoAddToCollectionFailedShort,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     } finally {
       if (mounted) {
@@ -327,10 +326,9 @@ class _AddToVideoCollectionDialogState
   Future<void> _createAndAdd() async {
     final created = await showVideoCollectionDialog(
       context,
-      presentation:
-          _isBottomDrawer
-              ? VideoCollectionEditPresentation.bottomDrawer
-              : VideoCollectionEditPresentation.dialog,
+      presentation: _isBottomDrawer
+          ? VideoCollectionEditPresentation.bottomDrawer
+          : VideoCollectionEditPresentation.dialog,
     );
     if (!mounted || created == null) {
       return;

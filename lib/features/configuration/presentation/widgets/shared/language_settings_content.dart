@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/language/app_language.dart';
 import 'package:sakuramedia/app/language/providers/language_providers.dart';
 import 'package:sakuramedia/app/providers/riverpod_page_cache_provider.dart';
@@ -38,7 +38,10 @@ class _LanguageSettingsContentState
       final savedLanguage = AppLanguage.tryFromTag(account.language);
       if (savedLanguage != language) {
         if (mounted) {
-          showToast(l10n.settingsLanguageUpdateFailed);
+          showToast(
+            l10n.settingsLanguageUpdateFailed,
+            tone: AppToastTone.error,
+          );
         }
         return;
       }
@@ -60,6 +63,7 @@ class _LanguageSettingsContentState
             fallback: l10n.settingsLanguageUpdateFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     } finally {

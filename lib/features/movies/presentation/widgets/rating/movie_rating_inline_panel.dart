@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/movies/data/dto/rating/rating_dimension_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_rating_provider.dart';
@@ -88,6 +88,7 @@ class _MovieRatingInlinePanelState
               fallback: l10n.movieWidgetRatingSaveFailed,
               l10n: l10n,
             ),
+            tone: AppToastTone.error,
           );
         }
         break;
@@ -380,6 +381,7 @@ class _NumericScoreValueState extends State<_NumericScoreValue> {
           widget.dimension.minValue,
           widget.dimension.maxValue,
         ),
+        tone: AppToastTone.error,
       );
       _controller.text = widget.value?.toString() ?? '';
       setState(() => _editing = false);

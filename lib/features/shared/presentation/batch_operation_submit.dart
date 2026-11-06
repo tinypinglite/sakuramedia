@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/language/providers/app_localizations_provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
@@ -20,10 +20,12 @@ String _batchOperationLabel(
   BatchOperationType.clipCollectionAdd => l10n.sharedBatchAddClipsToCollection,
   BatchOperationType.clipCollectionRemove =>
     l10n.sharedBatchRemoveClipsFromCollection,
-  BatchOperationType.momentCollectionAdd => l10n.sharedBatchAddMomentsToCollection,
+  BatchOperationType.momentCollectionAdd =>
+    l10n.sharedBatchAddMomentsToCollection,
   BatchOperationType.momentCollectionRemove =>
     l10n.sharedBatchRemoveMomentsFromCollection,
-  BatchOperationType.videoCollectionAdd => l10n.sharedBatchAddVideosToCollection,
+  BatchOperationType.videoCollectionAdd =>
+    l10n.sharedBatchAddVideosToCollection,
   BatchOperationType.videoCollectionRemove =>
     l10n.sharedBatchRemoveVideosFromCollection,
   BatchOperationType.downloadTaskDelete => l10n.sharedBatchDeleteDownloadTask,
@@ -52,11 +54,8 @@ Future<bool> submitBatchOperation(
   if (ids.length > maxBatchOperationItems) {
     if (context.mounted) {
       showToast(
-        l10n.sharedBatchTooManyItems(
-          label,
-          maxBatchOperationItems,
-          ids.length,
-        ),
+        l10n.sharedBatchTooManyItems(label, maxBatchOperationItems, ids.length),
+        tone: AppToastTone.warning,
       );
     }
     return false;
@@ -69,7 +68,7 @@ Future<bool> submitBatchOperation(
   final submissions = ref.read(batchOperationSubmissionProvider.notifier);
   if (!submissions.begin(submissionKey)) {
     if (context.mounted) {
-      showToast(l10n.sharedBatchSubmitting(label));
+      showToast(l10n.sharedBatchSubmitting(label), tone: AppToastTone.info);
     }
     return false;
   }
@@ -90,6 +89,7 @@ Future<bool> submitBatchOperation(
           fallback: l10n.sharedBatchSubmitFailed(label),
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
     return false;
@@ -97,7 +97,10 @@ Future<bool> submitBatchOperation(
     submissions.end(submissionKey);
   }
   if (context.mounted) {
-    showToast(l10n.sharedBatchSubmitted(label, ids.length));
+    showToast(
+      l10n.sharedBatchSubmitted(label, ids.length),
+      tone: AppToastTone.success,
+    );
   }
   return true;
 }

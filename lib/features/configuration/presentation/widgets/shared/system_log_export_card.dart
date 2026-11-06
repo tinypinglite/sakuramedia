@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/api/system_logs_api.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/system_logs_api_provider.dart';
@@ -206,7 +206,7 @@ class _SystemLogExportCardState extends ConsumerState<SystemLogExportCard> {
         mimeType: 'application/zip',
       );
       if (mounted && savedUri != null) {
-        showToast(l10n.systemLogsExportSuccess);
+        showToast(l10n.systemLogsExportSuccess, tone: AppToastTone.success);
       }
     } catch (error) {
       if (mounted) {
@@ -216,6 +216,7 @@ class _SystemLogExportCardState extends ConsumerState<SystemLogExportCard> {
             fallback: l10n.systemLogsExportFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     } finally {

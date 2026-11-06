@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/media/data/media_tag_dto.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_tag_assignment_events_provider.dart';
@@ -139,6 +139,7 @@ class _MediaTagAssignmentEditorState
           fallback: AppLocalizations.of(context).mediaTagsAssignmentSaveFailed,
           l10n: AppLocalizations.of(context),
         ),
+        tone: AppToastTone.error,
       );
       setState(() => _isSubmitting = false);
     }
@@ -172,6 +173,7 @@ class _MediaTagAssignmentEditorState
           fallback: l10n.mediaTagsAssignmentResetFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
       setState(() => _isSubmitting = false);
     }

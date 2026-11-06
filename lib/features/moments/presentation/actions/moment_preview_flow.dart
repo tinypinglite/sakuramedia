@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/features/image_search/presentation/actions/image_search_launcher.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
@@ -105,7 +105,10 @@ Future<void> addMomentItemToCollection(
       pointId = await _resolveRealPointId(context, item);
     } catch (_) {
       if (context.mounted) {
-        showToast(AppLocalizations.of(context).momentErrorInfoLoadFailed);
+        showToast(
+          AppLocalizations.of(context).momentErrorInfoLoadFailed,
+          tone: AppToastTone.error,
+        );
       }
       return;
     }
@@ -113,7 +116,10 @@ Future<void> addMomentItemToCollection(
       return;
     }
     if (pointId == null) {
-      showToast(AppLocalizations.of(context).momentErrorGone);
+      showToast(
+        AppLocalizations.of(context).momentErrorGone,
+        tone: AppToastTone.error,
+      );
       return;
     }
   }
@@ -127,9 +133,10 @@ Future<int?> _resolveRealPointId(
   if (item.mediaId <= 0) {
     return null;
   }
-  final points = await ProviderScope.containerOf(context, listen: false)
-      .read(mediaApiProvider)
-      .getMediaPoints(mediaId: item.mediaId);
+  final points = await ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(mediaApiProvider).getMediaPoints(mediaId: item.mediaId);
   for (final point in points) {
     if (point.thumbnailId == item.thumbnailId) {
       return point.pointId;
@@ -184,7 +191,10 @@ Future<void> _searchSimilar(
     );
   } catch (_) {
     if (context.mounted) {
-      showToast(AppLocalizations.of(context).momentErrorResultImageLoadFailed);
+      showToast(
+        AppLocalizations.of(context).momentErrorResultImageLoadFailed,
+        tone: AppToastTone.error,
+      );
     }
   }
 }
@@ -219,11 +229,7 @@ Future<void> playMomentItem({
   }
   final title = item.localizedDisplayLabel(AppLocalizations.of(context));
   if (!isMobile) {
-    await showVideoQuickPlayDialog(
-      context,
-      videoId: videoId,
-      title: title,
-    );
+    await showVideoQuickPlayDialog(context, videoId: videoId, title: title);
     return;
   }
   if (await tryLaunchExternalVideoPlayback(

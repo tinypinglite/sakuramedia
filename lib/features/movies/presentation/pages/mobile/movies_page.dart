@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/page_cache_keys.dart';
 import 'package:sakuramedia/app/providers/riverpod_page_cache_provider.dart';
 import 'package:sakuramedia/app/riverpod_page_cache.dart';
@@ -95,8 +95,10 @@ class _MobileMoviesPageState extends ConsumerState<MobileMoviesPage> {
             slivers: <Widget>[sliver],
           ),
       enableRefresh: true,
-      onRefreshFailure: (context) =>
-          showToast(AppLocalizations.of(context).moviePageRefreshFailed),
+      onRefreshFailure: (context) => showToast(
+        AppLocalizations.of(context).moviePageRefreshFailed,
+        tone: AppToastTone.error,
+      ),
     );
   }
 

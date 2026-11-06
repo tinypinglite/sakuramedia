@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/language/providers/language_providers.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
@@ -37,7 +37,7 @@ class PluginManagementActions {
       file = await pickPluginZip(l10n: _l10n);
     } on PluginZipPickerException catch (error) {
       if (context.mounted) {
-        showToast(error.message);
+        showToast(error.message, tone: AppToastTone.error);
       }
       return;
     }
@@ -69,6 +69,7 @@ class PluginManagementActions {
         refreshed
             ? buildRestartRequiredMessage(_l10n.pluginInstalled, _l10n)
             : _l10n.pluginInstalledRefreshFailed,
+        tone: AppToastTone.warning,
       );
     } catch (error) {
       if (context.mounted) {
@@ -78,6 +79,7 @@ class PluginManagementActions {
             fallback: _l10n.pluginInstallFailed,
             l10n: _l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     }
@@ -94,6 +96,7 @@ class PluginManagementActions {
             enabled ? _l10n.pluginEnabled : _l10n.pluginDisabled,
             _l10n,
           ),
+          tone: AppToastTone.warning,
         );
       }
     } catch (error) {
@@ -104,6 +107,7 @@ class PluginManagementActions {
             fallback: _l10n.pluginToggleFailed,
             l10n: _l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     }
@@ -117,7 +121,10 @@ class PluginManagementActions {
       return;
     }
     if (!allChecksSucceeded) {
-      showToast(_l10n.pluginUpdateCheckPartialFailed);
+      showToast(
+        _l10n.pluginUpdateCheckPartialFailed,
+        tone: AppToastTone.warning,
+      );
       return;
     }
     final updateCount = ref.read(pluginsProvider).value?.updates.length ?? 0;
@@ -125,6 +132,7 @@ class PluginManagementActions {
       updateCount == 0
           ? _l10n.pluginNoUpdates
           : _l10n.pluginUpdatesFound(updateCount),
+      tone: AppToastTone.info,
     );
   }
 
@@ -168,7 +176,10 @@ class PluginManagementActions {
       failureFallback: _l10n.pluginUpgradeFailed,
     );
     if (confirmed && context.mounted) {
-      showToast(buildRestartRequiredMessage(_l10n.pluginUpgraded, _l10n));
+      showToast(
+        buildRestartRequiredMessage(_l10n.pluginUpgraded, _l10n),
+        tone: AppToastTone.warning,
+      );
     }
   }
 
@@ -188,7 +199,10 @@ class PluginManagementActions {
       failureFallback: _l10n.pluginDeleteFailed,
     );
     if (confirmed && context.mounted) {
-      showToast(buildRestartRequiredMessage(_l10n.pluginDeleted, _l10n));
+      showToast(
+        buildRestartRequiredMessage(_l10n.pluginDeleted, _l10n),
+        tone: AppToastTone.warning,
+      );
     }
   }
 
@@ -208,8 +222,9 @@ class PluginManagementActions {
     if (release == null) {
       return;
     }
-    final displayName =
-        plugin.localizedDisplayName(ref.read(appLanguageControllerProvider));
+    final displayName = plugin.localizedDisplayName(
+      ref.read(appLanguageControllerProvider),
+    );
     final confirmed = await showAppConfirmDialog(
       context,
       title: _l10n.pluginInstallTitle,
@@ -234,7 +249,10 @@ class PluginManagementActions {
     try {
       await ref.read(pluginMarketProvider.notifier).install(plugin);
       if (context.mounted) {
-        showToast(buildRestartRequiredMessage(_l10n.pluginInstalled, _l10n));
+        showToast(
+          buildRestartRequiredMessage(_l10n.pluginInstalled, _l10n),
+          tone: AppToastTone.warning,
+        );
       }
     } catch (error) {
       if (context.mounted) {
@@ -244,6 +262,7 @@ class PluginManagementActions {
             fallback: _l10n.pluginInstallFailed,
             l10n: _l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     }
@@ -258,8 +277,9 @@ class PluginManagementActions {
     if (release == null) {
       return;
     }
-    final displayName =
-        plugin.localizedDisplayName(ref.read(appLanguageControllerProvider));
+    final displayName = plugin.localizedDisplayName(
+      ref.read(appLanguageControllerProvider),
+    );
     final confirmed = await showAppConfirmDialog(
       context,
       title: _l10n.pluginUpgradeTitle,
@@ -282,7 +302,10 @@ class PluginManagementActions {
     try {
       await ref.read(pluginMarketProvider.notifier).upgrade(plugin);
       if (context.mounted) {
-        showToast(buildRestartRequiredMessage(_l10n.pluginUpgraded, _l10n));
+        showToast(
+          buildRestartRequiredMessage(_l10n.pluginUpgraded, _l10n),
+          tone: AppToastTone.warning,
+        );
       }
     } catch (error) {
       if (context.mounted) {
@@ -292,6 +315,7 @@ class PluginManagementActions {
             fallback: _l10n.pluginUpgradeFailed,
             l10n: _l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     }
@@ -305,7 +329,10 @@ class PluginManagementActions {
     }
     final copied = await copyTextToClipboard(url);
     if (context.mounted) {
-      showToast(copied ? _l10n.pluginHomepageCopied : _l10n.pluginCopyFailed);
+      showToast(
+        copied ? _l10n.pluginHomepageCopied : _l10n.pluginCopyFailed,
+        tone: copied ? AppToastTone.success : AppToastTone.error,
+      );
     }
   }
 

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/clips/presentation/clip_placeholders.dart';
 import 'package:sakuramedia/features/clips/presentation/providers/clips_api_provider.dart';
@@ -127,9 +127,7 @@ class _AddClipsToCollectionDialogState
       setState(() {
         _errorMessage = apiErrorMessage(
           error,
-          fallback: AppLocalizations.of(
-            context,
-          ).clipCollectionClipsLoadFailed,
+          fallback: AppLocalizations.of(context).clipCollectionClipsLoadFailed,
           l10n: AppLocalizations.of(context),
         );
         _isLoading = false;
@@ -430,7 +428,10 @@ class _AddClipsToCollectionDialogState
         if (!mounted) {
           return;
         }
-        showToast(AppLocalizations.of(context).clipCollectionMovedOutToast);
+        showToast(
+          AppLocalizations.of(context).clipCollectionMovedOutToast,
+          tone: AppToastTone.success,
+        );
       } else {
         await api.addClipToCollection(
           collectionId: widget.collectionId,
@@ -448,7 +449,10 @@ class _AddClipsToCollectionDialogState
             _nextOffset = math.max(0, _nextOffset - 1);
           }
         });
-        showToast(AppLocalizations.of(context).clipCollectionAddedToast);
+        showToast(
+          AppLocalizations.of(context).clipCollectionAddedToast,
+          tone: AppToastTone.success,
+        );
       }
     } catch (error) {
       if (!mounted) {
@@ -469,6 +473,7 @@ class _AddClipsToCollectionDialogState
               : AppLocalizations.of(context).clipCollectionAddFailed,
           l10n: AppLocalizations.of(context),
         ),
+        tone: AppToastTone.error,
       );
     } finally {
       if (mounted) {

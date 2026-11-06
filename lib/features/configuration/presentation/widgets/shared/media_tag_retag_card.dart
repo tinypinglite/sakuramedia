@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_tags_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -35,7 +35,8 @@ class _MediaTagRetagCardState extends ConsumerState<MediaTagRetagCard> {
     setState(() => _isSubmitting = true);
     try {
       await ref.read(mediaTagsProvider.notifier).triggerRetag();
-      if (mounted) showToast(l10n.mediaTagsRetagSubmitted);
+      if (mounted)
+        showToast(l10n.mediaTagsRetagSubmitted, tone: AppToastTone.success);
     } catch (error) {
       if (mounted) {
         showToast(
@@ -44,6 +45,7 @@ class _MediaTagRetagCardState extends ConsumerState<MediaTagRetagCard> {
             fallback: l10n.mediaTagsRetagFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     } finally {

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/format/updated_at_label.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/api/provider_login_api.dart';
@@ -54,6 +54,7 @@ class _MobileMediaLibrariesPageState
             fallback: l10n.mediaLibraryProviderCatalogLoadFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
       return null;
@@ -69,7 +70,10 @@ class _MobileMediaLibrariesPageState
     final providers = await _loadCatalog();
     if (!mounted || providers == null) return;
     if (providers.isEmpty) {
-      showToast(AppLocalizations.of(context).mediaLibraryNoProviderInstalled);
+      showToast(
+        AppLocalizations.of(context).mediaLibraryNoProviderInstalled,
+        tone: AppToastTone.warning,
+      );
       return;
     }
     await showMobileMediaLibraryEditorDrawer(context, providers: providers);
@@ -631,7 +635,7 @@ class _MobileMediaLibraryEditorDrawerState
         !useManualLogin &&
         authSessionId == null &&
         !_isEditing) {
-      showToast(l10n.providerLoginRequired);
+      showToast(l10n.providerLoginRequired, tone: AppToastTone.warning);
       return;
     }
     setState(() => _isSubmitting = true);
@@ -662,6 +666,7 @@ class _MobileMediaLibraryEditorDrawerState
       _loginSession = null;
       showToast(
         _isEditing ? l10n.mediaLibraryUpdated : l10n.mediaLibraryCreated,
+        tone: AppToastTone.success,
       );
       Navigator.of(context).pop(library);
     } catch (error) {
@@ -674,6 +679,7 @@ class _MobileMediaLibraryEditorDrawerState
               : l10n.mediaLibraryCreateFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
       setState(() => _isSubmitting = false);
     }

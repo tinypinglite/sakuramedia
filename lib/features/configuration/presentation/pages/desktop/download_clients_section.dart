@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/dto/download_client_dto.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
@@ -146,12 +146,9 @@ class _DownloadClientsSectionState
     final providerCatalogError = providersAsync.error;
 
     // loading 用占位数据渲染真实设置组，由 [AppSkeletonizer] 灰化。
-    final clients =
-        clientsAsync.value ?? downloadClientPlaceholders();
-    final allLibraries =
-        librariesAsync.value ?? mediaLibraryPlaceholders();
-    final providers =
-        providersAsync.value ?? mediaProviderPlaceholders();
+    final clients = clientsAsync.value ?? downloadClientPlaceholders();
+    final allLibraries = librariesAsync.value ?? mediaLibraryPlaceholders();
+    final providers = providersAsync.value ?? mediaProviderPlaceholders();
     final providersByKey = <String, MediaProviderDto>{
       for (final provider in providers) provider.providerKey: provider,
     };
@@ -169,75 +166,75 @@ class _DownloadClientsSectionState
     return AppSkeletonizer(
       enabled: isLoading,
       child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (providerCatalogError != null)
-          Padding(
-            padding: EdgeInsets.only(bottom: spacing.lg),
-            child: Text(
-              l10n.downloaderProviderUnavailable,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                tone: AppTextTone.muted,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (providerCatalogError != null)
+            Padding(
+              padding: EdgeInsets.only(bottom: spacing.lg),
+              child: Text(
+                l10n.downloaderProviderUnavailable,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  tone: AppTextTone.muted,
+                ),
+              ),
+            )
+          else if (downloadableLibraries.isEmpty)
+            Padding(
+              padding: EdgeInsets.only(bottom: spacing.lg),
+              child: Text(
+                l10n.downloaderNoDownloadableLibraryProvider,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  tone: AppTextTone.muted,
+                ).copyWith(color: Theme.of(context).colorScheme.error),
               ),
             ),
-          )
-        else if (downloadableLibraries.isEmpty)
-          Padding(
-            padding: EdgeInsets.only(bottom: spacing.lg),
-            child: Text(
-              l10n.downloaderNoDownloadableLibraryProvider,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                tone: AppTextTone.muted,
-              ).copyWith(color: Theme.of(context).colorScheme.error),
+          if (clients.isEmpty)
+            AppEmptyState(message: l10n.downloaderEmpty)
+          else
+            AppSettingsGroup(
+              children: [
+                for (final client in clients)
+                  DownloadClientCard(
+                    client: client,
+                    mediaLibrary: librariesById[client.libraryId],
+                    provider:
+                        providersByKey[librariesById[client.libraryId]
+                            ?.providerKey],
+                    onEdit: () => _editClient(
+                      client,
+                      _librariesForEdit(
+                        client,
+                        downloadableLibraries,
+                        librariesById,
+                      ),
+                      providers,
+                    ),
+                    onDelete: () => _deleteClient(client),
+                  ),
+              ],
             ),
-          ),
-        if (clients.isEmpty)
-          AppEmptyState(message: l10n.downloaderEmpty)
-        else
+          SizedBox(height: spacing.lg),
           AppSettingsGroup(
             children: [
-              for (final client in clients)
-                DownloadClientCard(
-                  client: client,
-                  mediaLibrary: librariesById[client.libraryId],
-                  provider:
-                      providersByKey[librariesById[client.libraryId]
-                          ?.providerKey],
-                  onEdit: () => _editClient(
-                    client,
-                    _librariesForEdit(
-                      client,
-                      downloadableLibraries,
-                      librariesById,
-                    ),
-                    providers,
-                  ),
-                  onDelete: () => _deleteClient(client),
-                ),
+              AppSettingCell(
+                key: const Key('configuration-download-client-create-button'),
+                icon: Icons.add_rounded,
+                iconColor: Theme.of(context).colorScheme.primary,
+                title: l10n.downloaderCreate,
+                titleTone: AppTextTone.accent,
+                titleWeight: AppTextWeight.medium,
+                trailing: const AppSettingCellChevron(),
+                onTap: downloadableLibraries.isEmpty
+                    ? null
+                    : () => _createClient(downloadableLibraries, providers),
+              ),
             ],
           ),
-        SizedBox(height: spacing.lg),
-        AppSettingsGroup(
-          children: [
-            AppSettingCell(
-              key: const Key('configuration-download-client-create-button'),
-              icon: Icons.add_rounded,
-              iconColor: Theme.of(context).colorScheme.primary,
-              title: l10n.downloaderCreate,
-              titleTone: AppTextTone.accent,
-              titleWeight: AppTextWeight.medium,
-              trailing: const AppSettingCellChevron(),
-              onTap: downloadableLibraries.isEmpty
-                  ? null
-                  : () => _createClient(downloadableLibraries, providers),
-            ),
-          ],
-        ),
-      ],
+        ],
       ),
     );
   }
@@ -463,6 +460,7 @@ class _DownloadClientDialogState extends ConsumerState<DownloadClientDialog> {
       if (!mounted) return;
       showToast(
         _isEditing ? l10n.downloaderUpdated : l10n.downloaderCreated,
+        tone: AppToastTone.success,
       );
       Navigator.of(context).pop();
     } catch (error) {
@@ -476,6 +474,7 @@ class _DownloadClientDialogState extends ConsumerState<DownloadClientDialog> {
               : l10n.downloaderCreateFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }
@@ -500,13 +499,15 @@ class _DownloadClientDialogState extends ConsumerState<DownloadClientDialog> {
       _diagnosticReport = null;
     });
     try {
-      final report = await ref.read(downloadClientsApiProvider).testClient(
-        DownloadClientTestPayload(
-          libraryId: libraryId,
-          providerConfig: value.providerConfig,
-          clientId: widget.initialClient?.id,
-        ),
-      );
+      final report = await ref
+          .read(downloadClientsApiProvider)
+          .testClient(
+            DownloadClientTestPayload(
+              libraryId: libraryId,
+              providerConfig: value.providerConfig,
+              clientId: widget.initialClient?.id,
+            ),
+          );
       if (!mounted) return;
       setState(() => _diagnosticReport = report);
     } catch (error) {
@@ -517,6 +518,7 @@ class _DownloadClientDialogState extends ConsumerState<DownloadClientDialog> {
             fallback: l10n.downloaderTestFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     } finally {
@@ -581,9 +583,7 @@ class _DownloadClientDialogState extends ConsumerState<DownloadClientDialog> {
                     SizedBox(width: spacing.md),
                     Expanded(
                       child: AppButton(
-                        onPressed: _isTesting || _isSubmitting
-                            ? null
-                            : _submit,
+                        onPressed: _isTesting || _isSubmitting ? null : _submit,
                         label: l10n.commonSave,
                         variant: AppButtonVariant.primary,
                         isLoading: _isSubmitting,

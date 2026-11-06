@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
@@ -100,11 +100,9 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> {
             fieldKey: const Key('create-playlist-name-field'),
             controller: _nameController,
             hintText: l10n.playlistNameHint,
-            validator:
-                (value) =>
-                    value == null || value.trim().isEmpty
-                        ? l10n.playlistNameRequired
-                        : null,
+            validator: (value) => value == null || value.trim().isEmpty
+                ? l10n.playlistNameRequired
+                : null,
           ),
           SizedBox(height: spacing.sm),
           AppTextField(
@@ -161,11 +159,8 @@ class _CreatePlaylistDialogState extends ConsumerState<CreatePlaylistDialog> {
       Navigator.of(context).pop(playlist);
     } catch (error) {
       showToast(
-        apiErrorMessage(
-          error,
-          fallback: l10n.playlistCreateFailed,
-          l10n: l10n,
-        ),
+        apiErrorMessage(error, fallback: l10n.playlistCreateFailed, l10n: l10n),
+        tone: AppToastTone.error,
       );
       if (mounted) {
         setState(() {

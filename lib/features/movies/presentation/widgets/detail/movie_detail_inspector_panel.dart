@@ -4,7 +4,7 @@ import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:intl/intl.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
 import 'package:sakuramedia/features/clips/presentation/widgets/create_clip_dialog.dart';
@@ -193,7 +193,10 @@ class _MovieDetailInspectorPanelState
     if (!mounted || created == null) {
       return;
     }
-    showToast(AppLocalizations.of(context).movieWidgetClipCreated);
+    showToast(
+      AppLocalizations.of(context).movieWidgetClipCreated,
+      tone: AppToastTone.success,
+    );
     // 退出圈选模式并清空已选点。
     _thumbnailController.toggleClipSelectionMode();
   }
@@ -350,6 +353,9 @@ class _MovieDetailReviewTabState extends ConsumerState<_MovieDetailReviewTab> {
       result.response.created
           ? l10n.movieWidgetDownloadSubmitted(result.clientName)
           : l10n.movieWidgetDownloadTaskExists,
+      tone: result.response.created
+          ? AppToastTone.success
+          : AppToastTone.info,
     );
   }
 

@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/platform/clipboard_copy.dart';
@@ -264,6 +264,9 @@ class MovieMagnetSearchContent extends ConsumerWidget {
                                 selectedClientName,
                               )
                             : l10n.widgetMovieMagnetDownloadExists,
+                        tone: response.created
+                            ? AppToastTone.success
+                            : AppToastTone.info,
                       );
                     } catch (error) {
                       if (!context.mounted) {
@@ -275,6 +278,7 @@ class MovieMagnetSearchContent extends ConsumerWidget {
                           fallback: l10n.widgetMovieMagnetSubmitFailed,
                           l10n: l10n,
                         ),
+                        tone: AppToastTone.error,
                       );
                     }
                   }
@@ -430,6 +434,9 @@ class _MovieMagnetCandidateCardState extends State<_MovieMagnetCandidateCard> {
                               copied
                                   ? l10n.widgetMovieMagnetUriCopied
                                   : l10n.widgetMovieMagnetCopyFailed,
+                              tone: copied
+                                  ? AppToastTone.success
+                                  : AppToastTone.error,
                             );
                           }
                         },

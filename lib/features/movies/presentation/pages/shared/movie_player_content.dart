@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/features/clips/presentation/widgets/create_clip_dialog.dart';
@@ -334,7 +334,10 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
     if (!mounted || created == null) {
       return;
     }
-    showToast(AppLocalizations.of(context).moviePageClipCreated);
+    showToast(
+      AppLocalizations.of(context).moviePageClipCreated,
+      tone: AppToastTone.success,
+    );
     // 退出圈选模式并清空已选点。
     _controller.toggleClipSelectionMode();
   }

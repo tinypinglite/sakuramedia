@@ -2,7 +2,7 @@ import 'package:sakuramedia/features/status/presentation/providers/server_capabi
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/providers/riverpod_page_cache_provider.dart';
 import 'package:sakuramedia/app/riverpod_page_cache.dart';
 import 'package:sakuramedia/core/media/image_save_service.dart';
@@ -134,6 +134,7 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
             fallback: l10n.moviePagePlaylistUpdateFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
       return false;
@@ -182,7 +183,10 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
         return;
       }
       if (result.updatedCount <= 0) {
-        showToast(AppLocalizations.of(context).moviePageCollectionNotMatched);
+        showToast(
+          AppLocalizations.of(context).moviePageCollectionNotMatched,
+          tone: AppToastTone.warning,
+        );
         return;
       }
       setState(() {
@@ -196,6 +200,7 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
         targetType == MovieCollectionType.collection
             ? l10n.moviePageMarkedAsCollection
             : l10n.moviePageMarkedAsSingle,
+        tone: AppToastTone.success,
       );
     } catch (error) {
       if (mounted) {
@@ -206,6 +211,7 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
             fallback: l10n.moviePageCollectionUpdateFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     } finally {
@@ -242,7 +248,10 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
       await ref.read(mediaApiProvider).deleteMedia(mediaId: mediaItem.mediaId);
       await refreshAfterMediaDelete(deletedMediaId: mediaItem.mediaId);
       if (mounted) {
-        showToast(AppLocalizations.of(context).moviePageMediaDeleted);
+        showToast(
+          AppLocalizations.of(context).moviePageMediaDeleted,
+          tone: AppToastTone.success,
+        );
       }
     } catch (error) {
       if (mounted) {
@@ -253,6 +262,7 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
             fallback: l10n.moviePageMediaDeleteFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     } finally {
@@ -309,12 +319,16 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
       if (mounted) {
         showToast(
           AppLocalizations.of(context).mediaTagsAssignmentSavedRefreshFailed,
+          tone: AppToastTone.warning,
         );
       }
       return;
     }
     if (mounted) {
-      showToast(AppLocalizations.of(context).mediaTagsAssignmentSaved);
+      showToast(
+        AppLocalizations.of(context).mediaTagsAssignmentSaved,
+        tone: AppToastTone.success,
+      );
     }
   }
 
@@ -412,10 +426,16 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
       return;
     }
     if (result.status == ImageSaveStatus.success) {
-      showToast(result.message ?? l10n.moviePageImageSaved);
+      showToast(
+        result.message ?? l10n.moviePageImageSaved,
+        tone: AppToastTone.success,
+      );
     }
     if (result.status == ImageSaveStatus.failed) {
-      showToast(result.message ?? l10n.moviePageImageSaveFailed);
+      showToast(
+        result.message ?? l10n.moviePageImageSaveFailed,
+        tone: AppToastTone.error,
+      );
     }
   }
 
@@ -440,7 +460,10 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
           _movieMediaPointFromMediaPoint(createdPoint, fallback: point),
         ];
         applyPointListOverride(mediaItem.mediaId, nextPoints);
-        showToast(AppLocalizations.of(context).moviePageMarkAdded);
+        showToast(
+          AppLocalizations.of(context).moviePageMarkAdded,
+          tone: AppToastTone.success,
+        );
         return;
       }
 
@@ -454,7 +477,10 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
           .where((candidate) => candidate.pointId != existingPoint.pointId)
           .toList(growable: false);
       applyPointListOverride(mediaItem.mediaId, nextPoints);
-      showToast(AppLocalizations.of(context).moviePageMarkRemoved);
+      showToast(
+        AppLocalizations.of(context).moviePageMarkRemoved,
+        tone: AppToastTone.success,
+      );
     } catch (error) {
       if (mounted) {
         final l10n = AppLocalizations.of(context);
@@ -464,6 +490,7 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
             fallback: l10n.moviePageMarkUpdateFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     }
@@ -689,7 +716,10 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
     }
     final playlistId = movie.favoritePlaylistId;
     if (playlistId == null) {
-      showToast(AppLocalizations.of(context).moviePageFavoriteListNotReady);
+      showToast(
+        AppLocalizations.of(context).moviePageFavoriteListNotReady,
+        tone: AppToastTone.warning,
+      );
       return false;
     }
 
@@ -729,6 +759,7 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
           isFavorite
               ? l10n.moviePageFavoriteRemoved
               : l10n.moviePageFavoriteAdded,
+          tone: AppToastTone.success,
         );
       }
       return true;
@@ -743,6 +774,7 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
                 : l10n.moviePageFavoriteAddFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
       return false;
@@ -780,7 +812,10 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
         setState(() {
           isBlacklistedOverride = true;
         });
-        showToast(AppLocalizations.of(context).moviePageBlacklisted);
+        showToast(
+          AppLocalizations.of(context).moviePageBlacklisted,
+          tone: AppToastTone.success,
+        );
       }
       return confirmed;
     }
@@ -801,7 +836,10 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
       setState(() {
         isBlacklistedOverride = false;
       });
-      showToast(AppLocalizations.of(context).moviePageUnblacklisted);
+      showToast(
+        AppLocalizations.of(context).moviePageUnblacklisted,
+        tone: AppToastTone.success,
+      );
       return true;
     } catch (error) {
       if (mounted) {
@@ -812,6 +850,7 @@ mixin MovieDetailBehaviorMixin<T extends ConsumerStatefulWidget>
             fallback: l10n.moviePageUnblacklistFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
       return false;

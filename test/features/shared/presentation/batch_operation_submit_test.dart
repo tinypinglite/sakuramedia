@@ -36,25 +36,25 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: bundle.riverpodOverrides(),
-        child: OKToast(
-          child: MaterialApp(
-            locale: const Locale('zh'),
-            localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-              AppLocalizations.delegate,
-              ...GlobalMaterialLocalizations.delegates,
-            ],
-            supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
-            home: Consumer(
-              builder: (context, ref, _) => Scaffold(
-                body: TextButton(
-                  onPressed: () => submitBatchOperation(
-                    context,
-                    ref,
-                    operation: BatchOperationType.mediaDelete,
-                    ids: ids,
-                  ),
-                  child: const Text('submit'),
+        child: MaterialApp(
+          locale: const Locale('zh'),
+          localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+            AppLocalizations.delegate,
+            ...GlobalMaterialLocalizations.delegates,
+          ],
+          supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+          builder: (context, child) =>
+              OKToast(child: child ?? const SizedBox.shrink()),
+          home: Consumer(
+            builder: (context, ref, _) => Scaffold(
+              body: TextButton(
+                onPressed: () => submitBatchOperation(
+                  context,
+                  ref,
+                  operation: BatchOperationType.mediaDelete,
+                  ids: ids,
                 ),
+                child: const Text('submit'),
               ),
             ),
           ),
@@ -102,7 +102,10 @@ void main() {
         .where((r) => r.path == '/batch-operations')
         .toList();
     expect(submit, hasLength(1));
-    expect((submit.single.body! as Map<String, dynamic>)['ids'], hasLength(1000));
+    expect(
+      (submit.single.body! as Map<String, dynamic>)['ids'],
+      hasLength(1000),
+    );
     await tester.pump(const Duration(seconds: 3));
   });
 }

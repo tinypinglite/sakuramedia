@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/media/data/media_tag_dto.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_tags_provider.dart';
@@ -117,7 +117,10 @@ class _MediaTagRuleEditorState extends ConsumerState<_MediaTagRuleEditor> {
             )
           : await notifier.create(payload);
       if (!mounted) return;
-      showToast(_isEditing ? l10n.mediaTagsSaved : l10n.mediaTagsCreated);
+      showToast(
+        _isEditing ? l10n.mediaTagsSaved : l10n.mediaTagsCreated,
+        tone: AppToastTone.success,
+      );
       Navigator.of(context).pop(saved);
     } catch (error) {
       if (!mounted) return;
@@ -129,6 +132,7 @@ class _MediaTagRuleEditorState extends ConsumerState<_MediaTagRuleEditor> {
               : l10n.mediaTagsCreateFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
       setState(() => _isSubmitting = false);
     }

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
@@ -167,12 +167,16 @@ class BlacklistedMoviesSection extends HookConsumerWidget {
             fallback: l10n.moviePageUnblacklistFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
       return;
     }
     if (context.mounted) {
-      showToast(AppLocalizations.of(context).moviePageUnblacklisted);
+      showToast(
+        AppLocalizations.of(context).moviePageUnblacklisted,
+        tone: AppToastTone.success,
+      );
     }
   }
 

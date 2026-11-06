@@ -57,17 +57,17 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: bundle.riverpodOverrides(),
-          child: OKToast(
-            child: MaterialApp.router(
-              theme: sakuraThemeData,
-              locale: const Locale('zh'),
-              localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-                AppLocalizations.delegate,
-                ...GlobalMaterialLocalizations.delegates,
-              ],
-              supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
-              routerConfig: router,
-            ),
+          child: MaterialApp.router(
+            theme: sakuraThemeData,
+            locale: const Locale('zh'),
+            localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
+            supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+            builder: (context, child) =>
+                OKToast(child: child ?? const SizedBox.shrink()),
+            routerConfig: router,
           ),
         ),
       );

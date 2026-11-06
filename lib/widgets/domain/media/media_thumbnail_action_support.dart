@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/media/image_save_service.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
@@ -20,12 +20,13 @@ List<AppImageActionDescriptor> buildMediaThumbnailActionDescriptors({
 }) {
   final hasMedia = thumbnail.mediaId > 0;
   return <AppImageActionDescriptor>[
-    if (showSearchSimilar) AppImageActionDescriptor(
-      type: AppImageActionType.searchSimilar,
-      label: l10n.widgetMediaActionSearchSimilar,
-      icon: Icons.image_search_outlined,
-      enabled: canSearchSimilar,
-    ),
+    if (showSearchSimilar)
+      AppImageActionDescriptor(
+        type: AppImageActionType.searchSimilar,
+        label: l10n.widgetMediaActionSearchSimilar,
+        icon: Icons.image_search_outlined,
+        enabled: canSearchSimilar,
+      ),
     AppImageActionDescriptor(
       type: AppImageActionType.saveToLocal,
       label: l10n.widgetMediaActionSaveToLocal,
@@ -119,10 +120,16 @@ Future<void> handleMediaThumbnailAction({
         return;
       }
       if (result.status == ImageSaveStatus.success) {
-        showToast(result.message ?? l10n.widgetMediaImageSaved);
+        showToast(
+          result.message ?? l10n.widgetMediaImageSaved,
+          tone: AppToastTone.success,
+        );
       }
       if (result.status == ImageSaveStatus.failed) {
-        showToast(result.message ?? l10n.widgetMediaSaveFailed);
+        showToast(
+          result.message ?? l10n.widgetMediaSaveFailed,
+          tone: AppToastTone.error,
+        );
       }
       break;
     case AppImageActionType.toggleMark:
@@ -138,21 +145,19 @@ Future<void> handleMediaThumbnailAction({
                 thumbnailId: thumbnail.thumbnailId,
               );
           if (context.mounted) {
-            showToast(l10n.widgetMediaMarkAdded);
+            showToast(l10n.widgetMediaMarkAdded, tone: AppToastTone.success);
           }
         } else {
           await ref
               .read(mediaApiProvider)
-              .deleteMediaPoint(
-                pointId: point.pointId,
-              );
+              .deleteMediaPoint(pointId: point.pointId);
           if (context.mounted) {
-            showToast(l10n.widgetMediaMarkRemoved);
+            showToast(l10n.widgetMediaMarkRemoved, tone: AppToastTone.success);
           }
         }
       } catch (_) {
         if (context.mounted) {
-          showToast(l10n.widgetMediaMarkUpdateFailed);
+          showToast(l10n.widgetMediaMarkUpdateFailed, tone: AppToastTone.error);
         }
       }
       break;

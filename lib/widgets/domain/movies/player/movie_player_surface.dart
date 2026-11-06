@@ -5,7 +5,7 @@ import 'dart:math';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
@@ -493,9 +493,8 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
         onError: () {
           if (mounted) {
             showToast(
-              AppLocalizations.of(
-                context,
-              ).widgetMoviePlayerSubtitleLoadFailed,
+              AppLocalizations.of(context).widgetMoviePlayerSubtitleLoadFailed,
+              tone: AppToastTone.error,
             );
           }
         },

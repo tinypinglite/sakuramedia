@@ -64,6 +64,18 @@
 
 异步确认动作应使用组件提供的 loading、取消禁用和错误反馈；API 请求仍由调用方或 Provider 负责。
 
+## 中心 Toast
+
+- `showToast` / `AppGlassToast`：路径 `lib/widgets/base/feedback/app_toast.dart` 和
+  `app_glass_toast.dart`，全站轻量操作反馈的统一入口。保持页面中心展示，默认
+  3000ms，短消息为玻璃胶囊，长消息自动换行；高对比度时回退为同尺寸实色表面。
+- 语义明确时传 `tone: AppToastTone.success / warning / error / info`，分别显示
+  对勾、警告、错误和信息图标；动态来源或无法判断语义的提示保持默认 `neutral`，
+  不要根据文案字符串猜语义。
+- 业务调用统一从 `app_toast.dart` 引入 `showToast`，不要直接使用 `oktoast` 的
+  文本 Toast。`OKToast` 宿主位于 `MaterialApp.builder` 内，以便 Toast 读取主题、
+  文字缩放和高对比度设置。
+
 ## 页面状态顺序
 
 通常按“初始加载 → 错误/重试 → 空态 → 内容”表达状态。分页加载失败保留已有内容，在列表底部使用分页反馈，不要用整页错误覆盖已有结果。

@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 
@@ -36,7 +36,7 @@ Future<bool> showAppConfigDeleteConfirm({
     onConfirm: onDelete,
   );
   if (confirmed && context.mounted) {
-    showToast(successToast);
+    showToast(successToast, tone: AppToastTone.success);
   }
   return confirmed;
 }

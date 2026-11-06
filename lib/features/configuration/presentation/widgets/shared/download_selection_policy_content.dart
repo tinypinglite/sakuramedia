@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/dto/download_selection_policy_dto.dart';
@@ -920,7 +920,10 @@ class _DownloadSelectionPolicyContentState
           _localTextEdits = false;
           _showRuleErrors = false;
         });
-        showToast(AppLocalizations.of(context).downloadSelectionSaved);
+        showToast(
+          AppLocalizations.of(context).downloadSelectionSaved,
+          tone: AppToastTone.success,
+        );
       }
     } catch (error) {
       if (!mounted) return;
@@ -931,6 +934,7 @@ class _DownloadSelectionPolicyContentState
           fallback: l10n.downloadSelectionSaveFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }

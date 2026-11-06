@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/indexer_settings_api_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/configuration_placeholders.dart';
@@ -307,7 +307,9 @@ class _MobileIndexersPageState extends ConsumerState<MobileIndexersPage> {
         SizedBox(height: spacing.sm),
         Text(
           l10n.indexerApiKeyLine(
-            entry.hasApiKey ? l10n.indexerConfigured : l10n.indexerNotConfigured,
+            entry.hasApiKey
+                ? l10n.indexerConfigured
+                : l10n.indexerNotConfigured,
           ),
           style: resolveAppTextStyle(
             context,
@@ -421,6 +423,7 @@ class _MobileIndexersPageState extends ConsumerState<MobileIndexersPage> {
           fallback: l10n.indexerLoadFailedFallback,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }
@@ -474,6 +477,7 @@ class _MobileIndexersPageState extends ConsumerState<MobileIndexersPage> {
       result.healthy
           ? l10n.indexerConnectionHealthy
           : l10n.indexerConnectionTestFailed,
+      tone: result.healthy ? AppToastTone.success : AppToastTone.error,
     );
   }
 
@@ -549,7 +553,7 @@ class _MobileIndexersPageState extends ConsumerState<MobileIndexersPage> {
     if (!confirmed || !mounted || savedSettings == null) {
       return;
     }
-    showToast(l10n.indexerDeleted);
+    showToast(l10n.indexerDeleted, tone: AppToastTone.success);
     setState(() {
       _applySettings(savedSettings!);
       _errorMessage = null;
@@ -759,13 +763,13 @@ class _MobileIndexerEditorDrawerState
     }
     final l10n = AppLocalizations.of(context);
     if (!isSupportedIndexerKind(_kind)) {
-      showToast(l10n.indexerUnsupportedKind);
+      showToast(l10n.indexerUnsupportedKind, tone: AppToastTone.warning);
       return;
     }
 
     final selectedDownloadClients = _selectedDownloadClients();
     if (selectedDownloadClients.isEmpty) {
-      showToast(l10n.indexerSelectDownloader);
+      showToast(l10n.indexerSelectDownloader, tone: AppToastTone.warning);
       return;
     }
 
@@ -800,7 +804,10 @@ class _MobileIndexerEditorDrawerState
       if (!mounted) {
         return;
       }
-      showToast(_isEditing ? l10n.indexerUpdated : l10n.indexerCreated);
+      showToast(
+        _isEditing ? l10n.indexerUpdated : l10n.indexerCreated,
+        tone: AppToastTone.success,
+      );
       Navigator.of(context).pop(saved);
     } catch (error) {
       if (!mounted) {
@@ -814,6 +821,7 @@ class _MobileIndexerEditorDrawerState
               : l10n.indexerCreateFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
       setState(() {
         _isSubmitting = false;

@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/series_movies_content.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
@@ -21,25 +21,23 @@ class MobileSeriesMoviesPage extends StatelessWidget {
     return SeriesMoviesContent(
       seriesId: seriesId,
       initialSeriesName: seriesName,
-      surfaceColor: context.appColors.surfaceCard,
       contentKey: const Key('mobile-series-movies-page'),
       totalKey: const Key('mobile-series-movies-total'),
       sectionSpacing: context.appSpacing.md,
-      onMovieTap:
-          (context, movieNumber) => MobileMovieDetailRouteData(
-            movieNumber: movieNumber,
-          ).push(context),
-      bodyBuilder:
-          (context, scrollController, sliver, onRefresh) =>
-              AppAdaptiveRefreshScrollView(
-                onRefresh: onRefresh!,
-                controller: scrollController,
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: <Widget>[sliver],
-              ),
+      onMovieTap: (context, movieNumber) =>
+          MobileMovieDetailRouteData(movieNumber: movieNumber).push(context),
+      bodyBuilder: (context, scrollController, sliver, onRefresh) =>
+          AppAdaptiveRefreshScrollView(
+            onRefresh: onRefresh!,
+            controller: scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: <Widget>[sliver],
+          ),
       enableRefresh: true,
-      onRefreshFailure: (context) =>
-          showToast(AppLocalizations.of(context).moviePageRefreshFailed),
+      onRefreshFailure: (context) => showToast(
+        AppLocalizations.of(context).moviePageRefreshFailed,
+        tone: AppToastTone.error,
+      ),
       // 与移动影片页同一套移动范式：多选入口挂卡片长按、批量动作下沉到底部条。
       useMobileSelectionLayout: true,
       // 系列名进返回栏——信息槽里会被压成省略号。

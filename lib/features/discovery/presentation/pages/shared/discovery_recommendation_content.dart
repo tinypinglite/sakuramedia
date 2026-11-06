@@ -5,7 +5,7 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layou
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/discovery/data/daily_recommendation_movie_dto.dart';
 import 'package:sakuramedia/features/discovery/data/hot_actress_release_movie_dto.dart';
 import 'package:sakuramedia/features/discovery/data/moment_recommendation_dto.dart';
@@ -33,7 +33,7 @@ import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 /// 推荐影片列表共享实现（桌面 / 移动双端壳收敛的 content 层）。
 ///
 /// 平台差异全部收在壳参数里：`pageSize`（移动 18 / 桌面 24）、`keyPrefix`、
-/// 顶栏下间距（`headerGap`）、背景色、骨架数、`basePath`（消掉旧的
+/// 顶栏下间距（`headerGap`）、骨架数、`basePath`（消掉旧的
 /// `_movieDetailPath(isMobile:)`）与下拉刷新开关；`basePath` 之下影片详情路径
 /// 与本列表自身的分页/刷新/错误态逻辑全部在本层。
 class DiscoveryMoviesContent extends StatelessWidget {
@@ -42,7 +42,6 @@ class DiscoveryMoviesContent extends StatelessWidget {
     required this.pageSize,
     required this.keyPrefix,
     required this.headerGap,
-    required this.backgroundColor,
     required this.placeholderCount,
     required this.basePath,
     this.enablePullToRefresh = false,
@@ -51,7 +50,6 @@ class DiscoveryMoviesContent extends StatelessWidget {
   final int pageSize;
   final String keyPrefix;
   final double headerGap;
-  final Color backgroundColor;
   final int placeholderCount;
   final String basePath;
   final bool enablePullToRefresh;
@@ -63,7 +61,6 @@ class DiscoveryMoviesContent extends StatelessWidget {
     return _DiscoveryMovieListContent<DailyRecommendationMovieDto>(
       keyPrefix: keyPrefix,
       headerGap: headerGap,
-      backgroundColor: backgroundColor,
       placeholderCount: placeholderCount,
       basePath: basePath,
       enablePullToRefresh: enablePullToRefresh,
@@ -105,7 +102,6 @@ class HotActressReleasesContent extends StatelessWidget {
     required this.pageSize,
     required this.keyPrefix,
     required this.headerGap,
-    required this.backgroundColor,
     required this.placeholderCount,
     required this.basePath,
     this.enablePullToRefresh = false,
@@ -114,7 +110,6 @@ class HotActressReleasesContent extends StatelessWidget {
   final int pageSize;
   final String keyPrefix;
   final double headerGap;
-  final Color backgroundColor;
   final int placeholderCount;
   final String basePath;
   final bool enablePullToRefresh;
@@ -126,7 +121,6 @@ class HotActressReleasesContent extends StatelessWidget {
     return _DiscoveryMovieListContent<HotActressReleaseMovieDto>(
       keyPrefix: keyPrefix,
       headerGap: headerGap,
-      backgroundColor: backgroundColor,
       placeholderCount: placeholderCount,
       basePath: basePath,
       enablePullToRefresh: enablePullToRefresh,
@@ -170,7 +164,6 @@ class _DiscoveryMovieListContent<T> extends HookConsumerWidget {
   const _DiscoveryMovieListContent({
     required this.keyPrefix,
     required this.headerGap,
-    required this.backgroundColor,
     required this.placeholderCount,
     required this.basePath,
     required this.initialLoadErrorText,
@@ -190,7 +183,6 @@ class _DiscoveryMovieListContent<T> extends HookConsumerWidget {
 
   final String keyPrefix;
   final double headerGap;
-  final Color backgroundColor;
   final int placeholderCount;
   final String basePath;
   final String initialLoadErrorText;
@@ -248,24 +240,18 @@ class _DiscoveryMovieListContent<T> extends HookConsumerWidget {
         child: AppPagedLoadMoreScope(
           canLoadMore: () => canLoadMore(ref),
           onLoadMore: () => loadMore(ref),
-        child: enablePullToRefresh
-            ? ColoredBox(
-                color: backgroundColor,
-                child: AppAdaptiveRefreshScrollView(
+          child: enablePullToRefresh
+              ? AppAdaptiveRefreshScrollView(
                   controller: scrollController,
                   onRefresh: () => _handleRefresh(context, ref),
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: <Widget>[sliver],
-                ),
-              )
-            : ColoredBox(
-                color: backgroundColor,
-                child: CustomScrollView(
+                )
+              : CustomScrollView(
                   controller: scrollController,
                   slivers: [sliver],
                 ),
-              ),
-      ),
+        ),
       ),
     );
   }
@@ -273,7 +259,10 @@ class _DiscoveryMovieListContent<T> extends HookConsumerWidget {
   Future<void> _handleRefresh(BuildContext context, WidgetRef ref) async {
     final errorMessage = await refresh(ref);
     if (errorMessage != null && context.mounted) {
-      showToast(AppLocalizations.of(context).sharedRefreshFailed);
+      showToast(
+        AppLocalizations.of(context).sharedRefreshFailed,
+        tone: AppToastTone.error,
+      );
     }
   }
 
@@ -337,7 +326,7 @@ class _DiscoveryMovieListContent<T> extends HookConsumerWidget {
 
 /// 推荐时刻列表共享实现（桌面 / 移动双端壳收敛的 content 层）。
 ///
-/// 平台差异收在壳参数里：`pageSize` / `keyPrefix` / `headerGap` / `backgroundColor` /
+/// 平台差异收在壳参数里：`pageSize` / `keyPrefix` / `headerGap` /
 /// `fallbackPath` / `previewDrawerKey` / 下拉刷新开关。预览与悬停动作统一走
 /// [showMomentPreviewFlow] 的推荐模式（推荐 ID 不当真实时刻 ID 用）。
 class DiscoveryMomentsContent extends HookConsumerWidget {
@@ -346,7 +335,6 @@ class DiscoveryMomentsContent extends HookConsumerWidget {
     required this.pageSize,
     required this.keyPrefix,
     required this.headerGap,
-    required this.backgroundColor,
     required this.fallbackPath,
     this.previewDrawerKey,
     this.enablePullToRefresh = false,
@@ -355,7 +343,6 @@ class DiscoveryMomentsContent extends HookConsumerWidget {
   final int pageSize;
   final String keyPrefix;
   final double headerGap;
-  final Color backgroundColor;
 
   /// 预览关闭后的图搜 / 播放 / 影片详情 / 演员详情兜底路径。
   final String fallbackPath;
@@ -407,24 +394,18 @@ class DiscoveryMomentsContent extends HookConsumerWidget {
         child: AppPagedLoadMoreScope(
           canLoadMore: () => ref.read(provider).value?.canAutoLoadMore ?? false,
           onLoadMore: () => ref.read(provider.notifier).loadMore(),
-        child: enablePullToRefresh
-            ? ColoredBox(
-                color: backgroundColor,
-                child: AppAdaptiveRefreshScrollView(
+          child: enablePullToRefresh
+              ? AppAdaptiveRefreshScrollView(
                   controller: scrollController,
                   onRefresh: () => _handleRefresh(context, ref),
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: <Widget>[sliver],
-                ),
-              )
-            : ColoredBox(
-                color: backgroundColor,
-                child: CustomScrollView(
+                )
+              : CustomScrollView(
                   controller: scrollController,
                   slivers: [sliver],
                 ),
-              ),
-      ),
+        ),
       ),
     );
   }
@@ -433,7 +414,10 @@ class DiscoveryMomentsContent extends HookConsumerWidget {
     final provider = momentRecommendationFeedProvider(pageSize);
     final errorMessage = await ref.read(provider.notifier).refresh();
     if (errorMessage != null && context.mounted) {
-      showToast(AppLocalizations.of(context).sharedRefreshFailed);
+      showToast(
+        AppLocalizations.of(context).sharedRefreshFailed,
+        tone: AppToastTone.error,
+      );
     }
   }
 
@@ -457,7 +441,9 @@ class DiscoveryMomentsContent extends HookConsumerWidget {
       final provider = momentRecommendationFeedProvider(pageSize);
       return SliverToBoxAdapter(
         child: DiscoveryRetryEmptyState(
-          message: AppLocalizations.of(context).errorRecommendedMomentLoadFailed,
+          message: AppLocalizations.of(
+            context,
+          ).errorRecommendedMomentLoadFailed,
           onRetry: () => ref.read(provider.notifier).reload(),
         ),
       );

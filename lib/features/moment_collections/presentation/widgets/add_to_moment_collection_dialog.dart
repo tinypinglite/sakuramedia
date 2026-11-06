@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/moment_collections/data/dto/moment_collection_dto.dart';
 import 'package:sakuramedia/features/moment_collections/presentation/providers/moment_collections_api_provider.dart';
@@ -62,7 +62,6 @@ class AddToMomentCollectionDialog extends ConsumerStatefulWidget {
 
 class _AddToMomentCollectionDialogState
     extends ConsumerState<AddToMomentCollectionDialog> {
-
   List<MomentCollectionDto> _collections = const [];
   final Set<int> _selectedIds = <int>{};
   final TextEditingController _searchController = TextEditingController();
@@ -143,10 +142,7 @@ class _AddToMomentCollectionDialogState
     return _buildContent(context, maxListHeight: maxListHeight);
   }
 
-  Widget _buildContent(
-    BuildContext context, {
-    required double maxListHeight,
-  }) {
+  Widget _buildContent(BuildContext context, {required double maxListHeight}) {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
     return Stack(
@@ -205,10 +201,7 @@ class _AddToMomentCollectionDialogState
     );
   }
 
-  Widget _buildList(
-    BuildContext context, {
-    required double maxListHeight,
-  }) {
+  Widget _buildList(BuildContext context, {required double maxListHeight}) {
     if (_isLoading) {
       return const SizedBox(
         key: Key('add-to-moment-collection-loading'),
@@ -233,7 +226,9 @@ class _AddToMomentCollectionDialogState
     if (visibleCollections.isEmpty) {
       return SizedBox(
         height: 160,
-        child: Center(child: Text(AppLocalizations.of(context).momentCollectionNoMatch)),
+        child: Center(
+          child: Text(AppLocalizations.of(context).momentCollectionNoMatch),
+        ),
       );
     }
     final spacing = context.appSpacing;
@@ -252,8 +247,9 @@ class _AddToMomentCollectionDialogState
             enabled: !_isUpdating,
             onTap: () => _toggle(collection, selected),
             title: collection.name,
-            trailingText:
-                collection.pointCount > 0 ? '${collection.pointCount}' : null,
+            trailingText: collection.pointCount > 0
+                ? '${collection.pointCount}'
+                : null,
             optionKey: Key('add-to-moment-collection-${collection.id}'),
           );
         },
@@ -300,9 +296,7 @@ class _AddToMomentCollectionDialogState
         try {
           await ref
               .read(mediaApiProvider)
-              .deleteMediaPoint(
-                pointId: createdPoint.pointId,
-              );
+              .deleteMediaPoint(pointId: createdPoint.pointId);
         } catch (_) {
           // 加入合集失败时尽量回收刚创建的标记；原始错误仍反馈给用户。
         }
@@ -325,6 +319,7 @@ class _AddToMomentCollectionDialogState
               : l10n.momentErrorAddToCollectionFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     } finally {
       if (mounted) setState(() => _isUpdating = false);

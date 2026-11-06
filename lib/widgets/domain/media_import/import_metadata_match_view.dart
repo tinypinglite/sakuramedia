@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/media_import/data/import_failed_item_dto.dart';
 import 'package:sakuramedia/features/media_import/data/import_metadata_search_dto.dart';
@@ -79,7 +79,10 @@ class _ImportMetadataMatchViewState
             candidateId: candidateId,
           );
       if (!mounted) return;
-      showToast(l10n.widgetMediaImportRetrySubmitted);
+      showToast(
+        l10n.widgetMediaImportRetrySubmitted,
+        tone: AppToastTone.success,
+      );
       widget.onRetried();
     } catch (error) {
       if (!mounted) return;
@@ -89,6 +92,7 @@ class _ImportMetadataMatchViewState
           fallback: l10n.widgetMediaImportSubmitRetryFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     } finally {
       if (mounted) {

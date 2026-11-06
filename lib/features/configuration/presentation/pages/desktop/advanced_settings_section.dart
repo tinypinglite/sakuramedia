@@ -3,7 +3,7 @@ import 'package:sakuramedia/widgets/base/forms/app_password_field.dart';
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/config_api_provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
@@ -160,70 +160,119 @@ class _DesktopAdvancedSettingsSectionState
       title: l10n.configOptionalServicesTitle,
       padding: EdgeInsets.all(spacing.lg),
       headerBottomSpacing: spacing.md,
-      headerTrailing: _CardBadges(badges: [
-        AppBadge(
-          label: l10n.configRestartRequiredBadge,
-          tone: AppBadgeTone.warning,
-        ),
-        if (_dirtyCards.contains(_AdvancedCardKind.optionalServices))
+      headerTrailing: _CardBadges(
+        badges: [
           AppBadge(
-            label: l10n.configUnsavedBadge,
+            label: l10n.configRestartRequiredBadge,
             tone: AppBadgeTone.warning,
           ),
-      ]),
-      child: Form(key: _optionalFormKey, child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _CardTip(icon: Icons.info_outline_rounded,
-            message: l10n.configOptionalServicesTip),
-          SizedBox(height: spacing.md),
-          _optionalSwitch(
-            key: const Key('configuration-qdrant-enabled'),
-            title: l10n.configQdrantEnabledTitle,
-            subtitle: l10n.configQdrantEnabledSubtitle,
-            value: _qdrantEnabled,
-            onChanged: saving ? null : _changeQdrantEnabled,
-          ),
-          if (_qdrantEnabled) _buildFieldGrid(context, children: [
-            AppTextField(controller: _qdrantUrl, label: l10n.configQdrantUrlLabel,
-              hintText: 'http://qdrant:6333',
-              helperText: l10n.configComposeDefaultHelper,
-              fieldKey: const Key('configuration-qdrant-url'), enabled: !saving,
-              validator: _httpUrlError, onChanged: (_) => _markDirty(_AdvancedCardKind.optionalServices)),
-            AppPasswordField(controller: _qdrantKey, label: l10n.configQdrantApiKeyLabel, enabled: !saving,
-              onChanged: (_) => _markDirty(_AdvancedCardKind.optionalServices)),
-          ]),
-          SizedBox(height: spacing.md),
-          _optionalSwitch(
-            key: const Key('configuration-image-search-enabled'),
-            title: l10n.configImageSearchEnabledTitle,
-            subtitle: _qdrantEnabled ? l10n.configImageSearchEnabledSubtitle : l10n.configImageSearchRequiresQdrant,
-            value: _imageSearchEnabled,
-            onChanged: saving || !_qdrantEnabled ? null : (value) {
-              setState(() => _imageSearchEnabled = value);
-              _markDirty(_AdvancedCardKind.optionalServices);
-            },
-          ),
-          if (_imageSearchEnabled) _buildFieldGrid(context, children: [
-            AppTextField(controller: _inferenceUrl, label: l10n.configEmbeddingUrlLabel,
-              hintText: 'http://siglip2-embed:8080',
-              helperText: l10n.configComposeDefaultHelper,
-              fieldKey: const Key('configuration-inference-url'), enabled: !saving,
-              validator: _httpUrlError, onChanged: (_) => _markDirty(_AdvancedCardKind.optionalServices)),
-            AppPasswordField(controller: _inferenceKey, label: l10n.configEmbeddingApiKeyLabel, enabled: !saving,
-              onChanged: (_) => _markDirty(_AdvancedCardKind.optionalServices)),
-          ]),
-          SizedBox(height: spacing.lg),
-          _buildActions(context,
-            buttonKey: const Key('configuration-optional-services-save'),
-            isSaving: saving, onSave: _saveOptionalServices),
+          if (_dirtyCards.contains(_AdvancedCardKind.optionalServices))
+            AppBadge(
+              label: l10n.configUnsavedBadge,
+              tone: AppBadgeTone.warning,
+            ),
         ],
-      )),
+      ),
+      child: Form(
+        key: _optionalFormKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _CardTip(
+              icon: Icons.info_outline_rounded,
+              message: l10n.configOptionalServicesTip,
+            ),
+            SizedBox(height: spacing.md),
+            _optionalSwitch(
+              key: const Key('configuration-qdrant-enabled'),
+              title: l10n.configQdrantEnabledTitle,
+              subtitle: l10n.configQdrantEnabledSubtitle,
+              value: _qdrantEnabled,
+              onChanged: saving ? null : _changeQdrantEnabled,
+            ),
+            if (_qdrantEnabled)
+              _buildFieldGrid(
+                context,
+                children: [
+                  AppTextField(
+                    controller: _qdrantUrl,
+                    label: l10n.configQdrantUrlLabel,
+                    hintText: 'http://qdrant:6333',
+                    helperText: l10n.configComposeDefaultHelper,
+                    fieldKey: const Key('configuration-qdrant-url'),
+                    enabled: !saving,
+                    validator: _httpUrlError,
+                    onChanged: (_) =>
+                        _markDirty(_AdvancedCardKind.optionalServices),
+                  ),
+                  AppPasswordField(
+                    controller: _qdrantKey,
+                    label: l10n.configQdrantApiKeyLabel,
+                    enabled: !saving,
+                    onChanged: (_) =>
+                        _markDirty(_AdvancedCardKind.optionalServices),
+                  ),
+                ],
+              ),
+            SizedBox(height: spacing.md),
+            _optionalSwitch(
+              key: const Key('configuration-image-search-enabled'),
+              title: l10n.configImageSearchEnabledTitle,
+              subtitle: _qdrantEnabled
+                  ? l10n.configImageSearchEnabledSubtitle
+                  : l10n.configImageSearchRequiresQdrant,
+              value: _imageSearchEnabled,
+              onChanged: saving || !_qdrantEnabled
+                  ? null
+                  : (value) {
+                      setState(() => _imageSearchEnabled = value);
+                      _markDirty(_AdvancedCardKind.optionalServices);
+                    },
+            ),
+            if (_imageSearchEnabled)
+              _buildFieldGrid(
+                context,
+                children: [
+                  AppTextField(
+                    controller: _inferenceUrl,
+                    label: l10n.configEmbeddingUrlLabel,
+                    hintText: 'http://siglip2-embed:8080',
+                    helperText: l10n.configComposeDefaultHelper,
+                    fieldKey: const Key('configuration-inference-url'),
+                    enabled: !saving,
+                    validator: _httpUrlError,
+                    onChanged: (_) =>
+                        _markDirty(_AdvancedCardKind.optionalServices),
+                  ),
+                  AppPasswordField(
+                    controller: _inferenceKey,
+                    label: l10n.configEmbeddingApiKeyLabel,
+                    enabled: !saving,
+                    onChanged: (_) =>
+                        _markDirty(_AdvancedCardKind.optionalServices),
+                  ),
+                ],
+              ),
+            SizedBox(height: spacing.lg),
+            _buildActions(
+              context,
+              buttonKey: const Key('configuration-optional-services-save'),
+              isSaving: saving,
+              onSave: _saveOptionalServices,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Widget _optionalSwitch({required Key key, required String title,
-    required String subtitle, required bool value, required ValueChanged<bool>? onChanged}) {
+  Widget _optionalSwitch({
+    required Key key,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required ValueChanged<bool>? onChanged,
+  }) {
     return AppSettingCell(
       padding: EdgeInsets.symmetric(vertical: context.appSpacing.md),
       title: title,
@@ -236,10 +285,12 @@ class _DesktopAdvancedSettingsSectionState
   Future<void> _changeQdrantEnabled(bool value) async {
     final l10n = AppLocalizations.of(context);
     if (!value && _imageSearchEnabled) {
-      final confirmed = await showAppConfirmDialog(context,
+      final confirmed = await showAppConfirmDialog(
+        context,
         title: l10n.configDisableVectorTitle,
         message: l10n.configDisableVectorMessage,
-        confirmLabel: l10n.configDisableVectorConfirm);
+        confirmLabel: l10n.configDisableVectorConfirm,
+      );
       if (!confirmed || !mounted) return;
     }
     setState(() {
@@ -258,8 +309,16 @@ class _DesktopAdvancedSettingsSectionState
   Future<void> _saveOptionalServices() async {
     if (!(_optionalFormKey.currentState?.validate() ?? false)) return;
     await _savePartial(_AdvancedCardKind.optionalServices, {
-      'qdrant': {'enabled': _qdrantEnabled, 'url': _qdrantUrl.text.trim(), 'api_key': _qdrantKey.text.trim()},
-      'image_search': {'enabled': _imageSearchEnabled, 'inference_base_url': _inferenceUrl.text.trim(), 'inference_api_key': _inferenceKey.text.trim()},
+      'qdrant': {
+        'enabled': _qdrantEnabled,
+        'url': _qdrantUrl.text.trim(),
+        'api_key': _qdrantKey.text.trim(),
+      },
+      'image_search': {
+        'enabled': _imageSearchEnabled,
+        'inference_base_url': _inferenceUrl.text.trim(),
+        'inference_api_key': _inferenceKey.text.trim(),
+      },
     }, (values) => _applyOptionalServices(values.optionalServices));
   }
 
@@ -386,13 +445,10 @@ class _DesktopAdvancedSettingsSectionState
                   hintText: '4',
                   helperText: l10n.configWorkerConcurrencyHelper,
                   keyboardType: TextInputType.number,
-                  suffix: _UnitSuffix(
-                    label: l10n.configWorkerConcurrencyUnit,
-                  ),
+                  suffix: _UnitSuffix(label: l10n.configWorkerConcurrencyUnit),
                   tightSuffix: true,
                   validator: _workerConcurrencyError,
-                  onChanged: (_) =>
-                      _markDirty(_AdvancedCardKind.scheduler),
+                  onChanged: (_) => _markDirty(_AdvancedCardKind.scheduler),
                 ),
               ],
             ),
@@ -458,10 +514,7 @@ class _DesktopAdvancedSettingsSectionState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CardTip(
-              icon: Icons.tune_outlined,
-              message: l10n.configLoggingTip,
-            ),
+            _CardTip(icon: Icons.tune_outlined, message: l10n.configLoggingTip),
             SizedBox(height: spacing.lg),
             _buildFieldGrid(
               context,
@@ -697,6 +750,7 @@ class _DesktopAdvancedSettingsSectionState
           result.restartRequired,
           AppLocalizations.of(context),
         ),
+        tone: AppToastTone.warning,
       );
     } catch (error) {
       if (!mounted) {
@@ -712,6 +766,7 @@ class _DesktopAdvancedSettingsSectionState
           fallback: l10n.errorAdvancedSettingsSaveFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }
@@ -752,8 +807,9 @@ class _DesktopAdvancedSettingsSectionState
   }
 
   void _applyScheduler(AdvancedSchedulerConfigDto scheduler) {
-    _workerDefaultConcurrencyController.text =
-        scheduler.workerDefaultConcurrency.toString();
+    _workerDefaultConcurrencyController.text = scheduler
+        .workerDefaultConcurrency
+        .toString();
     for (final key in AdvancedSchedulerConfigDto.cronKeys) {
       _cronControllers[key]!.text = scheduler.crons[key]!;
     }
@@ -998,8 +1054,7 @@ List<_CronGroup> _buildCronGroups(AppLocalizations l10n) => <_CronGroup>[
 
 String _cronCopy(AppLocalizations l10n, String key) => switch (key) {
   'actor_subscription_sync' => l10n.taskNameActorSubscriptionSync,
-  'subscribed_movie_auto_download' =>
-    l10n.taskNameSubscribedMovieAutoDownload,
+  'subscribed_movie_auto_download' => l10n.taskNameSubscribedMovieAutoDownload,
   'download_task_sync' => l10n.taskNameDownloadTaskSync,
   'download_task_auto_import' => l10n.taskNameDownloadTaskAutoImport,
   'movie_heat' => l10n.taskNameMovieHeatUpdate,
@@ -1010,10 +1065,8 @@ String _cronCopy(AppLocalizations l10n, String key) => switch (key) {
   'media_thumbnail' => l10n.taskNameMediaThumbnailGeneration,
   'image_search_index' => l10n.taskNameImageSearchIndex,
   'movie_similarity_recompute' => l10n.taskNameMovieSimilarityRecompute,
-  'moment_recommendation_generate' =>
-    l10n.taskNameMomentRecommendationGenerate,
-  'daily_recommendation_generate' =>
-    l10n.taskNameDailyRecommendationGenerate,
+  'moment_recommendation_generate' => l10n.taskNameMomentRecommendationGenerate,
+  'daily_recommendation_generate' => l10n.taskNameDailyRecommendationGenerate,
   'activity_cleanup' => l10n.taskNameActivityRecordCleanup,
   'gfriends_filetree_refresh' => l10n.taskNameGfriendsFiletreeRefresh,
   _ => key,
@@ -1021,8 +1074,7 @@ String _cronCopy(AppLocalizations l10n, String key) => switch (key) {
 
 String _cronFieldHelper(AppLocalizations l10n, String key) => switch (key) {
   'actor_subscription_sync' => l10n.taskHelpActorSubscriptionSync,
-  'subscribed_movie_auto_download' =>
-    l10n.taskHelpSubscribedMovieAutoDownload,
+  'subscribed_movie_auto_download' => l10n.taskHelpSubscribedMovieAutoDownload,
   'download_task_sync' => l10n.taskHelpDownloadTaskSync,
   'download_task_auto_import' => l10n.taskHelpDownloadTaskAutoImport,
   'movie_heat' => l10n.taskHelpMovieHeatUpdate,
@@ -1033,10 +1085,8 @@ String _cronFieldHelper(AppLocalizations l10n, String key) => switch (key) {
   'media_thumbnail' => l10n.taskHelpMediaThumbnailGeneration,
   'image_search_index' => l10n.taskHelpImageSearchIndex,
   'movie_similarity_recompute' => l10n.taskHelpMovieSimilarityRecompute,
-  'moment_recommendation_generate' =>
-    l10n.taskHelpMomentRecommendationGenerate,
-  'daily_recommendation_generate' =>
-    l10n.taskHelpDailyRecommendationGenerate,
+  'moment_recommendation_generate' => l10n.taskHelpMomentRecommendationGenerate,
+  'daily_recommendation_generate' => l10n.taskHelpDailyRecommendationGenerate,
   'activity_cleanup' => l10n.taskHelpActivityRecordCleanup,
   'gfriends_filetree_refresh' => l10n.taskHelpGfriendsFiletreeRefresh,
   _ => '',

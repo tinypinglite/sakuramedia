@@ -258,20 +258,20 @@ Future<GlobalKey> pumpPreviewApp(
       ],
       child: AppPlatformScope(
         platform: appPlatform,
-        child: OKToast(
-          child: RepaintBoundary(
-            key: boundaryKey,
-            child: MaterialApp(
-              debugShowCheckedModeBanner: false,
-              locale: locale,
-              localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-                AppLocalizations.delegate,
-                ...GlobalMaterialLocalizations.delegates,
-              ],
-              supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
-              theme: previewTheme(theme, platform),
-              home: wrap?.call(home) ?? Scaffold(body: home),
-            ),
+        child: RepaintBoundary(
+          key: boundaryKey,
+          child: MaterialApp(
+            debugShowCheckedModeBanner: false,
+            locale: locale,
+            localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
+            supportedLocales: const <Locale>[Locale('zh'), Locale('en')],
+            theme: previewTheme(theme, platform),
+            builder: (context, child) =>
+                OKToast(child: child ?? const SizedBox.shrink()),
+            home: wrap?.call(home) ?? Scaffold(body: home),
           ),
         ),
       ),

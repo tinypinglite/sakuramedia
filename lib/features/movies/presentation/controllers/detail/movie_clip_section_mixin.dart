@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/widgets/add_to_clip_collection_dialog.dart';
 import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
@@ -33,15 +33,14 @@ mixin MovieClipSectionMixin<T extends ConsumerStatefulWidget>
       context: context,
       modalKey: const Key('movie-detail-clip-actions'),
       mobileMaxHeightFactor: 0.62,
-      builder:
-          (_) => ClipActionsPanel(
-            clip: clip,
-            keyPrefix: 'movie-detail-clip',
-            onPlay: () => playMovieClip(clip),
-            onAddToCollection: () => addMovieClipToCollection(clip),
-            onRename: () => renameMovieClip(clip),
-            onDelete: () => deleteMovieClip(clip),
-          ),
+      builder: (_) => ClipActionsPanel(
+        clip: clip,
+        keyPrefix: 'movie-detail-clip',
+        onPlay: () => playMovieClip(clip),
+        onAddToCollection: () => addMovieClipToCollection(clip),
+        onRename: () => renameMovieClip(clip),
+        onDelete: () => deleteMovieClip(clip),
+      ),
     );
   }
 
@@ -68,7 +67,7 @@ mixin MovieClipSectionMixin<T extends ConsumerStatefulWidget>
           .updateClipTitle(clipId: clip.clipId, title: newTitle);
       if (!mounted) return;
       ref.read(movieClipsProvider(movieNumber).notifier).replaceClip(updated);
-      showToast(l10n.movieControllerClipRenamed);
+      showToast(l10n.movieControllerClipRenamed, tone: AppToastTone.success);
     } catch (error) {
       showToast(
         apiErrorMessage(
@@ -76,6 +75,7 @@ mixin MovieClipSectionMixin<T extends ConsumerStatefulWidget>
           fallback: l10n.movieControllerClipRenameFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }
@@ -100,10 +100,8 @@ mixin MovieClipSectionMixin<T extends ConsumerStatefulWidget>
       await ref.read(clipsApiProvider).deleteClip(clipId: clip.clipId);
       if (!mounted) return;
       // 广播删除：本页 provider 与「我的切片」页监听后各自就地移除。
-      ref
-          .read(clipMutationEventsProvider.notifier)
-          .reportDeleted(clip.clipId);
-      showToast(l10n.movieControllerClipDeleted);
+      ref.read(clipMutationEventsProvider.notifier).reportDeleted(clip.clipId);
+      showToast(l10n.movieControllerClipDeleted, tone: AppToastTone.success);
     } catch (error) {
       showToast(
         apiErrorMessage(
@@ -111,6 +109,7 @@ mixin MovieClipSectionMixin<T extends ConsumerStatefulWidget>
           fallback: l10n.movieControllerClipDeleteFailed,
           l10n: l10n,
         ),
+        tone: AppToastTone.error,
       );
     }
   }

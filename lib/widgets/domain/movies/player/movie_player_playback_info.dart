@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 
@@ -954,7 +954,7 @@ class _MoviePlayerPlaybackInfoRow extends StatelessWidget {
   Future<void> _handleCopy(BuildContext context) async {
     final l10n = AppLocalizations.of(context);
     await Clipboard.setData(ClipboardData(text: data.value));
-    showToast(l10n.widgetMoviePlayerCopied);
+    showToast(l10n.widgetMoviePlayerCopied, tone: AppToastTone.success);
   }
 
   @override
@@ -966,16 +966,17 @@ class _MoviePlayerPlaybackInfoRow extends StatelessWidget {
           width: _kLabelColumnWidth,
           child: Text(
             data.label,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              tone: AppTextTone.onMedia,
-            ).copyWith(
-              // 面板是深色玻璃底，label 用降透明度的白色保持次级层级。
-              color: context.appTextPalette.onMedia.withValues(
-                alpha: context.appOverlayTokens.mutedLabelAlpha,
-              ),
-            ),
+            style:
+                resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  tone: AppTextTone.onMedia,
+                ).copyWith(
+                  // 面板是深色玻璃底，label 用降透明度的白色保持次级层级。
+                  color: context.appTextPalette.onMedia.withValues(
+                    alpha: context.appOverlayTokens.mutedLabelAlpha,
+                  ),
+                ),
           ),
         ),
         SizedBox(width: context.appSpacing.sm),

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/media/data/invalid_media_dto.dart';
@@ -459,7 +459,8 @@ class _InvalidMediaRowConsumer extends ConsumerWidget {
       await ref
           .read(invalidMediaProvider.notifier)
           .deleteInvalidMedia(mediaId: item.id);
-      if (context.mounted) showToast(l10n.mediaListInvalidDeleted);
+      if (context.mounted)
+        showToast(l10n.mediaListInvalidDeleted, tone: AppToastTone.success);
     } catch (error) {
       if (context.mounted) {
         showToast(
@@ -468,6 +469,7 @@ class _InvalidMediaRowConsumer extends ConsumerWidget {
             fallback: l10n.mediaListInvalidDeleteFailed,
             l10n: l10n,
           ),
+          tone: AppToastTone.error,
         );
       }
     }

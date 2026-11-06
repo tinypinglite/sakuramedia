@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:oktoast/oktoast.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/platform/clipboard_copy.dart';
 import 'package:sakuramedia/features/account/data/account_dto.dart';
@@ -88,7 +88,10 @@ class _ApiKeyGeneratePanelState extends ConsumerState<ApiKeyGeneratePanel> {
       return;
     }
     final l10n = AppLocalizations.of(context);
-    showToast(copied ? l10n.apiKeyCopied : l10n.apiKeyCopyFailed);
+    showToast(
+      copied ? l10n.apiKeyCopied : l10n.apiKeyCopyFailed,
+      tone: copied ? AppToastTone.success : AppToastTone.error,
+    );
   }
 
   @override
