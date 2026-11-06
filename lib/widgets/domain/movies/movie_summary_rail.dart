@@ -12,7 +12,7 @@ import 'package:sakuramedia/widgets/domain/movies/movie_summary_card_wiring.dart
 ///
 /// 卡宽按平台对齐既有规格：移动端取 [AppComponentTokens.mobileLatestMovieCardWidth]
 /// （与首页「最近添加」逐像素一致），桌面端取 [AppComponentTokens.movieCardTargetWidth]
-/// 的 0.75（与影片详情「相似影片」一致）。三态顺序与 [MovieSummaryGrid] 相同：
+/// 的 0.75（与影片详情「相似影片」一致）。三态顺序与 [MovieSummarySliver] 相同：
 /// 错误 → 空态 → 内容；loading 由调用方传占位项并外包 `AppSkeletonizer`。
 class MovieSummaryRail extends ConsumerWidget {
   const MovieSummaryRail({

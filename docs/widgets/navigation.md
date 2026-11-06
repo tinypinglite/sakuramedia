@@ -10,7 +10,7 @@
 
 路径：`lib/widgets/base/forms/app_segmented_control.dart`
 
-单选分段控件，内部由 `liquid_glass_widgets` 的 `GlassSegmentedControl` 实现。`layout: auto` 在 2–6 项时使用等宽分段，7 项以上横向滚动；默认 `scrollable` 保持自然宽度。`enabled: false` 会把所有 `GlassSegment` 标记为不可选并屏蔽回调。`AppSegmentedControl` 只负责泛型值、主题色和尺寸适配，不再外包 `AppGlassSurface`。`tone: neutral` 用于玻璃弹层：轨道透明，选中项只浮起中性胶囊；默认 `standard` 保留页面内的玻璃轨道。`AppSegmentedItem.key` 作为分段身份传给 `GlassSegment.id`，不再作为可查找的 Widget key。它是页面内的筛选/切换控件，不要拿它替代页面级 `AppTabBar`。
+单选分段控件，内部由玻璃层的分段后端实现。`layout: auto` 在 2–6 项时使用等宽分段，7 项以上横向滚动；默认 `scrollable` 保持自然宽度。`enabled: false` 会把所有分段标记为不可选并屏蔽回调。`AppSegmentedControl` 只负责泛型值、主题色和尺寸适配，不再外包玻璃表面。`tone: neutral` 用于玻璃弹层：轨道透明，选中项只浮起中性胶囊；默认 `standard` 保留页面内的玻璃轨道。`AppSegmentedItem.key` 作为分段身份传给玻璃后端，不再作为可查找的 Widget key。它是页面内的筛选/切换控件，不要拿它替代页面级 `AppTabBar`。
 
 ## `AppMobileListHeader`
 
@@ -22,7 +22,7 @@
 
 多选时使用 `AppMobileSelectionHeader` 原地替换正常控制行：关闭图标、已选计数、全选图标。批量动作仍放在 `AppSelectionBottomBar`，并保留文字。
 
-标签影片页用 `lib/features/tags/presentation/widgets/tag_selection_header.dart` 的 `TagSelectionHeader` 固定选择入口、横向已选摘要、匹配模式和常看标签；桌面把选择入口与常看标签并到一行，移动端上下两行。点入口打开自适应弹窗（移动全高底部弹层 / 桌面居中弹窗），弹窗内用 `TagSelectorPanel(scrollableTagCloud: true)` 滚动查看全部标签，选择即时生效。
+标签影片页用 `TagBrowseSurface` 承载可搜索、可多选的标签墙；标签按热门分组或搜索结果内联铺开，由页面整体滚动，选择先写入草稿再点「查看影片」进入结果态。
 
 ## `AppGlassListHeader`
 

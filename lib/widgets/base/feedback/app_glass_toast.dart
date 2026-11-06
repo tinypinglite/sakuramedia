@@ -1,7 +1,6 @@
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_quality.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_backend.dart';
 
 enum AppToastTone { neutral, success, warning, error, info }
 
@@ -18,7 +17,6 @@ class AppGlassToast extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tokens = context.appToastTokens;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
     final content = _buildContent(context);
     final padding = EdgeInsets.symmetric(
@@ -45,7 +43,6 @@ class AppGlassToast extends StatelessWidget {
                 context,
                 padding: padding,
                 borderRadius: tokens.borderRadius,
-                isDark: isDark,
                 child: content,
               ),
       ),
@@ -96,29 +93,9 @@ class AppGlassToast extends StatelessWidget {
     BuildContext context, {
     required EdgeInsets padding,
     required double borderRadius,
-    required bool isDark,
     required Widget child,
   }) {
     final tokens = context.appToastTokens;
-    final settings =
-        (isDark
-                ? LiquidGlassSettings.ios27Dark
-                : LiquidGlassSettings.ios27Light)
-            .copyWith(
-              glassColor: tokens.glassBackground,
-              saturation: isDark ? 1.65 : 2,
-              frost: 16,
-              thickness: 34,
-              shadow: isDark
-                  ? null
-                  : <BoxShadow>[
-                      BoxShadow(
-                        color: context.appShadows.color.withValues(alpha: 0.10),
-                        blurRadius: 28,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-            );
     final shape = BorderRadius.circular(borderRadius);
     final highlight = tokens.glassHighlight;
     final shade = tokens.glassShade;
@@ -134,12 +111,8 @@ class AppGlassToast extends StatelessWidget {
           ),
         ],
       ),
-      child: GlassContainer(
-        useOwnLayer: true,
-        quality: AppGlassQuality.toast,
-        clipBehavior: Clip.antiAlias,
-        shape: LiquidRoundedSuperellipse(borderRadius: borderRadius),
-        settings: settings,
+      child: AppGlassContainerBackend(
+        borderRadius: borderRadius,
         child: Stack(
           children: <Widget>[
             Positioned.fill(

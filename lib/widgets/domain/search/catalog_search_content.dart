@@ -3,12 +3,14 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_s
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
+import 'package:sakuramedia/features/actors/presentation/actor_placeholders.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_state.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_summary_grid.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
 import 'package:sakuramedia/widgets/domain/search/catalog_search_field.dart';
@@ -17,7 +19,6 @@ import 'package:sakuramedia/widgets/domain/search/catalog_search_stream_status_c
 class CatalogSearchContent extends StatelessWidget {
   const CatalogSearchContent({
     super.key,
-    required this.surfaceColor,
     required this.state,
     required this.textController,
     required this.tabController,
@@ -35,7 +36,6 @@ class CatalogSearchContent extends StatelessWidget {
     this.onFallbackToOnlineSearch,
   });
 
-  final Color surfaceColor;
   final CatalogSearchState state;
   final TextEditingController textController;
   final TabController tabController;
@@ -128,124 +128,76 @@ class CatalogSearchContent extends StatelessWidget {
       );
     }
 
-    if (state.isLoading) {
-      return const SliverToBoxAdapter(child: _CatalogSearchLoadingIndicator());
-    }
-
     switch (state.activeKind) {
       case CatalogSearchKind.movies:
         if (!state.isOnlineSearchActive &&
             state.movieResults.isEmpty &&
             onFallbackToOnlineSearch != null) {
-          return _buildLocalEmptyFallback(l10n.widgetSearchLocalNoMovies);
+          if (!state.isLoading) {
+            return _buildLocalEmptyFallback(
+              context,
+              l10n.widgetSearchLocalNoMovies,
+            );
+          }
         }
-        return MovieSummarySliver(
-          items: state.movieResults,
-          emptyMessage: state.isOnlineSearchActive
-              ? l10n.widgetSearchOnlineNoMovie
-              : l10n.widgetSearchLocalNoMatchingMovies,
-          onMovieTap: onMovieTap,
-          onMovieMenuRequest: onMovieMenuRequest,
-          onMovieToggleCollectionType: onMovieToggleCollectionType,
-          onMovieBlacklist: onMovieBlacklist,
-          onMovieSubscriptionTap: onMovieSubscriptionTap,
-          isMovieSubscriptionUpdating: (movie) =>
-              state.isMovieSubscriptionUpdating(movie.movieNumber),
+        final movies = state.isLoading
+            ? movieListItemPlaceholders(count: 12)
+            : state.movieResults;
+        return AppSkeletonizer.sliver(
+          enabled: state.isLoading,
+          child: MovieSummarySliver(
+            items: movies,
+            emptyMessage: state.isOnlineSearchActive
+                ? l10n.widgetSearchOnlineNoMovie
+                : l10n.widgetSearchLocalNoMatchingMovies,
+            onMovieTap: onMovieTap,
+            onMovieMenuRequest: onMovieMenuRequest,
+            onMovieToggleCollectionType: onMovieToggleCollectionType,
+            onMovieBlacklist: onMovieBlacklist,
+            onMovieSubscriptionTap: onMovieSubscriptionTap,
+            isMovieSubscriptionUpdating: (movie) =>
+                state.isMovieSubscriptionUpdating(movie.movieNumber),
+          ),
         );
       case CatalogSearchKind.actors:
         if (!state.isOnlineSearchActive &&
             state.actorResults.isEmpty &&
             onFallbackToOnlineSearch != null) {
-          return _buildLocalEmptyFallback(l10n.widgetSearchLocalNoActors);
+          if (!state.isLoading) {
+            return _buildLocalEmptyFallback(
+              context,
+              l10n.widgetSearchLocalNoActors,
+            );
+          }
         }
-        return ActorSummarySliver(
-          items: state.actorResults,
-          emptyMessage: state.isOnlineSearchActive
-              ? l10n.widgetSearchOnlineNoActor
-              : l10n.widgetSearchLocalNoMatchingActors,
-          onActorTap: onActorTap,
-          onActorSubscriptionTap: onActorSubscriptionTap,
-          isActorSubscriptionUpdating: (actor) =>
-              state.isActorSubscriptionUpdating(actor.id),
+        final actors = state.isLoading
+            ? actorListItemPlaceholders(count: 12)
+            : state.actorResults;
+        return AppSkeletonizer.sliver(
+          enabled: state.isLoading,
+          child: ActorSummarySliver(
+            items: actors,
+            emptyMessage: state.isOnlineSearchActive
+                ? l10n.widgetSearchOnlineNoActor
+                : l10n.widgetSearchLocalNoMatchingActors,
+            onActorTap: onActorTap,
+            onActorSubscriptionTap: onActorSubscriptionTap,
+            isActorSubscriptionUpdating: (actor) =>
+                state.isActorSubscriptionUpdating(actor.id),
+          ),
         );
     }
   }
 
-  Widget _buildLocalEmptyFallback(String message) {
+  Widget _buildLocalEmptyFallback(BuildContext context, String message) {
+    final l10n = AppLocalizations.of(context);
     return SliverToBoxAdapter(
-      child: _CatalogSearchOnlineFallback(
+      child: AppEmptyState(
         message: message,
-        onPressed: onFallbackToOnlineSearch!,
-      ),
-    );
-  }
-}
-
-class _CatalogSearchLoadingIndicator extends StatelessWidget {
-  const _CatalogSearchLoadingIndicator();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      height: 240,
-      child: Center(
-        child: SizedBox(
-          key: Key('catalog-search-loading-indicator'),
-          width: 24,
-          height: 24,
-          child: CircularProgressIndicator.adaptive(strokeWidth: 2.4),
-        ),
-      ),
-    );
-  }
-}
-
-class _CatalogSearchOnlineFallback extends StatelessWidget {
-  const _CatalogSearchOnlineFallback({
-    required this.message,
-    required this.onPressed,
-  });
-
-  final String message;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: spacing.lg,
-        vertical: spacing.xxl,
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.travel_explore,
-              size: context.appComponentTokens.iconSize4xl,
-              color: resolveAppTextToneColor(context, AppTextTone.secondary),
-            ),
-            SizedBox(height: spacing.md),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.secondary,
-              ),
-            ),
-            SizedBox(height: spacing.lg),
-            AppButton(
-              key: const Key('catalog-search-online-fallback'),
-              variant: AppButtonVariant.primary,
-              label: AppLocalizations.of(context).widgetSearchFetchExternal,
-              onPressed: onPressed,
-            ),
-          ],
-        ),
+        icon: Icons.travel_explore,
+        onRetry: onFallbackToOnlineSearch!,
+        retryLabel: l10n.widgetSearchFetchExternal,
+        retryKey: const Key('catalog-search-online-fallback'),
       ),
     );
   }

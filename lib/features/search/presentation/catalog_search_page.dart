@@ -14,7 +14,6 @@ import 'package:sakuramedia/features/subscriptions/presentation/subscription_fee
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
-import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/domain/search/catalog_search_content.dart';
 
 class CatalogSearchPage extends ConsumerStatefulWidget {
@@ -133,9 +132,6 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
       },
     );
     return CatalogSearchContent(
-      surfaceColor: widget.mobile
-          ? context.appColors.surfaceCard
-          : context.appColors.surfaceElevated,
       state: searchState,
       textController: _textController,
       tabController: _tabController,

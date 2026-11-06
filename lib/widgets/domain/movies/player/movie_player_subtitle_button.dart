@@ -3,7 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_hover_menu.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_menu_widgets.dart';
 
@@ -195,9 +195,8 @@ class _MoviePlayerSubtitleMenu extends StatelessWidget {
     final overlayTokens = context.appOverlayTokens;
     final hasOptions = options.isNotEmpty;
 
-    return AppGlassSurface(
+    return AppSurface(
       key: const Key('movie-player-subtitle-menu'),
-      tone: AppGlassTone.overlay,
       width: overlayTokens.menuWidthMd,
       padding: EdgeInsets.symmetric(
         vertical: overlayTokens.menuVerticalPadding,

@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 
-enum AppButtonContentSize { large, medium, small, xSmall, xxSmall, xxxSmall }
+enum AppButtonContentSize { large, medium, small, xSmall, xxSmall }
 
 typedef AppButtonContentMetrics = (
   double height,
@@ -51,13 +51,6 @@ AppButtonContentMetrics resolveAppButtonContentMetrics(
       tokens.buttonHorizontalPadding2xs,
       tokens.buttonGap2xs,
       tokens.iconSize2xs,
-      AppTextSize.s10,
-    ),
-    AppButtonContentSize.xxxSmall => (
-      tokens.buttonHeight3xs,
-      tokens.buttonHorizontalPadding3xs,
-      tokens.buttonGap3xs,
-      tokens.iconSize3xs,
       AppTextSize.s10,
     ),
   };

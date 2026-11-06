@@ -37,7 +37,6 @@ class AppCoverCard extends StatelessWidget {
     this.overlaysBuilder,
     this.selectionMode = false,
     this.isSelected = false,
-    this.borderRadius,
   });
 
   /// 封面内容（图片、占位块等）。悬停展开时会被 [AppCoverHoverInfo] 轻微推近。
@@ -71,14 +70,11 @@ class AppCoverCard extends StatelessWidget {
   /// 当前是否被选中（仅 [selectionMode] 下有意义）。
   final bool isSelected;
 
-  /// 卡片圆角；默认 `appRadius.lgBorder`。
-  final BorderRadius? borderRadius;
-
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final spacing = context.appSpacing;
-    final radius = borderRadius ?? context.appRadius.lgBorder;
+    final radius = context.appRadius.lgBorder;
     final selected = selectionMode && isSelected;
 
     Widget coverArea = cover;

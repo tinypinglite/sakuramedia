@@ -6,7 +6,6 @@ import 'package:sakuramedia/features/system_diagnostics/presentation/widgets/dia
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/layout/cards/app_page_frame.dart';
 
 class DesktopSystemDiagnosticsPage extends ConsumerStatefulWidget {
   const DesktopSystemDiagnosticsPage({super.key});
@@ -40,8 +39,7 @@ class _DesktopSystemDiagnosticsPageState
     final diagnostics = ref.watch(
       systemDiagnosticsProvider(SystemDiagnosticsHost.desktopPage),
     );
-    return AppPageFrame(
-      title: '',
+    return SingleChildScrollView(
       child: Column(
         key: const Key('desktop-system-diagnostics-page'),
         crossAxisAlignment: CrossAxisAlignment.start,

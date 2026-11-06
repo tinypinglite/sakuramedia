@@ -4,13 +4,13 @@
 
 路径：`lib/widgets/base/forms/app_text_field.dart`
 
-统一文本输入样式、标签、错误和辅助文案，内部使用 `GlassTextField` + `FormField`。正常态走 iOS 27 液态玻璃和 premium shader，高对比度回退为实色输入面；`fillColor` 作为玻璃 tint / 实色回退色，`borderRadius` 映射到玻璃形状。页面负责 controller、校验和提交时机；固定高度用 `height`，多行用 `minLines` / `maxLines`，不再提供 `expands`。label、helper 和 error 位于玻璃面外侧，错误文案继续参与表单校验并由 live region 播报。
+统一文本输入样式、标签、错误和辅助文案，内部使用玻璃层文本输入后端 + `FormField`。正常态使用全站统一的玻璃质量，高对比度回退为实色输入面；`fillColor` 作为玻璃 tint / 实色回退色，`borderRadius` 映射到玻璃形状。页面负责 controller、校验和提交时机；固定高度用 `height`，多行用 `minLines` / `maxLines`，不再提供 `expands`。label、helper 和 error 位于玻璃面外侧，错误文案继续参与表单校验并由 live region 播报。
 
 ## `AppGlassSearchField`
 
 路径：`lib/widgets/base/forms/app_glass_search_field.dart`
 
-页面级液态玻璃搜索框，使用库的 `GlassTextField.search` 和 iOS 27 glass settings。固定 40 高、20 圆角，不开放尺寸参数；提供前置搜索图标、有内容时的清空按钮和 `onChanged` 透传，筛选策略仍由页面负责。与桌面顶栏搜索框共用 `app_glass_search_field_chrome.dart` 的玻璃/字体配置，但保留各自的外壳和布局语义。适合玻璃桌面页的页内搜索，不要把顶栏全局搜索替换成它。
+页面级液态玻璃搜索框，使用玻璃层文本输入后端和全站统一 glass settings。固定 40 高、20 圆角，不开放尺寸参数；提供前置搜索图标、有内容时的清空按钮和 `onChanged` 透传，筛选策略仍由页面负责。与桌面顶栏搜索框共用 `app_glass_search_field_chrome.dart` 的玻璃/字体配置，但保留各自的外壳和布局语义。适合玻璃桌面页的页内搜索，不要把顶栏全局搜索替换成它。
 
 ## `AppPasswordField`
 

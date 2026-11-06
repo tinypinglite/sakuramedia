@@ -7,13 +7,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/riverpod_page_cache.dart';
 import 'package:sakuramedia/core/media/app_image_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 
 import 'test_api_bundle.dart';
 
@@ -252,7 +252,7 @@ Future<GlobalKey> pumpPreviewApp(
 
   final boundaryKey = GlobalKey();
   await tester.pumpWidget(
-    LiquidGlassWidgets.wrap(
+    AppSurfaceRuntime.wrap(
       brightnessResolver: Theme.maybeBrightnessOf,
       child: ProviderScope(
         overrides: <Override>[

@@ -23,7 +23,6 @@ class AppDesktopDialog extends StatelessWidget {
     this.closeButtonBackgroundColor,
     this.closeButtonIconColor,
     this.onClose,
-    this.glassStrength = kAppModalGlassStrength,
     required this.child,
   }) : assert(
          constraints == null || (width == null && height == null),
@@ -46,7 +45,6 @@ class AppDesktopDialog extends StatelessWidget {
   final Color? closeButtonBackgroundColor;
   final Color? closeButtonIconColor;
   final VoidCallback? onClose;
-  final AppModalGlassStrength glassStrength;
   final Widget child;
 
   @override
@@ -100,7 +98,7 @@ class AppDesktopDialog extends StatelessWidget {
           ),
       clipBehavior: useGlass ? Clip.none : clipBehavior,
       child: useGlass
-          ? AppModalGlassSurface(strength: glassStrength, child: dialogContent)
+          ? AppModalGlassSurface(child: dialogContent)
           : dialogContent,
     );
   }

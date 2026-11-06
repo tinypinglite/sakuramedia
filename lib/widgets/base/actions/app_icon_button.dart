@@ -25,9 +25,7 @@ class AppIconButton extends StatelessWidget {
     this.padding,
     this.borderRadius,
     this.backgroundColor,
-    this.selectedBackgroundColor,
     this.borderColor,
-    this.selectedBorderColor,
   }) : _buttonKey = key;
 
   final Widget icon;
@@ -42,9 +40,7 @@ class AppIconButton extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final BorderRadius? borderRadius;
   final Color? backgroundColor;
-  final Color? selectedBackgroundColor;
   final Color? borderColor;
-  final Color? selectedBorderColor;
 
   @override
   Widget build(BuildContext context) {
@@ -52,10 +48,10 @@ class AppIconButton extends StatelessWidget {
     final resolvedBorderRadius = borderRadius ?? context.appRadius.smBorder;
     final resolvedPadding = padding ?? EdgeInsets.all(context.appSpacing.xs);
     final resolvedBackgroundColor = isSelected
-        ? selectedBackgroundColor ?? colors.surfaceCard
+        ? colors.surfaceCard
         : backgroundColor ?? Colors.transparent;
     final resolvedBorderColor = isSelected
-        ? selectedBorderColor ?? colors.borderStrong
+        ? colors.borderStrong
         : borderColor ?? Colors.transparent;
     final resolvedIconColor = isSelected
         ? selectedIconColor ?? iconColor ?? context.appTextPalette.primary

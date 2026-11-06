@@ -20,7 +20,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_glass_search_field.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 
 /// 标签页的浏览态：页面中心是一块可搜索、可多选的标签墙。
 ///
@@ -556,9 +556,8 @@ class _TagBrowseSurfaceState extends ConsumerState<TagBrowseSurface> {
   ) {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    return AppGlassSurface(
+    return AppSurface(
       key: const Key('tags-browse-action-bar'),
-      tone: AppGlassTone.control,
       borderRadius: context.appRadius.lgBorder,
       padding: EdgeInsets.fromLTRB(
         spacing.lg,

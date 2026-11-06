@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_ambient_glow.dart';
+import 'package:sakuramedia/widgets/base/layout/decor/app_ambient_glow.dart';
 
 /// 移动端玻璃页的环境光背景。
 ///

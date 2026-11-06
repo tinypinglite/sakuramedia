@@ -257,8 +257,9 @@ class _AccountSecurityContentState
 
   Widget _buildProfileError(BuildContext context, String message) {
     if (!widget.mobile) {
-      return _AccountProfileErrorBlock(
+      return AppEmptyState(
         message: message,
+        retryKey: const Key('configuration-username-retry-button'),
         onRetry: () => ref.read(accountProfileProvider.notifier).load(),
       );
     }
@@ -764,32 +765,6 @@ class _AccountInfoRow extends StatelessWidget {
               tone: AppTextTone.primary,
             ),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _AccountProfileErrorBlock extends StatelessWidget {
-  const _AccountProfileErrorBlock({
-    required this.message,
-    required this.onRetry,
-  });
-
-  final String message;
-  final VoidCallback onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppEmptyState(message: message),
-        SizedBox(height: context.appSpacing.md),
-        AppButton(
-          key: const Key('configuration-username-retry-button'),
-          label: AppLocalizations.of(context).commonRetry,
-          onPressed: onRetry,
         ),
       ],
     );

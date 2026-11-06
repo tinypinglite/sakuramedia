@@ -6,7 +6,6 @@ import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_glass_popover.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_modal_glass_surface.dart';
 
 /// 列表的独立排序入口。
 ///
@@ -117,7 +116,6 @@ class _AppSortMenuButtonState<F> extends State<AppSortMenuButton<F>> {
       context: context,
       drawerKey: widget.drawerKey ?? const Key('app-sort-drawer'),
       maxHeightFactor: 0.75,
-      glassStrength: AppModalGlassStrength.solid,
       builder: (_) => _AppSortDrawer<F>(
         config: widget,
         onFieldChanged: _applyDrawerField,

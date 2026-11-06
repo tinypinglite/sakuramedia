@@ -1,10 +1,9 @@
 import 'dart:math' as math;
 
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_pill.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_quality.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_backend.dart';
 
 /// 分段控件的一项。
 class AppSegmentedItem<T> {
@@ -139,19 +138,18 @@ class _AppSegmentedControlState<T> extends State<AppSegmentedControl<T>> {
     final baseTextStyle = resolvedTextStyle.copyWith(
       fontFamily: resolvedTextStyle.fontFamily ?? inheritedFontFamily,
     );
-    final segments = <GlassSegment>[
+    final segments = <AppGlassSegmentData>[
       for (final item in widget.items)
-        GlassSegment(
-          id: item.key ?? item.value,
+        AppGlassSegmentData(
+          id: item.key ?? (item.value ?? item.label),
           label: item.label,
           icon: item.icon,
-          semanticLabel: item.label,
           enabled: widget.enabled,
         ),
     ];
 
-    final pillRadius = context.appRadius.pill >= GlassDefaults.capsuleRadius
-        ? GlassDefaults.capsuleRadius
+    final pillRadius = context.appRadius.pill >= appGlassCapsuleRadius
+        ? appGlassCapsuleRadius
         : context.appRadius.pill;
     final textScale = MediaQuery.textScalerOf(context);
     final scaledTextHeight = textScale.scale(
@@ -190,7 +188,7 @@ class _AppSegmentedControlState<T> extends State<AppSegmentedControl<T>> {
 
     final controlRadius = isNeutral ? controlHeight / 2 : pillRadius;
     if (isFixed) {
-      return GlassSegmentedControl(
+      return AppGlassSegmentedControlBackend(
         segments: segments,
         selectedIndex: resolvedSelectedIndex,
         onSegmentSelected: selectSegment,
@@ -203,19 +201,16 @@ class _AppSegmentedControlState<T> extends State<AppSegmentedControl<T>> {
         selectedTextStyle: selectedTextStyle,
         unselectedTextStyle: unselectedTextStyle,
         indicatorColor: selectedColors.background,
-        indicatorExpansion: EdgeInsets.zero,
         labelPadding: EdgeInsets.symmetric(
           horizontal: isNeutral ? 12 : spec.horizontalPadding,
         ),
         iconSize: spec.iconSize,
         backgroundColor: isNeutral ? neutralTrackColor : null,
         indicatorShadow: isNeutral ? context.appShadows.indicator : null,
-        settings: isNeutral ? null : _trackSettings(context),
-        useOwnLayer: !isNeutral,
-        quality: AppGlassQuality.segmentedControl,
+        neutral: isNeutral,
       );
     }
-    return GlassSegmentedControl.scrollable(
+    return AppGlassSegmentedControlBackend(
       segments: segments,
       selectedIndex: resolvedSelectedIndex,
       onSegmentSelected: selectSegment,
@@ -234,20 +229,8 @@ class _AppSegmentedControlState<T> extends State<AppSegmentedControl<T>> {
       iconSize: spec.iconSize,
       backgroundColor: isNeutral ? neutralTrackColor : null,
       indicatorShadow: isNeutral ? context.appShadows.indicator : null,
-      settings: isNeutral ? null : _trackSettings(context),
-      useOwnLayer: !isNeutral,
-      quality: AppGlassQuality.segmentedControl,
-    );
-  }
-
-  static LiquidGlassSettings _trackSettings(BuildContext context) {
-    return LiquidGlassSettings(
-      thickness: 12,
-      blur: 4,
-      saturation: 1,
-      chromaticAberration: 0,
-      lightIntensity: 0.35,
-      glassColor: context.appColors.mediaOverlaySoft.withValues(alpha: 0.10),
+      neutral: isNeutral,
+      scrollable: true,
     );
   }
 }

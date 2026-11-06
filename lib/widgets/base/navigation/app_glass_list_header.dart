@@ -1,11 +1,9 @@
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_chrome_settings.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_quality.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_backend.dart';
 
 /// 桌面列表的玻璃控制条骨架。
 ///
@@ -73,11 +71,8 @@ class AppGlassHeaderGroup extends StatelessWidget {
     if (children.isEmpty) {
       return const SizedBox.shrink();
     }
-    return GlassButtonGroup(
+    return AppGlassButtonGroupBackend(
       borderRadius: radius,
-      quality: AppGlassQuality.groupedActions,
-      useOwnLayer: true,
-      settings: appGlassHeaderSettings(context),
       showDividers: false,
       children: children,
     );
@@ -115,14 +110,12 @@ class AppGlassHeaderButton extends StatelessWidget {
       weight: AppTextWeight.medium,
       tone: AppTextTone.primary,
     ).copyWith(color: foregroundColor);
-    final button = GlassButton.custom(
+    final button = AppGlassCustomButtonBackend(
       onTap: onTap,
       enabled: enabled,
       height: AppGlassHeaderGroup.height,
-      style: GlassButtonStyle.transparent,
-      shape: const LiquidRoundedRectangle(
-        borderRadius: AppGlassHeaderGroup.radius,
-      ),
+      borderRadius: AppGlassHeaderGroup.radius,
+      style: AppGlassButtonStyle.transparent,
       stretch: 0.15,
       label: label,
       child: AppGlassGroupContent(

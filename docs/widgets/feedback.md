@@ -55,7 +55,7 @@
 - `AppPillButton`：同一文件的点击包装，内部走 `AppInteractiveSurface`，并补 button / selected 语义。
 - `AppBadge`：`app_badge.dart`，短状态/计数徽章；API 保持 `label + tone + size`，渲染由 `AppPill` 承载。
 - `AppStatusChip`：`app_status_chip.dart`，状态标签；业务只提供 `AppStatusChipPalette`（tone + icon），不要在自己那边配背景色/前景色。
-- `AppMediaBadge`：`lib/widgets/base/layout/glass/app_media_badge.dart`，压在封面/视频上的无描边烟熏角标；4K/8K、热度、排名共用，只绘制深色渐变，不做背景模糊。
+- `AppMediaBadge`：`lib/widgets/base/layout/badges/app_media_badge.dart`，压在封面/视频上的无描边烟熏角标；4K/8K、热度、排名共用，只绘制深色渐变，不做背景模糊。
 - 选择规则：只读状态用 `AppBadge` / `AppStatusChip`，可点标签用 `AppPillButton`，媒体图上的角标用 `AppMediaBadge`；纯文字说明不要套胶囊。
 
 ## 确认和状态

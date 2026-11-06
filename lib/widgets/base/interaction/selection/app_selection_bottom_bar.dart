@@ -24,7 +24,6 @@ class AppSelectionBottomBar extends StatelessWidget {
     final leadingWidget = leading;
 
     return AppGlassSurface(
-      tone: AppGlassTone.chrome,
       borderRadius: BorderRadius.vertical(
         top: context.appRadius.lgBorder.topLeft,
       ),

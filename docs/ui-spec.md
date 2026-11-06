@@ -24,7 +24,7 @@ SakuraMedia 是桌面优先的媒体管理工作台。桌面端使用工作台�
 - `AppDesktopShell`：页面整体布局、滚动区域和桌面反馈；
 - `AppSidebar`：主导航和分组；
 - `AppTopBar`：页面标题、搜索、筛选和操作；
-- `AppPageFrame` / `AppContentCard`：页面内容宽度、内边距和卡片容器。
+- `AppContentCard`：承载一组内容或表单的卡片。
 
 移动页面优先复用 `AppMobileShell` 或 `AppMobileSubpageShell`。移动底部导航只承载一级入口，详情、筛选、编辑和播放器使用子页、抽屉或底部操作层。
 

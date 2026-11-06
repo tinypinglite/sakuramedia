@@ -1,10 +1,6 @@
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform;
 import 'package:media_kit/media_kit.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
-
-/// 播放来源类型。播放地址由后端 provider 统一签名，前端不再按存储后端分支。
-enum MoviePlayerMediaSourceKind { unknown }
 
 const String moviePlayerUserAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
@@ -17,13 +13,6 @@ Media buildMoviePlayerMedia(String resolvedUrl, {Duration? startPosition}) {
     start: startPosition,
     httpHeaders: const <String, String>{'User-Agent': moviePlayerUserAgent},
   );
-}
-
-String moviePlayerPlaybackErrorMessage(
-  MoviePlayerMediaSourceKind sourceKind, {
-  required AppLocalizations l10n,
-}) {
-  return l10n.widgetMoviePlayerPlaybackUnavailable;
 }
 
 PlayerConfiguration buildMoviePlayerConfiguration({TargetPlatform? platform}) {

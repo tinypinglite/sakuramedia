@@ -1,4 +1,3 @@
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/clip_collections/data/dto/clip_collection_dto.dart';
 import 'package:sakuramedia/features/moment_collections/data/dto/moment_collection_dto.dart';
@@ -8,9 +7,9 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_context_menu_trigger.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_cover_card.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_quality.dart';
 
 /// 合集封面卡：16:9 封面 + 名称 + 计数角标，「编辑 / 删除」走右键 / 长按菜单。
 ///
@@ -334,25 +333,9 @@ class _GlassCollectionInfoBar extends StatelessWidget {
         child: Padding(padding: padding, child: content),
       );
     }
-    return GlassContainer(
-      shape: LiquidRoundedSuperellipse(borderRadius: context.appRadius.md),
+    return AppSurface(
+      borderRadius: context.appRadius.mdBorder,
       padding: padding,
-      settings: LiquidGlassSettings(
-        thickness: 16,
-        blur: 10,
-        saturation: 1.3,
-        chromaticAberration: 0.01,
-        lightIntensity: 0.6,
-        glassColor: context.appColors.mediaOverlayStrong.withValues(
-          alpha: 0.34,
-        ),
-        shadowElevation: 0,
-      ),
-      // 卡片网格可能同时出现十几条玻璃信息条；用 minimal 档共享 BackdropFilter
-      // 路径，避免每张卡都创建一条 premium/standard 玻璃纹理。
-      quality: AppGlassQuality.collectionBadge,
-      useOwnLayer: true,
-      clipBehavior: Clip.antiAlias,
       child: content,
     );
   }
@@ -398,5 +381,3 @@ class _CountBadge extends StatelessWidget {
 }
 
 enum _CollectionMenuAction { edit, delete }
-
-typedef CollectionCoverCard = CollectionCard;

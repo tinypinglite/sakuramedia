@@ -6,7 +6,7 @@ import 'package:sakuramedia/features/movies/presentation/controllers/player/movi
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_menu_widgets.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_speed_button.dart';
@@ -21,16 +21,6 @@ class MoviePlayerMobileSpeedDisplayState {
 
   final double rate;
   final bool hasExplicitSelection;
-
-  MoviePlayerMobileSpeedDisplayState copyWith({
-    double? rate,
-    bool? hasExplicitSelection,
-  }) {
-    return MoviePlayerMobileSpeedDisplayState(
-      rate: rate ?? this.rate,
-      hasExplicitSelection: hasExplicitSelection ?? this.hasExplicitSelection,
-    );
-  }
 }
 
 const Duration _moviePlayerMobileDrawerAnimationDuration = Duration(
@@ -275,21 +265,15 @@ class _MoviePlayerMobileSpeedDrawerToggleButton extends StatelessWidget {
 }
 
 class _MoviePlayerMobileDrawerSurface extends StatelessWidget {
-  const _MoviePlayerMobileDrawerSurface({
-    required this.child,
-    // ignore: unused_element_parameter
-    this.width,
-  });
+  const _MoviePlayerMobileDrawerSurface({required this.child});
 
   final Widget child;
-  final double? width;
 
   @override
   Widget build(BuildContext context) {
     final overlayTokens = context.appOverlayTokens;
-    return AppGlassSurface(
-      tone: AppGlassTone.overlay,
-      width: width ?? overlayTokens.playerDrawerWidth,
+    return AppSurface(
+      width: overlayTokens.playerDrawerWidth,
       height: double.infinity,
       borderRadius: _moviePlayerDrawerBorderRadius(overlayTokens),
       // 抽屉高度取播放器可视高度，选项多/播放器矮时列表必须可滚动，
@@ -368,8 +352,7 @@ class _MoviePlayerInfoSideDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final overlayTokens = context.appOverlayTokens;
-    return AppGlassSurface(
-      tone: AppGlassTone.overlay,
+    return AppSurface(
       width: overlayTokens.playerInfoDrawerWidth,
       height: double.infinity,
       borderRadius: _moviePlayerDrawerBorderRadius(overlayTokens),

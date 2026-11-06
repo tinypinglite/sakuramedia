@@ -1,8 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
-import 'package:sakuramedia/features/configuration/presentation/providers/media_libraries_provider.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_source.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_collections_overview_provider.dart';
@@ -10,12 +8,8 @@ import 'package:sakuramedia/features/videos/presentation/widgets/collections/cre
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/pick_video_collection_single_dialog.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/video_collection_picker_field.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
-import 'package:sakuramedia/widgets/domain/media_import/media_import_source_picker.dart';
-import 'package:sakuramedia/widgets/domain/media_import/media_library_selector_field.dart';
+import 'package:sakuramedia/widgets/domain/media_import/media_import_dialog_shell.dart';
 
 const _videoImportBrowserHeight = 220.0;
 
@@ -35,6 +29,9 @@ class VideoImportRequest {
 }
 
 /// 打开视频导入对话框；用户确认后返回 [VideoImportRequest]，取消返回 `null`。
+///
+/// 跨域公共入口：媒体导入页通过 [videoImportDialogs] 复用本弹窗，
+/// 不要直引本文件私有路径。
 Future<VideoImportRequest?> showVideoImportDialog(BuildContext context) {
   return showAppAdaptiveModal<VideoImportRequest>(
     context: context,
@@ -52,10 +49,6 @@ class VideoImportDialog extends ConsumerStatefulWidget {
 }
 
 class _VideoImportDialogState extends ConsumerState<VideoImportDialog> {
-  MediaLibraryDto? _selectedLibrary;
-  MediaImportSource? _source;
-  SourceDisposition _sourceDisposition = SourceDisposition.keep;
-
   List<VideoCollectionDto> _collections = const <VideoCollectionDto>[];
   int? _collectionId;
 
@@ -108,117 +101,28 @@ class _VideoImportDialogState extends ConsumerState<VideoImportDialog> {
     await ref.read(videoCollectionsOverviewProvider.notifier).refresh();
   }
 
-  void _handleLibraryChanged(MediaLibraryDto? library) {
-    setState(() {
-      _selectedLibrary = library;
-      _source = null;
-      _sourceDisposition = SourceDisposition.keep;
-    });
-  }
-
-  void _submit() {
-    final library = _selectedLibrary;
-    final source = _source;
-    if (library == null || source == null) {
-      return;
-    }
-    Navigator.of(context).pop(
-      VideoImportRequest(
-        libraryId: library.id,
-        source: source,
-        sourceDisposition: _sourceDisposition,
-        collectionId: _collectionId,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     // 维持合集 overview 存活：嵌套的单选弹层复用同一份缓存，不重复全量拉取。
     ref.listen(videoCollectionsOverviewProvider, (_, _) {});
-    final librariesAsync = ref.watch(mediaLibrariesProvider);
-    final isInitialLoading =
-        librariesAsync.isLoading && !librariesAsync.hasValue;
-    final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    return SafeArea(
-      top: false,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l10n.videoImportTitle,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s16,
-              weight: AppTextWeight.semibold,
-              tone: AppTextTone.primary,
-            ),
+    return MediaImportDialogShell(
+      title: l10n.videoImportTitle,
+      submitLabel: l10n.videoImportStart,
+      submitKey: const Key('video-import-submit-button'),
+      allowFileSource: true,
+      browserHeight: _videoImportBrowserHeight,
+      extraFieldBuilder: (context, _) => _buildCollectionField(context),
+      onSubmit: (submission) {
+        Navigator.of(context).pop(
+          VideoImportRequest(
+            libraryId: submission.library.id,
+            source: submission.source,
+            sourceDisposition: submission.disposition,
+            collectionId: _collectionId,
           ),
-          SizedBox(height: spacing.lg),
-          Expanded(
-            child: isInitialLoading
-                ? const Center(child: AppPickerIosState(loading: true))
-                : SingleChildScrollView(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        MediaLibrarySelectorField(
-                          selectedLibraryId: _selectedLibrary?.id,
-                          onLibraryChanged: _handleLibraryChanged,
-                        ),
-                        if (_selectedLibrary != null) ...[
-                          SizedBox(height: spacing.md),
-                          _buildCollectionField(context),
-                          SizedBox(height: spacing.md),
-                          MediaImportSourcePicker(
-                            selectedLibrary: _selectedLibrary,
-                            sourceDisposition: _sourceDisposition,
-                            allowFileSource: true,
-                            browserHeight: _videoImportBrowserHeight,
-                            onSourceChanged: (source) {
-                              if (source == _source) {
-                                return;
-                              }
-                              setState(() => _source = source);
-                            },
-                            onSourceDispositionChanged: (disposition) {
-                              if (disposition == _sourceDisposition) {
-                                return;
-                              }
-                              setState(() => _sourceDisposition = disposition);
-                            },
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-          ),
-          SizedBox(height: spacing.xl),
-          Row(
-            children: [
-              Expanded(
-                child: AppButton(
-                  label: l10n.commonCancel,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-              SizedBox(width: spacing.sm),
-              Expanded(
-                child: AppButton(
-                  key: const Key('video-import-submit-button'),
-                  label: l10n.videoImportStart,
-                  variant: AppButtonVariant.primary,
-                  onPressed: _selectedLibrary != null && _source != null
-                      ? _submit
-                      : null,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 

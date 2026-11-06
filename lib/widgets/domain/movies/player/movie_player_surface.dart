@@ -51,7 +51,6 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
     this.onSubtitleReloadRequested,
     this.onBackPressed,
     this.useTouchOptimizedControls = false,
-    this.mediaSourceKind = MoviePlayerMediaSourceKind.unknown,
     this.mediaInfo,
     this.thumbnails = const <MovieMediaThumbnailDto>[],
     this.disableNativeFullscreen = false,
@@ -78,7 +77,6 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
   final Future<void> Function()? onSubtitleReloadRequested;
   final VoidCallback? onBackPressed;
   final bool useTouchOptimizedControls;
-  final MoviePlayerMediaSourceKind mediaSourceKind;
   final MoviePlayerMediaInfo? mediaInfo;
 
   /// 带右侧面板的播放页传 `true`：禁用 media_kit 双击进原生全屏路由
@@ -706,7 +704,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       fit: StackFit.expand,
       children: [
         player,
-        MoviePlayerPlaybackErrorOverlay(sourceKind: widget.mediaSourceKind),
+        const MoviePlayerPlaybackErrorOverlay(),
         if (widget.onBackPressed case final onBackPressed?)
           MoviePlayerBackOverlay(onPressed: onBackPressed),
       ],

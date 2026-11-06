@@ -8,7 +8,7 @@ import 'package:sakuramedia/routes/app_route.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/widgets/shell/app_sidebar_account_card.dart';
 import 'package:sakuramedia/widgets/shell/desktop/app_sidebar_item.dart';
 import 'package:sakuramedia/widgets/shell/desktop/app_sidebar_nav_scroll_area.dart';
@@ -55,9 +55,8 @@ class AppSidebar extends ConsumerWidget {
             maxWidth: sidebarTokens.expandedFootprintWidth,
             child: Padding(
               padding: EdgeInsets.all(sidebarTokens.outerInset),
-              child: AppGlassSurface(
+              child: AppSurface(
                 key: const Key('desktop-sidebar-glass'),
-                tone: AppGlassTone.sidebar,
                 width: sidebarTokens.expandedWidth,
                 borderRadius: BorderRadius.circular(sidebarTokens.panelRadius),
                 padding: EdgeInsets.zero,

@@ -59,7 +59,10 @@ class MoviePlayerPlaybackRateCoordinator extends ChangeNotifier {
     }
     final display = _mobileSpeedDisplay.value;
     if ((display.rate - rate).abs() >= 0.001) {
-      _mobileSpeedDisplay.value = display.copyWith(rate: rate);
+      _mobileSpeedDisplay.value = MoviePlayerMobileSpeedDisplayState(
+        rate: rate,
+        hasExplicitSelection: display.hasExplicitSelection,
+      );
     }
     if ((_currentRate - rate).abs() < 0.001) {
       return;

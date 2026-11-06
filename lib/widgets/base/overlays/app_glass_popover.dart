@@ -1,12 +1,10 @@
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/shared/data/sort_direction.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
 import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_chrome_settings.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_quality.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_backend.dart';
 
 typedef AppGlassPopoverTriggerBuilder =
     Widget Function(BuildContext context, VoidCallback toggle);
@@ -46,13 +44,11 @@ class AppGlassPopover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GlassPopover(
+    return AppGlassPopoverBackend(
       popoverWidth: 468,
       popoverBorderRadius: 24,
       autoAdjustToScreen: true,
       screenPadding: const EdgeInsets.all(16),
-      quality: AppGlassQuality.popover,
-      settings: appGlassPopoverSettings(context),
       triggerBuilder: triggerBuilder,
       onOpen: onOpened,
       contentBuilder: (context, close) => _buildPanel(context, close),
@@ -231,27 +227,14 @@ class AppGlassResetButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final spacing = context.appSpacing;
-    return GlassButton.custom(
+    return AppGlassCustomButtonBackend(
       key: buttonKey,
       onTap: onPressed ?? () {},
       enabled: enabled && onPressed != null,
       height: 34,
-      shape: const LiquidRoundedRectangle(borderRadius: 17),
-      style: GlassButtonStyle.filled,
-      settings: LiquidGlassSettings(
-        glassColor: context.appColors.highlight.withValues(
-          alpha: isDark ? 0.12 : 0.58,
-        ),
-        thickness: 18,
-        frost: 6,
-        frostOpacity: 0.5,
-        rimLight: 1.4,
-        shadowElevation: 0,
-        bodyMode: GlassBodyMode.clear,
-      ),
-      quality: AppGlassQuality.popoverAction,
+      borderRadius: 17,
+      style: AppGlassButtonStyle.filled,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: spacing.md),
         child: Row(

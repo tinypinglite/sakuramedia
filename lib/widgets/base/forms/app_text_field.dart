@@ -1,10 +1,8 @@
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_chrome_settings.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_quality.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_backend.dart';
 
 /// 统一的液态玻璃文本输入基座。
 ///
@@ -182,12 +180,6 @@ class _AppTextFieldState extends State<AppTextField> {
       weight: AppTextWeight.regular,
       tone: AppTextTone.muted,
     ).copyWith(fontFamily: inheritedFontFamily);
-    final baseSettings = highContrast ? null : appGlassHeaderSettings(context);
-    final glassSettings = baseSettings == null
-        ? null
-        : widget.fillColor == null
-        ? baseSettings
-        : baseSettings.copyWith(glassColor: widget.fillColor!);
     final padding =
         widget.contentPadding ??
         EdgeInsets.symmetric(
@@ -206,7 +198,7 @@ class _AppTextFieldState extends State<AppTextField> {
       validator: widget.validator,
       autovalidateMode: widget.autovalidateMode ?? AutovalidateMode.disabled,
       builder: (field) {
-        Widget glassField = GlassTextField(
+        Widget glassField = AppGlassTextFieldBackend(
           key: widget.fieldKey,
           controller: _effectiveController,
           focusNode: widget.focusNode,
@@ -218,7 +210,6 @@ class _AppTextFieldState extends State<AppTextField> {
           textInputAction: widget.textInputAction,
           maxLines: maxLines,
           minLines: minLines,
-          enabled: true,
           readOnly: !widget.enabled,
           inputFormatters: widget.inputFormatters,
           onChanged: (value) {
@@ -234,19 +225,11 @@ class _AppTextFieldState extends State<AppTextField> {
               ? context.appSpacing.xs
               : context.appSpacing.sm,
           height: widget.height,
-          shape: LiquidRoundedSuperellipse(borderRadius: resolvedRadius),
-          settings: glassSettings,
-          useOwnLayer: !highContrast,
-          quality: highContrast ? null : AppGlassQuality.input,
-          surfaceStyle: highContrast
-              ? GlassSurfaceStyle.solid
-              : GlassSurfaceStyle.glass,
-          color: highContrast
-              ? (widget.fillColor ?? context.appColors.surfaceMuted)
-              : null,
-          interactionBehavior: highContrast || reduceMotion || !widget.enabled
-              ? GlassInteractionBehavior.none
-              : GlassInteractionBehavior.glowOnly,
+          borderRadius: resolvedRadius,
+          fillColor: widget.fillColor,
+          highContrast: highContrast,
+          reduceMotion: reduceMotion,
+          enabled: widget.enabled,
         );
         if (!widget.enabled) {
           glassField = Semantics(

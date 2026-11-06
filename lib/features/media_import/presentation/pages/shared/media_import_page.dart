@@ -9,7 +9,7 @@ import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/media_import/presentation/directory_picker_dialog.dart';
 import 'package:sakuramedia/features/media_import/presentation/providers/media_import_api_provider.dart';
-import 'package:sakuramedia/features/videos/presentation/widgets/imports/video_import_dialog.dart';
+import 'package:sakuramedia/features/videos/presentation/imports.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';

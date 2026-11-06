@@ -15,7 +15,6 @@ Future<T?> showAppBottomDrawer<T>({
   bool isDismissible = true,
   bool showHandle = true,
   EdgeInsetsGeometry? contentPadding,
-  AppModalGlassStrength glassStrength = kAppModalGlassStrength,
 }) {
   final shouldUseRouteSafeArea = useSafeArea && !ignoreTopSafeArea;
 
@@ -42,7 +41,6 @@ Future<T?> showAppBottomDrawer<T>({
           maxHeightFactor: maxHeightFactor,
           showHandle: showHandle,
           contentPadding: contentPadding,
-          glassStrength: glassStrength,
           verticalMargin: spacing.sm,
           child: builder(sheetContext),
         ),
@@ -70,7 +68,6 @@ class AppBottomDrawerSurface extends StatelessWidget {
     this.maxHeightFactor,
     this.showHandle = true,
     this.contentPadding,
-    this.glassStrength = kAppModalGlassStrength,
     this.verticalMargin = 0,
   });
 
@@ -83,7 +80,6 @@ class AppBottomDrawerSurface extends StatelessWidget {
   final double? maxHeightFactor;
   final bool showHandle;
   final EdgeInsetsGeometry? contentPadding;
-  final AppModalGlassStrength glassStrength;
 
   /// 外層浮动边距的上下部分，只参与高度预算，不在这里实际绘制。
   final double verticalMargin;
@@ -111,7 +107,6 @@ class AppBottomDrawerSurface extends StatelessWidget {
     );
 
     final content = AppModalGlassSurface(
-      strength: glassStrength,
       child: Stack(
         fit: StackFit.passthrough,
         children: [

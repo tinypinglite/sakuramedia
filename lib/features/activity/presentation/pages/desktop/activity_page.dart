@@ -19,7 +19,6 @@ import 'package:sakuramedia/features/shared/presentation/providers/paged_async_n
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
@@ -512,14 +511,7 @@ class _InitialErrorState extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return ActivitySection(
       title: l10n.activityCenterTitle,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppEmptyState(message: message),
-          SizedBox(height: context.appSpacing.lg),
-          AppButton(label: l10n.commonRetry, onPressed: () => onRetry()),
-        ],
-      ),
+      child: AppEmptyState(message: message, onRetry: () => onRetry()),
     );
   }
 }

@@ -5,7 +5,7 @@ import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dar
 
 enum AppButtonVariant { primary, secondary, ghost, danger }
 
-enum AppButtonSize { large, medium, small, xSmall, xxSmall, xxxSmall }
+enum AppButtonSize { large, medium, small, xSmall, xxSmall }
 
 class AppButton extends StatelessWidget {
   const AppButton({
@@ -139,6 +139,5 @@ extension on AppButtonSize {
     AppButtonSize.small => AppButtonContentSize.small,
     AppButtonSize.xSmall => AppButtonContentSize.xSmall,
     AppButtonSize.xxSmall => AppButtonContentSize.xxSmall,
-    AppButtonSize.xxxSmall => AppButtonContentSize.xxxSmall,
   };
 }

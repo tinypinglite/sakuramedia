@@ -5,6 +5,7 @@ import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_pill_wrap.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_media_point_gallery.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -112,23 +113,7 @@ class MovieMediaItemList extends StatelessWidget {
                 AppIconButton(
                   key: const Key('movie-media-delete-button'),
                   icon: isDeletingSelectedMedia
-                      ? SizedBox(
-                          width: context.appComponentTokens.iconSizeSm,
-                          height: context.appComponentTokens.iconSizeSm,
-                          child: CircularProgressIndicator.adaptive(
-                            backgroundColor: switch (Theme.of(
-                              context,
-                            ).platform) {
-                              TargetPlatform.iOS || TargetPlatform.macOS =>
-                                context.appTextPalette.error,
-                              _ => null,
-                            },
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              context.appTextPalette.error,
-                            ),
-                          ),
-                        )
+                      ? AppInlineSpinner(color: context.appTextPalette.error)
                       : const Icon(Icons.delete_outline_rounded),
                   tooltip: AppLocalizations.of(context).movieWidgetDeleteMedia,
                   semanticLabel: AppLocalizations.of(

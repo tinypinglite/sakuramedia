@@ -7,6 +7,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
@@ -221,26 +222,16 @@ class _CastDevicePickerBodyState extends State<CastDevicePickerBody> {
           icon: Icons.tv_rounded,
           title: device.name,
           subtitle: device.address,
-          trailing: isCasting
-              ? SizedBox.square(
-                  dimension: context.appComponentTokens.iconSizeSm,
-                  child: const CircularProgressIndicator.adaptive(
-                    strokeWidth: 2,
-                  ),
-                )
-              : null,
-          onTap: _castingDeviceId != null ? null : () => unawaited(_cast(device)),
+          trailing: isCasting ? const AppInlineSpinner() : null,
+          onTap: _castingDeviceId != null
+              ? null
+              : () => unawaited(_cast(device)),
         ),
       );
       if (_failedDeviceId == device.id && _castErrorMessage != null) {
         rows.add(
           Padding(
-            padding: EdgeInsets.fromLTRB(
-              spacing.lg,
-              0,
-              spacing.lg,
-              spacing.md,
-            ),
+            padding: EdgeInsets.fromLTRB(spacing.lg, 0, spacing.lg, spacing.md),
             child: Text(
               _castErrorMessage!,
               style: resolveAppTextStyle(

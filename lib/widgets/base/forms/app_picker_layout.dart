@@ -1,9 +1,9 @@
 import 'package:cupertino_ui/cupertino_ui.dart' as cupertino;
 import 'package:flutter/services.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_backend.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
@@ -65,26 +65,25 @@ class AppPickerIosSection extends StatelessWidget {
       final child = children[index];
       childrenWithDividers.add(child);
       if (index == children.length - 1 ||
-          child is GlassDivider ||
-          children[index + 1] is GlassDivider) {
+          child is AppGlassDividerBackend ||
+          children[index + 1] is AppGlassDividerBackend) {
         continue;
       }
       final hasLeading = child is AppPickerIosRow && child.leading != null;
       childrenWithDividers.add(
-        GlassDivider(
+        AppGlassDividerBackend(
           indent: hasLeading ? (dividerIndent ?? 56) : 16,
           endIndent: 16,
         ),
       );
     }
-    return GlassGroupedSection(
+    return AppGlassGroupedSectionBackend(
       header: header == null
           ? null
           : DefaultTextStyle.merge(
               style: TextStyle(fontFamily: fontFamily),
               child: header!,
             ),
-      surfaceStyle: GlassSurfaceStyle.solid,
       children: childrenWithDividers,
     );
   }
@@ -192,7 +191,7 @@ class AppPickerIosRow extends StatelessWidget {
       selected: showCheckmark ? selected : null,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: 44),
-        child: GlassListTile(
+        child: AppGlassListTileBackend(
           key: optionKey,
           leading: leading,
           title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),

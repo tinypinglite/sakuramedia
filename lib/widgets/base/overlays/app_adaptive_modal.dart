@@ -4,7 +4,6 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_modal_glass_surface.dart';
 
 /// 决定 [showAppAdaptiveModal] 用哪种壳显示。
 enum AppAdaptiveModalVariant {
@@ -84,7 +83,6 @@ Future<T?> showAppAdaptiveModal<T>({
   bool enableDrag = true,
   bool showDrawerHandle = true,
   bool showDesktopCloseButton = true,
-  AppModalGlassStrength glassStrength = kAppModalGlassStrength,
   AppAdaptiveModalVariant variant = AppAdaptiveModalVariant.auto,
 }) {
   assert(
@@ -103,7 +101,6 @@ Future<T?> showAppAdaptiveModal<T>({
       enableDrag: enableDrag,
       isDismissible: barrierDismissible,
       showHandle: showDrawerHandle,
-      glassStrength: glassStrength,
       builder: (drawerContext) => AppAdaptiveModalShellScope(
         isDrawer: true,
         child: builder(drawerContext),
@@ -126,7 +123,6 @@ Future<T?> showAppAdaptiveModal<T>({
       backgroundColor: desktopBackgroundColor,
       onClose: desktopOnClose,
       showCloseButton: showDesktopCloseButton,
-      glassStrength: glassStrength,
       child: AppAdaptiveModalShellScope(
         isDrawer: false,
         child: builder(dialogContext),

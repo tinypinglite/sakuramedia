@@ -10,6 +10,7 @@ import 'package:sakuramedia/features/external_player/presentation/providers/exte
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
 
 /// 外部播放器设置的共用内容；移动与桌面使用同一份选择和持久化逻辑。
@@ -112,10 +113,7 @@ class _ExternalPlayerSettingsContentState
       if (_isLoading)
         AppSettingCell(
           title: l10n.externalPlayerDetecting,
-          trailing: SizedBox.square(
-            dimension: context.appComponentTokens.iconSizeSm,
-            child: const CircularProgressIndicator.adaptive(strokeWidth: 2),
-          ),
+          trailing: const AppInlineSpinner(),
         ),
       if (!_isLoading && _players.isEmpty)
         AppSettingCell(
@@ -158,7 +156,10 @@ class _ExternalPlayerSettingsContentState
           ],
         ),
         SizedBox(height: spacing.sm),
-        AppSettingsGroup(footer: l10n.externalPlayerGroupFooter, children: cells),
+        AppSettingsGroup(
+          footer: l10n.externalPlayerGroupFooter,
+          children: cells,
+        ),
         SizedBox(height: spacing.xl),
         Text(
           l10n.externalPlayerPlaybackMode,

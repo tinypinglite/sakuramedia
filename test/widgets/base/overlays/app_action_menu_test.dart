@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_context_menu_trigger.dart';
@@ -195,7 +195,7 @@ Future<void> _pumpContextTargetHost(WidgetTester tester) {
 
 Future<void> _pumpApp(WidgetTester tester, {required Widget child}) async {
   await tester.pumpWidget(
-    LiquidGlassWidgets.wrap(
+    AppSurfaceRuntime.wrap(
       brightnessResolver: Theme.maybeBrightnessOf,
       child: MaterialApp(
         locale: const Locale('zh'),

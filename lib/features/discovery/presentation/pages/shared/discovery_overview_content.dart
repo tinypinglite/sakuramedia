@@ -28,7 +28,6 @@ import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
-import 'package:sakuramedia/widgets/base/layout/cards/app_page_frame.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_section_header.dart';
 import 'package:sakuramedia/widgets/domain/moments/moment_rail.dart';
@@ -239,7 +238,7 @@ class DiscoveryOverviewContent extends ConsumerWidget {
 
     return AppPageRefreshScope(
       onRefresh: () => _handleRefresh(context, ref, followScope),
-      child: AppPageFrame(title: '', child: content),
+      child: SingleChildScrollView(child: content),
     );
   }
 

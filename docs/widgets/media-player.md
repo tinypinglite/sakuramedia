@@ -45,7 +45,7 @@
 
 ## 播放器控制
 
-`MoviePlayerBackOverlay`、`MoviePlayerSpeedButton`、`MoviePlayerSubtitleButton` 和 `MoviePlayerMenuItemRow` 位于 `lib/widgets/domain/movies/player/`。移动端控制条需要保留触控唤起行为，桌面端可以使用 hover/鼠标行为；平台参数由页面壳传入。倍速/字幕菜单和移动端右侧抽屉统一使用 `AppGlassSurface` 的 `overlay` 档，不再维护独立的播放器玻璃组件。
+`MoviePlayerBackOverlay`、`MoviePlayerSpeedButton`、`MoviePlayerSubtitleButton` 和 `MoviePlayerMenuItemRow` 位于 `lib/widgets/domain/movies/player/`。移动端控制条需要保留触控唤起行为，桌面端可以使用 hover/鼠标行为；平台参数由页面壳传入。倍速/字幕菜单和移动端右侧抽屉统一使用 `AppSurface` 的全站唯一材质，不再维护独立的播放器玻璃组件。
 
 ## 播放信息
 

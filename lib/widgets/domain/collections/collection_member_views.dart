@@ -17,7 +17,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 ///
 /// 切片合集与视频合集详情页结构一致，仅在 DTO、封面比例、副信息、菜单项
 /// 与 key 前缀上有差异，由各详情页把差异以参数喂入，避免两份近乎相同的实现重复。
-/// 与「合集封面卡」[CollectionCoverCard] 同属一套范式。
+/// 与「合集封面卡」[CollectionCard] 同属一套范式。
 enum _MemberMenuAction { openSource, remove, delete }
 
 /// 在 [globalPosition] 处弹出合集成员的上下文菜单。
@@ -39,7 +39,8 @@ Future<void> _showCollectionMemberContextMenu(
   final label = openSourceLabel;
   final delete = onDelete;
   final resolvedDeleteLabel =
-      deleteLabel ?? AppLocalizations.of(context).widgetCollectionMemberDeleteVideo;
+      deleteLabel ??
+      AppLocalizations.of(context).widgetCollectionMemberDeleteVideo;
   final action = await showAppActionMenu<_MemberMenuAction>(
     context: context,
     globalPosition: globalPosition,

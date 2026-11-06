@@ -4,7 +4,7 @@ import 'package:skeletonizer/skeletonizer.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
-enum MediaPreviewActionGridLayout { wrap, fixedColumns, horizontalScroll }
+enum MediaPreviewActionGridLayout { wrap, horizontalScroll }
 
 class MediaPreviewActionItem {
   const MediaPreviewActionItem({
@@ -29,18 +29,15 @@ class MediaPreviewActionGrid extends StatelessWidget {
     super.key,
     required this.actions,
     this.layout = MediaPreviewActionGridLayout.wrap,
-    this.columns = 3,
     this.spacing,
     this.tileWidth = 92,
     this.gridKey,
     this.isLoading = false,
     this.loadingItemCount = 4,
-  }) : assert(columns > 0, 'columns must be greater than zero.'),
-       assert(loadingItemCount >= 0, 'loadingItemCount must not be negative.');
+  }) : assert(loadingItemCount >= 0, 'loadingItemCount must not be negative.');
 
   final List<MediaPreviewActionItem> actions;
   final MediaPreviewActionGridLayout layout;
-  final int columns;
   final double? spacing;
   final double tileWidth;
   final Key? gridKey;
@@ -98,20 +95,6 @@ class MediaPreviewActionGrid extends StatelessWidget {
               child: MediaPreviewActionTile(item: action),
             ),
         ],
-      ),
-      MediaPreviewActionGridLayout.fixedColumns => GridView.builder(
-        key: gridKey,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: items.length,
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: columns,
-          crossAxisSpacing: resolvedSpacing,
-          mainAxisSpacing: resolvedSpacing,
-          childAspectRatio: 1.5,
-        ),
-        itemBuilder: (context, index) =>
-            MediaPreviewActionTile(item: items[index]),
       ),
       MediaPreviewActionGridLayout.horizontalScroll => ScrollConfiguration(
         key: gridKey,

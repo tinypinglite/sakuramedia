@@ -1,12 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_media_source.dart';
 
 class MoviePlayerPlaybackErrorOverlay extends StatelessWidget {
-  const MoviePlayerPlaybackErrorOverlay({super.key, required this.sourceKind});
-
-  final MoviePlayerMediaSourceKind sourceKind;
+  const MoviePlayerPlaybackErrorOverlay({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +36,7 @@ class MoviePlayerPlaybackErrorOverlay extends StatelessWidget {
               ),
               SizedBox(height: context.appSpacing.sm),
               Text(
-                moviePlayerPlaybackErrorMessage(sourceKind, l10n: l10n),
+                l10n.widgetMoviePlayerPlaybackUnavailable,
                 key: const Key('movie-player-playback-error-message'),
                 textAlign: TextAlign.center,
                 style: resolveAppTextStyle(

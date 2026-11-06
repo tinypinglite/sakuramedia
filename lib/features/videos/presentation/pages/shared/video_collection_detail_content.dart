@@ -285,17 +285,9 @@ class _VideoCollectionDetailContentState
     if (_isMobile) {
       return AppEmptyState(message: message);
     }
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        AppEmptyState(message: message),
-        SizedBox(height: context.appSpacing.md),
-        AppButton(
-          label: l10n.commonRetry,
-          variant: AppButtonVariant.secondary,
-          onPressed: () => ref.read(_providerRef.notifier).refresh(),
-        ),
-      ],
+    return AppEmptyState(
+      message: message,
+      onRetry: () => ref.read(_providerRef.notifier).refresh(),
     );
   }
 
@@ -865,9 +857,8 @@ class _VideoCollectionDetailContentState
           video.id,
           video.displayTitle(AppLocalizations.of(context)),
         ),
-        onThumbnails: () => MobileRoutes.videoThumbnail(
-          videoId: video.id,
-        ).push<void>(context),
+        onThumbnails: () =>
+            MobileRoutes.videoThumbnail(videoId: video.id).push<void>(context),
         onRemoveFromCollection: () => _removeVideo(video.id),
         onDelete: () => _deleteVideo(video.id),
         collections: otherCollections,

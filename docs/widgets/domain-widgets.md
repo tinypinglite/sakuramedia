@@ -24,13 +24,13 @@
 
 路径：`lib/widgets/domain/movies/`
 
-包含 `MovieSummaryCard`、`MovieSummaryGrid`、`MovieFilterSections`、`MovieBatchSelection`、`SubscriptionHeartBadge` 和 `MovieMagnetSearchContent`。后者复用影片磁力搜索的候选资源、下载器选择与提交交互；状态由 movies feature 的 Provider 提供。磁力搜索的弹窗壳（含订阅列表入口 `showMovieMagnetSearchDialog`）在 `features/movies/presentation/widgets/detail/movie_detail_inspector_dialog.dart`，与详情页三个入口共用同一个单功能面板。影片详情内部组件仍位于 `features/movies/presentation/widgets/detail/`。
+包含 `MovieSummaryCard`、`MovieSummarySliver`、`MovieFilterSections`、`MovieBatchSelection`、`SubscriptionHeartBadge` 和 `MovieMagnetSearchContent`。后者复用影片磁力搜索的候选资源、下载器选择与提交交互；状态由 movies feature 的 Provider 提供。磁力搜索的弹窗壳（含订阅列表入口 `showMovieMagnetSearchDialog`）在 `features/movies/presentation/widgets/detail/movie_detail_inspector_dialog.dart`，与详情页三个入口共用同一个单功能面板。影片详情内部组件仍位于 `features/movies/presentation/widgets/detail/`。
 
 `SubscriptionHeartBadge` 点击时经 `core/platform/haptic_feedback.dart` 播放一次选择触感（iOS / Android），桌面端无副作用。
 
-`MovieSummaryCard` 整卡即封面：收起态番号（+ 推荐理由）与排名徽标压在底部渐变上常显，触摸端停留在这层；指针悬停时与全站封面卡共用同一套底部披露层（180ms ease-out），标题/时长/日期与整行动作按钮（播放 / 订阅 / 标记合集-单体 / 屏蔽影片，按回调与订阅状态显隐，放不下时自动折行）淡入，收起态主键层淡出；排名徽标只在收起态显示。卡片参数与全站封面卡一致（`lg` 圆角、`surfaceCard` 底色、常驻 1px 边框）。系统开启「减弱动态效果」时退化为瞬时切换。右键与长按打开影片操作菜单（原「更多」按钮已移除）。`MovieSummaryGrid` / `MovieSummarySliver` / `MovieSummaryRail` 共用 `MovieSummaryCardWiring` 装配卡片回调，改卡片交互只改这一处。
+`MovieSummaryCard` 整卡即封面：收起态番号（+ 推荐理由）与排名徽标压在底部渐变上常显，触摸端停留在这层；指针悬停时与全站封面卡共用同一套底部披露层（180ms ease-out），标题/时长/日期与整行动作按钮（播放 / 订阅 / 标记合集-单体 / 屏蔽影片，按回调与订阅状态显隐，放不下时自动折行）淡入，收起态主键层淡出；排名徽标只在收起态显示。卡片参数与全站封面卡一致（`lg` 圆角、`surfaceCard` 底色、常驻 1px 边框）。系统开启「减弱动态效果」时退化为瞬时切换。右键与长按打开影片操作菜单（原「更多」按钮已移除）。`MovieSummarySliver` / `MovieSummaryRail` 共用 `MovieSummaryCardWiring` 装配卡片回调，改卡片交互只改这一处；女优详情 loading 骨架直接用 `AppAdaptiveCardGrid` + `MovieSummaryCard` 渲染占位卡。
 
-`MovieSummaryCard` 左上角在订阅心后显示有效媒体的最高分辨率角标：宽度 ≥7680 为 8K，3840 ≤宽度 <7680 为 4K 档；低于 4K、缺失或无效媒体不显示。清晰度角标只在存在有效媒体时出现，而有效媒体即 `canPlay`，所以 4K/8K 卡上不再重复显示可播放标，可播放标只出现在低于 4K 的可播放卡上；两者都受选择模式与 `showStatusBadges` 控制。清晰度角标、热度和排名角标统一使用 `AppMediaBadge`（无描边烟熏渐变：深色底 + 白色文字，不做背景模糊），文字固定白色；一行空间不足时热度标签换到下一行左侧，按实际文字宽度判断以避免遮挡。
+`MovieSummaryCard` 左上角在订阅心后显示有效媒体的最高分辨率角标：宽度 ≥7680 为 8K，3840 ≤宽度 <7680 为 4K 档；低于 4K、缺失或无效媒体不显示。清晰度角标只在存在有效媒体时出现，而有效媒体即 `canPlay`，所以 4K/8K 卡上不再重复显示可播放标，可播放标只出现在低于 4K 的可播放卡上；两者都受选择模式控制。清晰度角标、热度和排名角标统一使用 `AppMediaBadge`（无描边烟熏渐变：深色底 + 白色文字，不做背景模糊），文字固定白色；一行空间不足时热度标签换到下一行左侧，按实际文字宽度判断以避免遮挡。
 
 批量取消订阅遇到已有媒体时，未处理清单提供“删除媒体并强制取消订阅”入口。确认后先读取媒体总数，再按顺序删除；弹窗进度条显示已删除数量和当前影片，全部删除后显示批量取消订阅阶段。删除失败会停止。反馈返回最终合并结果，多选状态仅保留未处理番号。
 
@@ -52,7 +52,7 @@
 
 路径：`lib/widgets/domain/collections/`
 
-包含 `CollectionCard`（`.clip` / `.video` / `.moment` 命名构造）、`CollectionCoverCard`、`CollectionHintBox`、`CollectionMemberViews`、`CollectionTargetPicker` 以及 `playback/` 下的合集连播组件。影片合集、视频合集和切片合集的数据适配由各自 feature 完成；`CollectionHintBox` 是合集横滑区空态/加载失败的共用提示条。`showCollectionTargetPicker`（`collection_target_picker.dart`）是切片、时刻、视频三处「加入合集」选择器的共用实现：只负责选中一个目标合集并返回，成员写入由调用方批量执行；各域只提供数据源、行文案（`N 个切片/时刻/视频`）、行 Key 前缀和「新建合集并加入」入口，弹窗/抽屉形态与既有测试锚点由参数保持。选项行是单行卡片：浅灰底 + 细边框，名称过长单行省略，右侧依次是计数和加号；点击整行返回所选合集。`CollectionMemberCard` 由三个合集详情的成员网格共用：整卡即封面、收起态不铺文字，桌面悬停渐显标题/副信息与整行动作按钮（播放 / 影片 / 缩略图 / 加入合集 / 移出合集 / 删除，按回调显隐），移动端信息与动作走点击后的操作面板 / 预览层；时刻来源媒体已删除时隐藏播放键。`CollectionCard.video` 固定使用封面内玻璃信息条承载标题和计数，不再渲染封面下方实色标题栏，调用方不需要传玻璃开关；`.clip` / `.moment` 仍使用默认实色标题栏。视频合集卡传 `coverBackdrop: true` 时，`BoxFit.contain` 的竖图两侧铺同图暗底，移动 PornBox 横滑区和合集列表使用。
+包含 `CollectionCard`（`.clip` / `.video` / `.moment` 命名构造）、`CollectionHintBox`、`CollectionMemberViews`、`CollectionTargetPicker` 以及 `playback/` 下的合集连播组件。影片合集、视频合集和切片合集的数据适配由各自 feature 完成；`CollectionHintBox` 是合集横滑区空态/加载失败的共用提示条。`showCollectionTargetPicker`（`collection_target_picker.dart`）是切片、时刻、视频三处「加入合集」选择器的共用实现：只负责选中一个目标合集并返回，成员写入由调用方批量执行；各域只提供数据源、行文案（`N 个切片/时刻/视频`）、行 Key 前缀和「新建合集并加入」入口，弹窗/抽屉形态与既有测试锚点由参数保持。选项行是单行卡片：浅灰底 + 细边框，名称过长单行省略，右侧依次是计数和加号；点击整行返回所选合集。`CollectionMemberCard` 由三个合集详情的成员网格共用：整卡即封面、收起态不铺文字，桌面悬停渐显标题/副信息与整行动作按钮（播放 / 影片 / 缩略图 / 加入合集 / 移出合集 / 删除，按回调显隐），移动端信息与动作走点击后的操作面板 / 预览层；时刻来源媒体已删除时隐藏播放键。`CollectionCard.video` 固定使用封面内玻璃信息条承载标题和计数，不再渲染封面下方实色标题栏，调用方不需要传玻璃开关；`.clip` / `.moment` 仍使用默认实色标题栏。视频合集卡传 `coverBackdrop: true` 时，`BoxFit.contain` 的竖图两侧铺同图暗底，移动 PornBox 横滑区和合集列表使用。
 
 ## media and preview
 

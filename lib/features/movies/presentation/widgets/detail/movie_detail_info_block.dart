@@ -1,7 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_inspector_panel.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 
@@ -457,16 +458,9 @@ class _InfoActionsColumn extends StatelessWidget {
             : l10n.movieWidgetSubscribe,
         onTap: isSubscriptionUpdating ? null : onSubscriptionTap,
         child: isSubscriptionUpdating
-            ? SizedBox(
+            ? AppInlineSpinner(
                 key: const Key('movie-detail-hero-subscription-loading'),
-                width: tokens.iconSizeSm,
-                height: tokens.iconSizeSm,
-                child: CircularProgressIndicator.adaptive(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color?>(
-                    context.appTextPalette.secondary,
-                  ),
-                ),
+                color: context.appTextPalette.secondary,
               )
             : Icon(
                 isSubscribed
@@ -496,16 +490,9 @@ class _InfoActionsColumn extends StatelessWidget {
             : l10n.movieWidgetFavoriteMovie,
         onTap: isFavoriteUpdating ? null : onFavoriteTap,
         child: isFavoriteUpdating
-            ? SizedBox(
+            ? AppInlineSpinner(
                 key: const Key('movie-detail-hero-favorite-loading'),
-                width: tokens.iconSizeSm,
-                height: tokens.iconSizeSm,
-                child: CircularProgressIndicator.adaptive(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color?>(
-                    context.appTextPalette.secondary,
-                  ),
-                ),
+                color: context.appTextPalette.secondary,
               )
             : Icon(
                 isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
@@ -555,8 +542,7 @@ class _InfoActionsColumn extends StatelessWidget {
             isMergeLoading: isMergePlaybackLoading,
           ),
         SizedBox(height: spacing.xs),
-        AppGlassSurface(
-          tone: AppGlassTone.control,
+        AppSurface(
           borderRadius: context.appRadius.mdBorder,
           child: Row(
             children: <Widget>[
@@ -628,16 +614,7 @@ class _InfoSplitPlayButton extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (isPlayLoading)
-                      SizedBox(
-                        width: tokens.iconSizeSm,
-                        height: tokens.iconSizeSm,
-                        child: CircularProgressIndicator.adaptive(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color?>(
-                            playForeground,
-                          ),
-                        ),
-                      )
+                      AppInlineSpinner(color: playForeground)
                     else ...[
                       Icon(
                         Icons.play_arrow_rounded,
@@ -722,7 +699,7 @@ class _InfoSplitPlayButton extends StatelessWidget {
 
 /// 中性小操作键（订阅 / 播放列表 / 评论 / 收藏 / 缩略图）。
 ///
-/// 底色与描边由外层 [AppGlassSurface] 动作组统一承载，这里只负责图标和点击。
+/// 底色与描边由外层 [AppSurface] 动作组统一承载，这里只负责图标和点击。
 class _InfoActionKey extends StatelessWidget {
   const _InfoActionKey({
     super.key,
@@ -767,16 +744,9 @@ class _InfoMoreKey extends StatelessWidget {
       height: tokens.buttonHeightMd,
       child: Center(
         child: isUpdating
-            ? SizedBox(
-                width: tokens.iconSizeSm,
-                height: tokens.iconSizeSm,
-                child: CircularProgressIndicator.adaptive(
-                  key: const Key('movie-detail-hero-more-actions-loading'),
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color?>(
-                    context.appTextPalette.secondary,
-                  ),
-                ),
+            ? AppInlineSpinner(
+                key: const Key('movie-detail-hero-more-actions-loading'),
+                color: context.appTextPalette.secondary,
               )
             : Icon(
                 Icons.more_horiz_rounded,

@@ -10,7 +10,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_cover_hover_info.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_cover_card.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_media_badge.dart';
+import 'package:sakuramedia/widgets/base/layout/badges/app_media_badge.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_cover_bottom_shade.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_trigger.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
@@ -32,7 +32,6 @@ class MovieSummaryCard extends StatelessWidget {
   const MovieSummaryCard({
     super.key,
     required this.movie,
-    this.showStatusBadges = true,
     this.rank,
     this.secondaryLabel,
     this.trailingLabel,
@@ -48,7 +47,6 @@ class MovieSummaryCard extends StatelessWidget {
   });
 
   final MovieListItemDto movie;
-  final bool showStatusBadges;
   final int? rank;
   final String? secondaryLabel;
 
@@ -80,8 +78,8 @@ class MovieSummaryCard extends StatelessWidget {
         !selectionMode &&
         onSubscriptionTap != null &&
         (onTap != null || onRequestMenu != null);
-    final showCluster = showStatusBadges && !selectionMode;
-    final showHeat = showStatusBadges && movie.heat > 0;
+    final showCluster = !selectionMode;
+    final showHeat = movie.heat > 0;
 
     final card = AppCoverCard(
       key: Key('movie-summary-card-${movie.movieNumber}'),
@@ -290,7 +288,7 @@ class MovieSummaryCard extends StatelessWidget {
   Widget _buildHoverInfo(BuildContext context) {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    final showBadges = showStatusBadges && !selectionMode;
+    final showBadges = !selectionMode;
     final actions = <Widget>[
       // 播放是这一层的主操作，用白底实心；选择模式与不可播放时不出。
       if (showBadges && movie.canPlay)
@@ -426,14 +424,11 @@ class MovieSummaryCard extends StatelessWidget {
   /// 而有效媒体即 `canPlay`（见 `MovieListItemDto.maxMediaWidth` 的解析与后端
   /// `playable_exists_expression`），4K/8K 卡上再画播放标是重复信息。
   bool get _showPlayableBadge =>
-      showStatusBadges &&
-      !selectionMode &&
-      movie.canPlay &&
-      movie.maxMediaWidth < 3840;
+      !selectionMode && movie.canPlay && movie.maxMediaWidth < 3840;
 
   /// 清晰度标：有效媒体最高宽度 ≥7680 为 8K、≥3840 为 4K 档。
   bool get _showResolutionBadge =>
-      showStatusBadges && !selectionMode && movie.maxMediaWidth >= 3840;
+      !selectionMode && movie.maxMediaWidth >= 3840;
 
   /// 播放：走统一播放入口，并把当前路由作为应用内播放页的返回落点。
   void _handlePlay(BuildContext context) {

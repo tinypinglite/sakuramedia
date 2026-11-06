@@ -96,40 +96,40 @@ class _DesktopNotificationsPageState
             onLoadMore: () => ref
                 .read(notificationCenterProvider.notifier)
                 .loadMoreNotifications(),
-          child: CustomScrollView(
-            controller: _scrollController,
-            // 收敛视口外预构建，避免卡片「提前已读」。
-            cacheExtent: 0,
-            slivers: <Widget>[
-              const _NotificationsBodySliver(),
-              // 通知列表页脚常驻：loading / 失败时显示行，空闲只留上下间距
-              // （空列表 + 筛选失败时不占位，与原逻辑一致）。
-              PagedLoadMoreFooterSliver(
-                topSpacing: PagedFooterSpacing.lg,
-                bottomSpacing: PagedFooterSpacing.xl,
-                padWhenIdle: true,
-                watchFooter: (ref) => ref.watch(
-                  notificationCenterProvider.select((state) {
-                    if (state.notifications.isEmpty &&
-                        state.filterUpdate.hasFailed) {
-                      return null;
-                    }
-                    return (
-                      isLoading: state.isLoadingMore,
-                      errorMessage: state.loadMoreErrorMessage,
-                    );
-                  }),
+            child: CustomScrollView(
+              controller: _scrollController,
+              // 收敛视口外预构建，避免卡片「提前已读」。
+              cacheExtent: 0,
+              slivers: <Widget>[
+                const _NotificationsBodySliver(),
+                // 通知列表页脚常驻：loading / 失败时显示行，空闲只留上下间距
+                // （空列表 + 筛选失败时不占位，与原逻辑一致）。
+                PagedLoadMoreFooterSliver(
+                  topSpacing: PagedFooterSpacing.lg,
+                  bottomSpacing: PagedFooterSpacing.xl,
+                  padWhenIdle: true,
+                  watchFooter: (ref) => ref.watch(
+                    notificationCenterProvider.select((state) {
+                      if (state.notifications.isEmpty &&
+                          state.filterUpdate.hasFailed) {
+                        return null;
+                      }
+                      return (
+                        isLoading: state.isLoadingMore,
+                        errorMessage: state.loadMoreErrorMessage,
+                      );
+                    }),
+                  ),
+                  onLoadMore: (ref) => unawaited(
+                    ref
+                        .read(notificationCenterProvider.notifier)
+                        .loadMoreNotifications(),
+                  ),
                 ),
-                onLoadMore: (ref) => unawaited(
-                  ref
-                      .read(notificationCenterProvider.notifier)
-                      .loadMoreNotifications(),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -224,9 +224,11 @@ class _NotificationsBodySliver extends ConsumerWidget {
     }
     if (body.initialError != null && body.ids.isEmpty) {
       return SliverToBoxAdapter(
-        child: _NotificationsErrorState(
+        child: AppEmptyState(
+          key: const Key('desktop-notifications-error'),
           message: body.initialError!,
-          onRetry: ref.read(notificationCenterProvider.notifier).reloadAll,
+          onRetry: () =>
+              ref.read(notificationCenterProvider.notifier).reloadAll(),
         ),
       );
     }
@@ -236,7 +238,9 @@ class _NotificationsBodySliver extends ConsumerWidget {
       }
       return SliverToBoxAdapter(
         child: AppEmptyState(
-          message: AppLocalizations.of(context).activityEmptyNotificationsFiltered,
+          message: AppLocalizations.of(
+            context,
+          ).activityEmptyNotificationsFiltered,
         ),
       );
     }
@@ -291,30 +295,4 @@ ActivityNotificationDto? _notificationById(
     if (item.id == id) return item;
   }
   return null;
-}
-
-class _NotificationsErrorState extends StatelessWidget {
-  const _NotificationsErrorState({
-    required this.message,
-    required this.onRetry,
-  });
-
-  final String message;
-  final Future<void> Function() onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      key: const Key('desktop-notifications-error'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppEmptyState(message: message),
-        SizedBox(height: context.appSpacing.lg),
-        AppButton(
-          label: AppLocalizations.of(context).commonRetry,
-          onPressed: () => onRetry(),
-        ),
-      ],
-    );
-  }
 }

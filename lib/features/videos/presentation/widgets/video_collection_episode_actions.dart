@@ -4,6 +4,7 @@ import 'package:sakuramedia/features/videos/presentation/video_display_title.dar
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_context_menu_trigger.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_episode_queue_item.dart';
 import 'package:sakuramedia/theme.dart';
@@ -121,12 +122,7 @@ class VideoEpisodeQueueItem extends StatelessWidget {
           size: AppIconButtonSize.regular,
           tooltip: l10n.videoEpisodeActionsTooltip,
           icon: isBusy
-              ? SizedBox.square(
-                  dimension: context.appComponentTokens.iconSizeSm,
-                  child: const CircularProgressIndicator.adaptive(
-                    strokeWidth: 2,
-                  ),
-                )
+              ? const AppInlineSpinner()
               : const Icon(Icons.more_horiz_rounded),
           onPressed: onMoreActions == null
               ? null

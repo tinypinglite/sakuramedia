@@ -9,12 +9,13 @@ import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
-import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
-import 'package:sakuramedia/widgets/domain/movies/subscription_heart_badge.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
+import 'package:sakuramedia/widgets/domain/movies/movie_summary_card.dart';
+import 'package:sakuramedia/widgets/domain/movies/subscription_heart_badge.dart';
 
 class MobileActorDetailPage extends StatefulWidget {
   const MobileActorDetailPage({super.key, required this.actorId});
@@ -74,9 +75,11 @@ class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
                 onMergeTap: () {},
               ),
               SizedBox(height: context.appSpacing.md),
-              MovieSummaryGrid(
+              AppAdaptiveCardGrid(
+                gridKey: const Key('movie-summary-grid'),
                 items: movieListItemPlaceholders(count: 12),
-                onMovieTap: (_) {},
+                itemBuilder: (context, movie, index) =>
+                    MovieSummaryCard(movie: movie, onTap: () {}),
               ),
             ],
           ),

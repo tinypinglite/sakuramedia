@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -14,6 +13,7 @@ import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_sc
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_wrap.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 
 typedef CollectionListCardBuilder<T> =
@@ -154,7 +154,7 @@ class _CollectionListContentState<T>
           ),
         ),
         SizedBox(height: spacing.sm),
-        GlassBackdropGroup(
+        AppSurfaceGroup(
           child: Row(
             children: [
               Expanded(

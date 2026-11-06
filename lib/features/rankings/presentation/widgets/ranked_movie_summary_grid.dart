@@ -33,7 +33,7 @@ class RankedMovieSummarySliver extends StatelessWidget {
   /// 悬停动作行「标记为合集 / 单体」回调；为 `null` 时该按钮不显示。
   ///
   /// 悬停动作行回调统一收 [MovieListItemDto]（榜单条目内部转成通用 DTO 再回调），
-  /// 与 `MovieSummaryGrid` 的悬停回调保持一致，页面可直接复用同一组接线。
+  /// 与 `MovieSummarySliver` 的悬停回调保持一致，页面可直接复用同一组接线。
   final ValueChanged<MovieListItemDto>? onMovieToggleCollectionType;
 
   /// 悬停动作行「屏蔽影片」回调；为 `null` 或影片已订阅时该按钮不显示。
@@ -57,37 +57,30 @@ class RankedMovieSummarySliver extends StatelessWidget {
       errorMessage: errorMessage,
       emptyMessage:
           emptyMessage ?? AppLocalizations.of(context).rankingEmptyData,
-      itemBuilder:
-          (context, item, index) => MovieSummaryCard(
-            movie: item.toMovieListItem(),
-            rank: item.rank,
-            onTap: onMovieTap == null ? null : () => onMovieTap!(item),
-            onRequestMenu:
-                onMovieMenuRequest == null
-                    ? null
-                    : (globalPosition) =>
-                        onMovieMenuRequest!(item, globalPosition),
-            onSubscriptionTap:
-                onMovieSubscriptionTap == null
-                    ? null
-                    : () => onMovieSubscriptionTap!(item),
-            onToggleCollectionType:
-                onMovieToggleCollectionType == null
-                    ? null
-                    : () => onMovieToggleCollectionType!(item.toMovieListItem()),
-            onBlacklist:
-                onMovieBlacklist == null
-                    ? null
-                    : () => onMovieBlacklist!(item.toMovieListItem()),
-            isSubscriptionUpdating:
-                isMovieSubscriptionUpdating?.call(item) ?? false,
-            selectionMode: selectionMode,
-            isSelected: isMovieSelected?.call(item) ?? false,
-            onSelectedChanged:
-                onMovieSelectedChanged == null
-                    ? null
-                    : (selected) => onMovieSelectedChanged!(item, selected),
-          ),
+      itemBuilder: (context, item, index) => MovieSummaryCard(
+        movie: item.toMovieListItem(),
+        rank: item.rank,
+        onTap: onMovieTap == null ? null : () => onMovieTap!(item),
+        onRequestMenu: onMovieMenuRequest == null
+            ? null
+            : (globalPosition) => onMovieMenuRequest!(item, globalPosition),
+        onSubscriptionTap: onMovieSubscriptionTap == null
+            ? null
+            : () => onMovieSubscriptionTap!(item),
+        onToggleCollectionType: onMovieToggleCollectionType == null
+            ? null
+            : () => onMovieToggleCollectionType!(item.toMovieListItem()),
+        onBlacklist: onMovieBlacklist == null
+            ? null
+            : () => onMovieBlacklist!(item.toMovieListItem()),
+        isSubscriptionUpdating:
+            isMovieSubscriptionUpdating?.call(item) ?? false,
+        selectionMode: selectionMode,
+        isSelected: isMovieSelected?.call(item) ?? false,
+        onSelectedChanged: onMovieSelectedChanged == null
+            ? null
+            : (selected) => onMovieSelectedChanged!(item, selected),
+      ),
     );
   }
 }

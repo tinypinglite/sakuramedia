@@ -3,7 +3,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button_content.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
-enum AppTextButtonSize { medium, small, xSmall, xxSmall, xxxSmall }
+enum AppTextButtonSize { medium, small, xSmall, xxSmall }
 
 enum AppTextButtonBackgroundStyle { transparent, muted }
 
@@ -131,6 +131,5 @@ extension on AppTextButtonSize {
     AppTextButtonSize.small => AppButtonContentSize.small,
     AppTextButtonSize.xSmall => AppButtonContentSize.xSmall,
     AppTextButtonSize.xxSmall => AppButtonContentSize.xxSmall,
-    AppTextButtonSize.xxxSmall => AppButtonContentSize.xxxSmall,
   };
 }

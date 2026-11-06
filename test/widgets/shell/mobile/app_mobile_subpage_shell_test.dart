@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
 
@@ -420,7 +420,7 @@ Future<void> _pump(WidgetTester tester, Widget app) async {
   addTearDown(tester.view.resetPhysicalSize);
 
   await tester.pumpWidget(
-    LiquidGlassWidgets.wrap(
+    AppSurfaceRuntime.wrap(
       brightnessResolver: Theme.maybeBrightnessOf,
       child: app,
     ),

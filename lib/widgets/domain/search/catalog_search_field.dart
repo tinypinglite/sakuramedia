@@ -28,7 +28,6 @@ class CatalogSearchField extends StatelessWidget {
     this.isSearching = false,
     this.showSearchingIndicator = true,
     this.searchButtonTooltip,
-    this.fillColor,
     this.contentPadding,
     this.tightSuffix = false,
     this.borderRadius,
@@ -68,9 +67,6 @@ class CatalogSearchField extends StatelessWidget {
   /// 后缀搜索图标的 tooltip / 语义标签；为空时用通用搜索文案。
   final String? searchButtonTooltip;
 
-  /// 覆盖默认的填充色；用于把搜索框放到比 `surfaceMuted` 更暗的面板（如侧边栏）上时提升对比。
-  final Color? fillColor;
-
   /// 覆盖默认内容内边距；用于塞进固定高度顶栏等紧凑场景。
   final EdgeInsetsGeometry? contentPadding;
 
@@ -93,7 +89,6 @@ class CatalogSearchField extends StatelessWidget {
       hintText: hintText,
       textInputAction: TextInputAction.search,
       onFieldSubmitted: onSubmitted,
-      fillColor: fillColor,
       contentPadding: contentPadding,
       tightSuffix: tightSuffix,
       borderRadius: borderRadius,
@@ -139,7 +134,9 @@ class CatalogSearchField extends StatelessWidget {
                   ? SizedBox(
                       width: context.appComponentTokens.iconSizeMd,
                       height: context.appComponentTokens.iconSizeMd,
-                      child: const CircularProgressIndicator.adaptive(strokeWidth: 2),
+                      child: const CircularProgressIndicator.adaptive(
+                        strokeWidth: 2,
+                      ),
                     )
                   : const Icon(Icons.search_rounded),
               onPressed: isSearching ? null : onSearchTap,

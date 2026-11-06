@@ -37,7 +37,6 @@ class TagSelectorPanel extends StatefulWidget {
     this.collapsibleSearch = false,
     this.collapsedTagCount = 24,
     this.showTagCounts = true,
-    this.scrollableTagCloud = false,
   });
 
   final TagSelectionState selection;
@@ -74,11 +73,6 @@ class TagSelectorPanel extends StatefulWidget {
 
   /// 标签 chips 是否带影片数量。标签页靠数量做选择参考；筛选面板里省空间不显示。
   final bool showTagCounts;
-
-  /// 标签云是否展示全量（搜索时即全部搜索结果）并在面板内部滚动。
-  /// `true` 时面板需落在有界高度里，云区域懒构建；`false` 时维持内联形态，
-  /// 由外层滚动，收起态只展示前 [collapsedTagCount] 条，展开或搜索时展示全部。
-  final bool scrollableTagCloud;
 
   @override
   State<TagSelectorPanel> createState() => _TagSelectorPanelState();
@@ -203,10 +197,7 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
           ),
         ],
         SizedBox(height: spacing.md),
-        if (widget.scrollableTagCloud)
-          Expanded(child: _buildBody(context))
-        else
-          _buildBody(context),
+        _buildBody(context),
       ],
     );
   }
@@ -233,10 +224,6 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
           ),
         ],
       );
-    }
-
-    if (widget.scrollableTagCloud) {
-      return _buildScrollableBody(context);
     }
 
     return Column(
@@ -319,13 +306,9 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
   Widget _buildCloudHeader(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final selection = widget.selection;
-    final headerLabel = widget.scrollableTagCloud
-        ? (selection.isSearching
-              ? l10n.widgetTagSearchResultCount(selection.filteredTags.length)
-              : l10n.widgetTagAllCount(selection.allTags.length))
-        : (selection.isSearching
-              ? l10n.widgetTagSearchResult
-              : l10n.widgetTagPopular);
+    final headerLabel = selection.isSearching
+        ? l10n.widgetTagSearchResult
+        : l10n.widgetTagPopular;
     return Row(
       children: [
         Text(
@@ -338,8 +321,7 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
           ),
         ),
         const Spacer(),
-        if (!widget.scrollableTagCloud &&
-            widget.onToggleExpanded != null &&
+        if (widget.onToggleExpanded != null &&
             !selection.isSearching &&
             selection.filteredTags.length > widget.collapsedTagCount)
           AppTextButton(
@@ -352,64 +334,6 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
             ),
             onPressed: widget.onToggleExpanded,
           ),
-      ],
-    );
-  }
-
-  Widget _buildScrollableBody(BuildContext context) {
-    final selection = widget.selection;
-    final spacing = context.appSpacing;
-    final tags = selection.filteredTags;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (selection.hasSelection) ...[
-          _buildSelectedSection(context),
-          SizedBox(height: spacing.md),
-        ],
-        if (widget.showCloudHeader) ...[
-          _buildCloudHeader(context),
-          SizedBox(height: spacing.sm),
-        ],
-        if (tags.isEmpty)
-          _buildEmptyCloudMessage(context)
-        else
-          Expanded(child: _buildScrollableCloud(context, tags)),
-      ],
-    );
-  }
-
-  /// 每块 [tagCloudChunkSize] 个标签一个 Wrap，交给 SliverList 懒构建；
-  /// 一次性铺开全量标签（生产库 913 个）在弹层打开时会明显卡顿。
-  static const int tagCloudChunkSize = 80;
-
-  Widget _buildScrollableCloud(
-    BuildContext context,
-    List<TagListItemDto> tags,
-  ) {
-    final spacing = context.appSpacing;
-    final chunks = <List<TagListItemDto>>[
-      for (var start = 0; start < tags.length; start += tagCloudChunkSize)
-        tags.sublist(
-          start,
-          start + tagCloudChunkSize > tags.length
-              ? tags.length
-              : start + tagCloudChunkSize,
-        ),
-    ];
-    return CustomScrollView(
-      key: Key('${widget.keyPrefix}-cloud-scroll'),
-      slivers: [
-        SliverList.builder(
-          itemCount: chunks.length,
-          itemBuilder: (context, index) => Padding(
-            padding: EdgeInsets.only(
-              bottom: index == chunks.length - 1 ? 0 : spacing.sm,
-            ),
-            child: _buildCloudWrap(context, chunks[index]),
-          ),
-        ),
       ],
     );
   }

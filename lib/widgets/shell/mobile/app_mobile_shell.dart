@@ -1,13 +1,12 @@
 import 'package:cupertino_ui/cupertino_ui.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:sakuramedia/core/platform/haptic_feedback.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_tab_bar.dart';
 import 'package:sakuramedia/widgets/shell/mobile/mobile_system_overlay.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_quality.dart';
 
 class AppMobileShell extends StatelessWidget {
   const AppMobileShell({
@@ -109,15 +108,14 @@ class AppMobileShell extends StatelessWidget {
         right: context.appSpacing.md,
         bottom: context.appSpacing.xs,
       ),
-      child: GlassTabBar.bottom(
+      child: AppGlassTabBar(
         key: const Key('mobile-bottom-navigation'),
         tabs: navItems
             .map(
-              (item) => GlassTab(
+              (item) => AppGlassTabItem(
                 icon: Icon(item.icon),
                 activeIcon: Icon(item.activeIcon ?? item.icon),
                 label: item.label,
-                semanticLabel: item.label,
               ),
             )
             .toList(growable: false),
@@ -139,16 +137,6 @@ class AppMobileShell extends StatelessWidget {
           fontWeight: context.appTextWeights.semibold,
         ),
         unselectedLabelStyle: labelStyle,
-        // 使用库的底栏专用材质；顶栏的 ios27 磨砂在大块选中态下会发白发糊。
-        // 选中胶囊按压时会切到玻璃透镜态；压低 Fresnel / 环境边缘光，
-        // 避免切换时出现明显的白色边光，同时保留玻璃块的折射厚度。
-        indicatorSettings: const LiquidGlassSettings(
-          lightIntensity: 0,
-          ambientRim: 0.02,
-          fresnelStrength: 0,
-          glowIntensity: 0,
-        ),
-        quality: AppGlassQuality.navigation,
       ),
     );
   }

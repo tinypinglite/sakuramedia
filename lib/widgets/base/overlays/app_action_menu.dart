@@ -6,7 +6,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_chrome_settings.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
@@ -50,7 +49,7 @@ enum AppMenuPresentation { popup, bottomDrawer }
 /// 负责：过滤 [AppMenuItem.visible]、定位、统一表面样式与项渲染、底部操作表
 /// （可选标题 + 独立「取消」行）、全屏图片下的抽屉宿主。
 ///
-/// 锚定弹层使用 `AppGlassSurface` 的 iOS 27 玻璃材质，并按桌面 / 移动
+/// 锚定弹层使用 `AppGlassSurface` 的统一玻璃材质，并按桌面 / 移动
 /// 分别采用紧凑密度；不显示源内容预览、抬升动画或全屏压暗。
 /// 调用方保留自己的 action 枚举、items 组装与派发 `switch`。
 Future<T?> showAppActionMenu<T>({
@@ -382,11 +381,9 @@ class _AppContextMenuPanel<T> extends StatelessWidget {
       container: true,
       explicitChildNodes: true,
       child: AppGlassSurface(
-        tone: AppGlassTone.modal,
         width: width,
         borderRadius: BorderRadius.circular(metrics.radius),
         padding: EdgeInsets.zero,
-        glassSettings: appGlassContextMenuSettings(context),
         child: DecoratedBox(
           position: DecorationPosition.foreground,
           decoration: ShapeDecoration(

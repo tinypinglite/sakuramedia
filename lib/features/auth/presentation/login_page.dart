@@ -24,8 +24,8 @@ import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_media_badge.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/badges/app_media_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
@@ -658,9 +658,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         borderRadius: radius.xlBorder,
         boxShadow: context.appShadows.panel,
       ),
-      child: AppGlassSurface(
+      child: AppSurface(
         key: const Key('login-main-card'),
-        tone: AppGlassTone.control,
         borderRadius: radius.xlBorder,
         padding: EdgeInsets.all(spacing.xl),
         child: Column(
@@ -748,9 +747,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         borderRadius: radius.xlBorder,
         boxShadow: context.appShadows.panel,
       ),
-      child: AppGlassSurface(
+      child: AppSurface(
         key: const Key('login-main-card'),
-        tone: AppGlassTone.control,
         borderRadius: radius.xlBorder,
         padding: EdgeInsets.all(cardPadding),
         child: Column(

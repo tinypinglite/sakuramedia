@@ -11,8 +11,9 @@ import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_grid.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
-import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
+import 'package:sakuramedia/widgets/domain/movies/movie_summary_card.dart';
 import 'package:sakuramedia/widgets/domain/movies/subscription_heart_badge.dart';
 
 class DesktopActorDetailPage extends StatefulWidget {
@@ -69,9 +70,11 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
                 onMergeTap: () {},
               ),
               SizedBox(height: context.appSpacing.lg),
-              MovieSummaryGrid(
+              AppAdaptiveCardGrid(
+                gridKey: const Key('movie-summary-grid'),
                 items: movieListItemPlaceholders(count: 12),
-                onMovieTap: (_) {},
+                itemBuilder: (context, movie, index) =>
+                    MovieSummaryCard(movie: movie, onTap: () {}),
               ),
             ],
           ),
