@@ -22,8 +22,7 @@ import 'package:sakuramedia/features/videos/presentation/widgets/collections/add
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/create_video_collection_dialog.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/pick_video_collection_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
@@ -149,13 +148,13 @@ mixin VideoOverviewActionsMixin<W extends ConsumerStatefulWidget>
         context,
         video: video,
         onPlay: () => playVideo(video),
-        onThumbnails: () => MobileVideoThumbnailRouteData(
+        onThumbnails: () => MobileRoutes.videoThumbnail(
           videoId: video.id,
         ).push<void>(context),
         onAddToCollection: () => addToCollection(video),
         onDelete: () => deleteVideo(video),
         collections: video.collections,
-        onCollectionTap: (ref) => MobileVideoCollectionDetailRouteData(
+        onCollectionTap: (ref) => MobileRoutes.videoCollectionDetail(
           collectionId: ref.id,
         ).push(context),
       );
@@ -165,12 +164,14 @@ mixin VideoOverviewActionsMixin<W extends ConsumerStatefulWidget>
       context,
       video: video,
       onPlay: () => unawaited(playVideo(video)),
-      onThumbnails: () => context.pushDesktopVideoThumbnails(videoId: video.id),
+      onThumbnails: () =>
+          DesktopRoutes.videoThumbnail(videoId: video.id).push(context),
       onAddToCollection: () => addToCollection(video),
       onDelete: () => deleteVideo(video),
       collections: video.collections,
-      onCollectionTap: (ref) =>
-          context.pushDesktopVideoCollectionDetail(collectionId: ref.id),
+      onCollectionTap: (ref) => DesktopRoutes.videoCollectionDetail(
+        collectionId: ref.id,
+      ).push(context),
     );
   }
 
@@ -186,10 +187,10 @@ mixin VideoOverviewActionsMixin<W extends ConsumerStatefulWidget>
       return;
     }
     if (isMobile) {
-      await MobileVideoPlayerRouteData(videoId: video.id).push<void>(context);
+      await MobileRoutes.videoPlayer(videoId: video.id).push<void>(context);
       return;
     }
-    context.pushDesktopVideoPlayer(videoId: video.id);
+    DesktopRoutes.videoPlayer(videoId: video.id).push(context);
   }
 
   Future<void> addToCollection(VideoItemListItemDto video) async {
@@ -319,9 +320,9 @@ mixin VideoOverviewActionsMixin<W extends ConsumerStatefulWidget>
 
   Future<void> viewAllCollections() async {
     if (isMobile) {
-      await const MobileVideoCollectionsRouteData().push<void>(context);
+      await MobileRoutes.videoCollections().push<void>(context);
     } else {
-      await context.pushDesktopVideoCollections();
+      await DesktopRoutes.videoCollections().push<void>(context);
     }
     if (!mounted) {
       return;

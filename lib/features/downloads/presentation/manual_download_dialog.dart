@@ -23,9 +23,10 @@ import 'package:sakuramedia/features/videos/presentation/widgets/collections/cre
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/pick_video_collection_single_dialog.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/video_collection_picker_field.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/app_route.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
@@ -721,9 +722,9 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
     Navigator.of(context).pop();
     if (!widget.hostContext.mounted) return;
     if (isMobile) {
-      const MobileSettingsDownloadersRouteData().push(widget.hostContext);
+      MobileRoutes.settingsDownloaders().push(widget.hostContext);
     } else {
-      widget.hostContext.goPrimaryRoute(desktopConfigurationPath);
+      widget.hostContext.goPrimary(AppRouteId.desktopConfiguration);
     }
   }
 

@@ -5,7 +5,7 @@ import 'package:sakuramedia/features/actors/presentation/pages/shared/actor_deta
 import 'package:sakuramedia/features/actors/presentation/pages/shared/actor_profile_details.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
@@ -34,7 +34,7 @@ class _MobileActorDetailPageState extends State<MobileActorDetailPage> {
       contentKey: const Key('mobile-actor-detail-page'),
       sectionSpacing: context.appSpacing.md,
       onMovieTap: (context, movieNumber) =>
-          MobileMovieDetailRouteData(movieNumber: movieNumber).push(context),
+          MobileRoutes.movieDetail(movieNumber: movieNumber).push(context),
       headerBuilder:
           (
             context,

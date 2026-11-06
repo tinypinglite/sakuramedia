@@ -6,10 +6,9 @@ import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_draft_store_provider.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_filter_state.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
-import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/desktop_routes.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_route_paths.dart';
+import 'package:sakuramedia/routes/app_route_target.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 
 Future<void> launchDesktopImageSearchFromUrl(
   BuildContext context, {
@@ -56,14 +55,18 @@ Future<void> launchImageSearchFromUrl(
     return;
   }
   if (replaceRouteStack && routePath == desktopImageSearchPath) {
-    context.goDesktopImageSearch(
-      fallbackPath: fallbackPath,
-      initialFileName: fileName,
-      initialFileBytes: bytes,
-      initialMimeType: guessImageMimeType(fileName),
-      currentMovieNumber: currentMovieNumber,
-      initialCurrentMovieScope: initialCurrentMovieScope,
+    final draftId = saveImageSearchDraft(
+      context,
+      fileName: fileName,
+      bytes: bytes,
+      mimeType: guessImageMimeType(fileName),
     );
+    DesktopRoutes.imageSearch(
+      fallbackPath: fallbackPath,
+      draftId: draftId,
+      currentMovieNumber: currentMovieNumber,
+      currentMovieScope: initialCurrentMovieScope.name,
+    ).go(context);
     return;
   }
   if (replaceCurrent) {
@@ -76,6 +79,7 @@ Future<void> launchImageSearchFromUrl(
         mimeType: mimeType,
         currentMovieNumber: currentMovieNumber,
         initialCurrentMovieScope: initialCurrentMovieScope,
+        fallbackPath: fallbackPath,
       );
       route.pushReplacement(context);
       return;
@@ -88,6 +92,7 @@ Future<void> launchImageSearchFromUrl(
         mimeType: mimeType,
         currentMovieNumber: currentMovieNumber,
         initialCurrentMovieScope: initialCurrentMovieScope,
+        fallbackPath: fallbackPath,
       );
       route.pushReplacement(context);
       return;
@@ -95,58 +100,95 @@ Future<void> launchImageSearchFromUrl(
     return;
   }
   if (routePath == desktopImageSearchPath) {
-    context.pushDesktopImageSearch(
-      fallbackPath: fallbackPath,
-      initialFileName: fileName,
-      initialFileBytes: bytes,
-      initialMimeType: guessImageMimeType(fileName),
+    final route = _buildDesktopRoute(
+      context: context,
+      fileName: fileName,
+      bytes: bytes,
+      mimeType: guessImageMimeType(fileName),
       currentMovieNumber: currentMovieNumber,
       initialCurrentMovieScope: initialCurrentMovieScope,
+      fallbackPath: fallbackPath,
     );
+    route.push(context);
     return;
   }
   if (routePath == mobileImageSearchPath) {
-    context.pushMobileImageSearch(
-      initialFileName: fileName,
-      initialFileBytes: bytes,
-      initialMimeType: guessImageMimeType(fileName),
+    final route = _buildMobileRoute(
+      context: context,
+      fileName: fileName,
+      bytes: bytes,
+      mimeType: guessImageMimeType(fileName),
       currentMovieNumber: currentMovieNumber,
       initialCurrentMovieScope: initialCurrentMovieScope,
+      fallbackPath: fallbackPath,
     );
+    route.push(context);
     return;
   }
 }
 
-DesktopImageSearchRouteData _buildDesktopRoute({
+String? saveImageSearchDraft(
+  BuildContext context, {
+  required String? fileName,
+  required Uint8List? bytes,
+  required String? mimeType,
+}) {
+  if (fileName == null ||
+      fileName.isEmpty ||
+      bytes == null ||
+      bytes.isEmpty) {
+    return null;
+  }
+  return ProviderScope.containerOf(
+    context,
+    listen: false,
+  ).read(imageSearchDraftStoreProvider).save(
+    fileName: fileName,
+    bytes: bytes,
+    mimeType: mimeType,
+  );
+}
+
+AppRouteTarget _buildDesktopRoute({
   required BuildContext context,
   required String fileName,
   required Uint8List bytes,
   required String? mimeType,
   required String? currentMovieNumber,
   required ImageSearchCurrentMovieScope initialCurrentMovieScope,
+  required String? fallbackPath,
 }) {
-  final draftId = ProviderScope.containerOf(context, listen: false)
-      .read(imageSearchDraftStoreProvider)
-      .save(fileName: fileName, bytes: bytes, mimeType: mimeType);
-  return DesktopImageSearchRouteData(
+  final draftId = saveImageSearchDraft(
+    context,
+    fileName: fileName,
+    bytes: bytes,
+    mimeType: mimeType,
+  );
+  return DesktopRoutes.imageSearch(
+    fallbackPath: fallbackPath,
     draftId: draftId,
     currentMovieNumber: currentMovieNumber,
     currentMovieScope: initialCurrentMovieScope.name,
   );
 }
 
-MobileImageSearchRouteData _buildMobileRoute({
+AppRouteTarget _buildMobileRoute({
   required BuildContext context,
   required String fileName,
   required Uint8List bytes,
   required String? mimeType,
   required String? currentMovieNumber,
   required ImageSearchCurrentMovieScope initialCurrentMovieScope,
+  required String? fallbackPath,
 }) {
-  final draftId = ProviderScope.containerOf(context, listen: false)
-      .read(imageSearchDraftStoreProvider)
-      .save(fileName: fileName, bytes: bytes, mimeType: mimeType);
-  return MobileImageSearchRouteData(
+  final draftId = saveImageSearchDraft(
+    context,
+    fileName: fileName,
+    bytes: bytes,
+    mimeType: mimeType,
+  );
+  return MobileRoutes.imageSearch(
+    fallbackPath: fallbackPath,
     draftId: draftId,
     currentMovieNumber: currentMovieNumber,
     currentMovieScope: initialCurrentMovieScope.name,

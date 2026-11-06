@@ -19,7 +19,7 @@ import 'package:sakuramedia/features/shared/presentation/providers/stable_set_se
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
@@ -240,9 +240,9 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
                     errorMessage: initialErrorMessage,
                     onMovieTap: (movie) => selectionAwareTap(
                       movie.movieNumber,
-                      () => context.pushMobileMovieDetail(
+                      () => MobileRoutes.movieDetail(
                         movieNumber: movie.movieNumber,
-                      ),
+                      ).push(context),
                     )(),
                     onMovieMenuRequest: (movie, globalPosition) =>
                         requestMovieCollectionMenu(

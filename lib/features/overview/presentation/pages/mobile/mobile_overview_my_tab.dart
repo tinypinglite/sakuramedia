@@ -16,8 +16,8 @@ import 'package:sakuramedia/features/recent_views/presentation/providers/recent_
 import 'package:sakuramedia/features/recent_views/presentation/widgets/recent_views_section.dart';
 import 'package:sakuramedia/features/status/presentation/providers/server_capabilities_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/features/image_search/presentation/actions/image_search_launcher.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
@@ -108,8 +108,7 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
                 actionLabel: l10n.overviewMore,
                 actionSize: AppTextButtonSize.xSmall,
                 actionKey: const Key('mobile-overview-latest-more'),
-                onActionTap: () =>
-                    const MobileLatestMoviesRouteData().push(context),
+                onActionTap: () => MobileRoutes.latestMovies().push(context),
               ),
               SizedBox(height: spacing.xs),
               _buildLatestMoviesSection(latestAsync, l10n),
@@ -195,7 +194,7 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
         onErrorRetry: () =>
             ref.read(movieSummaryProvider(_latestScope).notifier).reload(),
         emptyMessage: l10n.overviewNoLatestMovies,
-        onMovieTap: (movie) => MobileMovieDetailRouteData(
+        onMovieTap: (movie) => MobileRoutes.movieDetail(
           movieNumber: movie.movieNumber,
         ).push(context),
       ),
@@ -217,7 +216,7 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
           actionSize: AppTextButtonSize.xSmall,
           actionKey: const Key('mobile-overview-recently-subscribed-more'),
           onActionTap: () =>
-              const MobileRecentlySubscribedMoviesRouteData().push(context),
+              MobileRoutes.recentlySubscribedMovies().push(context),
         ),
         SizedBox(height: context.appSpacing.xs),
         // loading 用占位影片渲染真实卡片，由 [AppSkeletonizer] 灰化。
@@ -236,7 +235,7 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
                 ? _recentlySubscribedScope.errorText(l10n)
                 : null,
             emptyMessage: l10n.overviewNoSubscribedMovies,
-            onMovieTap: (movie) => MobileMovieDetailRouteData(
+            onMovieTap: (movie) => MobileRoutes.movieDetail(
               movieNumber: movie.movieNumber,
             ).push(context),
           ),
@@ -250,11 +249,11 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
       spacingBefore: context.appSpacing.sm,
       actionSize: AppTextButtonSize.xSmall,
       actionKey: const Key('mobile-overview-recent-views-more'),
-      onMoreTap: () => const MobileRecentViewsRouteData().push(context),
+      onMoreTap: () => MobileRoutes.recentViews().push(context),
       onMovieTap: (movieNumber) =>
-          MobileMovieDetailRouteData(movieNumber: movieNumber).push(context),
+          MobileRoutes.movieDetail(movieNumber: movieNumber).push(context),
       onActorTap: (actorId) =>
-          MobileActorDetailRouteData(actorId: actorId).push(context),
+          MobileRoutes.actorDetail(actorId: actorId).push(context),
     );
   }
 
@@ -263,11 +262,11 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
     if (query.isEmpty) {
       return;
     }
-    MobileSearchQueryRouteData(query: query).push(context);
+    MobileRoutes.search(query: query).push(context);
   }
 
   void _openTextImageSearch() {
-    context.pushMobileImageSearch(initialInputKind: ImageSearchInputKind.text);
+    MobileRoutes.imageSearch(mode: ImageSearchInputKind.text.name).push(context);
   }
 
   Future<void> _openImageSearch() async {
@@ -278,11 +277,13 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
       if (pickedFile == null || !mounted) {
         return;
       }
-      context.pushMobileImageSearch(
-        initialFileName: pickedFile.fileName,
-        initialFileBytes: pickedFile.bytes,
-        initialMimeType: pickedFile.mimeType,
+      final draftId = saveImageSearchDraft(
+        context,
+        fileName: pickedFile.fileName,
+        bytes: pickedFile.bytes,
+        mimeType: pickedFile.mimeType,
       );
+      MobileRoutes.imageSearch(draftId: draftId).push(context);
     } on ImageSearchFilePickerException catch (error) {
       if (mounted) {
         showToast(error.message, tone: AppToastTone.error);

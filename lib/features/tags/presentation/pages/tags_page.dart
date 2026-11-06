@@ -13,9 +13,8 @@ import 'package:sakuramedia/features/tags/presentation/tag_movie_summary_content
 import 'package:sakuramedia/features/tags/presentation/widgets/tag_browse_surface.dart';
 import 'package:sakuramedia/features/tags/presentation/widgets/tag_selection_summary.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
@@ -199,13 +198,13 @@ class _TagsPageState extends ConsumerState<TagsPage> {
 
   void _openMovieDetail(BuildContext context, String movieNumber) {
     if (widget.mobile) {
-      MobileMovieDetailRouteData(movieNumber: movieNumber).push(context);
+      MobileRoutes.movieDetail(movieNumber: movieNumber).push(context);
       return;
     }
-    context.pushDesktopMovieDetail(
+    DesktopRoutes.movieDetail(
       movieNumber: movieNumber,
       fallbackPath: desktopTagsPath,
-    );
+    ).push(context);
   }
 
   void _showRefreshFailure(BuildContext context) {

@@ -19,7 +19,9 @@ import 'package:sakuramedia/features/recent_views/presentation/widgets/recent_vi
 import 'package:sakuramedia/features/status/data/status_dto.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/app_route.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
@@ -136,7 +138,7 @@ class DesktopOverviewPage extends ConsumerWidget {
                 isConnected:
                     systemInfo.status != null && systemInfo.statusError == null,
                 onImportTap: () =>
-                    context.goPrimaryRoute(desktopMediaImportPath),
+                    context.goPrimary(AppRouteId.desktopMediaImport),
               ),
             ),
           ),
@@ -159,7 +161,7 @@ class DesktopOverviewPage extends ConsumerWidget {
               importing: downloadTasks.importing,
               imported: downloadTasks.imported,
               onAllTasksTap: () =>
-                  context.goPrimaryRoute(desktopDownloadTasksPath),
+                  context.goPrimary(AppRouteId.desktopDownloadTasks),
             ),
           ),
           SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.xl)),
@@ -177,7 +179,7 @@ class DesktopOverviewPage extends ConsumerWidget {
               title: l10n.overviewRecentlyAdded,
               actionLabel: l10n.overviewMore,
               actionKey: const Key('overview-latest-more'),
-              onActionTap: () => context.pushDesktopLatestMovies(),
+              onActionTap: () => DesktopRoutes.latestMovies().push(context),
             ),
           ),
           SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.md)),
@@ -204,10 +206,10 @@ class DesktopOverviewPage extends ConsumerWidget {
                 ),
                 actionLabel: l10n.overviewMore,
                 actionKey: const Key('overview-recent-played-more'),
-                onActionTap: () => context.pushDesktopPlaylistDetail(
+                onActionTap: () => DesktopRoutes.playlistDetail(
                   playlistId: recentPlaylist.id,
                   fallbackPath: desktopOverviewPath,
-                ),
+                ).push(context),
               ),
             ),
             SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.md)),
@@ -235,7 +237,8 @@ class DesktopOverviewPage extends ConsumerWidget {
               title: l10n.overviewRecentlySubscribed,
               actionLabel: l10n.overviewMore,
               actionKey: const Key('overview-recently-subscribed-more'),
-              onActionTap: () => context.pushDesktopRecentlySubscribedMovies(),
+              onActionTap: () =>
+                  DesktopRoutes.recentlySubscribedMovies().push(context),
             ),
           ),
           SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.md)),
@@ -260,15 +263,15 @@ class DesktopOverviewPage extends ConsumerWidget {
             child: RecentViewsSection(
               spacingBefore: context.appSpacing.xl,
               actionKey: const Key('overview-recent-views-more'),
-              onMoreTap: () => context.pushDesktopRecentViews(),
-              onMovieTap: (movieNumber) => context.pushDesktopMovieDetail(
+              onMoreTap: () => DesktopRoutes.recentViews().push(context),
+              onMovieTap: (movieNumber) => DesktopRoutes.movieDetail(
                 movieNumber: movieNumber,
                 fallbackPath: desktopOverviewPath,
-              ),
-              onActorTap: (actorId) => context.pushDesktopActorDetail(
+              ).push(context),
+              onActorTap: (actorId) => DesktopRoutes.actorDetail(
                 actorId: actorId,
                 fallbackPath: desktopOverviewPath,
-              ),
+              ).push(context),
             ),
           ),
         ],
@@ -378,10 +381,10 @@ class DesktopOverviewPage extends ConsumerWidget {
             ? movieListItemPlaceholders(count: _previewItemCount)
             : summary?.paged.items.take(_previewItemCount).toList() ?? const [],
         errorMessage: errorMessage,
-        onMovieTap: (movie) => context.pushDesktopMovieDetail(
+        onMovieTap: (movie) => DesktopRoutes.movieDetail(
           movieNumber: movie.movieNumber,
           fallbackPath: desktopOverviewPath,
-        ),
+        ).push(context),
         onMovieMenuRequest: (movie, globalPosition) =>
             requestMovieCollectionMenu(
               context,

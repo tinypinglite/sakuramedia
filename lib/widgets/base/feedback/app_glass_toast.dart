@@ -1,6 +1,7 @@
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_quality.dart';
 
 enum AppToastTone { neutral, success, warning, error, info }
 
@@ -135,7 +136,7 @@ class AppGlassToast extends StatelessWidget {
       ),
       child: GlassContainer(
         useOwnLayer: true,
-        quality: GlassQuality.standard,
+        quality: AppGlassQuality.toast,
         clipBehavior: Clip.antiAlias,
         shape: LiquidRoundedSuperellipse(borderRadius: borderRadius),
         settings: settings,

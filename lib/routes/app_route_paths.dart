@@ -71,6 +71,7 @@ const String mobileMomentCollectionsPath = '/mobile/library/moment-collections';
 const String mobileVideoCollectionsPath = '/mobile/library/video-collections';
 const String mobileRankingsPath = '/mobile/rankings';
 const String mobilePornboxPath = '/mobile/pornbox';
+const String mobileVideosPath = '/mobile/library/videos';
 const String mobileSettingsMediaLibrariesPath =
     '/mobile/settings/media-libraries';
 const String mobileSettingsMediaTagsPath = '/mobile/settings/media-tags';
@@ -89,41 +90,6 @@ const String mobileSettingsAccountSecurityPath =
     '/mobile/settings/account-security';
 
 const String loginPath = '/login';
-
-@Deprecated('请改用 typed route，例如 DesktopMovieDetailRoute。')
-String buildDesktopMovieDetailRoutePath(String movieNumber) {
-  return '$desktopMoviesPath/${Uri.encodeComponent(movieNumber)}';
-}
-
-@Deprecated('请改用 typed route，例如 MobileMovieDetailRoute。')
-String buildMobileMovieDetailRoutePath(String movieNumber) {
-  return '$mobileMoviesPath/${Uri.encodeComponent(movieNumber)}';
-}
-
-@Deprecated('请改用 typed route，例如 DesktopPlaylistDetailRoute。')
-String buildDesktopPlaylistDetailRoutePath(int playlistId) {
-  return '$desktopPlaylistsPath/$playlistId';
-}
-
-@Deprecated('请改用 typed route，例如 DesktopMoviePlayerRoute。')
-String buildDesktopMoviePlayerRoutePath(
-  String movieNumber, {
-  int? mediaId,
-  int? positionSeconds,
-}) {
-  final queryParameters = <String, String>{};
-  if (mediaId != null) {
-    queryParameters['mediaId'] = '$mediaId';
-  }
-  if (positionSeconds != null) {
-    queryParameters['positionSeconds'] = '$positionSeconds';
-  }
-  final path = Uri(
-    path: '/desktop/library/movies/${Uri.encodeComponent(movieNumber)}/player',
-    queryParameters: queryParameters.isEmpty ? null : queryParameters,
-  );
-  return path.toString();
-}
 
 String overviewPathForPlatform(AppPlatform platform) {
   switch (platform) {

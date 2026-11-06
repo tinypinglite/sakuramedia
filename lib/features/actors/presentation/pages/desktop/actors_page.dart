@@ -8,7 +8,7 @@ import 'package:sakuramedia/features/actors/presentation/providers/actor_summary
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
@@ -90,10 +90,10 @@ class _DesktopActorsPageState extends ConsumerState<DesktopActorsPage>
                 snapshot: snapshot,
                 filter: filter,
                 subscriptionUpdating: subscriptionUpdating,
-                onActorTap: (actorId) => context.pushDesktopActorDetail(
+                onActorTap: (actorId) => DesktopRoutes.actorDetail(
                   actorId: actorId,
                   fallbackPath: desktopActorsPath,
-                ),
+                ).push(context),
               ),
             ),
           ),

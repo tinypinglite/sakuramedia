@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/core/network/api_error_dto.dart';
 import 'package:sakuramedia/core/network/api_sse_event.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
@@ -390,7 +391,7 @@ class ApiClient {
         if (statusCode >= 400) {
           final bodyText = await _readResponseBody(responseBody);
           final parsedData = _decodeResponseData(bodyText);
-          final errorPayload = _extractError(parsedData);
+          final errorPayload = ApiErrorDto.tryFromEnvelope(parsedData);
           throw ApiException(
             statusCode: statusCode,
             message: errorPayload?.message ?? 'Request failed',
@@ -515,7 +516,7 @@ class ApiClient {
       );
     }
     final parsedData = _decodeResponseData(error.response?.data);
-    final errorPayload = _extractError(parsedData);
+    final errorPayload = ApiErrorDto.tryFromEnvelope(parsedData);
 
     return ApiException(
       statusCode: statusCode,
@@ -579,13 +580,9 @@ class ApiClient {
   }
 
   Map<String, dynamic> _asJsonMap(dynamic data) {
-    if (data is Map<String, dynamic>) {
-      return data;
-    }
-    if (data is Map) {
-      return data.map(
-        (dynamic key, dynamic value) => MapEntry(key.toString(), value),
-      );
+    final map = asMapOrNull(data);
+    if (map != null) {
+      return map;
     }
     throw const ApiException(
       message: 'Expected JSON object response but got unsupported data shape',
@@ -645,21 +642,6 @@ class ApiClient {
       bytes.addAll(chunk);
     }
     return utf8.decode(bytes);
-  }
-
-  ApiErrorDto? _extractError(dynamic data) {
-    if (data is! Map) {
-      return null;
-    }
-    final dynamic errorObject = data['error'];
-    if (errorObject is! Map) {
-      return null;
-    }
-    return ApiErrorDto.fromJson(
-      errorObject.map(
-        (dynamic key, dynamic value) => MapEntry(key.toString(), value),
-      ),
-    );
   }
 
   void dispose() {

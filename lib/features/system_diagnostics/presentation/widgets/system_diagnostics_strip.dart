@@ -4,7 +4,7 @@ import 'package:sakuramedia/core/format/relative_time_label.dart';
 import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_item_status.dart';
 import 'package:sakuramedia/features/system_diagnostics/presentation/controllers/system_diagnostics_controller.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_status_chip.dart';
@@ -54,7 +54,7 @@ class _SystemDiagnosticsStripState
           message: tooltip,
           child: AppInteractiveSurface(
             key: const Key('system-diagnostics-strip-open'),
-            onTap: () => context.pushDesktopSystemDiagnostics(),
+            onTap: () => DesktopRoutes.systemDiagnostics().push(context),
             semanticLabel: l10n.systemDiagnosticsOpenPage,
             child: AppStatusChip(
               key: const Key('system-diagnostics-strip'),

@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_chrome_settings.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_quality.dart';
 
 /// 导航栏和浮层里的圆形液态玻璃图标按钮。
 ///
@@ -70,7 +71,7 @@ class AppGlassIconButton extends StatelessWidget {
               shape: const LiquidOval(),
               settings: appGlassHeaderSettings(context),
               useOwnLayer: true,
-              quality: GlassQuality.premium,
+              quality: AppGlassQuality.iconButton,
               style: prominent
                   ? GlassButtonStyle.prominent
                   : GlassButtonStyle.filled,

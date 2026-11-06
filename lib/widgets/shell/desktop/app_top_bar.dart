@@ -1,21 +1,14 @@
-import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/providers/app_shell_providers.dart';
-import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
-import 'package:sakuramedia/features/image_search/presentation/providers/image_search_state.dart';
-import 'package:sakuramedia/features/status/presentation/providers/server_capabilities_provider.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/features/search/presentation/widgets/top_bar_search_actions.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
-import 'package:sakuramedia/widgets/domain/search/catalog_search_field.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_back_button.dart';
+import 'package:sakuramedia/widgets/shell/desktop/desktop_chrome_policy.dart';
 import 'package:sakuramedia/widgets/shell/desktop/app_sidebar_toggle_button.dart';
-import 'package:sakuramedia/widgets/shell/desktop/app_top_bar_glass_search_field.dart';
+import 'package:sakuramedia/widgets/shell/desktop/top_bar_refresh_button.dart';
 import 'package:sakuramedia/widgets/shell/window/app_window_drag_area.dart';
 import 'package:sakuramedia/widgets/shell/window/app_windows_caption.dart';
 
@@ -133,7 +126,13 @@ class AppTopBar extends ConsumerWidget {
         if (config.isBackEnabled)
           SizedBox(
             width: backButtonSlotWidth,
-            child: Center(child: _buildBackButton(context, glass: translucent)),
+            child: Center(
+              child: AppBackButton(
+                key: const Key('topbar-back-button'),
+                glass: translucent,
+                onPressed: () => _handleBack(context),
+              ),
+            ),
           ),
         if (titleLeadingGap > 0) SizedBox(width: titleLeadingGap),
         Expanded(
@@ -153,15 +152,10 @@ class AppTopBar extends ConsumerWidget {
             ),
           ),
         ),
-        if (!hideActions)
-          _TopBarActions(
-            currentPath: currentPath,
-            glass: translucent,
-            onRefresh: onRefresh,
-            isRefreshing: isRefreshing,
-          ),
+        ..._buildActions(context, glass: translucent),
         SizedBox(width: rightInset),
-        if (usesAppWindowsCaption) AppWindowsCaption(),
+        if (DesktopChromePolicy.of(context).usesWindowsCaption)
+          AppWindowsCaption(),
       ],
     );
   }
@@ -183,19 +177,19 @@ class AppTopBar extends ConsumerWidget {
           SizedBox(
             width: 40.0,
             child: Center(
-              child: _buildBackButton(context, glass: true, overlay: true),
+              child: AppBackButton(
+                key: const Key('topbar-back-button'),
+                glass: true,
+                overlay: true,
+                onPressed: () => _handleBack(context),
+              ),
             ),
           ),
         Expanded(child: AppWindowDragArea(child: const SizedBox.expand())),
-        if (!hideActions)
-          _TopBarActions(
-            currentPath: currentPath,
-            overlay: true,
-            onRefresh: onRefresh,
-            isRefreshing: isRefreshing,
-          ),
+        ..._buildActions(context, glass: false, overlay: true),
         SizedBox(width: rightInset),
-        if (usesAppWindowsCaption) AppWindowsCaption(overlay: true),
+        if (DesktopChromePolicy.of(context).usesWindowsCaption)
+          AppWindowsCaption(overlay: true),
       ],
     );
   }
@@ -219,291 +213,25 @@ class AppTopBar extends ConsumerWidget {
     }
   }
 
-  Widget _buildBackButton(
+  List<Widget> _buildActions(
     BuildContext context, {
     required bool glass,
     bool overlay = false,
   }) {
-    final l10n = appL10n(context);
-    void onPressed() {
-      _handleBack(context);
+    if (hideActions) {
+      return const <Widget>[];
     }
-
-    final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
-    if (glass && !highContrast) {
-      return AppGlassIconButton(
-        key: const Key('topbar-back-button'),
-        tooltip: l10n.shellBack,
-        semanticLabel: l10n.shellBack,
-        icon: Icons.arrow_back_ios_new_rounded,
-        iconSize: 16,
-        size: 32,
-        onPressed: onPressed,
-      );
-    }
-    return AppIconButton(
-      key: const Key('topbar-back-button'),
-      tooltip: l10n.shellBack,
-      semanticLabel: l10n.shellBack,
-      onPressed: onPressed,
-      padding: EdgeInsets.zero,
-      icon: Icon(
-        Icons.arrow_back_ios_new_rounded,
-        size: context.appComponentTokens.iconSizeXs,
-        color: overlay ? context.appTextPalette.onMedia : null,
-      ),
-    );
-  }
-}
-
-/// 顶栏搜索框与右侧刷新动作。
-///
-/// 搜索框固定显示；提交后跳转搜索页。输入框聚焦时按 ESC 清空并失焦，
-/// 不隐藏输入框。以图搜图 / 文字搜图入口挂在输入框后缀。
-class _TopBarActions extends ConsumerStatefulWidget {
-  const _TopBarActions({
-    required this.currentPath,
-    this.overlay = false,
-    this.glass = false,
-    this.onRefresh,
-    this.isRefreshing = false,
-  });
-
-  final String currentPath;
-  final bool overlay;
-  final bool glass;
-  final VoidCallback? onRefresh;
-  final bool isRefreshing;
-
-  @override
-  ConsumerState<_TopBarActions> createState() => _TopBarActionsState();
-}
-
-class _TopBarActionsState extends ConsumerState<_TopBarActions> {
-  static const double _fieldWidth = 300;
-
-  final TextEditingController _controller = TextEditingController();
-  final FocusNode _focusNode = FocusNode(debugLabel: 'topbar-search');
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _focusNode.dispose();
-    super.dispose();
-  }
-
-  void _clearAndUnfocus() {
-    _controller.clear();
-    _focusNode.unfocus();
-  }
-
-  void _submit() {
-    final query = _controller.text.trim();
-    if (query.isEmpty) {
-      return;
-    }
-    context.pushDesktopSearch(query: query, fallbackPath: widget.currentPath);
-  }
-
-  void _openTextImageSearch() {
-    context.pushDesktopImageSearch(
-      fallbackPath: widget.currentPath,
-      initialInputKind: ImageSearchInputKind.text,
-    );
-  }
-
-  Future<void> _pickAndOpenImageSearch() async {
-    final l10n = appL10n(context);
-    try {
-      final pickedFile = await pickImageSearchFile(l10n: l10n);
-      if (pickedFile == null || !mounted) {
-        return;
-      }
-      context.pushDesktopImageSearch(
-        fallbackPath: widget.currentPath,
-        initialFileName: pickedFile.fileName,
-        initialFileBytes: pickedFile.bytes,
-        initialMimeType: pickedFile.mimeType,
-      );
-    } on ImageSearchFilePickerException catch (error) {
-      if (mounted) {
-        showToast(error.message, tone: AppToastTone.error);
-      }
-    } catch (_) {
-      if (mounted) {
-        showToast(l10n.shellImagePickFailed, tone: AppToastTone.error);
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = appL10n(context);
-    final imageSearchEnabled = ref.watch(imageSearchEnabledProvider);
-    final searchField = widget.glass
-        ? AppTopBarGlassSearchField(
-            key: const Key('topbar-search-field'),
-            fieldKey: const Key('topbar-search-input'),
-            imageSearchButtonKey: const Key('topbar-search-image'),
-            textImageSearchButtonKey: const Key('topbar-search-text-image'),
-            controller: _controller,
-            focusNode: _focusNode,
-            hintText: l10n.shellSearchHintExample,
-            onSubmitted: (_) => _submit(),
-            showImageSearchButton: imageSearchEnabled,
-            showTextImageSearchButton: imageSearchEnabled,
-            onImageSearchTap: _pickAndOpenImageSearch,
-            onTextImageSearchTap: _openTextImageSearch,
-          )
-        : CatalogSearchField(
-            key: const Key('topbar-search-field'),
-            fieldKey: const Key('topbar-search-input'),
-            imageSearchButtonKey: const Key('topbar-search-image'),
-            textImageSearchButtonKey: const Key('topbar-search-text-image'),
-            controller: _controller,
-            focusNode: _focusNode,
-            hintText: l10n.shellSearchHintExample,
-            // 收紧到 34 高：tightSuffix 解除后缀 48px 热区下限后，
-            // 高度 = max(后缀按钮 28, 字高 14 + 2×10)。
-            tightSuffix: true,
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: context.appFormTokens.fieldHorizontalPadding,
-              vertical: _compactSearchFieldVerticalPadding,
-            ),
-            // 34 高的字段上 8px 圆角偏圆，收紧到 4 更方。
-            borderRadius: context.appRadius.xsBorder,
-            showSearchButton: false,
-            showImageSearchButton: imageSearchEnabled,
-            showTextImageSearchButton: imageSearchEnabled,
-            onSubmitted: (_) => _submit(),
-            onImageSearchTap: _pickAndOpenImageSearch,
-            onTextImageSearchTap: _openTextImageSearch,
-          );
-    final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
-    final refresh = widget.onRefresh;
-    final actions = refresh == null
-        ? null
-        : widget.glass && !highContrast
-        ? AppGlassIconButton(
-            key: Key(
-              widget.isRefreshing
-                  ? 'topbar-refresh-button-loading'
-                  : 'topbar-refresh-button',
-            ),
-            tooltip: l10n.commonRefresh,
-            semanticLabel: l10n.commonRefresh,
-            icon: Icons.refresh_rounded,
-            iconWidget: widget.isRefreshing
-                ? SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator.adaptive(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color?>(
-                        context.appTextPalette.primary,
-                      ),
-                    ),
-                  )
-                : null,
-            iconSize: 18,
-            size: 32,
-            onPressed: widget.isRefreshing ? null : refresh,
-          )
-        : _TopBarRefreshButton(
-            onPressed: refresh,
-            isRefreshing: widget.isRefreshing,
-            overlay: widget.overlay,
-          );
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        SizedBox(
-          width: _fieldWidth,
-          child: CallbackShortcuts(
-            bindings: <ShortcutActivator, VoidCallback>{
-              const SingleActivator(LogicalKeyboardKey.escape):
-                  _clearAndUnfocus,
-            },
-            child: searchField,
-          ),
+    return <Widget>[
+      TopBarSearchActions(currentPath: currentPath, glass: glass),
+      if (onRefresh case final refresh?) ...[
+        SizedBox(width: context.appSpacing.xs),
+        TopBarRefreshButton(
+          onPressed: refresh,
+          isRefreshing: isRefreshing,
+          glass: glass,
+          overlay: overlay,
         ),
-        if (actions != null) ...[
-          SizedBox(width: context.appSpacing.xs),
-          actions,
-        ],
       ],
-    );
-  }
-}
-
-/// 非玻璃顶栏刷新按钮的占位宽度，与 AppIconButton(compact) 同宽。
-const double _topBarActionSlotWidth = appCompactIconButtonSize;
-
-/// 顶栏搜索框收紧后的垂直内边距：字段高 = max(28, 字高 14 + 2×10) = 34。
-///
-/// 没有等于 10 的间距 token（xs=4 / md=12），收到这里的命名常量，
-/// 避免在 `EdgeInsets` 里出现裸数字（theme_source_guard 禁令）。
-const double _compactSearchFieldVerticalPadding = 10;
-
-class _TopBarRefreshButton extends StatelessWidget {
-  const _TopBarRefreshButton({
-    required this.onPressed,
-    required this.isRefreshing,
-    this.overlay = false,
-  });
-
-  final VoidCallback onPressed;
-  final bool isRefreshing;
-  final bool overlay;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = appL10n(context);
-    final tokens = context.appComponentTokens;
-    final iconSize = tokens.iconSizeSm;
-
-    if (isRefreshing) {
-      return SizedBox(
-        key: const Key('topbar-refresh-button-loading'),
-        width: _topBarActionSlotWidth,
-        child: Center(
-          child: SizedBox(
-            width: iconSize,
-            height: iconSize,
-            child: CircularProgressIndicator.adaptive(
-              backgroundColor: switch (Theme.of(context).platform) {
-                TargetPlatform.iOS || TargetPlatform.macOS =>
-                  overlay
-                      ? context.appTextPalette.onMedia
-                      : context.appTextPalette.muted,
-                _ => null,
-              },
-              strokeWidth: 2,
-              valueColor: AlwaysStoppedAnimation<Color?>(
-                overlay
-                    ? context.appTextPalette.onMedia
-                    : context.appTextPalette.muted,
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    return SizedBox(
-      width: _topBarActionSlotWidth,
-      child: AppIconButton(
-        key: const Key('topbar-refresh-button'),
-        tooltip: l10n.commonRefresh,
-        onPressed: onPressed,
-        padding: EdgeInsets.zero,
-        icon: Icon(
-          Icons.refresh_rounded,
-          size: iconSize,
-          color: overlay ? context.appTextPalette.onMedia : null,
-        ),
-      ),
-    );
+    ];
   }
 }

@@ -11,8 +11,7 @@ import 'package:sakuramedia/features/videos/presentation/actions/video_playback_
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_player_page.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/domain/media/quick_play_dialog.dart';
@@ -57,11 +56,11 @@ Future<void> showMomentPreviewFlow({
   final actorId = selectedActorId;
   if (actorId != null) {
     isMobile
-        ? MobileActorDetailRouteData(actorId: actorId).push(context)
-        : context.pushDesktopActorDetail(
+        ? MobileRoutes.actorDetail(actorId: actorId).push(context)
+        : DesktopRoutes.actorDetail(
             actorId: actorId,
             fallbackPath: fallbackPath,
-          );
+          ).push(context);
     return;
   }
   switch (action) {
@@ -163,13 +162,13 @@ void openMomentSourceMovie({
     return;
   }
   if (AppPlatformScope.maybeOf(context) == AppPlatform.mobile) {
-    MobileMovieDetailRouteData(movieNumber: movieNumber).push(context);
+    MobileRoutes.movieDetail(movieNumber: movieNumber).push(context);
     return;
   }
-  context.pushDesktopMovieDetail(
+  DesktopRoutes.movieDetail(
     movieNumber: movieNumber,
     fallbackPath: fallbackPath,
-  );
+  ).push(context);
 }
 
 Future<void> _searchSimilar(

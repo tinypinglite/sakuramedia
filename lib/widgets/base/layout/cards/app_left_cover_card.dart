@@ -18,7 +18,7 @@ import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dar
 /// 封面本身的独立可点（比如"点封面 → 跳详情"）由调用方在 [cover] slot 内自行
 /// 包装——内层手势拦截不冒泡到外层，两层交互天然分离。
 ///
-/// 现有调用点：`_MediaRow`（媒体管理）、`_DownloadTaskCard`（下载任务）。
+/// 现有调用点：`_MediaRow`（媒体管理）、`DownloadTaskCard`（下载任务）。
 class AppLeftCoverCard extends StatelessWidget {
   const AppLeftCoverCard({
     super.key,

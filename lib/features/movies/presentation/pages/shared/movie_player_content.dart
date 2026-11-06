@@ -17,6 +17,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_player_
 import 'package:sakuramedia/features/movies/presentation/providers/movie_player_scope.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_player_state.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
@@ -349,7 +350,9 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
     }
     context.go(
       widget.fallbackPath ??
-          buildDesktopMovieDetailRoutePath(widget.movieNumber),
+          DesktopRoutes.movieDetail(
+            movieNumber: widget.movieNumber,
+          ).location,
     );
   }
 
@@ -393,11 +396,11 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
         context,
         imageUrl: thumbnail.image.origin,
         routePath: widget.imageSearchRoutePath,
-        fallbackPath: buildDesktopMoviePlayerRoutePath(
-          widget.movieNumber,
+        fallbackPath: DesktopRoutes.moviePlayer(
+          movieNumber: widget.movieNumber,
           mediaId: _playerState.selectedMedia?.mediaId,
           positionSeconds: _controller.currentPlaybackSeconds,
-        ),
+        ).location,
         fileName: fileName,
         replaceRouteStack: true,
       ),

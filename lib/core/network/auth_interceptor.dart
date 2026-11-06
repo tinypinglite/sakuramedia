@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:dio/dio.dart';
+import 'package:sakuramedia/core/network/api_error_dto.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/core/session/session_token_payload.dart';
@@ -130,18 +131,8 @@ class AuthInterceptor extends Interceptor {
   }
 
   String? _extractErrorCode(dynamic data) {
-    final decoded = switch (data) {
-      String() => _tryDecodeJson(data),
-      _ => data,
-    };
-    if (decoded is! Map) {
-      return null;
-    }
-    final error = decoded['error'];
-    if (error is! Map) {
-      return null;
-    }
-    return error['code'] as String?;
+    final decoded = data is String ? _tryDecodeJson(data) : data;
+    return ApiErrorDto.tryFromEnvelope(decoded)?.code;
   }
 
   dynamic _tryDecodeJson(String value) {

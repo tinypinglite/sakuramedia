@@ -9,8 +9,7 @@ import 'package:sakuramedia/features/tags/presentation/pages/desktop/tags_page.d
 import 'package:sakuramedia/features/tags/presentation/pages/mobile/tags_page.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
-import 'package:sakuramedia/routes/desktop_routes.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 
@@ -256,8 +255,8 @@ GoRouter _buildTagsRouter({
 }) {
   final tagsLocation = mobile ? mobileTagsPath : desktopTagsPath;
   final detailLocation = mobile
-      ? MobileMovieDetailRouteData(movieNumber: _movieNumber).location
-      : DesktopMovieDetailRouteData(movieNumber: _movieNumber).location;
+      ? MobileRoutes.movieDetail(movieNumber: _movieNumber).location
+      : DesktopRoutes.movieDetail(movieNumber: _movieNumber).location;
   Widget page() {
     final content = Scaffold(
       body: mobile

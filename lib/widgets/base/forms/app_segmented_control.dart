@@ -4,6 +4,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_pill.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_quality.dart';
 
 /// 分段控件的一项。
 class AppSegmentedItem<T> {
@@ -211,7 +212,7 @@ class _AppSegmentedControlState<T> extends State<AppSegmentedControl<T>> {
         indicatorShadow: isNeutral ? context.appShadows.indicator : null,
         settings: isNeutral ? null : _trackSettings(context),
         useOwnLayer: !isNeutral,
-        quality: GlassQuality.standard,
+        quality: AppGlassQuality.segmentedControl,
       );
     }
     return GlassSegmentedControl.scrollable(
@@ -235,7 +236,7 @@ class _AppSegmentedControlState<T> extends State<AppSegmentedControl<T>> {
       indicatorShadow: isNeutral ? context.appShadows.indicator : null,
       settings: isNeutral ? null : _trackSettings(context),
       useOwnLayer: !isNeutral,
-      quality: GlassQuality.standard,
+      quality: AppGlassQuality.segmentedControl,
     );
   }
 

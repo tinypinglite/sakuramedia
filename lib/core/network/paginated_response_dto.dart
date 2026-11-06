@@ -1,3 +1,5 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
+
 class PaginatedResponseDto<T> {
   const PaginatedResponseDto({
     required this.items,
@@ -21,34 +23,19 @@ class PaginatedResponseDto<T> {
     T Function(Map<String, dynamic> json) itemFromJson,
   ) {
     final rawItems = json['items'];
-    final items =
-        rawItems is List
-            ? rawItems
-                .whereType<Map>()
-                .map(
-                  (item) => itemFromJson(
-                    item.map(
-                      (dynamic key, dynamic value) =>
-                          MapEntry(key.toString(), value),
-                    ),
-                  ),
-                )
-                .toList(growable: false)
-            : <T>[];
+    final items = rawItems is List
+        ? <T>[
+            for (final item in rawItems)
+              if (asMapOrNull(item) case final map?) itemFromJson(map),
+          ]
+        : <T>[];
 
     return PaginatedResponseDto<T>(
       items: items,
-      page: json['page'] as int? ?? 1,
-      pageSize: json['page_size'] as int? ?? 20,
-      total: json['total'] as int? ?? 0,
-      syncedAt: _syncedAtFromJson(json['synced_at']),
+      page: asInt(json['page'], fallback: 1),
+      pageSize: asInt(json['page_size'], fallback: 20),
+      total: asInt(json['total']),
+      syncedAt: asDateTime(json['synced_at']),
     );
   }
-}
-
-DateTime? _syncedAtFromJson(dynamic value) {
-  if (value is! String || value.isEmpty) {
-    return null;
-  }
-  return DateTime.tryParse(value);
 }

@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_player_content.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_merged_play_content.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/desktop_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 
 export 'package:sakuramedia/features/movies/presentation/pages/shared/movie_player_content.dart'
     show MoviePlayerSurfaceBuilder;
@@ -41,7 +41,7 @@ class DesktopMoviePlayerPage extends StatelessWidget {
         libraryId: mergedLibraryId!,
         fallbackPath:
             fallbackPath ??
-            DesktopMovieDetailRouteData(movieNumber: movieNumber).location,
+            DesktopRoutes.movieDetail(movieNumber: movieNumber).location,
         useTouchOptimizedControls: useTouchOptimizedControls,
         imageSearchRoutePath: imageSearchRoutePath,
       );

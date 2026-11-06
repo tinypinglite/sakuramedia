@@ -11,6 +11,7 @@ import 'package:sakuramedia/core/platform/haptic_feedback.dart';
 import 'package:sakuramedia/core/platform/immersive_system_ui.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_image_mask.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 
 const Key kAppImageFullscreenOverlayKey = Key('app-image-fullscreen-overlay');
@@ -990,6 +991,13 @@ class _AppPinchToFullscreenImageState
   }
 
   void _resolveImageProvider() {
+    if (AppImageMask.enabled) {
+      _stopListeningToImageStream();
+      _resolvedImageProvider = null;
+      _resolvedAspectRatio = null;
+      return;
+    }
+
     final provider = _buildImageProvider();
     final resolvedAspectRatio = widget.imageAspectRatio;
     if (_resolvedImageProvider == provider &&
@@ -1061,7 +1069,7 @@ class _AppPinchToFullscreenImageState
   }
 
   void _handleTapUp(TapUpDetails details) {
-    if (!widget.enabled || _isFullscreenActive) {
+    if (AppImageMask.enabled || !widget.enabled || _isFullscreenActive) {
       return;
     }
 

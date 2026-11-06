@@ -12,10 +12,8 @@ import 'package:sakuramedia/features/search/presentation/providers/catalog_searc
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_state.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
-import 'package:sakuramedia/routes/desktop_routes.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/domain/search/catalog_search_content.dart';
 
@@ -151,11 +149,13 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
           .setActiveKind(_kindForIndex(index)),
       onMovieTap: (movie) {
         if (widget.mobile) {
-          MobileMovieDetailRouteData(
+          MobileRoutes.movieDetail(
             movieNumber: movie.movieNumber,
           ).push(context);
         } else {
-          context.pushDesktopMovieDetail(movieNumber: movie.movieNumber);
+          DesktopRoutes.movieDetail(
+            movieNumber: movie.movieNumber,
+          ).push(context);
         }
       },
       onMovieMenuRequest: (movie, globalPosition) => requestMovieCollectionMenu(
@@ -168,9 +168,9 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
       onMovieBlacklist: _hoverFeatureActions.blacklist,
       onActorTap: (actor) {
         if (widget.mobile) {
-          MobileActorDetailRouteData(actorId: actor.id).push(context);
+          MobileRoutes.actorDetail(actorId: actor.id).push(context);
         } else {
-          context.pushDesktopActorDetail(actorId: actor.id);
+          DesktopRoutes.actorDetail(actorId: actor.id).push(context);
         }
       },
       onMovieSubscriptionTap: (movie) =>
@@ -218,20 +218,16 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
     }
 
     if (widget.mobile) {
-      if (trimmedQuery.isEmpty) {
-        MobileSearchRouteData(useOnlineSearch: useOnlineSearch).push(context);
-      } else {
-        MobileSearchQueryRouteData(
-          query: trimmedQuery,
-          useOnlineSearch: useOnlineSearch,
-        ).push(context);
-      }
+      MobileRoutes.search(
+        query: trimmedQuery,
+        useOnlineSearch: useOnlineSearch,
+      ).push(context);
       return;
     }
-    context.pushDesktopSearch(
+    DesktopRoutes.search(
       query: submittedQuery,
       useOnlineSearch: useOnlineSearch,
-    );
+    ).push(context);
   }
 
   Future<void> _toggleMovieSubscription(String movieNumber) async {
@@ -283,18 +279,14 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
   }) {
     final trimmed = query.trim();
     if (widget.mobile) {
-      return trimmed.isEmpty
-          ? MobileSearchRouteData(useOnlineSearch: useOnlineSearch).location
-          : MobileSearchQueryRouteData(
-              query: trimmed,
-              useOnlineSearch: useOnlineSearch,
-            ).location;
+      return MobileRoutes.search(
+        query: trimmed,
+        useOnlineSearch: useOnlineSearch,
+      ).location;
     }
-    return trimmed.isEmpty
-        ? DesktopSearchRouteData(useOnlineSearch: useOnlineSearch).location
-        : DesktopSearchQueryRouteData(
-            query: trimmed,
-            useOnlineSearch: useOnlineSearch,
-          ).location;
+    return DesktopRoutes.search(
+      query: trimmed,
+      useOnlineSearch: useOnlineSearch,
+    ).location;
   }
 }

@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/series_movies_content.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 
@@ -25,7 +25,7 @@ class MobileSeriesMoviesPage extends StatelessWidget {
       totalKey: const Key('mobile-series-movies-total'),
       sectionSpacing: context.appSpacing.md,
       onMovieTap: (context, movieNumber) =>
-          MobileMovieDetailRouteData(movieNumber: movieNumber).push(context),
+          MobileRoutes.movieDetail(movieNumber: movieNumber).push(context),
       bodyBuilder: (context, scrollController, sliver, onRefresh) =>
           AppAdaptiveRefreshScrollView(
             onRefresh: onRefresh!,

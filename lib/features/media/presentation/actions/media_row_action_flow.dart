@@ -11,8 +11,7 @@ import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_act
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_actions_sheet.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_mutation_events_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/add_to_video_collection_dialog.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 
 /// 「媒体管理」媒体列表行点击后的动作编排：JAV → 影片操作弹层（播放 / 影片详情），
 /// PornBox → 复用视频操作弹窗 / 底部抽屉（播放 / 缩略图 / 加入合集）。
@@ -154,10 +153,10 @@ Future<void> _playVideo(
     return;
   }
   if (mobile) {
-    await MobileVideoPlayerRouteData(videoId: video.id).push<void>(context);
+    await MobileRoutes.videoPlayer(videoId: video.id).push<void>(context);
     return;
   }
-  context.pushDesktopVideoPlayer(videoId: video.id);
+  DesktopRoutes.videoPlayer(videoId: video.id).push(context);
 }
 
 void _openThumbnails(
@@ -166,10 +165,10 @@ void _openThumbnails(
   required bool mobile,
 }) {
   if (mobile) {
-    MobileVideoThumbnailRouteData(videoId: videoId).push<void>(context);
+    MobileRoutes.videoThumbnail(videoId: videoId).push<void>(context);
     return;
   }
-  context.pushDesktopVideoThumbnails(videoId: videoId);
+  DesktopRoutes.videoThumbnail(videoId: videoId).push(context);
 }
 
 void _openCollection(
@@ -178,12 +177,14 @@ void _openCollection(
   required bool mobile,
 }) {
   if (mobile) {
-    MobileVideoCollectionDetailRouteData(
+    MobileRoutes.videoCollectionDetail(
       collectionId: collectionId,
     ).push<void>(context);
     return;
   }
-  context.pushDesktopVideoCollectionDetail(collectionId: collectionId);
+  DesktopRoutes.videoCollectionDetail(
+    collectionId: collectionId,
+  ).push(context);
 }
 
 Future<void> _addToCollection(

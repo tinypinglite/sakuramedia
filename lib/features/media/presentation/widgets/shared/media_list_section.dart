@@ -50,7 +50,7 @@ import 'package:sakuramedia/widgets/domain/media/media_sort_menu_button.dart';
 /// - 多选：桌面顶栏「选择」入口 + 选择态操作条 / 移动 `AppMobileSelectionHeader`（顶）
 ///   + `AppSelectionBottomBar`（底）。
 ///
-/// 视觉参考「下载任务」卡片（[_DownloadTaskCard]）：页面灰底 + 每张 media card 直接浮起
+/// 视觉参考「下载任务」卡片（`DownloadTaskCard`）：页面灰底 + 每张 media card 直接浮起
 /// 为独立白卡（不再套 `AppContentCard`）。桌面顶栏统一走 [AppGlassListHeader]，
 /// 筛选、总数、排序、刷新和选择收在同一条玻璃控制条里。
 class MediaListSection extends HookConsumerWidget {

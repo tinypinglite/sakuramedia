@@ -9,7 +9,7 @@ import 'package:sakuramedia/features/playlists/presentation/providers/playlists_
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_scope.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_state.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
@@ -123,7 +123,7 @@ class _OverviewPlaylistBanner extends ConsumerWidget {
       title: playlist.name,
       coverImageUrl: coverImageUrl,
       onTap: () =>
-          MobilePlaylistDetailRouteData(playlistId: playlist.id).push(context),
+          MobileRoutes.playlistDetail(playlistId: playlist.id).push(context),
     );
   }
 }

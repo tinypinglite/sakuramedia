@@ -10,8 +10,7 @@ import 'package:sakuramedia/features/videos/presentation/providers/videos_api_pr
 import 'package:sakuramedia/features/videos/presentation/video_placeholders.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/create_video_collection_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
@@ -55,12 +54,14 @@ class _VideoCollectionsContentState
     VideoCollectionDto collection,
   ) async {
     if (widget.mobile) {
-      await MobileVideoCollectionDetailRouteData(
+      await MobileRoutes.videoCollectionDetail(
         collectionId: collection.id,
       ).push<void>(context);
       return;
     }
-    context.pushDesktopVideoCollectionDetail(collectionId: collection.id);
+    DesktopRoutes.videoCollectionDetail(
+      collectionId: collection.id,
+    ).push(context);
   }
 
   Future<void> _create(BuildContext context) async {

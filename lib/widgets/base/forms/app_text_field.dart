@@ -4,6 +4,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_chrome_settings.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_quality.dart';
 
 /// 统一的液态玻璃文本输入基座。
 ///
@@ -236,7 +237,7 @@ class _AppTextFieldState extends State<AppTextField> {
           shape: LiquidRoundedSuperellipse(borderRadius: resolvedRadius),
           settings: glassSettings,
           useOwnLayer: !highContrast,
-          quality: highContrast ? null : GlassQuality.premium,
+          quality: highContrast ? null : AppGlassQuality.input,
           surfaceStyle: highContrast
               ? GlassSurfaceStyle.solid
               : GlassSurfaceStyle.glass,

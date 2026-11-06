@@ -7,14 +7,15 @@ import 'package:sakuramedia/core/platform/haptic_feedback.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/shell/mobile/mobile_system_overlay.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_quality.dart';
 
-class AppMobileShell extends StatefulWidget {
+class AppMobileShell extends StatelessWidget {
   const AppMobileShell({
     super.key,
     required this.currentPath,
-    required this.navGroups,
+    required this.navItems,
     this.currentIndex,
-    this.onDestinationSelected = _noopDestinationSelected,
+    this.onDestinationSelected,
     this.drawer,
     this.drawerEnableOpenDragGesture = false,
     this.background,
@@ -22,9 +23,9 @@ class AppMobileShell extends StatefulWidget {
   });
 
   final String currentPath;
-  final List<AppNavGroup> navGroups;
+  final List<AppNavItem> navItems;
   final int? currentIndex;
-  final ValueChanged<int> onDestinationSelected;
+  final ValueChanged<int>? onDestinationSelected;
   final Widget? drawer;
   final bool drawerEnableOpenDragGesture;
 
@@ -34,26 +35,15 @@ class AppMobileShell extends StatefulWidget {
   final Widget? background;
   final Widget child;
 
-  static void _noopDestinationSelected(int _) {}
-
-  @override
-  State<AppMobileShell> createState() => _AppMobileShellState();
-}
-
-class _AppMobileShellState extends State<AppMobileShell> {
   @override
   Widget build(BuildContext context) {
-    final navItems = widget.navGroups
-        .expand((group) => group.items)
-        .toList(growable: false);
     final resolvedCurrentIndex =
-        widget.currentIndex ??
-        _resolveCurrentIndex(widget.currentPath, navItems);
+        currentIndex ?? _resolveCurrentIndex(currentPath, navItems);
     final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
     final useGlassNavigation = !highContrast;
 
     final shell = AnnotatedRegion<SystemUiOverlayStyle>(
-      value: widget.background == null
+      value: background == null
           ? resolveMobileSystemOverlayStyle(context)
           : resolveMobileSystemOverlayStyle(
               context,
@@ -61,8 +51,8 @@ class _AppMobileShellState extends State<AppMobileShell> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          if (widget.background != null)
-            widget.background!
+          if (background != null)
+            background!
           else
             ColoredBox(color: context.appColors.surfaceCard),
           Scaffold(
@@ -71,9 +61,9 @@ class _AppMobileShellState extends State<AppMobileShell> {
             // Scaffold 会把底栏高度写进 body 的 MediaQuery.padding.bottom，滚动页
             // 通过现有 bottomSafeAreaSliver 留出末尾空间；实色兜底栏不穿底。
             extendBody: useGlassNavigation,
-            drawer: widget.drawer,
+            drawer: drawer,
             drawerEnableOpenDragGesture:
-                widget.drawer != null && widget.drawerEnableOpenDragGesture,
+                drawer != null && drawerEnableOpenDragGesture,
             drawerEdgeDragWidth: _resolveDrawerEdgeDragWidth(context),
             body: SafeArea(
               key: const Key('mobile-shell-body-safe-area'),
@@ -81,7 +71,7 @@ class _AppMobileShellState extends State<AppMobileShell> {
               child: Padding(
                 key: const Key('mobile-shell-body-padding'),
                 padding: AppPageInsets.compactStandard,
-                child: widget.child,
+                child: child,
               ),
             ),
             bottomNavigationBar: useGlassNavigation
@@ -158,7 +148,7 @@ class _AppMobileShellState extends State<AppMobileShell> {
           fresnelStrength: 0,
           glowIntensity: 0,
         ),
-        quality: GlassQuality.premium,
+        quality: AppGlassQuality.navigation,
       ),
     );
   }
@@ -206,7 +196,7 @@ class _AppMobileShellState extends State<AppMobileShell> {
   /// 因设备/ROM 而异(只在 Android Q+ 非零),运行时从 MediaQuery 读,再往内侧
   /// 补一段 app 独占的可用带——外侧归系统返回,内侧归抽屉。
   double? _resolveDrawerEdgeDragWidth(BuildContext context) {
-    if (widget.drawer == null || !widget.drawerEnableOpenDragGesture) {
+    if (drawer == null || !drawerEnableOpenDragGesture) {
       return null;
     }
     return MediaQuery.systemGestureInsetsOf(context).left +
@@ -223,9 +213,9 @@ class _AppMobileShellState extends State<AppMobileShell> {
     if (index != currentIndex) {
       triggerSelectionHaptic();
     }
-    if (widget.onDestinationSelected !=
-        AppMobileShell._noopDestinationSelected) {
-      widget.onDestinationSelected(index);
+    final onSelected = onDestinationSelected;
+    if (onSelected != null) {
+      onSelected(index);
       return;
     }
     // 在未接入 StatefulShellRoute 的场景下，回退到传统的 go 导航。

@@ -24,7 +24,7 @@ import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_su
 import 'package:sakuramedia/features/playlists/presentation/widgets/movie_playlist_picker_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
@@ -359,7 +359,9 @@ class MovieDetailOverlayPresenter {
         await launchDesktopImageSearchFromUrl(
           context,
           imageUrl: imageUrl,
-          fallbackPath: buildDesktopMovieDetailRoutePath(movieNumber),
+          fallbackPath: DesktopRoutes.movieDetail(
+            movieNumber: movieNumber,
+          ).location,
           fileName: fileName,
           currentMovieNumber: movieNumber,
         );
@@ -396,7 +398,7 @@ class MovieDetailOverlayPresenter {
           bytes: imageBytes,
           mimeType: guessImageMimeType(fileName),
         );
-    MobileImageSearchRouteData(
+    MobileRoutes.imageSearch(
       draftId: draftId,
       currentMovieNumber: movieNumber,
     ).push(context);

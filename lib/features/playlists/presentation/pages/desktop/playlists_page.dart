@@ -12,7 +12,7 @@ import 'package:sakuramedia/features/playlists/presentation/providers/playlists_
 import 'package:sakuramedia/features/playlists/presentation/widgets/create_playlist_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
@@ -181,10 +181,10 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
           key: Key('playlist-banner-card-${playlist.id}'),
           title: playlist.name,
           coverImageUrl: coverImageUrl,
-          onTap: () => context.pushDesktopPlaylistDetail(
+          onTap: () => DesktopRoutes.playlistDetail(
             playlistId: playlist.id,
             fallbackPath: desktopPlaylistsPath,
-          ),
+          ).push(context),
         );
       },
     );

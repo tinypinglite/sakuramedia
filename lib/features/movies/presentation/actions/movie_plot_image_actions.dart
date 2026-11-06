@@ -10,6 +10,7 @@ import 'package:sakuramedia/features/image_search/presentation/actions/image_sea
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 
@@ -159,7 +160,7 @@ Future<void> _searchSimilar({
   final launch = () => launchDesktopImageSearchFromUrl(
     hostContext,
     imageUrl: imageUrl,
-    fallbackPath: buildDesktopMovieDetailRoutePath(movieNumber),
+    fallbackPath: DesktopRoutes.movieDetail(movieNumber: movieNumber).location,
     fileName: fileName,
     currentMovieNumber: movieNumber,
   );

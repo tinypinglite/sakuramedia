@@ -3,8 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:sakuramedia/core/media/image_runtime_platform_io.dart'
-    as runtime_platform;
+import 'package:sakuramedia/core/format/image_file_extension.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 
 enum ImageSaveStatus { success, cancelled, failed }
@@ -127,7 +126,7 @@ class ImageSaveService {
     required Uint8List bytes,
     String? dialogTitle,
   }) async {
-    final extension = _guessImageFileExtension(suggestedFileName);
+    final extension = guessImageFileExtension(suggestedFileName);
     final uri = await FilePicker.saveFile(
       dialogTitle: dialogTitle,
       fileName: suggestedFileName,
@@ -138,22 +137,16 @@ class ImageSaveService {
   }
 
   static ImageSavePlatform _defaultResolvePlatform() {
-    if (runtime_platform.runtimeIsDesktopPlatform() ||
-        defaultTargetPlatform == TargetPlatform.windows ||
-        defaultTargetPlatform == TargetPlatform.macOS) {
-      return ImageSavePlatform.desktop;
-    }
-    if (runtime_platform.runtimeIsMobilePlatform() ||
-        defaultTargetPlatform == TargetPlatform.android ||
-        defaultTargetPlatform == TargetPlatform.iOS) {
-      return ImageSavePlatform.mobile;
-    }
-    return ImageSavePlatform.unsupported;
+    return switch (defaultTargetPlatform) {
+      TargetPlatform.windows ||
+      TargetPlatform.macOS => ImageSavePlatform.desktop,
+      TargetPlatform.android || TargetPlatform.iOS => ImageSavePlatform.mobile,
+      _ => ImageSavePlatform.unsupported,
+    };
   }
 
   static Future<bool> _defaultRequestGalleryPermission() async {
-    if (runtime_platform.runtimeIsIosPlatform() ||
-        defaultTargetPlatform == TargetPlatform.iOS) {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
       final photosAddOnly = await Permission.photosAddOnly.request();
       if (photosAddOnly.isGranted || photosAddOnly.isLimited) {
         return true;
@@ -161,8 +154,7 @@ class ImageSaveService {
       final photos = await Permission.photos.request();
       return photos.isGranted || photos.isLimited;
     }
-    if (runtime_platform.runtimeIsAndroidPlatform() ||
-        defaultTargetPlatform == TargetPlatform.android) {
+    if (defaultTargetPlatform == TargetPlatform.android) {
       final photos = await Permission.photos.request();
       if (photos.isGranted || photos.isLimited) {
         return true;
@@ -208,25 +200,8 @@ class ImageSaveService {
     if (normalized.isNotEmpty) {
       return normalized.contains('.')
           ? normalized
-          : '$normalized.${_guessImageFileExtension(normalized)}';
+          : '$normalized.${guessImageFileExtension(normalized)}';
     }
     return 'image_${DateTime.now().millisecondsSinceEpoch}.webp';
-  }
-
-  static String _guessImageFileExtension(String fileName) {
-    final lower = fileName.toLowerCase();
-    if (lower.endsWith('.png')) {
-      return 'png';
-    }
-    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
-      return 'jpg';
-    }
-    if (lower.endsWith('.gif')) {
-      return 'gif';
-    }
-    if (lower.endsWith('.webp')) {
-      return 'webp';
-    }
-    return 'webp';
   }
 }

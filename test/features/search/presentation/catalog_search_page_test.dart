@@ -9,8 +9,7 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_page.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
-import 'package:sakuramedia/routes/desktop_routes.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 
 import '../../../support/test_api_bundle.dart';
@@ -132,8 +131,8 @@ void main() {
         await tester.pumpAndSettle();
 
         final queryLocation = mobile
-            ? const MobileSearchQueryRouteData(query: _movieNumber).location
-            : const DesktopSearchQueryRouteData(query: _movieNumber).location;
+            ? MobileRoutes.search(query: _movieNumber).location
+            : DesktopRoutes.search(query: _movieNumber).location;
         expect(
           router.routeInformationProvider.value.uri.toString(),
           queryLocation,
@@ -152,12 +151,8 @@ void main() {
         );
         await tester.pumpAndSettle();
         final detailLocation = mobile
-            ? const MobileMovieDetailRouteData(
-                movieNumber: _movieNumber,
-              ).location
-            : const DesktopMovieDetailRouteData(
-                movieNumber: _movieNumber,
-              ).location;
+            ? MobileRoutes.movieDetail(movieNumber: _movieNumber).location
+            : DesktopRoutes.movieDetail(movieNumber: _movieNumber).location;
         expect(router.routeInformationProvider.value.uri.path, detailLocation);
 
         router.pop();

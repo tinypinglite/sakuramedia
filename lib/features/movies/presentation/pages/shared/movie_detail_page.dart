@@ -35,8 +35,7 @@ import 'package:sakuramedia/features/status/presentation/providers/server_capabi
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
@@ -675,49 +674,57 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
   void _openMovie(String movieNumber) {
     if (widget.mobile) {
-      MobileMovieDetailRouteData(movieNumber: movieNumber).push(context);
+      MobileRoutes.movieDetail(movieNumber: movieNumber).push(context);
       return;
     }
-    context.pushDesktopMovieDetail(
+    DesktopRoutes.movieDetail(
       movieNumber: movieNumber,
-      fallbackPath: buildDesktopMovieDetailRoutePath(this.movieNumber),
-    );
+      fallbackPath: DesktopRoutes.movieDetail(
+        movieNumber: this.movieNumber,
+      ).location,
+    ).push(context);
   }
 
   void _openActor(int actorId) {
     if (widget.mobile) {
-      MobileActorDetailRouteData(actorId: actorId).push(context);
+      MobileRoutes.actorDetail(actorId: actorId).push(context);
       return;
     }
-    context.pushDesktopActorDetail(
+    DesktopRoutes.actorDetail(
       actorId: actorId,
-      fallbackPath: buildDesktopMovieDetailRoutePath(movieNumber),
-    );
+      fallbackPath: DesktopRoutes.movieDetail(
+        movieNumber: movieNumber,
+      ).location,
+    ).push(context);
   }
 
   void _openSeries(MovieDetailDto movie) {
     final seriesId = movie.seriesId;
     if (seriesId == null) return;
     if (widget.mobile) {
-      context.pushMobileMovieSeries(
+      MobileRoutes.movieSeries(
         seriesId: seriesId,
         seriesName: movie.seriesName,
-        fallbackPath: buildMobileMovieDetailRoutePath(movieNumber),
-      );
+        fallbackPath: MobileRoutes.movieDetail(
+          movieNumber: movieNumber,
+        ).location,
+      ).push(context);
     } else {
-      context.pushDesktopMovieSeries(
+      DesktopRoutes.movieSeries(
         seriesId: seriesId,
         seriesName: movie.seriesName,
-        fallbackPath: buildDesktopMovieDetailRoutePath(movieNumber),
-      );
+        fallbackPath: DesktopRoutes.movieDetail(
+          movieNumber: movieNumber,
+        ).location,
+      ).push(context);
     }
   }
 
   void _openTag(int tagId) {
     if (widget.mobile) {
-      context.pushMobileTags(tagId: tagId);
+      MobileRoutes.tagMovies(tagId: tagId).push(context);
     } else {
-      context.pushDesktopTags(tagId: tagId);
+      DesktopRoutes.tagMovies(tagId: tagId).push(context);
     }
   }
 

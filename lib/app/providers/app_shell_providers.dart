@@ -53,9 +53,6 @@ class AppVersionInfo extends _$AppVersionInfo {
   }
 
   Future<void> _loadVersions() async {
-    final current = state.value ?? AppVersionInfoState.initial;
-    state = AsyncData(current.copyWith(isLoading: true));
-
     final results = await Future.wait<String>([
       _frontendVersionFuture ??= _loadFrontendVersion(),
       _loadBackendVersion(),
@@ -67,7 +64,6 @@ class AppVersionInfo extends _$AppVersionInfo {
       AppVersionInfoState(
         frontendVersion: results[0],
         backendVersion: results[1],
-        hasLoaded: true,
       ),
     );
   }

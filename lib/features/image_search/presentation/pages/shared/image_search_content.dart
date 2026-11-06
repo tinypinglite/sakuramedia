@@ -20,7 +20,7 @@ import 'package:sakuramedia/features/image_search/presentation/providers/image_s
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_state.dart';
 import 'package:sakuramedia/features/media/data/media_point_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
@@ -970,10 +970,10 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
       if (widget.onOpenActorDetail != null) {
         widget.onOpenActorDetail!(context, actorId);
       } else {
-        context.pushDesktopActorDetail(
+        DesktopRoutes.actorDetail(
           actorId: actorId,
           fallbackPath: desktopImageSearchPath,
-        );
+        ).push(context);
       }
       return;
     }
@@ -1037,10 +1037,10 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
       customHandler(context, item);
       return;
     }
-    context.pushDesktopMovieDetail(
+    DesktopRoutes.movieDetail(
       movieNumber: item.movieNumber,
       fallbackPath: desktopImageSearchPath,
-    );
+    ).push(context);
   }
 
   String _resultImageUrl(ImageSearchResultItemDto item) {

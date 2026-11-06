@@ -5,7 +5,7 @@ import 'package:sakuramedia/features/recent_views/presentation/providers/recent_
 import 'package:sakuramedia/features/recent_views/presentation/widgets/recent_views_grid_sliver.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 
@@ -34,14 +34,14 @@ class DesktopRecentViewsPage extends ConsumerWidget {
             padding: EdgeInsets.only(top: context.appSpacing.lg),
             sliver: RecentViewsGridSliver(
               onRetry: () => ref.invalidate(recentViewsProvider),
-              onMovieTap: (movieNumber) => context.pushDesktopMovieDetail(
+              onMovieTap: (movieNumber) => DesktopRoutes.movieDetail(
                 movieNumber: movieNumber,
                 fallbackPath: desktopRecentViewsPath,
-              ),
-              onActorTap: (actorId) => context.pushDesktopActorDetail(
+              ).push(context),
+              onActorTap: (actorId) => DesktopRoutes.actorDetail(
                 actorId: actorId,
                 fallbackPath: desktopRecentViewsPath,
-              ),
+              ).push(context),
             ),
           ),
         ],

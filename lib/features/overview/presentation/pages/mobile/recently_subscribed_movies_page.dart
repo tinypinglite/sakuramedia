@@ -3,13 +3,13 @@ import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_summary_list_content.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 
 /// 移动端「最近订阅」全量列表页：概览「我的」tab 分区的「更多」落点。
 ///
-/// 顶栏（标题 + 返回）由 `MobileRecentlySubscribedMoviesRouteData` 的二级页壳提供。
+/// 顶栏（标题 + 返回）由 `MobileRoutes.recentlySubscribedMovies` 的二级页壳提供。
 class MobileRecentlySubscribedMoviesPage extends StatelessWidget {
   const MobileRecentlySubscribedMoviesPage({super.key});
 
@@ -27,7 +27,7 @@ class MobileRecentlySubscribedMoviesPage extends StatelessWidget {
       sectionSpacing: context.appSpacing.md,
       emptyMessage: l10n.overviewNoSubscribedMovies,
       onMovieTap: (context, movieNumber) =>
-          MobileMovieDetailRouteData(movieNumber: movieNumber).push(context),
+          MobileRoutes.movieDetail(movieNumber: movieNumber).push(context),
       showHeader: false,
       useMobileSelectionLayout: true,
       bodyBuilder: (context, scrollController, sliver, onRefresh) =>

@@ -4,7 +4,8 @@ import 'package:sakuramedia/features/configuration/presentation/providers/config
 import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_fix_target.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_navigation.dart';
+import 'package:sakuramedia/routes/app_route.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 
 /// 「去修复 →」跳转按钮：把目标分类写入一次性请求信号，再跳到配置页。
@@ -27,7 +28,7 @@ class DiagnosticFixButton extends ConsumerWidget {
         ref
             .read(configurationTabRequestProvider.notifier)
             .request(target.configurationTabKey);
-        context.goPrimaryRoute(desktopConfigurationPath);
+        context.goPrimary(AppRouteId.desktopConfiguration);
       },
     );
   }

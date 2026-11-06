@@ -52,4 +52,4 @@ Widget 测试只在低层测试无法证明时添加，例如：
 - 修改单个模块：直接运行对应测试文件或目录。
 - 提交前：运行 `./scripts/test.sh`；该脚本会根据当前 `test/` 内容生成临时 bundle。
 - 修改生产代码：运行 `flutter analyze --no-fatal-infos --no-fatal-warnings`。
-- 修改路由或 Riverpod 注解：先运行 build_runner，再运行相关测试。
+- 修改路由：运行路由契约测试和相关页面测试；修改 Riverpod 注解：先运行 build_runner，再运行相关测试。

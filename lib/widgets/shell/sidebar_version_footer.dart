@@ -1,51 +1,40 @@
-import 'dart:async';
-
 import 'package:material_ui/material_ui.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/app/app_version_info_state.dart';
-import 'package:sakuramedia/app/providers/app_shell_providers.dart';
-import 'package:sakuramedia/app/providers/app_update_check_provider.dart';
-import 'package:sakuramedia/app/providers/external_url_provider.dart';
-import 'package:sakuramedia/config/app_release_channels.dart';
-import 'package:sakuramedia/core/platform/clipboard_copy.dart';
-import 'package:sakuramedia/features/plugins/presentation/providers/plugins_provider.dart';
+import 'package:sakuramedia/app/providers/app_update_check_provider.dart'
+    show AppUpdateCheckState;
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 
 enum _VersionAction { frontendRelease, backendRelease, plugins }
 
 /// 账户卡里的版本入口：常态一行，点开后显示版本和可用更新。
-class SidebarVersionFooter extends ConsumerStatefulWidget {
+///
+/// 只负责展示和局部菜单交互；版本、更新状态与外链打开由容器提供。
+class SidebarVersionFooter extends StatelessWidget {
   const SidebarVersionFooter({
     super.key = const Key('sidebar-version-info'),
+    required this.version,
+    required this.pluginUpdates,
+    required this.updates,
+    required this.onOpenFrontendRelease,
+    required this.onOpenBackendRelease,
     required this.onOpenPluginUpdates,
+    this.onMenuOpened,
+    this.onMenuClosed,
   });
 
+  final AppVersionInfoState version;
+  final int pluginUpdates;
+  final AppUpdateCheckState updates;
+  final VoidCallback onOpenFrontendRelease;
+  final VoidCallback onOpenBackendRelease;
   final VoidCallback onOpenPluginUpdates;
-
-  @override
-  ConsumerState<SidebarVersionFooter> createState() =>
-      _SidebarVersionFooterState();
-}
-
-class _SidebarVersionFooterState extends ConsumerState<SidebarVersionFooter> {
-  bool _menuOpen = false;
+  final VoidCallback? onMenuOpened;
+  final VoidCallback? onMenuClosed;
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<bool>(appShellSidebarCollapsedProvider, (_, next) {
-      if (next && _menuOpen) {
-        _menuOpen = false;
-        Navigator.of(context, rootNavigator: true).maybePop();
-      }
-    });
-
-    final version =
-        ref.watch(appVersionInfoProvider).value ?? AppVersionInfoState.initial;
-    final pluginUpdates = ref.watch(pluginsProvider).value?.updates.length ?? 0;
-    final updates = ref.watch(appUpdateCheckProvider);
     final hasUpdates =
         updates.hasFrontendUpdate ||
         updates.hasBackendUpdate ||
@@ -65,21 +54,17 @@ class _SidebarVersionFooterState extends ConsumerState<SidebarVersionFooter> {
         borderRadius: context.appRadius.lgBorder,
         side: BorderSide(color: context.appColors.borderSubtle),
       ),
-      onOpened: () => _menuOpen = true,
-      onCanceled: () => _menuOpen = false,
+      onOpened: onMenuOpened,
+      onCanceled: onMenuClosed,
       onSelected: (action) {
-        _menuOpen = false;
+        onMenuClosed?.call();
         switch (action) {
           case _VersionAction.frontendRelease:
-            unawaited(
-              _openRelease(context, ref, AppReleaseChannels.frontendPageUrl),
-            );
+            onOpenFrontendRelease();
           case _VersionAction.backendRelease:
-            unawaited(
-              _openRelease(context, ref, AppReleaseChannels.backendPageUrl),
-            );
+            onOpenBackendRelease();
           case _VersionAction.plugins:
-            widget.onOpenPluginUpdates();
+            onOpenPluginUpdates();
         }
       },
       itemBuilder: (context) => [
@@ -163,7 +148,8 @@ class _SidebarVersionFooterState extends ConsumerState<SidebarVersionFooter> {
             SizedBox(width: context.appSpacing.sm),
             Expanded(
               child: Text(
-                '${version.frontendVersionLabel} · ${version.backendVersionLabel}',
+                '${version.frontendVersionLabel} · '
+                '${version.backendVersionLabel}',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: resolveAppTextStyle(
@@ -305,28 +291,4 @@ class _UpdateSummary extends StatelessWidget {
       overflow: TextOverflow.ellipsis,
     );
   }
-}
-
-Future<void> _openRelease(
-  BuildContext context,
-  WidgetRef ref,
-  String url,
-) async {
-  final uri = Uri.tryParse(url);
-  if (uri == null) {
-    return;
-  }
-  final l10n = appL10n(context);
-  final opened = await ref.read(externalUrlOpenerProvider)(uri);
-  if (opened || !context.mounted) {
-    return;
-  }
-  final copied = await copyTextToClipboard(url);
-  if (!context.mounted) {
-    return;
-  }
-  showToast(
-    copied ? l10n.shellBrowserOpenFailedCopied : l10n.shellBrowserOpenFailed,
-    tone: AppToastTone.error,
-  );
 }

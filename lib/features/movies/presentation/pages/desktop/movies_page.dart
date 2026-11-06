@@ -9,7 +9,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_summary
 import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_provider.dart';
 import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_scope.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 
 class DesktopMoviesPage extends ConsumerStatefulWidget {
@@ -70,10 +70,10 @@ class _DesktopMoviesPageState extends ConsumerState<DesktopMoviesPage> {
       enableMediaTagFilter: true,
       sectionSpacing: context.appSpacing.lg,
       registerPageRefresh: true,
-      onMovieTap: (context, movieNumber) => context.pushDesktopMovieDetail(
+      onMovieTap: (context, movieNumber) => DesktopRoutes.movieDetail(
         movieNumber: movieNumber,
         fallbackPath: desktopMoviesPath,
-      ),
+      ).push(context),
       bodyBuilder: (context, scrollController, sliver, _) => CustomScrollView(
         key: const PageStorageKey<String>('desktop:movies:list'),
         controller: scrollController,

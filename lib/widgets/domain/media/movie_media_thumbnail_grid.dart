@@ -14,6 +14,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/staggered_layout.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_clickable.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_trigger.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_image_mask.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
 // 瀑布流布局工具已抽到 lib/widgets/base/layout/grids/staggered_layout.dart 共用，本文件 re-export 三符号
@@ -1018,6 +1019,13 @@ class _AdaptiveFitThumbnailImageState
   }
 
   void _resolveMeasureProvider() {
+    if (AppImageMask.enabled) {
+      _stopListening();
+      _measureProvider = null;
+      _aspectRatio = null;
+      return;
+    }
+
     final provider = _buildMeasureProvider();
     if (_measureProvider == provider) {
       return;

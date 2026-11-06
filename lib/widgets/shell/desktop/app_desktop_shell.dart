@@ -1,7 +1,5 @@
-import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
@@ -10,13 +8,14 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_controller.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/shell/desktop/app_sidebar.dart';
-import 'package:sakuramedia/widgets/shell/desktop/app_sidebar_toggle_button.dart';
 import 'package:sakuramedia/widgets/shell/desktop/app_top_bar.dart';
+import 'package:sakuramedia/widgets/shell/desktop/desktop_chrome_policy.dart';
 import 'package:sakuramedia/widgets/shell/desktop/desktop_ambient_backdrop.dart';
-import 'package:sakuramedia/widgets/shell/window/app_mac_traffic_lights.dart';
+import 'package:sakuramedia/widgets/shell/desktop/desktop_window_controls.dart';
 import 'package:sakuramedia/widgets/shell/window/app_window_drag_area.dart';
 import 'package:sakuramedia/widgets/shell/window/app_windows_caption.dart';
 
@@ -27,7 +26,7 @@ class AppDesktopShell extends ConsumerStatefulWidget {
     required this.layout,
     required this.topBarConfig,
     required this.shellNavigatorKey,
-    required this.navGroups,
+    required this.navItems,
     required this.child,
     this.showTopBar = true,
   });
@@ -36,7 +35,7 @@ class AppDesktopShell extends ConsumerStatefulWidget {
   final AppShellLayout layout;
   final DesktopTopBarConfig topBarConfig;
   final GlobalKey<NavigatorState> shellNavigatorKey;
-  final List<AppNavGroup> navGroups;
+  final List<AppNavItem> navItems;
   final Widget child;
 
   /// 是否渲染内容区顶栏。标签页传 false，只隐藏顶栏内容；
@@ -49,11 +48,8 @@ class AppDesktopShell extends ConsumerStatefulWidget {
 }
 
 class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
-  final List<AppPageRefreshCallback> _stack = <AppPageRefreshCallback>[];
-  late final AppPageRefreshRegistrar _registrar = AppPageRefreshRegistrar(
-    register: _register,
-    unregister: _unregister,
-  );
+  late final AppPageRefreshController _refreshController =
+      AppPageRefreshController();
 
   /// 单例 in-flight 闸门：按钮点击和 Cmd/Ctrl+R 快捷键共用同一份状态，
   /// 避免其中一条路径绕过对方的 debounce。
@@ -62,8 +58,6 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
   /// 路由切换 [AppShellLayout] 时，内容边距必须和页面一起瞬时切换；
   /// 只有侧栏折叠造成的边距变化才需要过渡。
   bool _isLayoutTransitioning = false;
-
-  AppPageRefreshCallback? get _current => _stack.isEmpty ? null : _stack.last;
 
   @override
   void didUpdateWidget(covariant AppDesktopShell oldWidget) {
@@ -79,34 +73,10 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
     });
   }
 
-  void _register(AppPageRefreshCallback callback) {
-    _stack.add(callback);
-    _scheduleRebuild();
-  }
-
-  void _unregister(AppPageRefreshCallback callback) {
-    if (!_stack.remove(callback)) return;
-    _scheduleRebuild();
-  }
-
-  void _scheduleRebuild() {
-    if (!mounted) return;
-    final phase = SchedulerBinding.instance.schedulerPhase;
-    // 页面在 build 阶段通过 didChangeDependencies 注册回调时，
-    // 不能立即 setState（会触发 build-during-build）。延迟到下一帧。
-    // 注意：runApp 首次 attach 是在 microtask 里跑 buildScope，
-    // 此时 schedulerPhase 仍是 idle，光看 phase 会漏掉这种情况——
-    // 所以再叠一层 buildOwner.debugBuilding 判定。
-    final building = WidgetsBinding.instance.buildOwner?.debugBuilding ?? false;
-    if (!building &&
-        (phase == SchedulerPhase.idle ||
-            phase == SchedulerPhase.postFrameCallbacks)) {
-      setState(() {});
-      return;
-    }
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) setState(() {});
-    });
+  @override
+  void dispose() {
+    _refreshController.dispose();
+    super.dispose();
   }
 
   /// 顶栏刷新按钮与 Cmd/Ctrl+R 共用的入口：
@@ -136,7 +106,7 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
   }
 
   void _triggerCurrentRefresh() {
-    final callback = _current;
+    final callback = _refreshController.current;
     if (callback == null) return;
     // 快捷键路径也走 _runRefresh，与按钮共享 in-flight 闸门与 toast 兜底。
     _runRefresh(callback);
@@ -166,21 +136,17 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
 
   @override
   Widget build(BuildContext context) {
-    final useDesktopSidebarGlass =
-        !kIsWeb &&
-        (defaultTargetPlatform == TargetPlatform.macOS ||
-            defaultTargetPlatform == TargetPlatform.windows);
+    final chrome = DesktopChromePolicy.of(context);
 
-    final current = _current;
     final immersive = widget.layout == AppShellLayout.immersive;
-    final ambientSurface = useDesktopSidebarGlass && !immersive;
+    final ambientSurface = chrome.usesGlassSidebar && !immersive;
     final titleBarHeight = context.appComponentTokens.desktopTitleBarHeight;
     final showTopBar = widget.showTopBar;
     // 内容区在 standard / fullscreen / immersive 三态共用**同一棵树**：只改内边距
     // 数值与顶栏的悬浮开关。navigator 因此不换父级——换父级会让整条路由栈
     // （含背后已缓存的列表页）在切布局那一帧被重新激活并重排，进详情页会明显变慢。
     final sidebarCollapsed = ref.watch(appShellSidebarCollapsedProvider);
-    final glassSidebarExpanded = useDesktopSidebarGlass && !sidebarCollapsed;
+    final glassSidebarExpanded = chrome.usesGlassSidebar && !sidebarCollapsed;
     final EdgeInsets contentPadding;
     if (immersive) {
       // 顶栏透明悬浮在内容之上，内容全幅铺底。
@@ -202,7 +168,7 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
       contentPadding = EdgeInsets.only(top: titleBarHeight);
     }
     return AppPageRefreshRegistrarScope(
-      registrar: _registrar,
+      registrar: _refreshController.registrar,
       child: CallbackShortcuts(
         bindings: <ShortcutActivator, VoidCallback>{
           const SingleActivator(LogicalKeyboardKey.keyR, meta: true):
@@ -211,7 +177,7 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
               _triggerCurrentRefresh,
         },
         child: Scaffold(
-          backgroundColor: useDesktopSidebarGlass
+          backgroundColor: chrome.usesGlassSidebar
               ? Colors.transparent
               : context.appColors.surfacePage,
           body: SafeArea(
@@ -220,7 +186,7 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
                 Positioned.fill(
                   child: IgnorePointer(
                     child: DesktopAmbientBackdrop(
-                      enabled: useDesktopSidebarGlass,
+                      enabled: chrome.usesGlassSidebar,
                     ),
                   ),
                 ),
@@ -228,7 +194,7 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
                   children: [
                     AppSidebar(
                       currentPath: widget.currentPath,
-                      navGroups: widget.navGroups,
+                      navItems: widget.navItems,
                     ),
                     Expanded(
                       child: Container(
@@ -253,15 +219,23 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
                                 top: 0,
                                 left: 0,
                                 right: 0,
-                                child: _buildTopBar(
-                                  context,
-                                  current: current,
-                                  immersive: immersive,
-                                  ambientSurface: ambientSurface,
-                                  sidebarCollapsed: sidebarCollapsed,
-                                ),
+                                child:
+                                    ValueListenableBuilder<
+                                      AppPageRefreshCallback?
+                                    >(
+                                      valueListenable:
+                                          _refreshController.listenable,
+                                      builder: (context, current, _) =>
+                                          _buildTopBar(
+                                            context,
+                                            current: current,
+                                            immersive: immersive,
+                                            ambientSurface: ambientSurface,
+                                            sidebarCollapsed: sidebarCollapsed,
+                                          ),
+                                    ),
                               )
-                            else if (usesAppWindowsCaption) ...[
+                            else if (chrome.usesWindowsCaption) ...[
                               // Windows 的窗口按钮由顶栏承载；隐藏顶栏时
                               // 只保留按钮和拖拽区，避免丢失窗口操作。
                               Positioned(
@@ -285,27 +259,9 @@ class _AppDesktopShellState extends ConsumerState<AppDesktopShell> {
                     ),
                   ],
                 ),
-                // macOS 红绿灯自绘（系统按钮已隐藏），与收起/展开按钮
-                // 一样固定在窗口坐标系，不随侧栏宽度动画移动。
-                if (defaultTargetPlatform == TargetPlatform.macOS)
-                  Positioned(
-                    left: appMacTrafficLightsLeft,
-                    top:
-                        (context.appComponentTokens.desktopTitleBarHeight -
-                            appMacTrafficLightButtonSize) /
-                        2,
-                    child: const AppMacTrafficLights(),
-                  ),
-                // 收起/展开按钮固定在窗口左上角（macOS 红绿灯右侧），
+                // 红绿灯和收起/展开按钮固定在窗口坐标系，
                 // 不随侧栏宽度动画和顶栏布局切换移动。
-                Positioned(
-                  left: sidebarToggleButtonLeft(context),
-                  top:
-                      (context.appComponentTokens.desktopTitleBarHeight -
-                          sidebarToggleButtonSize) /
-                      2,
-                  child: const AppSidebarToggleButton(),
-                ),
+                Positioned.fill(child: DesktopWindowControls(policy: chrome)),
               ],
             ),
           ),

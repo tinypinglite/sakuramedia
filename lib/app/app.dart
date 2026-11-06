@@ -8,6 +8,8 @@ import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/appearance_store.dart';
+import 'package:sakuramedia/app/glass_performance.dart';
+import 'package:sakuramedia/app/glass_quality_store.dart';
 import 'package:sakuramedia/app/language/language_store.dart';
 import 'package:sakuramedia/app/language/providers/language_providers.dart';
 import 'package:sakuramedia/app/providers/appearance_providers.dart';
@@ -43,6 +45,7 @@ class MyApp extends StatefulWidget {
     this.sessionStore,
     this.appearanceStore,
     this.languageStore,
+    this.glassQualityStore,
     this.observers,
   });
 
@@ -54,6 +57,9 @@ class MyApp extends StatefulWidget {
 
   /// 界面语言存储；生产传 SharedPreferences 实现，测试/预览默认内存实现。
   final AppLanguageStore? languageStore;
+
+  /// 自适应玻璃档位存储；生产传 SharedPreferences 实现，测试/预览默认内存实现。
+  final GlassQualityStore? glassQualityStore;
 
   /// 挂到组合根 [ProviderScope] 上的观察者。
   ///
@@ -71,6 +77,7 @@ class _MyAppState extends State<MyApp> {
   late SessionStore _activeSessionStore;
   late AppearanceStore _activeAppearanceStore;
   late AppLanguageStore _activeLanguageStore;
+  late GlassQualityStore _activeGlassQualityStore;
   late GoRouter _router;
   late bool _ownsSessionStore;
 
@@ -83,6 +90,11 @@ class _MyAppState extends State<MyApp> {
   @override
   void didUpdateWidget(covariant MyApp oldWidget) {
     super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.glassQualityStore != widget.glassQualityStore) {
+      _activeGlassQualityStore =
+          widget.glassQualityStore ?? InMemoryGlassQualityStore();
+    }
 
     if (oldWidget.platformOverride == widget.platformOverride &&
         oldWidget.sessionStore == widget.sessionStore &&
@@ -107,7 +119,13 @@ class _MyAppState extends State<MyApp> {
     _activeAppearanceStore =
         widget.appearanceStore ?? InMemoryAppearanceStore();
     _activeLanguageStore = widget.languageStore ?? InMemoryLanguageStore();
+    _activeGlassQualityStore =
+        widget.glassQualityStore ?? InMemoryGlassQualityStore();
     _router = buildAppRouter(_platform, _activeSessionStore);
+  }
+
+  void _persistGlassQuality(GlassQuality quality) {
+    unawaited(_activeGlassQualityStore.save(quality));
   }
 
   void _disposeAppState() {
@@ -129,8 +147,19 @@ class _MyAppState extends State<MyApp> {
     //
     // key 绑定会话实例：`didUpdateWidget` 换 sessionStore 时整个容器随之
     // 重建，等价于旧 MultiProvider 时代的全量重挂。
+    //
+    // 玻璃自适应只在根部挂一个 scope：路由、弹层、Toast 和播放器浮层都在
+    // 它下面，不需要逐页重复接。已稳定的档位由 GlassQualityStore 持久化。
+    final glassQuality = _activeGlassQualityStore.read();
     return LiquidGlassWidgets.wrap(
       brightnessResolver: Theme.maybeBrightnessOf,
+      adaptiveQuality: AppGlassPerformance.enabled,
+      adaptiveConfig: AppGlassPerformance.enabled
+          ? AppGlassPerformance.adaptiveConfig(
+              initialQuality: glassQuality,
+              onQualityChanged: _persistGlassQuality,
+            )
+          : null,
       child: ProviderScope(
         key: ObjectKey(_activeSessionStore),
         overrides: [

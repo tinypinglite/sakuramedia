@@ -1,35 +1,41 @@
-import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/app/providers/app_shell_providers.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/notification_center_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/configuration_tab_request_provider.dart';
+import 'package:sakuramedia/features/auth/presentation/actions/auth_actions.dart';
+import 'package:sakuramedia/routes/app_route.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
 import 'package:sakuramedia/widgets/shell/app_sidebar_account_card.dart';
+import 'package:sakuramedia/widgets/shell/desktop/app_sidebar_item.dart';
+import 'package:sakuramedia/widgets/shell/desktop/app_sidebar_nav_scroll_area.dart';
+import 'package:sakuramedia/widgets/shell/desktop/desktop_chrome_policy.dart';
 import 'package:sakuramedia/widgets/shell/window/app_window_drag_area.dart';
+
+export 'app_sidebar_item.dart';
 
 class AppSidebar extends ConsumerWidget {
   const AppSidebar({
     super.key,
     required this.currentPath,
-    required this.navGroups,
+    required this.navItems,
   });
 
   final String currentPath;
-  final List<AppNavGroup> navGroups;
+  final List<AppNavItem> navItems;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isCompact = ref.watch(appShellSidebarCollapsedProvider);
     final sidebarTokens = context.appSidebarTokens;
     final appColors = context.appColors;
-    final useDesktopSidebarGlass = _useDesktopSidebarGlass;
-    final glassTint = defaultTargetPlatform == TargetPlatform.windows
+    final chrome = DesktopChromePolicy.of(context);
+    final useDesktopSidebarGlass = chrome.usesGlassSidebar;
+    // Windows 的系统模糊比 macOS 更透明，tint 需要更实。
+    final glassTint = chrome.usesWindowsCaption
         ? appColors.windowsSidebarGlassTint
         : appColors.desktopSidebarGlassTint;
     if (useDesktopSidebarGlass) {
@@ -55,7 +61,13 @@ class AppSidebar extends ConsumerWidget {
                 width: sidebarTokens.expandedWidth,
                 borderRadius: BorderRadius.circular(sidebarTokens.panelRadius),
                 padding: EdgeInsets.zero,
-                child: _buildSidebarColumn(context, ref, fadeColor: glassTint),
+                child: _buildSidebarColumn(
+                  context,
+                  ref,
+                  fadeColor: glassTint,
+                  isCompact: isCompact,
+                  usesGlassSidebar: useDesktopSidebarGlass,
+                ),
               ),
             ),
           ),
@@ -92,6 +104,8 @@ class AppSidebar extends ConsumerWidget {
             context,
             ref,
             fadeColor: appColors.sidebarBackground,
+            isCompact: isCompact,
+            usesGlassSidebar: useDesktopSidebarGlass,
           ),
         ),
       ),
@@ -102,6 +116,8 @@ class AppSidebar extends ConsumerWidget {
     BuildContext context,
     WidgetRef ref, {
     required Color fadeColor,
+    required bool isCompact,
+    required bool usesGlassSidebar,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -109,35 +125,41 @@ class AppSidebar extends ConsumerWidget {
         SizedBox(
           key: const Key('sidebar-header'),
           height: context.appComponentTokens.desktopTitleBarHeight,
-          // macOS 下这是窗口拖拽区；红绿灯垂直居中于 header，
+          // macOS / Windows 下这是窗口拖拽区；红绿灯垂直居中于 header，
           // 收起/展开按钮由壳层固定渲染在红绿灯右侧，不在侧栏内部。
-          child: defaultTargetPlatform == TargetPlatform.macOS
+          // Linux 保留原生标题栏，不在这里叠加拖拽区。
+          child: usesGlassSidebar
               ? const AppWindowDragArea(
                   child: ColoredBox(color: Colors.transparent),
                 )
               : const SizedBox.shrink(),
         ),
         Expanded(
-          child: _SidebarNavScrollArea(
+          child: SidebarNavScrollArea(
             horizontalPadding: context.appSpacing.sm,
             fadeColor: fadeColor,
+            isCompact: isCompact,
             children: _buildNavChildren(context),
           ),
         ),
-        Padding(
-          padding: EdgeInsets.all(context.appSpacing.sm),
-          child: AppSidebarAccountCard(
-            onLogout: () {
-              context.logOut();
-            },
-            onOpenPluginUpdates: () {
-              ref
-                  .read(configurationTabRequestProvider.notifier)
-                  .request('configuration-tab-plugins');
-              context.goPrimaryRoute(desktopConfigurationPath);
-            },
+        // 收起态不构建账户卡：它订阅插件、版本更新等全局 Provider，
+        // 隐藏侧栏时没有必要继续监听。导航滚动区仍保留在 Offstage 内，
+        // 以便展开时恢复滚动位置。
+        if (!isCompact)
+          Padding(
+            padding: EdgeInsets.all(context.appSpacing.sm),
+            child: AppSidebarAccountCard(
+              onLogout: () {
+                context.logOut();
+              },
+              onOpenPluginUpdates: () {
+                ref
+                    .read(configurationTabRequestProvider.notifier)
+                    .request('configuration-tab-plugins');
+                context.goPrimary(AppRouteId.desktopConfiguration);
+              },
+            ),
           ),
-        ),
       ],
     );
   }
@@ -145,8 +167,8 @@ class AppSidebar extends ConsumerWidget {
   List<Widget> _buildNavChildren(BuildContext context) {
     final children = <Widget>[];
     String? previousSection;
-    for (final group in navGroups) {
-      final section = group.sectionLabel;
+    for (final item in navItems) {
+      final section = item.sectionLabel;
       if (section != null && section != previousSection) {
         children.add(_SidebarSectionHeader(label: section));
       }
@@ -154,7 +176,7 @@ class AppSidebar extends ConsumerWidget {
       children.add(
         Padding(
           padding: EdgeInsets.only(bottom: context.appSpacing.xs),
-          child: AppSidebarGroup(group: group, currentPath: currentPath),
+          child: _AppSidebarDestination(item: item, currentPath: currentPath),
         ),
       );
     }
@@ -190,153 +212,27 @@ class _SidebarSectionHeader extends StatelessWidget {
   }
 }
 
-/// 侧边栏一级导航的滚动区。当内容溢出、底部仍可下滑时，在底部叠一层
-/// 透明→底色的渐隐遮罩，提示「下面还有内容」；滚到底自动消失。
-/// 遮罩为纯装饰（[IgnorePointer]），不拦截对底部菜单项的点击。
-/// 桌面侧栏不需要滚动条：用 [ScrollConfiguration] 关掉全局
-/// [MaterialScrollBehavior] 自动叠加的滚动条，保留滚轮/拖拽滚动。
-class _SidebarNavScrollArea extends StatefulWidget {
-  const _SidebarNavScrollArea({
-    required this.horizontalPadding,
-    required this.fadeColor,
-    required this.children,
-  });
+class _AppSidebarDestination extends ConsumerWidget {
+  const _AppSidebarDestination({required this.item, required this.currentPath});
 
-  final double horizontalPadding;
-  final Color fadeColor;
-  final List<Widget> children;
-
-  @override
-  State<_SidebarNavScrollArea> createState() => _SidebarNavScrollAreaState();
-}
-
-class _SidebarNavScrollAreaState extends State<_SidebarNavScrollArea> {
-  final ScrollController _controller = ScrollController();
-  bool _canScrollDown = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller.addListener(_recompute);
-    _scheduleRecompute();
-  }
-
-  @override
-  void didUpdateWidget(covariant _SidebarNavScrollArea oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // 折叠/展开或导航内容变化会改变溢出状态，下一帧重新评估。
-    _scheduleRecompute();
-  }
-
-  @override
-  void dispose() {
-    _controller.removeListener(_recompute);
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _scheduleRecompute() {
-    WidgetsBinding.instance.addPostFrameCallback((_) => _recompute());
-  }
-
-  void _recompute() {
-    if (!mounted || !_controller.hasClients) {
-      return;
-    }
-    final position = _controller.position;
-    final canScrollDown =
-        position.maxScrollExtent > 0 &&
-        position.pixels < position.maxScrollExtent - 1.0;
-    if (canScrollDown != _canScrollDown) {
-      setState(() => _canScrollDown = canScrollDown);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return NotificationListener<ScrollMetricsNotification>(
-      onNotification: (_) {
-        // 视口或内容尺寸变化（如窗口 resize）时同步重算。
-        _scheduleRecompute();
-        return false;
-      },
-      child: Stack(
-        children: [
-          ScrollConfiguration(
-            behavior: ScrollConfiguration.of(
-              context,
-            ).copyWith(scrollbars: false),
-            child: SingleChildScrollView(
-              controller: _controller,
-              padding: EdgeInsets.symmetric(
-                horizontal: widget.horizontalPadding,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: widget.children,
-              ),
-            ),
-          ),
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: IgnorePointer(
-              child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 150),
-                opacity: _canScrollDown ? 1 : 0,
-                child: Container(
-                  key: const Key('sidebar-nav-scroll-fade'),
-                  height: _sidebarNavFadeHeight,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        widget.fadeColor.withValues(alpha: 0),
-                        widget.fadeColor,
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-const double _sidebarNavFadeHeight = 32;
-
-class AppSidebarGroup extends ConsumerWidget {
-  const AppSidebarGroup({
-    super.key,
-    required this.group,
-    required this.currentPath,
-  });
-
-  final AppNavGroup group;
+  final AppNavItem item;
   final String currentPath;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final primaryItem = group.items.first;
-
     AppSidebarItem buildItem(int? badgeCount) {
       return AppSidebarItem(
-        key: Key('nav-group-${group.id}'),
-        icon: group.icon,
-        label: group.label,
-        selected: currentPath == primaryItem.path,
+        key: Key('nav-group-${item.name}'),
+        icon: item.icon,
+        label: item.label,
+        selected: _isPrimaryPathSelected(currentPath, item.path),
         badgeCount: badgeCount,
-        onTap: () => context.goPrimaryRoute(primaryItem.path),
+        onTap: () => context.goPrimary(item.routeId),
       );
     }
 
-    // 仅「通知」组订阅全局未读数，其它组不监听、避免无谓重建。
-    if (group.id != 'notifications') {
+    // 仅「通知」目的地订阅全局未读数，其它目的地不监听、避免无谓重建。
+    if (item.routeId != AppRouteId.desktopNotifications) {
       return buildItem(null);
     }
     final unreadCount = ref.watch(
@@ -346,123 +242,6 @@ class AppSidebarGroup extends ConsumerWidget {
   }
 }
 
-class AppSidebarItem extends StatefulWidget {
-  const AppSidebarItem({
-    super.key,
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    required this.selected,
-    this.badgeCount,
-  });
-
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  final bool selected;
-
-  /// 尾部未读角标数；`null` 或 `<= 0` 不显示。
-  final int? badgeCount;
-
-  @override
-  State<AppSidebarItem> createState() => _AppSidebarItemState();
+bool _isPrimaryPathSelected(String currentPath, String primaryPath) {
+  return currentPath == primaryPath || currentPath.startsWith('$primaryPath/');
 }
-
-class _AppSidebarItemState extends State<AppSidebarItem> {
-  bool _hovered = false;
-
-  bool get _hasBadge => (widget.badgeCount ?? 0) > 0;
-
-  String get _badgeLabel {
-    final count = widget.badgeCount ?? 0;
-    return count > 99 ? '99+' : '$count';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final appColors = context.appColors;
-    final sidebarTokens = context.appSidebarTokens;
-    final useDesktopSidebarGlass = _useDesktopSidebarGlass;
-    final isHovered = _hovered && !widget.selected;
-    final backgroundColor = useDesktopSidebarGlass
-        ? widget.selected
-              ? appColors.desktopSidebarGlassActive
-              : isHovered
-              ? appColors.desktopSidebarGlassHover
-              : Colors.transparent
-        : widget.selected
-        ? appColors.sidebarActiveBackground
-        : isHovered
-        ? appColors.sidebarHoverBackground
-        : appColors.sidebarBackground;
-
-    final foregroundColor = context.appTextPalette.primary;
-    final labelStyle = resolveAppTextStyle(
-      context,
-      size: AppTextSize.s14,
-      weight: widget.selected ? AppTextWeight.medium : AppTextWeight.regular,
-      tone: widget.selected ? AppTextTone.primary : AppTextTone.secondary,
-    );
-
-    return Tooltip(
-      message: widget.label,
-      waitDuration: const Duration(milliseconds: 300),
-      child: Padding(
-        padding: EdgeInsets.only(bottom: context.appSpacing.xs),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: context.appRadius.smBorder,
-            mouseCursor: SystemMouseCursors.click,
-            onTap: widget.onTap,
-            onHover: (hovered) {
-              if (_hovered == hovered) {
-                return;
-              }
-              setState(() => _hovered = hovered);
-            },
-            overlayColor: WidgetStateProperty.all(Colors.transparent),
-            hoverColor: Colors.transparent,
-            highlightColor: Colors.transparent,
-            splashColor: Colors.transparent,
-            focusColor: Colors.transparent,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 120),
-              height: sidebarTokens.itemHeight,
-              padding: EdgeInsets.symmetric(horizontal: context.appSpacing.md),
-              decoration: BoxDecoration(
-                color: backgroundColor,
-                borderRadius: context.appRadius.smBorder,
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    widget.icon,
-                    size: context.appComponentTokens.iconSizeSm,
-                    color: foregroundColor,
-                  ),
-                  SizedBox(width: context.appSpacing.md),
-                  Expanded(child: Text(widget.label, style: labelStyle)),
-                  if (_hasBadge) ...[
-                    SizedBox(width: context.appSpacing.sm),
-                    AppBadge(
-                      key: const Key('sidebar-item-badge'),
-                      label: _badgeLabel,
-                      tone: AppBadgeTone.error,
-                      size: AppBadgeSize.compact,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-bool get _useDesktopSidebarGlass =>
-    !kIsWeb &&
-    (defaultTargetPlatform == TargetPlatform.macOS ||
-        defaultTargetPlatform == TargetPlatform.windows);

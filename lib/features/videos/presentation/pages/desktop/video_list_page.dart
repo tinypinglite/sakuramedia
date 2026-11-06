@@ -15,7 +15,7 @@ import 'package:sakuramedia/features/videos/presentation/providers/video_summary
 import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_glass_list_header.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_overview_grid_sliver.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
@@ -91,9 +91,9 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
                           onViewAll: viewAllCollections,
                           onCreate: createCollection,
                           onCollectionTap: (collection) =>
-                              context.pushDesktopVideoCollectionDetail(
+                              DesktopRoutes.videoCollectionDetail(
                                 collectionId: collection.id,
-                              ),
+                              ).push(context),
                         ),
                         SizedBox(height: context.appSpacing.lg),
                       ],
@@ -133,7 +133,9 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
                       )(),
                       onVideoPlay: (video) => unawaited(playVideo(video)),
                       onVideoThumbnails: (video) =>
-                          context.pushDesktopVideoThumbnails(videoId: video.id),
+                          DesktopRoutes.videoThumbnail(
+                            videoId: video.id,
+                          ).push(context),
                       onVideoAddToCollection: (video) =>
                           unawaited(addToCollection(video)),
                       onVideoDelete: (video) => unawaited(deleteVideo(video)),

@@ -1,7 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/media/presentation/pages/shared/media_management_content.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 
 /// 「媒体管理」移动端壳：媒体列表 / 重复媒体 / 多版本影片 / 失效媒体四个 tab 与全部编排逻辑在
 /// [MediaManagementContent]，
@@ -16,9 +15,9 @@ class MobileMediaManagementPage extends StatelessWidget {
       rootKey: const Key('mobile-media-management-page'),
       mobile: true,
       onOpenMovieDetail: (context, movieNumber) =>
-          context.pushMobileMovieDetail(movieNumber: movieNumber),
+          MobileRoutes.movieDetail(movieNumber: movieNumber).push(context),
       onOpenVideoCollectionDetail: (context, collectionId) =>
-          MobileVideoCollectionDetailRouteData(
+          MobileRoutes.videoCollectionDetail(
             collectionId: collectionId,
           ).push(context),
     );

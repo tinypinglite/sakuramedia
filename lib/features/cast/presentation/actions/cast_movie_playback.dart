@@ -10,8 +10,7 @@ import 'package:sakuramedia/features/cast/presentation/providers/cast_session_pr
 import 'package:sakuramedia/features/cast/presentation/widgets/cast_device_picker.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/desktop_routes.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 
 /// 打开投屏遥控页（会话已存在或刚投送成功后调用）。
 void openCastRemotePage(BuildContext context) {
@@ -19,11 +18,11 @@ void openCastRemotePage(BuildContext context) {
     case TargetPlatform.macOS:
     case TargetPlatform.windows:
     case TargetPlatform.linux:
-      DesktopCastRemoteRouteData().push(context);
+      DesktopRoutes.castRemote().push(context);
     case TargetPlatform.android:
     case TargetPlatform.iOS:
     case TargetPlatform.fuchsia:
-      MobileCastRemoteRouteData().push(context);
+      MobileRoutes.castRemote().push(context);
   }
 }
 

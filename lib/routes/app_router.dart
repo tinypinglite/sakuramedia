@@ -4,8 +4,8 @@ import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/app/app_tooltip_navigator_observer.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/desktop_routes.dart' as desktop_routes;
-import 'package:sakuramedia/routes/mobile_routes.dart' as mobile_routes;
+import 'package:sakuramedia/routes/routes_desktop.dart';
+import 'package:sakuramedia/routes/routes_mobile.dart';
 
 GoRouter buildAppRouter(AppPlatform platform, SessionStore sessionStore) {
   GoRouter.optionURLReflectsImperativeAPIs = true;
@@ -18,21 +18,19 @@ GoRouter buildAppRouter(AppPlatform platform, SessionStore sessionStore) {
 }
 
 GoRouter buildDesktopRouter({required SessionStore sessionStore}) {
-  desktop_routes.currentDesktopRoutePlatform = AppPlatform.desktop;
   return _buildRouter(
     sessionStore: sessionStore,
-    navigatorKey: desktop_routes.desktopRootNavigatorKey,
-    routes: desktop_routes.$appRoutes,
+    navigatorKey: desktopRootNavigatorKey,
+    routes: buildDesktopRouteTree(),
     rootRedirectPath: desktopOverviewPath,
   );
 }
 
 GoRouter buildMobileRouter({required SessionStore sessionStore}) {
-  mobile_routes.currentMobileRoutePlatform = AppPlatform.mobile;
   return _buildRouter(
     sessionStore: sessionStore,
-    navigatorKey: mobile_routes.mobileRootNavigatorKey,
-    routes: mobile_routes.$appRoutes,
+    navigatorKey: mobileRootNavigatorKey,
+    routes: buildMobileRouteTree(),
     rootRedirectPath: mobileOverviewPath,
   );
 }

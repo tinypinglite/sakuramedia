@@ -9,12 +9,13 @@ import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
 import 'package:sakuramedia/features/image_search/data/image_search_result_item_dto.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_filter_state.dart';
+import 'package:sakuramedia/features/image_search/presentation/actions/image_search_launcher.dart';
 import 'package:sakuramedia/features/image_search/presentation/pages/shared/image_search_content.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_draft_store_provider.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_state.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 
 /// 移动画面搜索壳：结果动作全部落到移动路由（相似图搜经 draft store 中转、
@@ -52,14 +53,13 @@ class MobileImageSearchPage extends StatelessWidget {
       if (!context.mounted) {
         return false;
       }
-      final nextDraftId = ProviderScope.containerOf(context, listen: false)
-          .read(imageSearchDraftStoreProvider)
-          .save(
-            fileName: fileName,
-            bytes: imageBytes,
-            mimeType: guessImageMimeType(fileName),
-          );
-      await MobileImageSearchRouteData(
+      final nextDraftId = saveImageSearchDraft(
+        context,
+        fileName: fileName,
+        bytes: imageBytes,
+        mimeType: guessImageMimeType(fileName),
+      );
+      await MobileRoutes.imageSearch(
         draftId: nextDraftId,
         currentMovieNumber: item.movieNumber,
       ).push<bool>(context);
@@ -92,7 +92,7 @@ class MobileImageSearchPage extends StatelessWidget {
   }
 
   void _openMovieDetail(BuildContext context, ImageSearchResultItemDto item) {
-    MobileMovieDetailRouteData(movieNumber: item.movieNumber).push(context);
+    MobileRoutes.movieDetail(movieNumber: item.movieNumber).push(context);
   }
 
   @override
@@ -110,7 +110,7 @@ class MobileImageSearchPage extends StatelessWidget {
       onOpenPlayer: _openPlayer,
       onOpenMovieDetail: _openMovieDetail,
       onOpenActorDetail: (context, actorId) =>
-          MobileActorDetailRouteData(actorId: actorId).push(context),
+          MobileRoutes.actorDetail(actorId: actorId).push(context),
       resultPreviewPresentation:
           ImageSearchResultPreviewPresentation.bottomDrawer,
     );

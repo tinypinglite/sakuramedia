@@ -6,6 +6,7 @@ import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
 import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_chrome_settings.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_quality.dart';
 
 typedef AppGlassPopoverTriggerBuilder =
     Widget Function(BuildContext context, VoidCallback toggle);
@@ -50,7 +51,7 @@ class AppGlassPopover extends StatelessWidget {
       popoverBorderRadius: 24,
       autoAdjustToScreen: true,
       screenPadding: const EdgeInsets.all(16),
-      quality: GlassQuality.minimal,
+      quality: AppGlassQuality.popover,
       settings: appGlassPopoverSettings(context),
       triggerBuilder: triggerBuilder,
       onOpen: onOpened,
@@ -250,7 +251,7 @@ class AppGlassResetButton extends StatelessWidget {
         shadowElevation: 0,
         bodyMode: GlassBodyMode.clear,
       ),
-      quality: GlassQuality.standard,
+      quality: AppGlassQuality.popoverAction,
       child: Padding(
         padding: EdgeInsets.symmetric(horizontal: spacing.md),
         child: Row(

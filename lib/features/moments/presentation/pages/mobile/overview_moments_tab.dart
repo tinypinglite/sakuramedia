@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/moments/presentation/pages/shared/moments_content.dart';
 import 'package:sakuramedia/features/overview/presentation/providers/mobile_overview_tab_index_provider.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 
 /// 移动概览「时刻」tab 壳：预览关闭后的导航（图搜 / 视频页 / 播放 / 详情）
 /// 由共享预览流程 [MomentsContent] 内部按移动分支处理；这里只负责下拉刷新、
@@ -22,10 +22,9 @@ class MobileOverviewMomentsTab extends ConsumerWidget {
       enablePullToRefresh: true,
       useMobileFilterDrawer: true,
       enabled: isActive,
-      onOpenCollections: () =>
-          const MobileMomentCollectionsRouteData().push(context),
+      onOpenCollections: () => MobileRoutes.momentCollections().push(context),
       onOpenCollectionDetail: (collectionId) =>
-          MobileMomentCollectionDetailRouteData(
+          MobileRoutes.momentCollectionDetail(
             collectionId: collectionId,
           ).push(context),
     );

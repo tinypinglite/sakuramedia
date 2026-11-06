@@ -2,8 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/domain/updates/sidebar_version_info.dart';
 import 'package:sakuramedia/widgets/shell/sidebar_appearance_menu.dart';
-import 'package:sakuramedia/widgets/shell/sidebar_version_footer.dart';
 
 /// 侧栏底部账户卡：产品信息、外观入口、版本信息和退出登录。
 ///
@@ -122,7 +122,7 @@ class AppSidebarAccountCard extends StatelessWidget {
           Row(
             children: <Widget>[
               Expanded(
-                child: SidebarVersionFooter(
+                child: SidebarVersionInfo(
                   onOpenPluginUpdates: onOpenPluginUpdates,
                 ),
               ),

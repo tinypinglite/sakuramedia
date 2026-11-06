@@ -1,12 +1,10 @@
-import 'dart:ui';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
-import 'package:sakuramedia/config/app_image_config.dart';
 import 'package:sakuramedia/core/media/app_image_provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_image_mask.dart';
 
 class MoviePlotThumbnail extends StatefulWidget {
   const MoviePlotThumbnail({
@@ -61,6 +59,13 @@ class _MoviePlotThumbnailState extends State<MoviePlotThumbnail> {
   }
 
   void _resolveImageProvider() {
+    if (AppImageMask.enabled) {
+      _stopListeningToImageStream();
+      _resolvedImageProvider = null;
+      _aspectRatio = null;
+      return;
+    }
+
     final provider = _buildImageProvider();
     if (_resolvedImageProvider == provider) {
       return;
@@ -153,6 +158,19 @@ class _MoviePlotThumbnailState extends State<MoviePlotThumbnail> {
   Widget build(BuildContext context) {
     final radius = widget.borderRadius ?? BorderRadius.zero;
 
+    if (AppImageMask.enabled) {
+      return SizedBox(
+        height: widget.maxHeight,
+        child: ClipRRect(
+          borderRadius: radius,
+          child: AspectRatio(
+            aspectRatio: widget.fallbackAspectRatio,
+            child: ColoredBox(color: AppImageMask.colorFor(context, _maskSeed)),
+          ),
+        ),
+      );
+    }
+
     if (_resolvedImageProvider == null) {
       return SizedBox(
         height: widget.maxHeight,
@@ -166,7 +184,7 @@ class _MoviePlotThumbnailState extends State<MoviePlotThumbnail> {
       );
     }
 
-    Widget image = Image(
+    final image = Image(
       image: _resolvedImageProvider!,
       fit: widget.fit,
       frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
@@ -182,16 +200,6 @@ class _MoviePlotThumbnailState extends State<MoviePlotThumbnail> {
       },
     );
 
-    if (AppImageConfig.enableBlur && AppImageConfig.blurSigma > 0) {
-      image = ImageFiltered(
-        imageFilter: ImageFilter.blur(
-          sigmaX: AppImageConfig.blurSigma,
-          sigmaY: AppImageConfig.blurSigma,
-        ),
-        child: image,
-      );
-    }
-
     return SizedBox(
       height: widget.maxHeight,
       child: ClipRRect(
@@ -202,6 +210,14 @@ class _MoviePlotThumbnailState extends State<MoviePlotThumbnail> {
         ),
       ),
     );
+  }
+
+  String get _maskSeed {
+    final url = widget.url;
+    if (url != null && url.trim().isNotEmpty) {
+      return AppImageMask.seedForUrl(url);
+    }
+    return AppImageMask.seedForProvider(widget.imageProvider);
   }
 }
 

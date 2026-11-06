@@ -4,7 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_player_content.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_merged_play_content.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/landscape_player_system_ui.dart';
 
 const double _mobilePlayerDividerHandleBuffer = 12;
@@ -54,7 +54,7 @@ class _MobileMoviePlayerPageState extends State<MobileMoviePlayerPage> {
       return MovieMergedPlayContent(
         movieNumber: widget.movieNumber,
         libraryId: widget.mergedLibraryId!,
-        fallbackPath: MobileMovieDetailRouteData(
+        fallbackPath: MobileRoutes.movieDetail(
           movieNumber: widget.movieNumber,
         ).location,
         useTouchOptimizedControls: true,
@@ -65,7 +65,9 @@ class _MobileMoviePlayerPageState extends State<MobileMoviePlayerPage> {
       movieNumber: widget.movieNumber,
       initialMediaId: widget.initialMediaId,
       initialPositionSeconds: widget.initialPositionSeconds,
-      fallbackPath: buildMobileMovieDetailRoutePath(widget.movieNumber),
+      fallbackPath: MobileRoutes.movieDetail(
+        movieNumber: widget.movieNumber,
+      ).location,
       imageSearchRoutePath: mobileImageSearchPath,
       useTouchOptimizedControls: true,
       dividerHandleBuffer: _mobilePlayerDividerHandleBuffer,

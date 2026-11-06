@@ -793,7 +793,6 @@
   "downloaderConfigLoadFailed": "下载器配置加载失败",
   "downloaderConfigLoadFailedFallback": "下载器配置加载失败，请稍后重试。",
   "downloaderNoDownloadableLibraryProvider": "当前没有支持下载的媒体库，请先配置可下载的媒体库 Provider。",
-  "downloaderAddTitle": "添加下载器",
   "downloaderCreate": "新建下载器",
   "mediaLibraryProviderCatalogLoadFailed": "Provider 目录加载失败，请稍后重试。",
   "mediaLibraryNoProviderInstalled": "暂无可用 Provider，请先在“插件”设置中安装并启用媒体 Provider。",
@@ -1780,7 +1779,6 @@
   "videoSelectedCollection": "已选合集",
   "videoCollectionEmptyHint": "合集还没有视频，去视频列表用「加入合集」添加吧",
   "videoEmptyList": "暂无视频数据",
-  "videoEmptyGrid": "当前没有可展示的视频数据。",
   "videoNoPlayableMedia": "暂无可播放的媒体",
   "videoLoadFailed": "加载失败，请重试",
   "videoRetryLater": "请稍后重试。",
@@ -3195,7 +3193,6 @@
     }
   },
   "moviePageSeriesSync": "同步系列影片",
-  "moviePageSeriesEmpty": "该系列暂无影片",
   "moviePagePlaylistAdded": "已加入",
   "moviePagePlaylistTotalCount": "共 {count} 个",
   "@moviePagePlaylistTotalCount": {
@@ -5541,14 +5538,6 @@
   "shellServerReleasePage": "服务端发布页",
   "shellBrowserOpenFailedCopied": "无法打开浏览器，链接已复制",
   "shellBrowserOpenFailed": "无法打开浏览器",
-  "shellOpenLink": "打开{label}",
-  "@shellOpenLink": {
-    "placeholders": {
-      "label": {
-        "type": "String"
-      }
-    }
-  },
   "shellSystemVersion": "系统版本",
   "shellUpdateBadge": "有更新",
   "shellClientLabel": "客户端",

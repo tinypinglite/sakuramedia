@@ -4,7 +4,7 @@ import 'package:sakuramedia/features/subscriptions/presentation/providers/movie_
 import 'package:sakuramedia/features/subscriptions/presentation/widgets/movie_subscription_list_section.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/widgets/movie_subscription_status_tabs.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 
@@ -38,12 +38,14 @@ class DesktopMovieSubscriptionsPage extends ConsumerWidget {
             child: MovieSubscriptionListSection(
               key: ValueKey(status),
               onOpenMovie: (context, movieNumber) =>
-                  context.pushDesktopMovieDetail(
+                  DesktopRoutes.movieDetail(
                     movieNumber: movieNumber,
                     fallbackPath: desktopMovieSubscriptionsPath,
-                  ),
+                  ).push(context),
               onOpenDownloads: (context, movieNumber) =>
-                  context.goDesktopDownloadTasks(movieNumber: movieNumber),
+                  DesktopRoutes.downloadTasks(
+                    movieNumber: movieNumber,
+                  ).go(context),
             ),
           ),
         ],

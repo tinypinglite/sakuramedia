@@ -10,9 +10,7 @@ import 'package:sakuramedia/features/external_player/presentation/providers/exte
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
-import 'package:sakuramedia/routes/desktop_routes.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 
 /// 统一的影片播放入口：根据用户是否设置了默认外部播放器，决定跳应用内播放页
@@ -207,19 +205,19 @@ void _pushInAppPlayer(
     case TargetPlatform.macOS:
     case TargetPlatform.windows:
     case TargetPlatform.linux:
-      context.pushDesktopMoviePlayer(
+      DesktopRoutes.moviePlayer(
         movieNumber: movieNumber,
         fallbackPath:
             fallbackPath ??
-            DesktopMovieDetailRouteData(movieNumber: movieNumber).location,
+            DesktopRoutes.movieDetail(movieNumber: movieNumber).location,
         mediaId: mediaId,
         mergedLibraryId: mergedLibraryId,
         positionSeconds: positionSeconds,
-      );
+      ).push(context);
     case TargetPlatform.android:
     case TargetPlatform.iOS:
     case TargetPlatform.fuchsia:
-      MobileMoviePlayerRouteData(
+      MobileRoutes.moviePlayer(
         movieNumber: movieNumber,
         mediaId: mediaId,
         mergedLibraryId: mergedLibraryId,

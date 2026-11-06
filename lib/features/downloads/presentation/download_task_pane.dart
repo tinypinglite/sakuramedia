@@ -1,51 +1,33 @@
-import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'dart:async';
 
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/app/app_platform.dart';
-import 'package:sakuramedia/core/format/updated_at_label.dart';
-import 'package:sakuramedia/features/downloads/data/download_request_dto.dart';
+import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/downloads/presentation/download_placeholders.dart';
 import 'package:sakuramedia/features/downloads/presentation/download_task_filter_state.dart';
-import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/features/downloads/presentation/providers/download_task_center_provider.dart';
 import 'package:sakuramedia/features/downloads/presentation/providers/download_task_center_state.dart';
+import 'package:sakuramedia/features/downloads/presentation/widgets/download_task_card.dart';
+import 'package:sakuramedia/features/downloads/presentation/widgets/download_task_filter_panel.dart';
 import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/batch_operation_submission_provider.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
-import 'package:sakuramedia/routes/app_route_paths.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
+import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
+import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/domain/downloads/download_task_delete_dialog.dart';
-import 'package:sakuramedia/widgets/domain/downloads/download_task_files_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
-import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
-import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
-import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/selection_controller.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/selection_controller.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
-import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
-import 'package:sakuramedia/widgets/base/layout/cards/app_left_cover_card.dart';
-import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_glass_popover.dart';
-import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
+import 'package:sakuramedia/widgets/domain/downloads/download_task_delete_dialog.dart';
 
 /// 构建「下载任务」页的头部。
 ///
@@ -87,15 +69,16 @@ Widget buildDownloadTaskHeader({
             ),
             resetKey: const Key('download-filter-reset'),
             triggerKey: const Key('download-filter-button'),
-            label: _downloadFilterSummary(
+            label: downloadTaskFilterSummary(
               header.filter,
               header.clientOptions,
               l10n,
             ),
             tooltip: l10n.downloadFilterTitle,
-            panelBuilder: (context) => _DesktopDownloadFilterPanel(
+            panelBuilder: (context) => DownloadTaskFilterSections(
               filter: header.filter,
               clientOptions: header.clientOptions,
+              onChanged: (next) => unawaited(notifier.applyFilter(next)),
             ),
           ),
           trailing: AppGlassHeaderGroup(
@@ -326,21 +309,6 @@ Future<void> _deleteSelectedTasks(
   if (submitted) selection.exitSelection();
 }
 
-/// 单条删除保持同步：确认后在弹窗内等待删除接口完成，成功才关闭弹窗。
-Future<void> _deleteTask(
-  BuildContext context,
-  WidgetRef ref,
-  DownloadTaskDto task,
-) async {
-  final notifier = ref.read(downloadTaskCenterProvider.notifier);
-  await showDownloadTaskDeleteDialog(
-    context,
-    tasks: [task],
-    onConfirm: (deleteFiles) =>
-        notifier.deleteTask(task.id, deleteFiles: deleteFiles),
-  );
-}
-
 List<Widget> buildDownloadTaskSlivers({
   required VoidCallback onManualAdd,
   required SelectionController<int> selection,
@@ -376,20 +344,10 @@ List<Widget> buildDownloadTaskSlivers({
   ];
 }
 
-/// 按 task id 取行快照（行卡独立订阅用）；缺失返回 null，调用方回退 prop。
-DownloadTaskRowState? _rowById(DownloadTaskCenterState? state, int taskId) {
-  final items = state?.paged.items;
-  if (items == null) return null;
-  for (final row in items) {
-    if (row.task.id == taskId) return row;
-  }
-  return null;
-}
-
 /// 下载任务列表本体：只订阅结构（条目 id 序列）与四态。
 ///
 /// 进度 tick 只改变行内数据（条目序列不变），不重建列表；
-/// 各行通过 [_DownloadTaskCard] 独立订阅自己的行状态。
+/// 各行通过 [DownloadTaskCard] 独立订阅自己的行状态。
 class _DownloadTasksBodySliver extends ConsumerWidget {
   const _DownloadTasksBodySliver({
     required this.onManualAdd,
@@ -446,7 +404,7 @@ class _DownloadTasksBodySliver extends ConsumerWidget {
                 bottom: isLast ? 0 : context.appSpacing.md,
               ),
               child: RepaintBoundary(
-                child: _DownloadTaskCard(
+                child: DownloadTaskCard(
                   row: placeholders[index],
                   selection: selection,
                 ),
@@ -471,7 +429,7 @@ class _DownloadTasksBodySliver extends ConsumerWidget {
     }
 
     // 条目快照只读不订阅：结构变化（增删/重排）时本体重建，快照即新；
-    // 进度 tick 不重建本体，各行独立订阅（见 _DownloadTaskCard）。
+    // 进度 tick 不重建本体，各行独立订阅（见 DownloadTaskCard）。
     final items =
         ref.read(downloadTaskCenterProvider).value?.paged.items ??
         const <DownloadTaskRowState>[];
@@ -517,497 +475,10 @@ class _DownloadTasksBodySliver extends ConsumerWidget {
         return Padding(
           padding: EdgeInsets.only(bottom: isLast ? 0 : context.appSpacing.md),
           child: RepaintBoundary(
-            child: _DownloadTaskCard(row: row, selection: selection),
+            child: DownloadTaskCard(row: row, selection: selection),
           ),
         );
       }, childCount: items.length),
-    );
-  }
-}
-
-class _DownloadTaskCard extends ConsumerWidget {
-  const _DownloadTaskCard({required this.row, required this.selection});
-
-  final DownloadTaskRowState row;
-  final SelectionController<int> selection;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final l10n = AppLocalizations.of(context);
-    final taskId = row.task.id;
-    // 行内数据独立订阅：进度 tick 只重建本行，不重建整个列表。
-    // 首屏骨架的占位行在 provider 无 value 时回退到传入的 row。
-    final liveRow = ref.watch(
-      downloadTaskCenterProvider.select(
-        (asyncState) => _rowById(asyncState.value, taskId),
-      ),
-    );
-    final isPending = ref.watch(
-      downloadTaskCenterProvider.select(
-        (asyncState) => asyncState.value?.isTaskPending(taskId) ?? false,
-      ),
-    );
-    final task = liveRow?.task ?? row.task;
-    final clientName = ref.watch(
-      downloadTaskCenterProvider.select(
-        (asyncState) => asyncState.value?.clientNames[task.clientId],
-      ),
-    );
-    final colors = context.appColors;
-    final componentTokens = context.appComponentTokens;
-    final progress = (liveRow?.progress ?? row.progress).clamp(0.0, 1.0);
-    final taskState = liveRow?.state ?? row.state;
-    final isImportRunning = task.importStatus == 'running';
-    final movieNumber = task.movieNumber;
-    final hasMovieNumber = (movieNumber ?? '').isNotEmpty;
-    final displayTitle = _resolveDisplayTitle(task);
-    final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
-    final selectionMode = selection.active;
-    final isSelected = selection.isSelected(taskId);
-    final thinCoverUrl = task.movieThinCover?.origin.trim() ?? '';
-    final wideCoverUrl = task.movieCover?.origin.trim() ?? '';
-    final coverUrl = isMobile && thinCoverUrl.isNotEmpty
-        ? thinCoverUrl
-        : wideCoverUrl;
-
-    // 骨架态整卡收敛成一块 shimmer 圆角块：进度条 / 状态角标不再透出自有颜色。
-    return AppSkeletonUnite(
-      borderRadius: context.appRadius.mdBorder,
-      child: AppLeftCoverCard(
-        key: Key('download-task-${task.id}'),
-        coverWidth: componentTokens.downloadTaskCoverWidth,
-        bodyMinHeight: componentTokens.downloadTaskCardMinHeight,
-        selected: selectionMode && isSelected,
-        onTap: selectionMode
-            ? () => selection.handleSelectionTap(taskId)
-            : null,
-        cover: _DownloadTaskCover(
-          coverUrl: coverUrl,
-          movieNumber: hasMovieNumber ? movieNumber : null,
-          selectionMode: selectionMode,
-          isSelected: isSelected,
-          onTap: selectionMode || !hasMovieNumber
-              ? null
-              : selection.tapHandler(taskId, () {
-                  if (isMobile) {
-                    context.pushMobileMovieDetail(movieNumber: movieNumber!);
-                    return;
-                  }
-                  context.pushDesktopMovieDetail(
-                    movieNumber: movieNumber!,
-                    fallbackPath: desktopDownloadTasksPath,
-                  );
-                }),
-        ),
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ① 番号：把用户"扫一眼找番号"的心智放最顶。空番号（predownload）不渲染。
-            if (hasMovieNumber)
-              AppBadge(
-                key: Key('download-task-movie-number-${movieNumber!}'),
-                label: movieNumber,
-                tone: AppBadgeTone.neutral,
-                size: AppBadgeSize.compact,
-              ),
-            if (hasMovieNumber) SizedBox(height: context.appSpacing.xs),
-            // ② 标题：中文标题优先，1 行 ellipsis。
-            Text(
-              displayTitle,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                weight: AppTextWeight.medium,
-                tone: AppTextTone.primary,
-              ),
-            ),
-            SizedBox(height: context.appSpacing.sm),
-            // ③ 进度条：已完成态用中性灰，避免深色进度条抢眼。
-            ClipRRect(
-              borderRadius: context.appRadius.pillBorder,
-              child: LinearProgressIndicator(
-                minHeight: componentTokens.downloadTaskProgressHeight,
-                value: progress,
-                backgroundColor: colors.surfaceMuted,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  _progressBarColor(context, taskState),
-                ),
-              ),
-            ),
-            SizedBox(height: context.appSpacing.sm),
-            // ④ 下载状态一行：状态 badge + 百分比 + 导入短标签
-            Wrap(
-              spacing: context.appSpacing.sm,
-              runSpacing: context.appSpacing.xs,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                AppBadge(
-                  label: _labelForDownloadState(taskState, l10n),
-                  tone: _toneForDownloadState(taskState),
-                  size: AppBadgeSize.compact,
-                ),
-                Text(
-                  '${(progress * 100).toStringAsFixed(1)}%',
-                  style: _statTextStyle(context),
-                ),
-                // 导入 badge 用短标签，完整文案挂 Tooltip 里
-                if (task.importStatusLabel.isNotEmpty)
-                  Tooltip(
-                    message: task.importStatusLabel,
-                    child: AppBadge(
-                      label: _shortImportLabel(
-                        task.importStatus,
-                        fallback: task.importStatusLabel,
-                        l10n: l10n,
-                      ),
-                      tone: _toneForImportStatus(task.importStatus),
-                      size: AppBadgeSize.compact,
-                    ),
-                  ),
-              ],
-            ),
-            SizedBox(height: context.appSpacing.sm),
-            // ⑤ 客户端 + 创建时间（靠左）+ 操作按钮（靠右）
-            Row(
-              children: [
-                Expanded(
-                  child: Wrap(
-                    spacing: context.appSpacing.sm,
-                    runSpacing: context.appSpacing.xs,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        clientName ??
-                            l10n.downloadClientFallbackName(task.clientId),
-                        style: _footnoteTextStyle(context),
-                      ),
-                      if (formatUpdatedAtLabel(task.createdAt) != null)
-                        Text(
-                          l10n.downloadCreatedAt(
-                            formatUpdatedAtLabel(task.createdAt)!,
-                          ),
-                          style: _footnoteTextStyle(context),
-                        ),
-                    ],
-                  ),
-                ),
-                if (!selectionMode && task.state == 'completed') ...[
-                  AppIconButton(
-                    key: Key('download-task-files-${task.id}'),
-                    icon: const Icon(Icons.folder_open_rounded),
-                    tooltip: l10n.downloadViewFiles,
-                    onPressed: () => showDownloadTaskFilesDialog(
-                      context: context,
-                      taskId: task.id,
-                      movieNumber: movieNumber ?? '',
-                      title: displayTitle,
-                    ),
-                  ),
-                  SizedBox(width: context.appSpacing.xs),
-                ],
-                if (!selectionMode && task.canRetriggerImport) ...[
-                  AppIconButton(
-                    key: Key('download-task-retrigger-import-${task.id}'),
-                    icon: const Icon(Icons.refresh_rounded),
-                    tooltip: l10n.downloadRetriggerImport,
-                    onPressed: isPending
-                        ? null
-                        : () =>
-                              unawaited(_triggerImport(context, ref, task.id)),
-                  ),
-                  SizedBox(width: context.appSpacing.xs),
-                ],
-                if (!selectionMode)
-                  AppIconButton(
-                    key: Key('download-task-delete-${task.id}'),
-                    icon: const Icon(Icons.delete_outline_rounded),
-                    tooltip: isImportRunning
-                        ? l10n.downloadDeleteBlockedImporting
-                        : l10n.commonDelete,
-                    onPressed: (isPending || isImportRunning)
-                        ? null
-                        : () => unawaited(_deleteTask(context, ref, task)),
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  static String _resolveDisplayTitle(DownloadTaskDto task) {
-    final displayName = (task.displayName ?? '').trim();
-    if (displayName.isNotEmpty) {
-      return displayName;
-    }
-    final movieTitle = (task.movieTitle ?? '').trim();
-    if (movieTitle.isNotEmpty) {
-      return movieTitle;
-    }
-    return task.name.isEmpty ? task.remoteId : task.name;
-  }
-}
-
-TextStyle _statTextStyle(BuildContext context) => resolveAppTextStyle(
-  context,
-  size: AppTextSize.s12,
-  weight: AppTextWeight.regular,
-  tone: AppTextTone.muted,
-);
-
-TextStyle _footnoteTextStyle(BuildContext context) => resolveAppTextStyle(
-  context,
-  size: AppTextSize.s10,
-  weight: AppTextWeight.regular,
-  tone: AppTextTone.tertiary,
-);
-
-Color _progressBarColor(BuildContext context, String state) {
-  final palette = context.appTextPalette;
-  final colors = context.appColors;
-  return switch (state) {
-    'downloading' => palette.accent,
-    'failed' => palette.error,
-    _ => colors.borderStrong,
-  };
-}
-
-/// 导入状态短标签映射。后端 `describe_import_status` 里的完整中文（如
-/// "已导入：媒体文件全部成功入库"）在 badge 上过长；这里给出 4 字内的短版，
-/// 完整文案通过 Tooltip 保留在 hover 里。
-String _shortImportLabel(
-  String status, {
-  required String fallback,
-  required AppLocalizations l10n,
-}) {
-  return switch (status) {
-    'pending' => l10n.downloadImportStatusPending,
-    'running' => l10n.downloadImportStatusRunning,
-    'completed' => l10n.downloadImportStatusCompleted,
-    'failed' => l10n.downloadImportStatusFailed,
-    'skipped' => l10n.downloadImportStatusSkipped,
-    _ => fallback,
-  };
-}
-
-Future<void> _triggerImport(
-  BuildContext context,
-  WidgetRef ref,
-  int taskId,
-) async {
-  try {
-    await ref.read(downloadTaskCenterProvider.notifier).triggerImport(taskId);
-    if (context.mounted) {
-      showToast(
-        AppLocalizations.of(context).downloadImportSubmitted,
-        tone: AppToastTone.success,
-      );
-    }
-  } catch (error) {
-    if (context.mounted) {
-      final l10n = AppLocalizations.of(context);
-      showToast(
-        apiErrorMessage(
-          error,
-          fallback: l10n.downloadImportSubmitFailed,
-          l10n: l10n,
-        ),
-        tone: AppToastTone.error,
-      );
-    }
-  }
-}
-
-/// 卡片左侧封面由外层 Positioned 提供固定宽度和全高约束，贴合卡片上下缘。
-/// 圆角由最外层卡片 `clipBehavior` 统一裁剪；仅封面本身接收详情跳转，避免误吞右侧操作。
-///
-/// 多选态封面只作展示 + 左上角勾选标记，点击交给整卡统一处理。
-class _DownloadTaskCover extends StatelessWidget {
-  const _DownloadTaskCover({
-    required this.coverUrl,
-    required this.movieNumber,
-    required this.onTap,
-    required this.selectionMode,
-    required this.isSelected,
-  });
-
-  final String coverUrl;
-  final String? movieNumber;
-  final VoidCallback? onTap;
-  final bool selectionMode;
-  final bool isSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    // 横向封面居中裁切，圆角由外层下载任务卡统一处理。
-    final image = MaskedImage(
-      url: coverUrl,
-      fit: BoxFit.cover,
-      alignment: Alignment.center,
-    );
-
-    final Widget content;
-    if (onTap == null) {
-      content = image;
-    } else {
-      content = Semantics(
-        button: true,
-        label: AppLocalizations.of(
-          context,
-        ).downloadViewMovieDetails(movieNumber ?? ''),
-        child: Material(
-          color: Colors.transparent,
-          child: AppInteractiveSurface(
-            key: Key('download-task-cover-tap-${movieNumber ?? ''}'),
-            onTap: onTap,
-            child: image,
-          ),
-        ),
-      );
-    }
-
-    if (!selectionMode) return content;
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        content,
-        PositionedDirectional(
-          top: context.appSpacing.sm,
-          start: context.appSpacing.sm,
-          child: SelectionCheckBadge(isSelected: isSelected),
-        ),
-      ],
-    );
-  }
-}
-
-String _labelForDownloadState(String state, AppLocalizations l10n) {
-  return switch (state) {
-    'downloading' => l10n.downloadStateDownloading,
-    'queued' => l10n.downloadStateQueued,
-    'completed' => l10n.downloadStateCompleted,
-    'failed' => l10n.downloadStateFailed,
-    _ => state.isEmpty ? l10n.commonUnknown : state,
-  };
-}
-
-AppBadgeTone _toneForDownloadState(String state) {
-  return switch (state) {
-    'downloading' => AppBadgeTone.primary,
-    'queued' => AppBadgeTone.neutral,
-    'completed' => AppBadgeTone.success,
-    'failed' => AppBadgeTone.error,
-    _ => AppBadgeTone.neutral,
-  };
-}
-
-AppBadgeTone _toneForImportStatus(String state) {
-  return switch (state) {
-    'running' => AppBadgeTone.primary,
-    'completed' => AppBadgeTone.success,
-    'failed' => AppBadgeTone.error,
-    'pending' || 'skipped' => AppBadgeTone.neutral,
-    _ => AppBadgeTone.neutral,
-  };
-}
-
-/// 桌面下载任务筛选面板：番号搜索（回车提交）+ 状态/客户端玻璃分段。
-///
-/// 遵循「筛选状态驱动」范式：所有变更走 `notifier.applyFilter(...)`。
-/// 搜索输入沿用项目其它筛选栏习惯——**不做打字 debounce**，仅回车提交。
-class _DesktopDownloadFilterPanel extends HookConsumerWidget {
-  const _DesktopDownloadFilterPanel({
-    required this.filter,
-    required this.clientOptions,
-  });
-
-  final DownloadTaskFilterState filter;
-  final List<DownloadClientOption> clientOptions;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final searchController = useTextEditingController(text: filter.search);
-    // 若外部通过其它入口（如「清除筛选」）改了 filter.search，同步进输入框；
-    // 用户正在输入时（controller.text 与最近同步值不一致）避免打断。
-    final attachedSearch = useRef<String>(filter.search);
-    useEffect(() {
-      final external = filter.search;
-      if (external != attachedSearch.value &&
-          external != searchController.text) {
-        searchController.text = external;
-      }
-      attachedSearch.value = external;
-      return null;
-    }, [filter.search]);
-
-    final l10n = AppLocalizations.of(context);
-    final spacing = context.appSpacing;
-    final clientNames = <int, String>{
-      for (final option in clientOptions) option.id: option.name,
-    };
-    final clientIds = <int?>{
-      null,
-      ...clientNames.keys,
-      if (filter.clientId != null) filter.clientId,
-    }.toList(growable: false);
-
-    Future<void> submitSearch(String value) async {
-      final next = filter.copyWith(search: value.trim());
-      attachedSearch.value = next.search;
-      await ref.read(downloadTaskCenterProvider.notifier).applyFilter(next);
-    }
-
-    void apply(DownloadTaskFilterState next) {
-      unawaited(
-        ref.read(downloadTaskCenterProvider.notifier).applyFilter(next),
-      );
-    }
-
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        AppTextField(
-          fieldKey: const Key('download-filter-search'),
-          controller: searchController,
-          hintText: l10n.downloadSearchByMovieNumber,
-          textInputAction: TextInputAction.search,
-          onFieldSubmitted: submitSearch,
-          enabled: true,
-        ),
-        SizedBox(height: spacing.lg),
-        AppFilterChoiceSection<DownloadTaskStateFilter>(
-          title: l10n.downloadStateFilterLabel,
-          controlKey: const Key('download-filter-state'),
-          items: <AppSegmentedItem<DownloadTaskStateFilter>>[
-            for (final value in DownloadTaskStateFilter.values)
-              AppSegmentedItem(value: value, label: value.label(l10n)),
-          ],
-          selected: filter.stateFilter,
-          onChanged: (value) => apply(filter.copyWith(stateFilter: value)),
-        ),
-        if (clientOptions.length >= 2) ...[
-          SizedBox(height: spacing.lg),
-          AppFilterChoiceSection<int?>(
-            title: l10n.downloadClientFilterLabel,
-            controlKey: const Key('download-filter-client'),
-            items: <AppSegmentedItem<int?>>[
-              for (final id in clientIds)
-                AppSegmentedItem(
-                  value: id,
-                  label: id == null
-                      ? l10n.downloadFilterAllClients
-                      : clientNames[id] ?? l10n.downloadFilterClientSpecified,
-                ),
-            ],
-            selected: filter.clientId,
-            onChanged: (value) => apply(filter.copyWith(clientId: value)),
-          ),
-        ],
-      ],
     );
   }
 }
@@ -1031,7 +502,7 @@ class _MobileDownloadFilterEntry extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
     final isSelected = !filter.isDefault;
-    final summary = _downloadFilterSummary(filter, clientOptions, l10n);
+    final summary = downloadTaskFilterSummary(filter, clientOptions, l10n);
     return AppMobileListHeader(
       leading: AppMobileHeaderText(countLabel: summary),
       actions: <Widget>[
@@ -1051,7 +522,7 @@ class _MobileDownloadFilterEntry extends ConsumerWidget {
           key: const Key('mobile-download-filter-button'),
           summary: summary,
           isActive: isSelected,
-          onPressed: () => _showMobileDownloadFilterDrawer(
+          onPressed: () => showDownloadTaskFilterDrawer(
             context,
             current: filter,
             clientOptions: clientOptions,
@@ -1063,152 +534,4 @@ class _MobileDownloadFilterEntry extends ConsumerWidget {
       ],
     );
   }
-}
-
-Future<void> _showMobileDownloadFilterDrawer(
-  BuildContext context, {
-  required DownloadTaskFilterState current,
-  required List<DownloadClientOption> clientOptions,
-  required ValueChanged<DownloadTaskFilterState> onChanged,
-}) {
-  return showAppBottomDrawer<void>(
-    context: context,
-    drawerKey: const Key('mobile-download-filter-drawer'),
-    maxHeightFactor: 0.6,
-    builder: (_) => _MobileDownloadFilterDrawerContent(
-      current: current,
-      clientOptions: clientOptions,
-      onChanged: onChanged,
-    ),
-  );
-}
-
-class _MobileDownloadFilterDrawerContent extends StatefulWidget {
-  const _MobileDownloadFilterDrawerContent({
-    required this.current,
-    required this.clientOptions,
-    required this.onChanged,
-  });
-
-  final DownloadTaskFilterState current;
-  final List<DownloadClientOption> clientOptions;
-  final ValueChanged<DownloadTaskFilterState> onChanged;
-
-  @override
-  State<_MobileDownloadFilterDrawerContent> createState() =>
-      _MobileDownloadFilterDrawerContentState();
-}
-
-class _MobileDownloadFilterDrawerContentState
-    extends State<_MobileDownloadFilterDrawerContent> {
-  late DownloadTaskFilterState _local;
-  late final TextEditingController _searchController;
-
-  @override
-  void initState() {
-    super.initState();
-    _local = widget.current;
-    _searchController = TextEditingController(text: _local.search);
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  void _apply(DownloadTaskFilterState next) {
-    setState(() => _local = next);
-    widget.onChanged(next);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return AppMobileFilterDrawerScaffold(
-      scrollViewKey: const Key('mobile-download-filter-scroll-view'),
-      footer: AppGlassFilterFooter(
-        isDefault: _local.isDefault,
-        onReset: () {
-          _searchController.clear();
-          _apply(DownloadTaskFilterState.initial);
-        },
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            l10n.downloadFilterTitle,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s18,
-              weight: AppTextWeight.semibold,
-              tone: AppTextTone.primary,
-            ),
-          ),
-          SizedBox(height: context.appSpacing.lg),
-          AppTextField(
-            fieldKey: const Key('mobile-download-filter-search'),
-            controller: _searchController,
-            label: l10n.downloadMovieNumberLabel,
-            hintText: l10n.downloadSearchByMovieNumber,
-            textInputAction: TextInputAction.search,
-            onFieldSubmitted: (value) =>
-                _apply(_local.copyWith(search: value.trim())),
-          ),
-          SizedBox(height: context.appSpacing.md),
-          AppFilterChoiceSection<DownloadTaskStateFilter>(
-            title: l10n.downloadStateFilterLabel,
-            controlKey: const Key('mobile-download-filter-state'),
-            items: DownloadTaskStateFilter.values
-                .map(
-                  (value) => AppSegmentedItem<DownloadTaskStateFilter>(
-                    value: value,
-                    label: value.label(l10n),
-                  ),
-                )
-                .toList(growable: false),
-            selected: _local.stateFilter,
-            onChanged: (value) => _apply(_local.copyWith(stateFilter: value)),
-          ),
-          if (widget.clientOptions.length >= 2) ...[
-            SizedBox(height: context.appSpacing.lg),
-            AppFilterChoiceSection<int?>(
-              title: l10n.downloadClientFilterLabel,
-              controlKey: const Key('mobile-download-filter-client'),
-              items: <AppSegmentedItem<int?>>[
-                AppSegmentedItem<int?>(
-                  value: null,
-                  label: l10n.downloadFilterAllClients,
-                ),
-                for (final option in widget.clientOptions)
-                  AppSegmentedItem<int?>(value: option.id, label: option.name),
-              ],
-              selected: _local.clientId,
-              onChanged: (value) => _apply(_local.copyWith(clientId: value)),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-String _downloadFilterSummary(
-  DownloadTaskFilterState filter,
-  List<DownloadClientOption> clientOptions,
-  AppLocalizations l10n,
-) {
-  final values = <String>[filter.stateFilter.label(l10n)];
-  if (filter.normalizedSearch.isNotEmpty) {
-    values.add(filter.normalizedSearch);
-  }
-  final clientId = filter.clientId;
-  if (clientId != null) {
-    final client = clientOptions.where((item) => item.id == clientId);
-    values.add(
-      client.isEmpty ? l10n.downloadFilterClientSpecified : client.first.name,
-    );
-  }
-  return values.join(' · ');
 }

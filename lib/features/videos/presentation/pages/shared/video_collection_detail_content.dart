@@ -23,8 +23,7 @@ import 'package:sakuramedia/features/videos/presentation/video_placeholders.dart
 import 'package:sakuramedia/features/videos/presentation/video_display_title.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/pick_video_collection_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
@@ -866,13 +865,13 @@ class _VideoCollectionDetailContentState
           video.id,
           video.displayTitle(AppLocalizations.of(context)),
         ),
-        onThumbnails: () => MobileVideoThumbnailRouteData(
+        onThumbnails: () => MobileRoutes.videoThumbnail(
           videoId: video.id,
         ).push<void>(context),
         onRemoveFromCollection: () => _removeVideo(video.id),
         onDelete: () => _deleteVideo(video.id),
         collections: otherCollections,
-        onCollectionTap: (ref) => MobileVideoCollectionDetailRouteData(
+        onCollectionTap: (ref) => MobileRoutes.videoCollectionDetail(
           collectionId: ref.id,
         ).push(context),
       );
@@ -890,8 +889,9 @@ class _VideoCollectionDetailContentState
       onRemoveFromCollection: () => _removeVideo(video.id),
       onDelete: () => _deleteVideo(video.id),
       collections: otherCollections,
-      onCollectionTap: (ref) =>
-          context.pushDesktopVideoCollectionDetail(collectionId: ref.id),
+      onCollectionTap: (ref) => DesktopRoutes.videoCollectionDetail(
+        collectionId: ref.id,
+      ).push(context),
     );
   }
 
@@ -911,10 +911,10 @@ class _VideoCollectionDetailContentState
       return;
     }
     if (_isMobile) {
-      await MobileVideoPlayerRouteData(videoId: videoId).push<void>(context);
+      await MobileRoutes.videoPlayer(videoId: videoId).push<void>(context);
       return;
     }
-    context.pushDesktopVideoPlayer(videoId: videoId);
+    DesktopRoutes.videoPlayer(videoId: videoId).push(context);
   }
 
   Future<void> _removeVideo(int videoId) async {
@@ -970,7 +970,7 @@ class _VideoCollectionDetailContentState
 
   /// 跳转到该视频的缩略图页（桌面悬停动作）。
   void _openThumbnails(VideoCollectionItemDto item) {
-    context.pushDesktopVideoThumbnails(videoId: item.video.id);
+    DesktopRoutes.videoThumbnail(videoId: item.video.id).push(context);
   }
 
   /// 单卡「加入合集」：把该视频加入其它合集（排除当前合集），成功后广播刷新
@@ -1034,7 +1034,7 @@ class _VideoCollectionDetailContentState
       items: state.items,
     );
     if (_isMobile) {
-      MobileVideoCollectionPlayRouteData(
+      MobileRoutes.videoCollectionPlay(
         collectionId: widget.collectionId,
         startIndex: index,
         // 移动端详情页按手动顺序展示（sort 为 null），连播顺序与之一致。
@@ -1042,11 +1042,11 @@ class _VideoCollectionDetailContentState
       ).push(context);
       return;
     }
-    context.pushDesktopVideoCollectionPlay(
+    DesktopRoutes.videoCollectionPlay(
       collectionId: widget.collectionId,
       startIndex: index,
       sort: sort,
-    );
+    ).push(context);
   }
 
   // --------------------------------------------------------- 选择 / 批量

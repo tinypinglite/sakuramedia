@@ -4,7 +4,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/recent_views/presentation/providers/recent_views_provider.dart';
 import 'package:sakuramedia/features/recent_views/presentation/widgets/recent_views_grid_sliver.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 
@@ -32,11 +32,11 @@ class MobileRecentViewsPage extends ConsumerWidget {
           padding: EdgeInsets.symmetric(vertical: context.appSpacing.md),
           sliver: RecentViewsGridSliver(
             onRetry: () => ref.invalidate(recentViewsProvider),
-            onMovieTap: (movieNumber) => MobileMovieDetailRouteData(
+            onMovieTap: (movieNumber) => MobileRoutes.movieDetail(
               movieNumber: movieNumber,
             ).push(context),
             onActorTap: (actorId) =>
-                MobileActorDetailRouteData(actorId: actorId).push(context),
+                MobileRoutes.actorDetail(actorId: actorId).push(context),
           ),
         ),
       ],

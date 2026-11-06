@@ -25,9 +25,8 @@ import 'package:sakuramedia/features/shared/presentation/providers/paged_async_n
 import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
@@ -702,13 +701,13 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
 
   void _openMovie(String movieNumber) {
     if (_mobile) {
-      MobileMovieDetailRouteData(movieNumber: movieNumber).push(context);
+      MobileRoutes.movieDetail(movieNumber: movieNumber).push(context);
       return;
     }
-    context.pushDesktopMovieDetail(
+    DesktopRoutes.movieDetail(
       movieNumber: movieNumber,
       fallbackPath: desktopClipsPath,
-    );
+    ).push(context);
   }
 
   Future<void> _renameClip(MediaClipDto clip) async {
@@ -805,10 +804,10 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
 
   Future<void> _viewAllCollections() async {
     if (_mobile) {
-      MobileClipCollectionsRouteData().push(context);
+      MobileRoutes.clipCollections().push(context);
       return;
     }
-    await context.pushDesktopClipCollections();
+    await DesktopRoutes.clipCollections().push<void>(context);
     if (!mounted) {
       return;
     }
@@ -818,12 +817,14 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
 
   void _openCollection(BuildContext context, int collectionId) {
     if (_mobile) {
-      MobileClipCollectionDetailRouteData(
+      MobileRoutes.clipCollectionDetail(
         collectionId: collectionId,
       ).push(context);
       return;
     }
-    context.pushDesktopClipCollectionDetail(collectionId: collectionId);
+    DesktopRoutes.clipCollectionDetail(
+      collectionId: collectionId,
+    ).push(context);
   }
 
   // ----------------------------------------------------------- 批量动作

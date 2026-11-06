@@ -21,8 +21,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_summary
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
@@ -277,32 +276,32 @@ class DiscoveryOverviewContent extends ConsumerWidget {
 
   void _openTag(BuildContext context, int tagId) {
     if (mobile) {
-      MobileTagMoviesRouteData(tagId: tagId).push(context);
+      MobileRoutes.tagMovies(tagId: tagId).push(context);
       return;
     }
-    context.pushDesktopTags(tagId: tagId);
+    DesktopRoutes.tagMovies(tagId: tagId).push(context);
   }
 
   void _openActor(BuildContext context, int actorId) {
     if (mobile) {
-      MobileActorDetailRouteData(actorId: actorId).push(context);
+      MobileRoutes.actorDetail(actorId: actorId).push(context);
       return;
     }
-    context.pushDesktopActorDetail(
+    DesktopRoutes.actorDetail(
       actorId: actorId,
       fallbackPath: desktopDiscoverPath,
-    );
+    ).push(context);
   }
 
   void _openMovieDetail(BuildContext context, String movieNumber) {
     if (mobile) {
-      MobileMovieDetailRouteData(movieNumber: movieNumber).push(context);
+      MobileRoutes.movieDetail(movieNumber: movieNumber).push(context);
       return;
     }
-    context.pushDesktopMovieDetail(
+    DesktopRoutes.movieDetail(
       movieNumber: movieNumber,
       fallbackPath: desktopDiscoverPath,
-    );
+    ).push(context);
   }
 
   Future<void> _toggleFollowSubscription(

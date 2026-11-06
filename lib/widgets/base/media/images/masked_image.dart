@@ -1,12 +1,10 @@
-import 'dart:ui';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sakuramedia/config/app_image_config.dart';
 import 'package:sakuramedia/core/media/app_image_provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_image_mask.dart';
 
 /// 通用远程图入口（列表/卡片封面/头像等）。
 ///
@@ -29,6 +27,7 @@ import 'package:sakuramedia/theme.dart';
 /// 矩形做对齐（如影片详情 hero 的左右羽化）；命中内存缓存时可用
 /// [resolveCachedMaskedImageSize] 在 build 期同步拿到同一个尺寸，首帧就对齐。
 /// 新增可选 `filterQuality`——小图放大的假模糊底座传 `FilterQuality.high`。
+/// 开发期 `ENABLE_BLUR=true` 时不解析 provider、不下载图片，直接渲染纯色遮罩。
 class MaskedImage extends ConsumerStatefulWidget {
   const MaskedImage({
     super.key,
@@ -183,6 +182,14 @@ class _MaskedImageState extends ConsumerState<MaskedImage> {
 
   @override
   Widget build(BuildContext context) {
+    if (AppImageMask.enabled) {
+      return _MaskedImagePlaceholder(
+        color:
+            widget.placeholderColor ??
+            AppImageMask.colorFor(context, AppImageMask.seedForUrl(widget.url)),
+      );
+    }
+
     // baseUrl 细粒度订阅（登录切后端时精准重建）；url/decodeHint 的缓存策略不变。
     _rebuildBaseProviderIfNeeded(ref.watch(baseUrlProvider));
     if (_baseProvider == null) {
@@ -201,7 +208,7 @@ class _MaskedImageState extends ConsumerState<MaskedImage> {
         }
         _syncSizeListener(provider);
 
-        Widget imageContent = Image(
+        return Image(
           image: provider,
           fit: widget.fit,
           alignment: widget.alignment,
@@ -256,18 +263,6 @@ class _MaskedImageState extends ConsumerState<MaskedImage> {
             return _MaskedImagePlaceholder(color: widget.placeholderColor);
           },
         );
-
-        if (AppImageConfig.enableBlur && AppImageConfig.blurSigma > 0) {
-          imageContent = ImageFiltered(
-            imageFilter: ImageFilter.blur(
-              sigmaX: AppImageConfig.blurSigma,
-              sigmaY: AppImageConfig.blurSigma,
-            ),
-            child: imageContent,
-          );
-        }
-
-        return imageContent;
       },
     );
   }
@@ -315,6 +310,10 @@ Size? resolveCachedMaskedImageSize(
   int? memCacheWidth,
   int? memCacheHeight,
 }) {
+  if (AppImageMask.enabled) {
+    return null;
+  }
+
   final baseUrl = ProviderScope.containerOf(
     context,
     listen: false,

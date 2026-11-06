@@ -5,7 +5,7 @@ import 'package:sakuramedia/features/actors/presentation/pages/shared/actor_deta
 import 'package:sakuramedia/features/actors/presentation/pages/shared/actor_profile_details.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
@@ -32,10 +32,10 @@ class _DesktopActorDetailPageState extends State<DesktopActorDetailPage> {
       surfaceColor: context.appColors.surfacePage,
       contentKey: const Key('actor-detail-page'),
       sectionSpacing: context.appSpacing.lg,
-      onMovieTap: (context, movieNumber) => context.pushDesktopMovieDetail(
+      onMovieTap: (context, movieNumber) => DesktopRoutes.movieDetail(
         movieNumber: movieNumber,
         fallbackPath: '/desktop/library/actors/${widget.actorId}',
-      ),
+      ).push(context),
       headerBuilder:
           (
             context,

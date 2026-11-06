@@ -3,7 +3,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_summary_list_content.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 
@@ -23,7 +23,7 @@ class MobileFollowPage extends StatelessWidget {
       sectionSpacing: context.appSpacing.md,
       emptyMessage: l10n.subscriptionFollowEmptyDescription,
       onMovieTap: (context, movieNumber) =>
-          MobileMovieDetailRouteData(movieNumber: movieNumber).push(context),
+          MobileRoutes.movieDetail(movieNumber: movieNumber).push(context),
       showHeader: false,
       useMobileSelectionLayout: true,
       bodyBuilder: (context, scrollController, sliver, onRefresh) =>

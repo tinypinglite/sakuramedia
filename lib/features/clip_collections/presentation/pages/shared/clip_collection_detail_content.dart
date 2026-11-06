@@ -18,8 +18,7 @@ import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.
 import 'package:sakuramedia/features/shared/presentation/providers/batch_operation_submission_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/collection_playback_handoff_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
@@ -613,16 +612,16 @@ class _ClipCollectionDetailContentState
     // 切片自带 streamUrl，把当前列表交给连播页直接用，免其二次全量拉取。
     handoff.offerClips(collectionId: widget.collectionId, clips: state.clips);
     if (_isMobile) {
-      MobileClipCollectionPlayRouteData(
+      MobileRoutes.clipCollectionPlay(
         collectionId: widget.collectionId,
         startIndex: index,
       ).push(context);
       return;
     }
-    context.pushDesktopClipCollectionPlay(
+    DesktopRoutes.clipCollectionPlay(
       collectionId: widget.collectionId,
       startIndex: index,
-    );
+    ).push(context);
   }
 
   Future<void> _removeClip(MediaClipDto clip) async {

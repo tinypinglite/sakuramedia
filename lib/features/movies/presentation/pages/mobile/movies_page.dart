@@ -11,7 +11,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_summary
 import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_provider.dart';
 import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_scope.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
@@ -86,7 +86,7 @@ class _MobileMoviesPageState extends ConsumerState<MobileMoviesPage> {
       tagSelectionScope: _tagSelectionScope,
       sectionSpacing: context.appSpacing.md,
       onMovieTap: (context, movieNumber) =>
-          MobileMovieDetailRouteData(movieNumber: movieNumber).push(context),
+          MobileRoutes.movieDetail(movieNumber: movieNumber).push(context),
       headerBuilder: _buildMobileHeader,
       mobileHeaderLeading: AppMobilePageTitle(
         key: const Key('mobile-movies-large-title'),

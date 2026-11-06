@@ -10,6 +10,7 @@ import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_image_mask.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
 
 Future<ActorDetailDto?> showActorProfileEditor(
@@ -274,18 +275,29 @@ class _ActorProfileEditorState extends State<ActorProfileEditor> {
   Widget _buildImageEditor(BuildContext context) {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
+    final avatarSize = context.appComponentTokens.iconSize3xl;
     final image = _selectedImage == null
         ? ActorAvatar(
             imageUrl: _currentActor.summary.profileImage?.origin,
-            size: context.appComponentTokens.iconSize3xl,
+            size: avatarSize,
           )
         : ClipOval(
-            child: Image.memory(
-              _selectedImage!.bytes,
-              width: context.appComponentTokens.iconSize3xl,
-              height: context.appComponentTokens.iconSize3xl,
-              fit: BoxFit.cover,
-            ),
+            child: AppImageMask.enabled
+                ? SizedBox.square(
+                    dimension: avatarSize,
+                    child: ColoredBox(
+                      color: AppImageMask.colorFor(
+                        context,
+                        AppImageMask.seedForBytes(_selectedImage!.bytes),
+                      ),
+                    ),
+                  )
+                : Image.memory(
+                    _selectedImage!.bytes,
+                    width: avatarSize,
+                    height: avatarSize,
+                    fit: BoxFit.cover,
+                  ),
           );
 
     return Column(

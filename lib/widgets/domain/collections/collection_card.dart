@@ -10,6 +10,7 @@ import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dar
 import 'package:sakuramedia/widgets/base/layout/cards/app_cover_card.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_quality.dart';
 
 /// 合集封面卡：16:9 封面 + 名称 + 计数角标，「编辑 / 删除」走右键 / 长按菜单。
 ///
@@ -349,7 +350,7 @@ class _GlassCollectionInfoBar extends StatelessWidget {
       ),
       // 卡片网格可能同时出现十几条玻璃信息条；用 minimal 档共享 BackdropFilter
       // 路径，避免每张卡都创建一条 premium/standard 玻璃纹理。
-      quality: GlassQuality.minimal,
+      quality: AppGlassQuality.collectionBadge,
       useOwnLayer: true,
       clipBehavior: Clip.antiAlias,
       child: content,

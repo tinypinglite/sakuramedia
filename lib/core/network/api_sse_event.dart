@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
 
 class ApiSseEvent {
@@ -15,14 +16,9 @@ class ApiSseEvent {
     }
 
     try {
-      final decoded = jsonDecode(data);
-      if (decoded is Map<String, dynamic>) {
+      final decoded = asMapOrNull(jsonDecode(data));
+      if (decoded != null) {
         return decoded;
-      }
-      if (decoded is Map) {
-        return decoded.map(
-          (dynamic key, dynamic value) => MapEntry(key.toString(), value),
-        );
       }
     } catch (_) {
       // Fall through to the typed error below.

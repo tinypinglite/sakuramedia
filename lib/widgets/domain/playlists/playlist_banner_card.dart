@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_image_mask.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
 /// 低分辨率解码后再做高斯模糊：保留旧版柔和背景，同时避免高分辨率解码。
@@ -33,16 +34,19 @@ class PlaylistBannerCard extends StatelessWidget {
     final radius = context.appRadius.lgBorder;
     final Widget background;
     if (coverImageUrl != null && coverImageUrl!.trim().isNotEmpty) {
-      background = ImageFiltered(
-        imageFilter: _playlistBannerBackgroundBlur,
-        child: MaskedImage(
-          url: coverImageUrl!,
-          fit: BoxFit.cover,
-          memCacheWidth: _playlistBannerBackgroundDecodeWidth,
-          filterQuality: FilterQuality.high,
-          animateReveal: false,
-        ),
+      final image = MaskedImage(
+        url: coverImageUrl!,
+        fit: BoxFit.cover,
+        memCacheWidth: _playlistBannerBackgroundDecodeWidth,
+        filterQuality: FilterQuality.high,
+        animateReveal: false,
       );
+      background = AppImageMask.enabled
+          ? image
+          : ImageFiltered(
+              imageFilter: _playlistBannerBackgroundBlur,
+              child: image,
+            );
     } else {
       background = DecoratedBox(
         key: const Key('playlist-banner-placeholder'),

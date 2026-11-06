@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/playlists/presentation/pages/shared/playlist_detail_content.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 
 class MobilePlaylistDetailPage extends StatelessWidget {
@@ -19,7 +19,7 @@ class MobilePlaylistDetailPage extends StatelessWidget {
         surfaceColor: context.appColors.surfaceCard.withValues(alpha: 0.9),
         fallbackPath: mobileOverviewPath,
         enablePullToRefresh: true,
-        onMovieTap: (movie) => MobileMovieDetailRouteData(
+        onMovieTap: (movie) => MobileRoutes.movieDetail(
           movieNumber: movie.movieNumber,
         ).push(context),
       ),

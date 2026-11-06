@@ -5,6 +5,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_chrome_settings.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_quality.dart';
 
 /// 桌面列表的玻璃控制条骨架。
 ///
@@ -74,7 +75,7 @@ class AppGlassHeaderGroup extends StatelessWidget {
     }
     return GlassButtonGroup(
       borderRadius: radius,
-      quality: GlassQuality.premium,
+      quality: AppGlassQuality.groupedActions,
       useOwnLayer: true,
       settings: appGlassHeaderSettings(context),
       showDividers: false,

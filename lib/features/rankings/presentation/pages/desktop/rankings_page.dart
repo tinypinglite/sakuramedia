@@ -20,7 +20,7 @@ import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
@@ -311,10 +311,10 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
                           errorMessage: initialErrorMessage,
                           onMovieTap: (movie) => selectionAwareTap(
                             movie.movieNumber,
-                            () => context.pushDesktopMovieDetail(
+                            () => DesktopRoutes.movieDetail(
                               movieNumber: movie.movieNumber,
                               fallbackPath: desktopRankingsPath,
-                            ),
+                            ).push(context),
                           )(),
                           onMovieMenuRequest: (movie, globalPosition) =>
                               requestMovieCollectionMenu(

@@ -5,7 +5,7 @@ import 'package:sakuramedia/features/clip_collections/presentation/widgets/creat
 import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/features/clips/presentation/actions/clip_playback_launcher.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_actions_panel.dart';
@@ -100,6 +100,6 @@ class DesktopClipCollectionDetailPage extends StatelessWidget {
     if (movieNumber == null || movieNumber.isEmpty) {
       return;
     }
-    context.pushDesktopMovieDetail(movieNumber: movieNumber);
+    DesktopRoutes.movieDetail(movieNumber: movieNumber).push(context);
   }
 }

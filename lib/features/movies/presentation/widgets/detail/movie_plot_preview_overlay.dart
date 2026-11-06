@@ -13,6 +13,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_clickable.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_trigger.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_image_mask.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_thumbnail.dart';
@@ -500,6 +501,13 @@ class _PreviewMainImageActionTargetState
   }
 
   void _resolveImageProvider() {
+    if (AppImageMask.enabled) {
+      _stopListeningToImageStream();
+      _resolvedImageProvider = null;
+      _imageAspectRatio = null;
+      return;
+    }
+
     final baseUrl = ProviderScope.containerOf(
       context,
       listen: false,

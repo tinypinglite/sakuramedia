@@ -2,7 +2,7 @@
 
 ## 图片展示
 
-- `MaskedImage`：`lib/widgets/base/media/images/masked_image.dart`，带统一裁切、占位和远端 URL 处理的图片；首帧到达后淡入（内存缓存命中时直接显示），`borderRadius` 可为完整显示的图片添加贴合图片边缘的圆角。URL 切换时暂存旧帧、新帧到后再淡入，不闪回占位；`placeholderColor` 让占位与连续底色同色，`animateReveal: false` 给罩了重 veil 的背景图关闭淡入（影片详情前景/背景在用）。
+- `MaskedImage`：`lib/widgets/base/media/images/masked_image.dart`，带统一裁切、占位和远端 URL 处理的图片；首帧到达后淡入（内存缓存命中时直接显示），`borderRadius` 可为完整显示的图片添加贴合图片边缘的圆角。URL 切换时暂存旧帧、新帧到后再淡入，不闪回占位；`placeholderColor` 让占位与连续底色同色，`animateReveal: false` 给罩了重 veil 的背景图关闭淡入（影片详情前景/背景在用）。开发期 `ENABLE_BLUR=true` 时不解析图片 provider，按 URL / 字节内容显示纯色遮罩块。
 - `AppImageFullscreenHost` / `AppPinchToFullscreenImage`：`app_image_fullscreen.dart`，全屏查看和缩放手势。
 - `AppCoverBottomShade`：封面底部渐变遮罩。
 - `AppCoverHoverInfo` / `AppCoverHoverInfoRow` / `AppCoverHoverActionBar` / `AppCoverHoverActionButton`：`lib/widgets/base/interaction/app_cover_hover_info.dart`，封面卡的桌面悬停披露层——收起态纯封面，指针悬停时底部渐显压暗层与信息（180ms，减弱动效时瞬时）；信息行是单行「主标签 + 副信息」，主标签先截断、副信息限宽后截断，避免大字体溢出；信息行下方是整行动作按钮（查看/播放/加入合集/移出/删除等按回调显隐），全站列表页与合集网格共用同一套。收起态前景层（如影片番号、女优姓名）传 `collapsedOverlay`，不随封面缩放、展开时淡出并从树上移除，避免与信息面板重复。选择模式传 `enabled: false`，触摸端没有 hover 停在收起态。层内白字用同文件的 `resolveCoverOverlayTextStyle`。

@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_quality.dart';
 
 /// 玻璃材质的语义档位：
 /// - [sidebar]：桌面侧栏整块浮层，主题自适应、浅色模式带轻量浮层阴影；
@@ -89,9 +90,14 @@ class AppGlassSurface extends StatelessWidget {
     }
 
     final settings = glassSettings ?? _packageSettings(context);
-    final quality = tone == AppGlassTone.track || tone == AppGlassTone.sidebar
-        ? GlassQuality.standard
-        : GlassQuality.premium;
+    final quality = switch (tone) {
+      AppGlassTone.sidebar => AppGlassQuality.sidebar,
+      AppGlassTone.chrome => AppGlassQuality.chrome,
+      AppGlassTone.control => AppGlassQuality.control,
+      AppGlassTone.overlay => AppGlassQuality.overlay,
+      AppGlassTone.track => AppGlassQuality.track,
+      AppGlassTone.modal => AppGlassQuality.modal,
+    };
     final allowElevation =
         tone == AppGlassTone.chrome ||
         tone == AppGlassTone.overlay ||

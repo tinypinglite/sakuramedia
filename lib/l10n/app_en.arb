@@ -793,7 +793,6 @@
   "downloaderConfigLoadFailed": "Failed to load download client configuration",
   "downloaderConfigLoadFailedFallback": "Failed to load download client configuration. Try again later.",
   "downloaderNoDownloadableLibraryProvider": "No media libraries support downloads. Configure a media library provider that supports downloads first.",
-  "downloaderAddTitle": "Add download client",
   "downloaderCreate": "New download client",
   "mediaLibraryProviderCatalogLoadFailed": "Failed to load the provider catalog. Try again later.",
   "mediaLibraryNoProviderInstalled": "No providers available. Install and enable a media provider under Plugins first.",
@@ -1780,7 +1779,6 @@
   "videoSelectedCollection": "Collection selected",
   "videoCollectionEmptyHint": "This collection has no videos yet. Add some from the video list with “Add to collection”.",
   "videoEmptyList": "No videos yet",
-  "videoEmptyGrid": "No videos to display.",
   "videoNoPlayableMedia": "No playable media",
   "videoLoadFailed": "Failed to load. Please try again.",
   "videoRetryLater": "Please try again later.",
@@ -3195,7 +3193,6 @@
     }
   },
   "moviePageSeriesSync": "Sync series movies",
-  "moviePageSeriesEmpty": "This series has no movies yet",
   "moviePagePlaylistAdded": "Added to",
   "moviePagePlaylistTotalCount": "{count} total",
   "@moviePagePlaylistTotalCount": {
@@ -5388,14 +5385,6 @@
   "shellServerReleasePage": "Server releases",
   "shellBrowserOpenFailedCopied": "Could not open the browser, so the link was copied",
   "shellBrowserOpenFailed": "Could not open the browser",
-  "shellOpenLink": "Open {label}",
-  "@shellOpenLink": {
-    "placeholders": {
-      "label": {
-        "type": "String"
-      }
-    }
-  },
   "shellSystemVersion": "System version",
   "shellUpdateBadge": "Update",
   "shellClientLabel": "Client",

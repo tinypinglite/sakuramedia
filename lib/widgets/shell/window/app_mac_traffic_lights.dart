@@ -15,9 +15,6 @@ const double appMacTrafficLightSpacing = 20;
 /// 视觉圆直径。
 const double appMacTrafficLightCircleSize = 12;
 
-/// 整组宽度：14 × 3 + (20 − 14) × 2 = 54。
-const double appMacTrafficLightsWidth = 54;
-
 /// close 圆点中心距窗口左缘：对齐侧栏菜单图标中心
 ///（8pt 侧栏边距 + 12pt 菜单项内边距 + 9pt 图标半宽 = 29pt）。
 const double _closeCenterX = 29;

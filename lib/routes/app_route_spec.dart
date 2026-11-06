@@ -1,16 +1,19 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sakuramedia/app/app_platform.dart';
+import 'package:sakuramedia/routes/app_route.dart';
 
 class AppNavItem {
   const AppNavItem({
+    required this.routeId,
     required this.name,
     required this.label,
     required this.path,
     required this.icon,
     required this.description,
     this.activeIcon,
+    this.sectionLabel,
   });
 
+  final AppRouteId routeId;
   final String name;
   final String label;
   final String path;
@@ -19,47 +22,37 @@ class AppNavItem {
   /// 选中态使用的实心图标；`null` 时回退到 [icon]。
   final IconData? activeIcon;
   final String description;
+
+  /// 该目的地所属分区的标题。`null` 表示其前不渲染分区标题（如概览置顶）。
+  final String? sectionLabel;
 }
 
-class AppNavGroup {
-  const AppNavGroup({
+class AppDrawerSection {
+  const AppDrawerSection({
     required this.id,
-    required this.label,
-    required this.icon,
-    required this.items,
-    this.isCollapsible = true,
-    this.sectionLabel,
+    required this.header,
+    required this.entries,
   });
 
   final String id;
-  final String label;
-  final IconData icon;
-  final List<AppNavItem> items;
-  final bool isCollapsible;
-
-  /// 该组在侧边栏所属分区的标题。`null` 表示该组前不渲染分区标题（如概览置顶）。
-  final String? sectionLabel;
-
+  final String header;
+  final List<AppDrawerEntry> entries;
 }
 
-/// 路由规格：只描述结构（名称 / 路径 / 布局 / 构造器）。
-///
-/// 不含标题与说明：这些文案按当前语言解析，由导航分组（[AppNavItem.label]）
-/// 与顶栏配置各自取用，避免同一句话在两处各存一份。
-class AppRouteSpec {
-  const AppRouteSpec({
-    required this.platform,
-    required this.name,
-    required this.path,
-    required this.groupId,
-    required this.layout,
-    required this.builder,
+class AppDrawerEntry {
+  const AppDrawerEntry({
+    required this.key,
+    required this.routeId,
+    required this.label,
+    required this.icon,
+    this.badge,
+    this.visible,
   });
 
-  final AppPlatform platform;
-  final String name;
-  final String path;
-  final String groupId;
-  final AppShellLayout layout;
-  final WidgetBuilder builder;
+  final String key;
+  final AppRouteId routeId;
+  final String label;
+  final IconData icon;
+  final AppDrawerBadge? badge;
+  final bool Function()? visible;
 }

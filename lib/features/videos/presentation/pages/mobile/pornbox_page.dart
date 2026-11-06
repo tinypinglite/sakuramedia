@@ -15,7 +15,7 @@ import 'package:sakuramedia/features/videos/presentation/providers/video_summary
 import 'package:sakuramedia/features/videos/presentation/providers/video_summary_scope.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_overview_grid_sliver.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
@@ -101,7 +101,7 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
                           mobile: true,
                           onViewAll: viewAllCollections,
                           onCollectionTap: (collection) =>
-                              MobileVideoCollectionDetailRouteData(
+                              MobileRoutes.videoCollectionDetail(
                                 collectionId: collection.id,
                               ).push(context),
                         ),

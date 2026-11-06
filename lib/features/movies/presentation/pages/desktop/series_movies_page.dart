@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/series_movies_content.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 
 class DesktopSeriesMoviesPage extends StatelessWidget {
@@ -22,10 +22,10 @@ class DesktopSeriesMoviesPage extends StatelessWidget {
       contentKey: const Key('desktop-series-movies-page'),
       totalKey: const Key('desktop-series-movies-total'),
       sectionSpacing: context.appSpacing.lg,
-      onMovieTap: (context, movieNumber) => context.pushDesktopMovieDetail(
+      onMovieTap: (context, movieNumber) => DesktopRoutes.movieDetail(
         movieNumber: movieNumber,
         fallbackPath: desktopMoviesPath,
-      ),
+      ).push(context),
       bodyBuilder: (context, scrollController, sliver, _) =>
           CustomScrollView(controller: scrollController, slivers: [sliver]),
     );

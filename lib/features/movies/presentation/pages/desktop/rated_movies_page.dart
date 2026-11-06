@@ -5,7 +5,7 @@ import 'package:sakuramedia/features/movies/presentation/pages/shared/rated_movi
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 
 /// 「我的评分」页：标准影片网格，默认按总分倒序，可按单个维度排序。
@@ -27,10 +27,10 @@ class DesktopRatedMoviesPage extends ConsumerWidget {
           RatedMoviesHeader(args: args, isMobile: false),
       trailingLabelForMovie: (movie) =>
           ratedTotalLabel(movie, l10n: AppLocalizations.of(context)),
-      onMovieTap: (context, movieNumber) => context.pushDesktopMovieDetail(
+      onMovieTap: (context, movieNumber) => DesktopRoutes.movieDetail(
         movieNumber: movieNumber,
         fallbackPath: desktopRatingsPath,
-      ),
+      ).push(context),
       bodyBuilder: (context, scrollController, sliver, _) => CustomScrollView(
         key: const PageStorageKey<String>('desktop:rated:list'),
         controller: scrollController,

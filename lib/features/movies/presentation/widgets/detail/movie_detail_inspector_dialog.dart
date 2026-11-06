@@ -7,7 +7,7 @@ import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thum
 import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_inspector_panel.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
@@ -39,10 +39,12 @@ Future<void> showMovieDetailInspectorDialog({
           movieCoverUrl: movieCoverUrl,
           selectedMedia: selectedMedia,
           pane: pane,
-          onSearchSelection: (query) => dialogContext.pushDesktopSearch(
+          onSearchSelection: (query) => DesktopRoutes.search(
             query: query,
-            fallbackPath: buildDesktopMovieDetailRoutePath(movieNumber),
-          ),
+            fallbackPath: DesktopRoutes.movieDetail(
+              movieNumber: movieNumber,
+            ).location,
+          ).push(dialogContext),
           onSearchSimilar: (thumbnail, imageUrl, fileName) async {
             if (!context.mounted || !dialogContext.mounted) {
               return;
@@ -58,7 +60,9 @@ Future<void> showMovieDetailInspectorDialog({
               await launchDesktopImageSearchFromUrl(
                 context,
                 imageUrl: imageUrl,
-                fallbackPath: buildDesktopMovieDetailRoutePath(movieNumber),
+                fallbackPath: DesktopRoutes.movieDetail(
+                  movieNumber: movieNumber,
+                ).location,
                 fileName: fileName,
               );
             });
@@ -121,7 +125,8 @@ Future<void> showMobileMovieDetailInspectorBottomSheet({
         thumbnailPreviewPresentation: AppAdaptiveModalVariant.drawer,
         onSearchSimilar: onSearchSimilar,
         onPlay: onPlay,
-        onSearchSelection: (query) => context.pushMobileSearch(query: query),
+        onSearchSelection: (query) =>
+            MobileRoutes.search(query: query).push(context),
       );
     },
   );

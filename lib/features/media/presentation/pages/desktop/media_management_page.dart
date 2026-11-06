@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/media/presentation/pages/shared/media_management_content.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 
 /// 「媒体管理」桌面壳：媒体列表 / 重复媒体 / 多版本影片 / 失效媒体四个 tab 与全部编排逻辑在
 /// [MediaManagementContent]，
@@ -14,9 +14,11 @@ class DesktopMediaManagementPage extends StatelessWidget {
       keyPrefix: 'media-management',
       rootKey: const Key('desktop-media-management-page'),
       onOpenMovieDetail: (context, movieNumber) =>
-          context.pushDesktopMovieDetail(movieNumber: movieNumber),
+          DesktopRoutes.movieDetail(movieNumber: movieNumber).push(context),
       onOpenVideoCollectionDetail: (context, collectionId) =>
-          context.pushDesktopVideoCollectionDetail(collectionId: collectionId),
+          DesktopRoutes.videoCollectionDetail(
+            collectionId: collectionId,
+          ).push(context),
     );
   }
 }

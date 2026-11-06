@@ -73,6 +73,6 @@ SakuraMedia 是桌面优先的媒体管理工作台。桌面端使用工作台�
 ## 维护边界
 
 - 本文是实现基线，不是产品路线图、接口文档或后端设计文档。
-- 路由清单以 `lib/routes/app_route_paths.dart` 和 typed route 定义为准。
+- 路由清单以 `lib/routes/app_route_paths.dart` 和 `lib/routes/definitions/` 为准。
 - 具体业务状态以对应 feature 的 Provider 和测试为准。
 - 如果本文与代码冲突，以代码和测试为准，并删除或修正文档中的重复描述。

@@ -6,20 +6,12 @@ class SessionSnapshot {
     required this.expiresAt,
   });
 
-  const SessionSnapshot.empty()
-    : baseUrl = '',
-      accessToken = '',
-      refreshToken = '',
-      expiresAt = null;
-
   final String baseUrl;
   final String accessToken;
   final String refreshToken;
   final DateTime? expiresAt;
 
-  bool get hasAccessToken => accessToken.isNotEmpty;
-  bool get hasRefreshToken => refreshToken.isNotEmpty;
-  bool get hasSession => hasAccessToken && hasRefreshToken;
+  bool get hasSession => accessToken.isNotEmpty && refreshToken.isNotEmpty;
 
   SessionSnapshot copyWith({
     String? baseUrl,

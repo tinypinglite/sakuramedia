@@ -9,8 +9,8 @@ import 'package:sakuramedia/widgets/base/layout/cards/app_pill.dart';
 /// - 空列表 → 直接返回 `SizedBox.shrink()`，由调用方决定要不要外围留白；
 /// - 非空 → `Wrap` 布局，每项是一个 `Icons.folder_outlined` + 合集名的胶囊；
 /// - 点击某项 → 调 [onCollectionTap]，跳转由调用方决定（桌面走
-///   `context.pushDesktopVideoCollectionDetail`，移动走
-///   `MobileVideoCollectionDetailRouteData(...).push(context)`）。
+///   `DesktopRoutes.videoCollectionDetail(...).push(context)`，移动走
+///   `MobileRoutes.videoCollectionDetail(...).push(context)`）。
 ///
 /// 视觉刻意克制：`surfaceMuted` 底 + `borderSubtle` 描边 + s12/secondary 文字，
 /// 归属信息是**辅助层级**，不与主视觉（封面、标题、播放按钮）抢注意力。

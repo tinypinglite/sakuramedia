@@ -7,7 +7,7 @@ import 'package:sakuramedia/features/plugins/presentation/plugin_management_acti
 import 'package:sakuramedia/features/plugins/presentation/plugin_placeholders.dart';
 import 'package:sakuramedia/features/plugins/presentation/providers/plugins_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
@@ -243,9 +243,7 @@ class _MobilePluginsPageState extends ConsumerState<MobilePluginsPage> {
                     variant: AppButtonVariant.secondary,
                     icon: const Icon(Icons.storefront_outlined),
                     onPressed: () =>
-                        const MobileSettingsPluginMarketRouteData().push(
-                          context,
-                        ),
+                        MobileRoutes.settingsPluginMarket().push(context),
                   ),
                 ),
                 SizedBox(width: spacing.sm),

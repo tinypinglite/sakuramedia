@@ -12,7 +12,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_summary
 import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
-import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
@@ -104,10 +104,10 @@ class BlacklistedMoviesSection extends HookConsumerWidget {
         MovieSummarySliver(
           items: isLoading ? movieListItemPlaceholders() : view.items,
           emptyMessage: l10n.moviePageBlacklistEmpty,
-          onMovieTap: (movie) => context.pushDesktopMovieDetail(
+          onMovieTap: (movie) => DesktopRoutes.movieDetail(
             movieNumber: movie.movieNumber,
             fallbackPath: desktopMoviesPath,
-          ),
+          ).push(context),
           onMovieMenuRequest: (movie, position) =>
               _showMovieActions(context, ref, movie, position),
         ),

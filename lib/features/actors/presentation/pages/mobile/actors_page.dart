@@ -8,7 +8,7 @@ import 'package:sakuramedia/features/actors/presentation/providers/actor_summary
 import 'package:sakuramedia/features/actors/presentation/providers/actor_summary_scope.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
@@ -71,7 +71,7 @@ class _MobileActorsPageState extends ConsumerState<MobileActorsPage>
                 filter: filter,
                 subscriptionUpdating: subscriptionUpdating,
                 onActorTap: (actorId) =>
-                    MobileActorDetailRouteData(actorId: actorId).push(context),
+                    MobileRoutes.actorDetail(actorId: actorId).push(context),
                 sliverGroupKey: const Key('mobile-actors-page'),
               ),
             ),
