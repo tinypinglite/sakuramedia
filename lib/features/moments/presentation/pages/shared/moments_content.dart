@@ -32,6 +32,7 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/use_selection_controller.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
@@ -114,52 +115,25 @@ class MomentsContent extends HookConsumerWidget {
     final filter =
         ref.watch(momentsProvider.select((async) => async.value?.filter)) ??
         ref.read(momentsProvider.notifier).filter;
-    final selectionMode = useState(false);
-    final selectedPointIds = useState<Set<int>>(<int>{});
-    final selectedCount = selectedPointIds.value.length;
+    final selection = useSelectionController<int>(
+      orderedIds: () =>
+          (ref.read(momentsProvider).value?.paged.items ??
+                  const <MomentListItem>[])
+              .map((item) => item.pointId)
+              .toList(growable: false),
+    );
+    final selectionMode = selection.active;
+    final selectedPointIds = selection.selectedIds;
+    final selectedCount = selection.selectedCount;
     final submitting = watchBatchOperationSubmitting(ref, const [
       BatchOperationType.momentCollectionAdd,
       BatchOperationType.momentCollectionRemove,
       BatchOperationType.mediaPointDelete,
     ]);
 
-    void exitSelection() {
-      selectionMode.value = false;
-      selectedPointIds.value = <int>{};
-    }
-
-    void enterSelection([MomentListItem? item]) {
-      selectionMode.value = true;
-      if (item == null) return;
-      final next = <int>{...selectedPointIds.value, item.pointId};
-      selectedPointIds.value = next;
-    }
-
-    void toggleSelection(MomentListItem item) {
-      final next = <int>{...selectedPointIds.value};
-      if (!next.add(item.pointId)) {
-        next.remove(item.pointId);
-      }
-      selectedPointIds.value = next;
-    }
-
-    void toggleSelectAll(Iterable<MomentListItem> items) {
-      final currentItems = items.toList(growable: false);
-      final ids = currentItems.map((item) => item.pointId).toSet();
-      final allSelected =
-          ids.isNotEmpty && ids.every(selectedPointIds.value.contains);
-      final next = <int>{...selectedPointIds.value};
-      if (allSelected) {
-        next.removeWhere(ids.contains);
-      } else {
-        next.addAll(ids);
-      }
-      selectedPointIds.value = next;
-    }
-
     useEffect(() {
-      if (selectionMode.value || selectedPointIds.value.isNotEmpty) {
-        exitSelection();
+      if (selection.active || selection.selectedIds.isNotEmpty) {
+        selection.exitSelection();
       }
       return null;
     }, [filter.sortOrder, filter.kindFilter]);
@@ -185,19 +159,21 @@ class MomentsContent extends HookConsumerWidget {
             listHeaderKey,
             paged,
             filter,
-            selectionMode: selectionMode.value,
+            selectionMode: selectionMode,
             selectedCount: selectedCount,
-            selectedPointIds: selectedPointIds.value,
-            onEnterSelection: () => enterSelection(),
-            onExitSelection: exitSelection,
-            onToggleAll: () => toggleSelectAll(paged.items),
+            selectedPointIds: selectedPointIds,
+            onEnterSelection: () => selection.enterSelection(),
+            onExitSelection: selection.exitSelection,
+            onToggleAll: () => selection.toggleSelectAll(
+              paged.items.map((item) => item.pointId),
+            ),
             onBatchAddToCollection: () => unawaited(
               _batchAddToCollection(
                 context,
                 ref,
                 paged.items,
-                selectedPointIds.value,
-                exitSelection,
+                selectedPointIds,
+                selection.exitSelection,
               ),
             ),
             onBatchDelete: () => unawaited(
@@ -205,8 +181,8 @@ class MomentsContent extends HookConsumerWidget {
                 context,
                 ref,
                 paged.items,
-                selectedPointIds.value,
-                exitSelection,
+                selectedPointIds,
+                selection.exitSelection,
               ),
             ),
             submitting: submitting,
@@ -221,14 +197,15 @@ class MomentsContent extends HookConsumerWidget {
           context,
           ref,
           paged,
-          selectionMode: selectionMode.value,
-          isSelected: (item) => selectedPointIds.value.contains(item.pointId),
-          onSelectedChanged: toggleSelection,
-          onLongPress: (item) {
-            if (!selectionMode.value) {
-              enterSelection(item);
-            }
-          },
+          selectionMode: selectionMode,
+          isSelected: (item) => selectedPointIds.contains(item.pointId),
+          onItemTap: (item) => selection.tapHandler(
+            item.pointId,
+            () => _openMomentPreview(context, ref, item),
+          )(),
+          onSelectedChanged: (item) =>
+              selection.handleSelectionTap(item.pointId),
+          onLongPress: (item) => selection.longPressHandler(item.pointId)(),
         ),
         // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
         PagedLoadMoreFooterSliver(
@@ -269,7 +246,7 @@ class MomentsContent extends HookConsumerWidget {
               ),
       ),
     );
-    final pageWithSelectionBar = useMobileFilterDrawer && selectionMode.value
+    final pageWithSelectionBar = useMobileFilterDrawer && selectionMode
         ? Column(
             children: [
               Expanded(child: page),
@@ -286,8 +263,8 @@ class MomentsContent extends HookConsumerWidget {
                               context,
                               ref,
                               paged.items,
-                              selectedPointIds.value,
-                              exitSelection,
+                              selectedPointIds,
+                              selection.exitSelection,
                             ),
                           ),
                   ),
@@ -302,8 +279,8 @@ class MomentsContent extends HookConsumerWidget {
                               context,
                               ref,
                               paged.items,
-                              selectedPointIds.value,
-                              exitSelection,
+                              selectedPointIds,
+                              selection.exitSelection,
                             ),
                           ),
                   ),
@@ -753,6 +730,7 @@ class MomentsContent extends HookConsumerWidget {
     PagedViewSnapshot<MomentListItem> paged, {
     required bool selectionMode,
     required bool Function(MomentListItem item) isSelected,
+    required ValueChanged<MomentListItem> onItemTap,
     required ValueChanged<MomentListItem> onSelectedChanged,
     required ValueChanged<MomentListItem> onLongPress,
   }) {
@@ -777,7 +755,7 @@ class MomentsContent extends HookConsumerWidget {
       enabled: isLoading,
       child: MomentSliver(
         items: items,
-        onItemTap: (item) => _openMomentPreview(context, ref, item),
+        onItemTap: onItemTap,
         onItemPlay: (item) => unawaited(
           playMomentItem(
             context: context,

@@ -14,6 +14,7 @@ import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/data/multi_version_movie_dto.dart';
 import 'package:sakuramedia/features/media/presentation/media_placeholders.dart';
 import 'package:sakuramedia/features/media/presentation/providers/multi_version_movies_provider.dart';
+import 'package:sakuramedia/features/media/presentation/widgets/shared/media_group_batch_selection.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_file_group_card.dart';
 import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.dart';
@@ -69,20 +70,29 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
       ),
     );
     final spacing = context.appSpacing;
-    final selectionMode = useState(false);
-    final selectedIds = useState(<int>{});
     final deleting = useState(false);
     final updatingMovieNumber = useState<String?>(null);
     final groups = asyncState.value?.items ?? const <MultiVersionMovieDto>[];
-    final selected = [
-      for (final group in groups)
-        for (final item in group.mediaItems)
-          if (selectedIds.value.contains(item.id)) item,
-    ];
-    void exitSelection() {
-      selectionMode.value = false;
-      selectedIds.value = {};
-    }
+    final selection = useMediaGroupSelection<MultiVersionMovieDto>(
+      currentGroups: () =>
+          ref
+              .read(
+                multiVersionMoviesProvider(
+                  includeVr: includeVr.value,
+                  includeFc2: includeFc2.value,
+                  includeProcessed: includeProcessed.value,
+                ),
+              )
+              .value
+              ?.items ??
+          const <MultiVersionMovieDto>[],
+      itemsOf: (group) => group.mediaItems,
+    );
+    final selected = selectedMediaGroupItems(
+      groups: groups,
+      itemsOf: (group) => group.mediaItems,
+      selectedIds: selection.selectedIds,
+    );
 
     Future<void> deleteSelected() async {
       if (deleting.value || selected.isEmpty) return;
@@ -106,7 +116,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
           currentGroups.any(
             (group) => group.mediaItems.every((item) => ids.contains(item.id)),
           )) {
-        exitSelection();
+        selection.exitSelection();
         showToast(l10n.mediaListVersionsChanged, tone: AppToastTone.success);
         return;
       }
@@ -119,7 +129,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
       );
       if (!context.mounted) return;
       deleting.value = false;
-      if (submitted) exitSelection();
+      if (submitted) selection.exitSelection();
     }
 
     final deleteButton = AppButton(
@@ -243,7 +253,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
                     label: filter.label,
                     selected: filter.state.value,
                     onPressed: () {
-                      exitSelection();
+                      selection.exitSelection();
                       filter.state.value = !filter.state.value;
                       if (scrollController.hasClients) {
                         scrollController.jumpTo(0);
@@ -287,7 +297,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
         mobile: mobile,
         onOpen: () => onOpenMovieDetail(context, group.movieNumber),
         onDelete: (item) => unawaited(deleteVersion(group, item)),
-        selectedIds: selectionMode.value ? selectedIds.value : null,
+        selectedIds: selection.active ? selection.selectedIds : null,
         statusLabel: group.isProcessed
             ? l10n.mediaListVersionsProcessedBadge
             : null,
@@ -307,11 +317,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
               ? null
               : () => unawaited(setProcessed(group, !group.isProcessed)),
         ),
-        onToggle: (item) {
-          final next = {...selectedIds.value};
-          if (!next.remove(item.id)) next.add(item.id);
-          selectedIds.value = next;
-        },
+        onToggle: (item) => selection.handleSelectionTap(item.id),
       );
     }
 
@@ -333,9 +339,9 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
             selectAllKey: Key('$keyPrefix-versions-clear-selection'),
             onToggleAll: deleting.value || selected.isEmpty
                 ? null
-                : () => selectedIds.value = {},
+                : () => selection.clearSelection(),
             exitKey: Key('$keyPrefix-versions-exit-selection'),
-            onExitSelection: deleting.value ? null : exitSelection,
+            onExitSelection: deleting.value ? null : selection.exitSelection,
           )
         : AppGlassSelectionHeader(
             selectionLabel: l10n.mediaListSelectedCopies(selected.length),
@@ -344,9 +350,9 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
             selectAllKey: Key('$keyPrefix-versions-clear-selection'),
             onToggleAll: deleting.value || selected.isEmpty
                 ? null
-                : () => selectedIds.value = {},
+                : () => selection.clearSelection(),
             exitKey: Key('$keyPrefix-versions-exit-selection'),
-            onExitSelection: deleting.value ? null : exitSelection,
+            onExitSelection: deleting.value ? null : selection.exitSelection,
             actions: <AppGlassSelectionAction>[
               AppGlassSelectionAction(
                 key: Key('$keyPrefix-versions-batch-delete'),
@@ -390,7 +396,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
                 icon: Icons.check_circle_outline,
                 onPressed: groups.isEmpty
                     ? null
-                    : () => selectionMode.value = true,
+                    : () => selection.enterSelection(),
               ),
               AppGlassIconButton(
                 key: Key('$keyPrefix-versions-refresh'),
@@ -424,7 +430,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
                   enabled: groups.isNotEmpty,
                   onTap: groups.isEmpty
                       ? () {}
-                      : () => selectionMode.value = true,
+                      : () => selection.enterSelection(),
                 ),
                 AppGlassHeaderButton(
                   key: Key('$keyPrefix-versions-refresh'),
@@ -440,13 +446,13 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
           );
 
     final content = AppFixedHeaderLayout(
-      header: selectionMode.value ? selectionHeader : filterHeader,
+      header: selection.active ? selectionHeader : filterHeader,
       headerBottomSpacing: context.appSpacing.lg,
       child: CustomScrollView(
         key: Key('$keyPrefix-versions-scroll'),
         controller: scrollController,
         slivers: [
-          if (selectionMode.value)
+          if (selection.active)
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.only(bottom: spacing.md),
@@ -511,7 +517,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
     return Column(
       children: [
         Expanded(child: content),
-        if (mobile && selectionMode.value)
+        if (mobile && selection.active)
           AppSelectionBottomBar(actions: [deleteButton]),
       ],
     );

@@ -389,7 +389,10 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
         items: isInitialLoading
             ? movieListItemPlaceholders(count: 24)
             : view.items,
-        onMovieTap: (movie) => widget.onMovieTap(context, movie.movieNumber),
+        onMovieTap: (movie) => selectionAwareTap(
+          movie.movieNumber,
+          () => widget.onMovieTap(context, movie.movieNumber),
+        )(),
         onMovieMenuRequest: (movie, globalPosition) {
           unawaited(
             showMovieCollectionFeatureActionMenu(
@@ -402,10 +405,7 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
                   .removeMovies(<String>[movie.movieNumber]),
               // 移动端多选入口挂在长按菜单里，桌面仍在顶栏。
               onEnterSelection: widget.useMobileSelectionLayout
-                  ? () {
-                      enterSelection();
-                      toggleSelect(movie.movieNumber);
-                    }
+                  ? () => enterSelection(initial: movie.movieNumber)
                   : null,
             ),
           );
@@ -419,7 +419,8 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent>
         emptyMessage: AppLocalizations.of(context).moviePageSeriesEmpty,
         selectionMode: selectionMode,
         isMovieSelected: (movie) => isSelected(movie.movieNumber),
-        onMovieSelectedChanged: (movie, _) => toggleSelect(movie.movieNumber),
+        onMovieSelectedChanged: (movie, _) =>
+            handleSelectTap(movie.movieNumber),
       ),
     );
   }

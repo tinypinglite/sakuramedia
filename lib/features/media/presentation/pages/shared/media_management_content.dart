@@ -28,6 +28,8 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/selection_controller.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/use_selection_controller.dart';
 import 'package:sakuramedia/widgets/base/layout/keep_alive_page.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
@@ -98,16 +100,22 @@ class MediaManagementContent extends HookConsumerWidget {
     final duplicateScrollController = useScrollController();
     final versionsScrollController = useScrollController();
     final invalidScrollController = useScrollController();
+    final selection = useSelectionController<int>(
+      orderedIds: () =>
+          (ref.read(mediaBrowseProvider).value?.paged.items ??
+                  const <MediaListItemDto>[])
+              .map((item) => item.id)
+              .toList(growable: false),
+    );
     ref.listen(mediaBrowseProvider.select((value) => value.value?.filter), (
       previous,
       next,
     ) {
-      if (previous != null &&
-          next != null &&
-          previous != next &&
-          currentTab == 0 &&
-          listScrollController.hasClients) {
-        listScrollController.jumpTo(0);
+      if (previous != null && next != null && previous != next) {
+        selection.exitSelection();
+        if (currentTab == 0 && listScrollController.hasClients) {
+          listScrollController.jumpTo(0);
+        }
       }
     });
 
@@ -117,12 +125,6 @@ class MediaManagementContent extends HookConsumerWidget {
     final deletingMediaId = useState<int?>(null);
     final transferringMediaId = useState<int?>(null);
     final retryingThumbnailMediaId = useState<int?>(null);
-    final selectionMode = useState<bool>(false);
-
-    void exitSelectionMode() {
-      selectionMode.value = false;
-    }
-
     return AppPageRefreshScope(
       onRefresh: () => _refreshAll(
         ref,
@@ -181,20 +183,20 @@ class MediaManagementContent extends HookConsumerWidget {
                         context,
                         ref,
                         isDeleting,
-                        selectionMode,
+                        selection,
                       ),
                       onBatchTransfer: () => _openBatchTransferDialog(
                         context,
                         ref,
                         isTransferring,
-                        selectionMode,
+                        selection,
                       ),
                       onBatchResetThumbnails: () =>
                           _openBatchThumbnailResetDialog(
                             context,
                             ref,
                             isResettingThumbnails,
-                            selectionMode,
+                            selection,
                           ),
                       onRefresh: () => _refreshAll(
                         ref,
@@ -205,9 +207,7 @@ class MediaManagementContent extends HookConsumerWidget {
                       onOpenMovieDetail: onOpenMovieDetail,
                       keyPrefix: keyPrefix,
                       mobile: mobile,
-                      selectionMode: selectionMode.value,
-                      onEnterSelection: () => selectionMode.value = true,
-                      onExitSelection: exitSelectionMode,
+                      selection: selection,
                       onDeleteItem: (item) => _openSingleDeleteDialog(
                         context,
                         ref,
@@ -360,13 +360,11 @@ class MediaManagementContent extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     ValueNotifier<bool> isDeleting,
-    ValueNotifier<bool> selectionMode,
+    SelectionController<int> selection,
   ) async {
     if (isDeleting.value) return;
     final l10n = AppLocalizations.of(context);
-    final browseState = ref.read(mediaBrowseProvider).value;
-    if (browseState == null) return;
-    final selectedIds = browseState.selectedIds.toList(growable: false);
+    final selectedIds = selection.selectedIds.toList(growable: false);
     if (selectedIds.isEmpty) return;
 
     final confirmed = await showAppConfirmDialog(
@@ -392,10 +390,7 @@ class MediaManagementContent extends HookConsumerWidget {
       return;
     }
     isDeleting.value = false;
-    if (submitted) {
-      ref.read(mediaBrowseProvider.notifier).clearSelection();
-      selectionMode.value = false;
-    }
+    if (submitted) selection.exitSelection();
   }
 
   Future<void> _openSingleDeleteDialog(
@@ -446,29 +441,28 @@ class MediaManagementContent extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     ValueNotifier<bool> isTransferring,
-    ValueNotifier<bool> selectionMode,
+    SelectionController<int> selection,
   ) async {
-    final browseState = ref.read(mediaBrowseProvider).value;
-    if (browseState == null || browseState.selectedIds.isEmpty) return;
+    if (selection.selectedIds.isEmpty) return;
     await _submitTransfer(
       context,
       ref,
-      mediaIds: browseState.selectedIds.toList(growable: false),
+      mediaIds: selection.selectedIds.toList(growable: false),
       isTransferring: isTransferring,
-      selectionMode: selectionMode,
+      selection: selection,
     );
   }
 
   /// 单条与批量共用的迁移：取候选 → 选目标库 → 提交任务。
   ///
-  /// [selectionMode] 仅批量入口传入（成功后退出移动端多选态）；
+  /// [selection] 仅批量入口传入（成功后退出多选态）；
   /// [transferringMediaId] 仅单项入口传入（标记对应卡片 loading）。
   Future<void> _submitTransfer(
     BuildContext context,
     WidgetRef ref, {
     required List<int> mediaIds,
     required ValueNotifier<bool> isTransferring,
-    ValueNotifier<bool>? selectionMode,
+    SelectionController<int>? selection,
     ValueNotifier<int?>? transferringMediaId,
   }) async {
     if (isTransferring.value || mediaIds.isEmpty) return;
@@ -500,8 +494,7 @@ class MediaManagementContent extends HookConsumerWidget {
         mediaIds: mediaIds,
         targetLibraryId: targetLibraryId,
       );
-      ref.read(mediaBrowseProvider.notifier).clearSelection();
-      selectionMode?.value = false;
+      selection?.exitSelection();
       showToast(
         l10n.mediaListTransferSubmitted(accepted.taskRunId),
         tone: AppToastTone.success,
@@ -529,16 +522,18 @@ class MediaManagementContent extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     ValueNotifier<bool> isResettingThumbnails,
-    ValueNotifier<bool> selectionMode,
+    SelectionController<int> selection,
   ) async {
     if (isResettingThumbnails.value) return;
     final l10n = AppLocalizations.of(context);
-    final browseState = ref.read(mediaBrowseProvider).value;
-    if (browseState == null || browseState.selectedIds.isEmpty) return;
-    final selectedIds = browseState.selectedIds.toList(growable: false);
+    if (selection.selectedIds.isEmpty) return;
+    final selectedIds = selection.selectedIds.toList(growable: false);
     // 「已完成」筛选下的同一入口是破坏性的重新生成：删除已有缩略图后再生成。
+    final filter =
+        ref.read(mediaBrowseProvider).value?.filter ??
+        MediaBrowseFilterState.initial;
     final force =
-        browseState.filter.thumbnailGenerationState ==
+        filter.thumbnailGenerationState ==
         MediaBrowseThumbnailGenerationFilter.succeeded;
 
     final confirmed = await showAppConfirmDialog(
@@ -567,7 +562,7 @@ class MediaManagementContent extends HookConsumerWidget {
       ref,
       mediaIds: selectedIds,
       isResettingThumbnails: isResettingThumbnails,
-      selectionMode: selectionMode,
+      selection: selection,
       force: force,
     );
   }
@@ -701,14 +696,14 @@ class MediaManagementContent extends HookConsumerWidget {
 
   /// 批量与单项共用的缩略图重置：置忙、重置、清选、刷新，并按结果提示。
   ///
-  /// [selectionMode] 仅批量入口传入（成功后退出移动端多选态）；
+  /// [selection] 仅批量入口传入（成功后退出多选态）；
   /// [retryingThumbnailMediaId] 仅单项入口传入（标记对应卡片 loading）。
   Future<void> _resetThumbnails(
     BuildContext context,
     WidgetRef ref, {
     required List<int> mediaIds,
     required ValueNotifier<bool> isResettingThumbnails,
-    ValueNotifier<bool>? selectionMode,
+    SelectionController<int>? selection,
     ValueNotifier<int?>? retryingThumbnailMediaId,
     bool force = false,
   }) async {
@@ -721,8 +716,7 @@ class MediaManagementContent extends HookConsumerWidget {
           .read(mediaApiProvider)
           .resetMediaThumbnails(mediaIds: mediaIds, force: force);
       if (!context.mounted) return;
-      ref.read(mediaBrowseProvider.notifier).clearSelection();
-      selectionMode?.value = false;
+      selection?.exitSelection();
       final refreshMessage = await ref
           .read(mediaBrowseProvider.notifier)
           .refresh();

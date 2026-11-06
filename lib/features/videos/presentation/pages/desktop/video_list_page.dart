@@ -127,7 +127,10 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
                           ? l10n.errorVideoListLoadFailed
                           : null,
                       emptyMessage: l10n.videoEmptyList,
-                      onVideoTap: openActions,
+                      onVideoTap: (video) => selectionAwareTap(
+                        video.id,
+                        () => openActions(video),
+                      )(),
                       onVideoPlay: (video) => unawaited(playVideo(video)),
                       onVideoThumbnails: (video) =>
                           context.pushDesktopVideoThumbnails(videoId: video.id),
@@ -136,7 +139,7 @@ class _DesktopVideoListPageState extends ConsumerState<DesktopVideoListPage>
                       onVideoDelete: (video) => unawaited(deleteVideo(video)),
                       selectionMode: selectionMode,
                       selectedIds: selectedIds,
-                      onVideoToggleSelect: (video) => toggleSelect(video.id),
+                      onVideoToggleSelect: (video) => handleSelectTap(video.id),
                     ),
                   PagedLoadMoreFooterSliver(
                     watchFooter: (ref) => ref.watch(

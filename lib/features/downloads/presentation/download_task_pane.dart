@@ -32,6 +32,8 @@ import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
 import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/selection_controller.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/selection_controller.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/selection_check_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_left_cover_card.dart';
@@ -52,16 +54,14 @@ Widget buildDownloadTaskHeader({
   required BuildContext context,
   required WidgetRef ref,
   required VoidCallback onManualAdd,
+  required SelectionController<int> selection,
 }) {
   // 只订阅头部渲染所需的字段：进度轮询 tick 不重建头部。
   final header = ref.watch(
     downloadTaskCenterProvider.select((asyncState) {
       final state = asyncState.value;
       return (
-        selectionMode: state?.selectionMode ?? false,
-        selectionCount: state?.selectionCount ?? 0,
         loadedCount: state?.paged.items.length ?? 0,
-        hasSelection: state?.hasSelection ?? false,
         filterUpdate:
             state?.paged.filterUpdate ?? const FilterUpdateState.idle(),
         hasItems: state?.paged.items.isNotEmpty ?? false,
@@ -71,7 +71,7 @@ Widget buildDownloadTaskHeader({
     }),
   );
   final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
-  if (!isMobile && !header.selectionMode) {
+  if (!isMobile && !selection.active) {
     final l10n = AppLocalizations.of(context);
     final notifier = ref.read(downloadTaskCenterProvider.notifier);
     return Column(
@@ -112,7 +112,7 @@ Widget buildDownloadTaskHeader({
                 label: l10n.baseSelect,
                 enabled: header.loadedCount > 0,
                 onTap: header.loadedCount > 0
-                    ? () => notifier.enterSelectionMode()
+                    ? selection.enterSelection
                     : () {},
               ),
             ],
@@ -130,22 +130,17 @@ Widget buildDownloadTaskHeader({
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      if (header.selectionMode)
+      if (selection.active)
         isMobile
-            ? _MobileSelectionHeader(
-                selectionCount: header.selectionCount,
-                loadedCount: header.loadedCount,
-              )
-            : _DesktopSelectionHeader(
-                selectionCount: header.selectionCount,
-                loadedCount: header.loadedCount,
-              )
+            ? _MobileSelectionHeader(selection: selection)
+            : _DesktopSelectionHeader(selection: selection)
       else
         _MobileDownloadFilterEntry(
           filter: header.filter,
           clientOptions: header.clientOptions,
           hasItems: header.hasItems,
           onManualAdd: onManualAdd,
+          selection: selection,
         ),
       AppFilterUpdateBar(
         key: const Key('download-tasks-reloading-indicator'),
@@ -167,39 +162,40 @@ Widget buildDownloadTaskHeader({
 Widget wrapDownloadTaskSelectionBar({
   required BuildContext context,
   required WidgetRef ref,
+  required SelectionController<int> selection,
   required Widget child,
 }) {
   if (AppPlatformScope.maybeOf(context) != AppPlatform.mobile) return child;
-  final selectionMode = ref.watch(
-    downloadTaskCenterProvider.select(
-      (asyncState) => asyncState.value?.selectionMode ?? false,
-    ),
-  );
-  if (!selectionMode) return child;
+  if (!selection.active) return child;
   return Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Expanded(child: child),
-      const _MobileSelectionBar(),
+      _MobileSelectionBar(selection: selection),
     ],
   );
 }
 
 /// 桌面多选态顶栏：原地改写筛选行，批量动作与移动贴底条共用。
 class _DesktopSelectionHeader extends ConsumerWidget {
-  const _DesktopSelectionHeader({
-    required this.selectionCount,
-    required this.loadedCount,
-  });
+  const _DesktopSelectionHeader({required this.selection});
 
-  final int selectionCount;
-  final int loadedCount;
+  final SelectionController<int> selection;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final notifier = ref.read(downloadTaskCenterProvider.notifier);
-    final allSelected = loadedCount > 0 && selectionCount >= loadedCount;
+    final loadedIds = ref.watch(
+      downloadTaskCenterProvider.select(
+        (asyncState) =>
+            asyncState.value?.paged.items
+                .map((row) => row.task.id)
+                .toList(growable: false) ??
+            const <int>[],
+      ),
+    );
+    final selectionCount = selection.selectedCount;
+    final allSelected = selection.isAllSelected(loadedIds);
     final submitting = watchBatchOperationSubmitting(ref, const [
       BatchOperationType.downloadTaskDelete,
     ]);
@@ -209,11 +205,13 @@ class _DesktopSelectionHeader extends ConsumerWidget {
       countKey: const Key('download-tasks-selection-count'),
       selectAllLabel: allSelected
           ? l10n.downloadSelectionClearAll
-          : l10n.downloadSelectionSelectAll(loadedCount),
+          : l10n.downloadSelectionSelectAll(loadedIds.length),
       selectAllKey: const Key('download-tasks-select-all-button'),
-      onToggleAll: loadedCount == 0 ? null : notifier.toggleSelectAllLoaded,
+      onToggleAll: loadedIds.isEmpty
+          ? null
+          : () => selection.toggleSelectAll(loadedIds),
       exitKey: const Key('download-tasks-selection-exit'),
-      onExitSelection: notifier.exitSelectionMode,
+      onExitSelection: selection.exitSelection,
       actions: <AppGlassSelectionAction>[
         AppGlassSelectionAction(
           key: const Key('download-tasks-batch-delete-button'),
@@ -221,7 +219,7 @@ class _DesktopSelectionHeader extends ConsumerWidget {
           icon: Icons.delete_outline_rounded,
           foregroundColor: context.appTextPalette.error,
           onTap: selectionCount > 0 && !submitting
-              ? () => unawaited(_deleteSelectedTasks(context, ref))
+              ? () => unawaited(_deleteSelectedTasks(context, ref, selection))
               : null,
         ),
       ],
@@ -232,46 +230,53 @@ class _DesktopSelectionHeader extends ConsumerWidget {
 /// 移动端多选态顶栏：与订阅管理 / PornBox 共用紧凑玻璃多选头，
 /// 危险动作下沉到贴底条 [_MobileSelectionBar]。
 class _MobileSelectionHeader extends ConsumerWidget {
-  const _MobileSelectionHeader({
-    required this.selectionCount,
-    required this.loadedCount,
-  });
+  const _MobileSelectionHeader({required this.selection});
 
-  final int selectionCount;
-  final int loadedCount;
+  final SelectionController<int> selection;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final notifier = ref.read(downloadTaskCenterProvider.notifier);
-    final allSelected = loadedCount > 0 && selectionCount >= loadedCount;
+    final loadedIds = ref.watch(
+      downloadTaskCenterProvider.select(
+        (asyncState) =>
+            asyncState.value?.paged.items
+                .map((row) => row.task.id)
+                .toList(growable: false) ??
+            const <int>[],
+      ),
+    );
+    final selectionCount = selection.selectedCount;
+    final allSelected = selection.isAllSelected(loadedIds);
     return AppMobileSelectionHeader(
       key: const Key('download-tasks-selection-header'),
       selectionLabel: l10n.downloadSelectionCount(selectionCount),
       exitKey: const Key('download-tasks-selection-exit'),
-      onExitSelection: notifier.exitSelectionMode,
+      onExitSelection: selection.exitSelection,
       selectAllKey: const Key('download-tasks-select-all-button'),
       selectAllTooltip: allSelected
           ? l10n.downloadSelectionClearAll
-          : l10n.downloadSelectionSelectAll(loadedCount),
-      onToggleAll: loadedCount == 0 ? null : notifier.toggleSelectAllLoaded,
+          : l10n.downloadSelectionSelectAll(loadedIds.length),
+      onToggleAll: loadedIds.isEmpty
+          ? null
+          : () => selection.toggleSelectAll(loadedIds),
     );
   }
 }
 
 /// 移动端贴底批量操作条：危险动作放在拇指够得到的地方。
 class _MobileSelectionBar extends ConsumerWidget {
-  const _MobileSelectionBar();
+  const _MobileSelectionBar({required this.selection});
+
+  final SelectionController<int> selection;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final selectionCount = ref.watch(
-      downloadTaskCenterProvider.select(
-        (asyncState) => asyncState.value?.selectionCount ?? 0,
-      ),
-    );
+    final selectionCount = selection.selectedCount;
     return AppSelectionBottomBar(
-      actions: <Widget>[_buildBatchDeleteButton(context, ref, selectionCount)],
+      actions: <Widget>[
+        _buildBatchDeleteButton(context, ref, selection, selectionCount),
+      ],
     );
   }
 }
@@ -279,6 +284,7 @@ class _MobileSelectionBar extends ConsumerWidget {
 Widget _buildBatchDeleteButton(
   BuildContext context,
   WidgetRef ref,
+  SelectionController<int> selection,
   int selectionCount, {
   AppButtonSize size = AppButtonSize.medium,
 }) {
@@ -293,15 +299,19 @@ Widget _buildBatchDeleteButton(
     variant: AppButtonVariant.danger,
     icon: const Icon(Icons.delete_outline_rounded),
     onPressed: selectionCount > 0 && !submitting
-        ? () => unawaited(_deleteSelectedTasks(context, ref))
+        ? () => unawaited(_deleteSelectedTasks(context, ref, selection))
         : null,
   );
 }
 
 /// 批量删除所选下载任务：确认后提交后端批量操作任务，进度与结果在活动中心查看。
-Future<void> _deleteSelectedTasks(BuildContext context, WidgetRef ref) async {
+Future<void> _deleteSelectedTasks(
+  BuildContext context,
+  WidgetRef ref,
+  SelectionController<int> selection,
+) async {
   final notifier = ref.read(downloadTaskCenterProvider.notifier);
-  final tasks = notifier.selectedLoadedTasks();
+  final tasks = notifier.loadedTasksByIds(selection.selectedIds);
   if (tasks.isEmpty) return;
   final deleteFiles = await showDownloadTaskDeleteDialog(context, tasks: tasks);
   if (!context.mounted || deleteFiles == null) return;
@@ -313,7 +323,7 @@ Future<void> _deleteSelectedTasks(BuildContext context, WidgetRef ref) async {
     deleteFiles: deleteFiles,
   );
   if (!context.mounted) return;
-  if (submitted) notifier.exitSelectionMode();
+  if (submitted) selection.exitSelection();
 }
 
 /// 单条删除保持同步：确认后在弹窗内等待删除接口完成，成功才关闭弹窗。
@@ -331,11 +341,14 @@ Future<void> _deleteTask(
   );
 }
 
-List<Widget> buildDownloadTaskSlivers({required VoidCallback onManualAdd}) {
+List<Widget> buildDownloadTaskSlivers({
+  required VoidCallback onManualAdd,
+  required SelectionController<int> selection,
+}) {
   // 列表本体与页脚各自独立订阅：进度 tick 只重建变化的行，
   // 翻页状态翻转只重建页脚，不重建整个列表。
   return <Widget>[
-    _DownloadTasksBodySliver(onManualAdd: onManualAdd),
+    _DownloadTasksBodySliver(onManualAdd: onManualAdd, selection: selection),
     // 无更多且无失败时不占位；「还有更多」时页脚常驻（空闲也留好间距）。
     // 空列表与页脚互斥：hasMore 但 items 为空时渲染的是空态文案
     // （见 _DownloadTasksBodySliver），不再出现「加载更多」。
@@ -378,9 +391,13 @@ DownloadTaskRowState? _rowById(DownloadTaskCenterState? state, int taskId) {
 /// 进度 tick 只改变行内数据（条目序列不变），不重建列表；
 /// 各行通过 [_DownloadTaskCard] 独立订阅自己的行状态。
 class _DownloadTasksBodySliver extends ConsumerWidget {
-  const _DownloadTasksBodySliver({required this.onManualAdd});
+  const _DownloadTasksBodySliver({
+    required this.onManualAdd,
+    required this.selection,
+  });
 
   final VoidCallback onManualAdd;
+  final SelectionController<int> selection;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -429,7 +446,10 @@ class _DownloadTasksBodySliver extends ConsumerWidget {
                 bottom: isLast ? 0 : context.appSpacing.md,
               ),
               child: RepaintBoundary(
-                child: _DownloadTaskCard(row: placeholders[index]),
+                child: _DownloadTaskCard(
+                  row: placeholders[index],
+                  selection: selection,
+                ),
               ),
             );
           }, childCount: placeholders.length),
@@ -496,7 +516,9 @@ class _DownloadTasksBodySliver extends ConsumerWidget {
         final isLast = index == items.length - 1;
         return Padding(
           padding: EdgeInsets.only(bottom: isLast ? 0 : context.appSpacing.md),
-          child: RepaintBoundary(child: _DownloadTaskCard(row: row)),
+          child: RepaintBoundary(
+            child: _DownloadTaskCard(row: row, selection: selection),
+          ),
         );
       }, childCount: items.length),
     );
@@ -504,9 +526,10 @@ class _DownloadTasksBodySliver extends ConsumerWidget {
 }
 
 class _DownloadTaskCard extends ConsumerWidget {
-  const _DownloadTaskCard({required this.row});
+  const _DownloadTaskCard({required this.row, required this.selection});
 
   final DownloadTaskRowState row;
+  final SelectionController<int> selection;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -519,13 +542,9 @@ class _DownloadTaskCard extends ConsumerWidget {
         (asyncState) => _rowById(asyncState.value, taskId),
       ),
     );
-    final selection = ref.watch(
+    final isPending = ref.watch(
       downloadTaskCenterProvider.select(
-        (asyncState) => (
-          mode: asyncState.value?.selectionMode ?? false,
-          selected: asyncState.value?.isSelected(taskId) ?? false,
-          pending: asyncState.value?.isTaskPending(taskId) ?? false,
-        ),
+        (asyncState) => asyncState.value?.isTaskPending(taskId) ?? false,
       ),
     );
     final task = liveRow?.task ?? row.task;
@@ -538,14 +557,13 @@ class _DownloadTaskCard extends ConsumerWidget {
     final componentTokens = context.appComponentTokens;
     final progress = (liveRow?.progress ?? row.progress).clamp(0.0, 1.0);
     final taskState = liveRow?.state ?? row.state;
-    final isPending = selection.pending;
     final isImportRunning = task.importStatus == 'running';
     final movieNumber = task.movieNumber;
     final hasMovieNumber = (movieNumber ?? '').isNotEmpty;
     final displayTitle = _resolveDisplayTitle(task);
     final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
-    final selectionMode = selection.mode;
-    final isSelected = selection.selected;
+    final selectionMode = selection.active;
+    final isSelected = selection.isSelected(taskId);
     final thinCoverUrl = task.movieThinCover?.origin.trim() ?? '';
     final wideCoverUrl = task.movieCover?.origin.trim() ?? '';
     final coverUrl = isMobile && thinCoverUrl.isNotEmpty
@@ -561,9 +579,7 @@ class _DownloadTaskCard extends ConsumerWidget {
         bodyMinHeight: componentTokens.downloadTaskCardMinHeight,
         selected: selectionMode && isSelected,
         onTap: selectionMode
-            ? () => ref
-                  .read(downloadTaskCenterProvider.notifier)
-                  .toggleSelection(task.id)
+            ? () => selection.handleSelectionTap(taskId)
             : null,
         cover: _DownloadTaskCover(
           coverUrl: coverUrl,
@@ -572,7 +588,7 @@ class _DownloadTaskCard extends ConsumerWidget {
           isSelected: isSelected,
           onTap: selectionMode || !hasMovieNumber
               ? null
-              : () {
+              : selection.tapHandler(taskId, () {
                   if (isMobile) {
                     context.pushMobileMovieDetail(movieNumber: movieNumber!);
                     return;
@@ -581,7 +597,7 @@ class _DownloadTaskCard extends ConsumerWidget {
                     movieNumber: movieNumber!,
                     fallbackPath: desktopDownloadTasksPath,
                   );
-                },
+                }),
         ),
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1002,12 +1018,14 @@ class _MobileDownloadFilterEntry extends ConsumerWidget {
     required this.clientOptions,
     required this.hasItems,
     required this.onManualAdd,
+    required this.selection,
   });
 
   final DownloadTaskFilterState filter;
   final List<DownloadClientOption> clientOptions;
   final bool hasItems;
   final VoidCallback onManualAdd;
+  final SelectionController<int> selection;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1027,11 +1045,7 @@ class _MobileDownloadFilterEntry extends ConsumerWidget {
           key: const Key('download-tasks-selection-entry'),
           tooltip: l10n.baseSelect,
           icon: Icons.check_circle_outline,
-          onPressed: hasItems
-              ? () => ref
-                    .read(downloadTaskCenterProvider.notifier)
-                    .enterSelectionMode()
-              : null,
+          onPressed: hasItems ? selection.enterSelection : null,
         ),
         AppGlassFilterIconButton(
           key: const Key('mobile-download-filter-button'),

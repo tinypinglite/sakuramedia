@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/shared/presentation/providers/paged_async_n
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/selection_controller.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
@@ -33,6 +34,7 @@ class DesktopDownloadTasksPage extends ConsumerStatefulWidget {
 class _DesktopDownloadTasksPageState
     extends ConsumerState<DesktopDownloadTasksPage> {
   late final DownloadTaskCenter _controller;
+  late final SelectionController<int> _selection;
   final ScrollController _scrollController = ScrollController();
   bool? _isPageVisible;
   bool _initialized = false;
@@ -42,11 +44,24 @@ class _DesktopDownloadTasksPageState
   void initState() {
     super.initState();
     _controller = ref.read(downloadTaskCenterProvider.notifier);
+    _selection = SelectionController<int>(
+      orderedIds: () {
+        final state = ref.read(downloadTaskCenterProvider).value;
+        return state?.paged.items
+                .map((row) => row.task.id)
+                .toList(growable: false) ??
+            const <int>[];
+      },
+    )..addListener(_handleSelectionChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         unawaited(_initialize());
       }
     });
+  }
+
+  void _handleSelectionChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _initialize() async {
@@ -96,7 +111,7 @@ class _DesktopDownloadTasksPageState
         }
       } else {
         _controller.pausePolling();
-        _controller.exitSelectionMode();
+        _selection.exitSelection();
       }
     });
   }
@@ -118,6 +133,9 @@ class _DesktopDownloadTasksPageState
 
   @override
   void dispose() {
+    _selection
+      ..removeListener(_handleSelectionChanged)
+      ..dispose();
     _controller.stopPolling();
     _scrollController.dispose();
     super.dispose();
@@ -146,9 +164,7 @@ class _DesktopDownloadTasksPageState
       result.response.created
           ? l10n.downloadSubmittedToClient(result.clientName)
           : l10n.downloadTaskAlreadyExists,
-      tone: result.response.created
-          ? AppToastTone.success
-          : AppToastTone.info,
+      tone: result.response.created ? AppToastTone.success : AppToastTone.info,
     );
 
     final filter =
@@ -222,6 +238,7 @@ class _DesktopDownloadTasksPageState
         context: context,
         ref: ref,
         onManualAdd: _openManualAdd,
+        selection: _selection,
       ),
       child: AppFilterResultLoadingOverlay(
         isLoading: view.filterUpdate.isLoading,
@@ -239,12 +256,16 @@ class _DesktopDownloadTasksPageState
                   // AppAdaptiveRefreshScrollView 自带底部安全区。
                   slivers: buildDownloadTaskSlivers(
                     onManualAdd: _openManualAdd,
+                    selection: _selection,
                   ),
                 )
               : CustomScrollView(
                   controller: _scrollController,
                   slivers: <Widget>[
-                    ...buildDownloadTaskSlivers(onManualAdd: _openManualAdd),
+                    ...buildDownloadTaskSlivers(
+                      onManualAdd: _openManualAdd,
+                      selection: _selection,
+                    ),
                     ...bottomSafeAreaSliver(context),
                   ],
                 ),
@@ -257,6 +278,7 @@ class _DesktopDownloadTasksPageState
       child: wrapDownloadTaskSelectionBar(
         context: context,
         ref: ref,
+        selection: _selection,
         child: KeyedSubtree(
           key: const Key('download-tasks-page'),
           child: layout,

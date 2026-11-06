@@ -93,24 +93,27 @@ void main() {
     expect(state.paged.items.single.task.id, 3);
   });
 
-  test('stopPolling after pause allows a remounted page to restart polling', () async {
-    _enqueueTaskPage(bundle, [taskJson(id: 1)]);
-    _enqueueClients(bundle);
-    await container.read(downloadTaskCenterProvider.future);
+  test(
+    'stopPolling after pause allows a remounted page to restart polling',
+    () async {
+      _enqueueTaskPage(bundle, [taskJson(id: 1)]);
+      _enqueueClients(bundle);
+      await container.read(downloadTaskCenterProvider.future);
 
-    final controller = container.read(downloadTaskCenterProvider.notifier);
-    _enqueueTaskPage(bundle, [taskJson(id: 2)]);
-    await controller.startPolling();
-    controller.pausePolling();
-    controller.stopPolling();
+      final controller = container.read(downloadTaskCenterProvider.notifier);
+      _enqueueTaskPage(bundle, [taskJson(id: 2)]);
+      await controller.startPolling();
+      controller.pausePolling();
+      controller.stopPolling();
 
-    _enqueueTaskPage(bundle, [taskJson(id: 3)]);
-    await controller.startPolling();
+      _enqueueTaskPage(bundle, [taskJson(id: 3)]);
+      await controller.startPolling();
 
-    final state = container.read(downloadTaskCenterProvider).requireValue;
-    expect(state.pollingState, DownloadTaskPollingState.polling);
-    expect(state.paged.items.single.task.id, 3);
-  });
+      final state = container.read(downloadTaskCenterProvider).requireValue;
+      expect(state.pollingState, DownloadTaskPollingState.polling);
+      expect(state.paged.items.single.task.id, 3);
+    },
+  );
 
   test('delete updates the current snapshot', () async {
     _enqueueTaskPage(bundle, [taskJson(id: 3)]);
@@ -129,79 +132,6 @@ void main() {
       container.read(downloadTaskCenterProvider).requireValue.paged.items,
       isEmpty,
     );
-  });
-
-  test('selection toggles rows and select-all covers loaded rows', () async {
-    _enqueueTaskPage(bundle, [
-      taskJson(id: 1),
-      taskJson(id: 2),
-      taskJson(id: 3),
-    ]);
-    _enqueueClients(bundle);
-    await container.read(downloadTaskCenterProvider.future);
-
-    final controller = container.read(downloadTaskCenterProvider.notifier);
-    controller.enterSelectionMode();
-    controller.toggleSelection(2);
-
-    var state = container.read(downloadTaskCenterProvider).requireValue;
-    expect(state.selectionMode, isTrue);
-    expect(state.selectionCount, 1);
-    expect(state.isSelected(2), isTrue);
-    expect(controller.selectedLoadedTasks().map((task) => task.id), [2]);
-
-    controller.toggleSelectAllLoaded();
-    state = container.read(downloadTaskCenterProvider).requireValue;
-    expect(state.selectedTaskIds, {1, 2, 3});
-
-    controller.toggleSelectAllLoaded();
-    state = container.read(downloadTaskCenterProvider).requireValue;
-    expect(state.selectedTaskIds, isEmpty);
-
-    controller.exitSelectionMode();
-    state = container.read(downloadTaskCenterProvider).requireValue;
-    expect(state.selectionMode, isFalse);
-    expect(state.selectedTaskIds, isEmpty);
-  });
-
-  test('applyFilter exits selection mode', () async {
-    _enqueueTaskPage(bundle, [taskJson(id: 1)]);
-    _enqueueClients(bundle);
-    await container.read(downloadTaskCenterProvider.future);
-
-    final controller = container.read(downloadTaskCenterProvider.notifier);
-    controller.enterSelectionMode();
-    controller.toggleSelection(1);
-
-    _enqueueTaskPage(bundle, [taskJson(id: 1)]);
-    await controller.applyFilter(
-      DownloadTaskFilterState.initial.copyWith(
-        stateFilter: DownloadTaskStateFilter.all,
-      ),
-    );
-
-    final state = container.read(downloadTaskCenterProvider).requireValue;
-    expect(state.selectionMode, isFalse);
-    expect(state.selectedTaskIds, isEmpty);
-  });
-
-  test('poll prunes selected tasks that left the list', () async {
-    _enqueueTaskPage(bundle, [taskJson(id: 1), taskJson(id: 2)]);
-    _enqueueClients(bundle);
-    await container.read(downloadTaskCenterProvider.future);
-
-    final controller = container.read(downloadTaskCenterProvider.notifier);
-    controller.enterSelectionMode();
-    controller.toggleSelection(1);
-    controller.toggleSelection(2);
-
-    _enqueueTaskPage(bundle, [taskJson(id: 2)]);
-    await controller.startPolling();
-
-    final state = container.read(downloadTaskCenterProvider).requireValue;
-    expect(state.paged.items.map((row) => row.task.id), [2]);
-    expect(state.selectedTaskIds, {2});
-    expect(state.selectionMode, isTrue);
   });
 
   test('triggerImport posts and refreshes the snapshot to running', () async {
@@ -223,15 +153,15 @@ void main() {
         'status': 'accepted',
       },
     );
-    _enqueueTaskPage(
-      bundle,
-      [taskJson(id: 3, importStatus: 'running', importStatusLabel: '导入中')],
-    );
+    _enqueueTaskPage(bundle, [
+      taskJson(id: 3, importStatus: 'running', importStatusLabel: '导入中'),
+    ]);
     await controller.triggerImport(3);
 
     final posts = bundle.adapter.requests.where(
       (request) =>
-          request.method == 'POST' && request.path == '/download-tasks/3/import',
+          request.method == 'POST' &&
+          request.path == '/download-tasks/3/import',
     );
     expect(posts, hasLength(1));
     final state = container.read(downloadTaskCenterProvider).requireValue;
@@ -291,11 +221,10 @@ void main() {
     final controller = container.read(downloadTaskCenterProvider.notifier);
     await controller.loadMore();
 
-    _enqueueTaskPage(
-      bundle,
-      [taskJson(id: 1, progress: 0.9), taskJson(id: 2)],
-      total: 4,
-    );
+    _enqueueTaskPage(bundle, [
+      taskJson(id: 1, progress: 0.9),
+      taskJson(id: 2),
+    ], total: 4);
     await controller.startPolling();
 
     final state = container.read(downloadTaskCenterProvider).requireValue;
@@ -335,10 +264,9 @@ void main() {
     await inFlight;
 
     final state = container.read(downloadTaskCenterProvider).requireValue;
-    expect(
-      state.paged.items.map((row) => row.task.id),
-      [for (var id = 1; id <= 45; id++) id],
-    );
+    expect(state.paged.items.map((row) => row.task.id), [
+      for (var id = 1; id <= 45; id++) id,
+    ]);
     expect(state.paged.currentPage, 3);
     expect(state.paged.hasMore, isFalse);
     expect(state.paged.isLoadingMore, isFalse);
@@ -381,62 +309,71 @@ void main() {
     },
   );
 
-  test('loadMore completes after the provider is invalidated while watched', () async {
-    _enqueueTaskPage(bundle, [taskJson(id: 1), taskJson(id: 2)], total: 4);
-    _enqueueClients(bundle);
-    await container.read(downloadTaskCenterProvider.future);
+  test(
+    'loadMore completes after the provider is invalidated while watched',
+    () async {
+      _enqueueTaskPage(bundle, [taskJson(id: 1), taskJson(id: 2)], total: 4);
+      _enqueueClients(bundle);
+      await container.read(downloadTaskCenterProvider.future);
 
-    final subscription = container.listen(downloadTaskCenterProvider, (_, _) {});
+      final subscription = container.listen(
+        downloadTaskCenterProvider,
+        (_, _) {},
+      );
 
-    _enqueueTaskPage(bundle, [taskJson(id: 1), taskJson(id: 2)], total: 4);
-    _enqueueClients(bundle);
-    container.invalidate(downloadTaskCenterProvider);
-    await container.read(downloadTaskCenterProvider.future);
+      _enqueueTaskPage(bundle, [taskJson(id: 1), taskJson(id: 2)], total: 4);
+      _enqueueClients(bundle);
+      container.invalidate(downloadTaskCenterProvider);
+      await container.read(downloadTaskCenterProvider.future);
 
-    _enqueueTaskPage(
-      bundle,
-      [taskJson(id: 3), taskJson(id: 4)],
-      page: 2,
-      total: 4,
-    );
-    await container.read(downloadTaskCenterProvider.notifier).loadMore();
+      _enqueueTaskPage(
+        bundle,
+        [taskJson(id: 3), taskJson(id: 4)],
+        page: 2,
+        total: 4,
+      );
+      await container.read(downloadTaskCenterProvider.notifier).loadMore();
 
-    final state = container.read(downloadTaskCenterProvider).requireValue;
-    expect(state.paged.items.map((row) => row.task.id), [1, 2, 3, 4]);
-    expect(state.paged.isLoadingMore, isFalse);
+      final state = container.read(downloadTaskCenterProvider).requireValue;
+      expect(state.paged.items.map((row) => row.task.id), [1, 2, 3, 4]);
+      expect(state.paged.isLoadingMore, isFalse);
 
-    subscription.close();
-  });
+      subscription.close();
+    },
+  );
 
-  test('polling with identical snapshot does not notify item listeners', () async {
-    var notifications = 0;
-    final subscription = container.listen(
-      downloadTaskCenterProvider.select(
-        (s) => s.value?.paged.items.first.progress,
-      ),
-      (_, __) {
-        notifications++;
-      },
-    );
-    addTearDown(subscription.close);
-    _enqueueTaskPage(bundle, [taskJson(id: 1)]);
-    _enqueueClients(bundle);
-    await container.read(downloadTaskCenterProvider.future);
+  test(
+    'polling with identical snapshot does not notify item listeners',
+    () async {
+      var notifications = 0;
+      final subscription = container.listen(
+        downloadTaskCenterProvider.select(
+          (s) => s.value?.paged.items.first.progress,
+        ),
+        (_, __) {
+          notifications++;
+        },
+      );
+      addTearDown(subscription.close);
+      _enqueueTaskPage(bundle, [taskJson(id: 1)]);
+      _enqueueClients(bundle);
+      await container.read(downloadTaskCenterProvider.future);
 
-    final controller = container.read(downloadTaskCenterProvider.notifier);
-    // startPolling 拉一次快照让轮询进入 polling 态，先行消耗掉状态翻转的通知。
-    _enqueueTaskPage(bundle, [taskJson(id: 1)], total: 1);
-    await controller.startPolling();
-    controller.pausePolling();
-    final afterPause = notifications;
-    // 与当前快照逐字段相同的响应：轮询应跳过写回，行级订阅收不到新的通知。
-    _enqueueTaskPage(bundle, [taskJson(id: 1)], total: 1);
-    await controller.resumePolling();
+      final controller = container.read(downloadTaskCenterProvider.notifier);
+      // startPolling 拉一次快照让轮询进入 polling 态，先行消耗掉状态翻转的通知。
+      _enqueueTaskPage(bundle, [taskJson(id: 1)], total: 1);
+      await controller.startPolling();
+      controller.pausePolling();
+      final afterPause = notifications;
+      // 与当前快照逐字段相同的响应：轮询应跳过写回，行级订阅收不到新的通知。
+      _enqueueTaskPage(bundle, [taskJson(id: 1)], total: 1);
+      await controller.resumePolling();
 
-    expect(notifications, afterPause);
-    final state = container.read(downloadTaskCenterProvider).requireValue;
-    expect(state.paged.items.single.task.id, 1);
-  });
+      expect(notifications, afterPause);
+      final state = container.read(downloadTaskCenterProvider).requireValue;
+      expect(state.paged.items.single.task.id, 1);
+    },
+  );
 
   test('polling with changed progress notifies item listeners', () async {
     var notifications = 0;

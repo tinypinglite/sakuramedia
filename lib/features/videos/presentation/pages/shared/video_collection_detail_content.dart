@@ -82,6 +82,16 @@ class _VideoCollectionDetailContentState
   bool get _isMobile => widget.mobile;
 
   @override
+  List<int> get selectionOrderedIds =>
+      ref
+          .read(_providerRef)
+          .value
+          ?.items
+          .map((item) => item.video.id)
+          .toList(growable: false) ??
+      const <int>[];
+
+  @override
   void initState() {
     super.initState();
     _itemsScrollController = ScrollController();
@@ -800,10 +810,7 @@ class _VideoCollectionDetailContentState
     return CollectionMemberCard(
       key: ValueKey<int>(item.video.id),
       onLongPress: _isMobile && !selectionMode
-          ? () {
-              enterSelection();
-              toggleSelect(item.video.id);
-            }
+          ? selectionLongPressHandler(item.video.id)
           : null,
       coverUrl: item.video.coverImage?.origin,
       // expandToParent 模式下 coverAspectRatio 仅在 cover placeholder 时
@@ -812,9 +819,10 @@ class _VideoCollectionDetailContentState
       title: item.video.displayTitle(AppLocalizations.of(context)),
       // 副信息只在桌面悬停面板渲染；移动端无 hover，收起态不铺文字。
       subtitle: _formatReleaseDate(item.video.releaseDate),
-      onTap: selectionMode
-          ? () => toggleSelect(item.video.id)
-          : () => _openMemberActions(context, item),
+      onTap: selectionAwareTap(
+        item.video.id,
+        () => _openMemberActions(context, item),
+      ),
       menuKey: Key('${widget.keyPrefix}-grid-menu-${item.video.id}'),
       onPlay: _isMobile
           ? null

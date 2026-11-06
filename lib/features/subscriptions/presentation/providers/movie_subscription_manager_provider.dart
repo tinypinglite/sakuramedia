@@ -115,11 +115,7 @@ class MovieSubscriptionManager extends _$MovieSubscriptionManager
   MovieSubscriptionManagerState applyFilterToState(
     MovieSubscriptionManagerState state,
     MovieSubscriptionFilterState filter,
-  ) => state.copyWith(
-    filter: filter,
-    selectionMode: false,
-    selectedMovieNumbers: const <String>{},
-  );
+  ) => state.copyWith(filter: filter);
 
   @override
   Future<String?> refresh() async {
@@ -128,59 +124,6 @@ class MovieSubscriptionManager extends _$MovieSubscriptionManager
       ref.read(movieSubscriptionStatusCountsProvider.notifier).refresh(),
     );
     return super.refresh();
-  }
-
-  // --- 多选 -----------------------------------------------------------------
-
-  void enterSelectionMode() {
-    final current = state.value;
-    if (current == null || current.selectionMode) return;
-    state = AsyncData(current.copyWith(selectionMode: true));
-  }
-
-  void exitSelectionMode() {
-    final current = state.value;
-    if (current == null || !current.selectionMode) return;
-    state = AsyncData(
-      current.copyWith(
-        selectionMode: false,
-        selectedMovieNumbers: const <String>{},
-      ),
-    );
-  }
-
-  void toggleSelection(String movieNumber) {
-    final current = state.value;
-    if (current == null) return;
-    final next = Set<String>.of(current.selectedMovieNumbers);
-    if (!next.remove(movieNumber)) next.add(movieNumber);
-    state = AsyncData(current.copyWith(selectedMovieNumbers: next));
-  }
-
-  /// 全选 / 取消全选**当前已加载**的条目（非叠加所有页）。
-  ///
-  /// 已全选时再点即清空，对应工具条上「全选 ↔ 取消全选」的同一个按钮。
-  void toggleSelectAllLoaded() {
-    final current = state.value;
-    if (current == null) return;
-    final loaded = current.paged.items
-        .map((item) => item.movieNumber)
-        .where((number) => number.isNotEmpty)
-        .toSet();
-    final alreadyAll =
-        loaded.isNotEmpty &&
-        loaded.every(current.selectedMovieNumbers.contains);
-    state = AsyncData(
-      current.copyWith(
-        selectedMovieNumbers: alreadyAll ? const <String>{} : loaded,
-      ),
-    );
-  }
-
-  void clearSelection() {
-    final current = state.value;
-    if (current == null || current.selectedMovieNumbers.isEmpty) return;
-    state = AsyncData(current.copyWith(selectedMovieNumbers: const <String>{}));
   }
 
   // --- 重置订阅搜索状态 -------------------------------------------------------
@@ -209,12 +152,7 @@ class MovieSubscriptionManager extends _$MovieSubscriptionManager
       unawaited(
         ref.read(movieSubscriptionStatusCountsProvider.notifier).refresh(),
       );
-      await reload(
-        updateBaseState: (s) => s.copyWith(
-          selectionMode: false,
-          selectedMovieNumbers: const <String>{},
-        ),
-      );
+      await reload();
       return MovieSubscriptionActionResult.success(response.resetCount);
     } catch (error) {
       return MovieSubscriptionActionResult.failure(_resetErrorMessage(error));
@@ -243,12 +181,7 @@ class MovieSubscriptionManager extends _$MovieSubscriptionManager
       final response = await ref
           .read(movieSubscriptionsApiProvider)
           .resetSearches(movieIds: numberById.keys.toList(growable: false));
-      await reload(
-        updateBaseState: (s) => s.copyWith(
-          selectionMode: false,
-          selectedMovieNumbers: const <String>{},
-        ),
-      );
+      await reload();
       unawaited(
         ref.read(movieSubscriptionStatusCountsProvider.notifier).refresh(),
       );
@@ -300,11 +233,13 @@ class MovieSubscriptionManager extends _$MovieSubscriptionManager
     }
   }
 
-  /// 批量取消订阅已选影片，走后端「部分成功」语义。
+  /// 批量取消订阅指定影片，走后端「部分成功」语义。
   ///
   /// 被跳过的番号（库中无此番号 / 存在本地 media）**保持选中**，方便用户看清哪些
   /// 没处理并接着操作；结果交给 `showMovieSubscriptionBatchFeedback` 展开清单。
-  Future<MovieSubscriptionBatchToggleResult> batchUnsubscribe() async {
+  Future<MovieSubscriptionBatchToggleResult> batchUnsubscribe({
+    required Iterable<String> movieNumbers,
+  }) async {
     final current = state.value;
     if (current == null || current.isBatchRunning) {
       return const MovieSubscriptionBatchToggleResult(
@@ -314,10 +249,11 @@ class MovieSubscriptionManager extends _$MovieSubscriptionManager
         skippedHasMediaNumbers: <String>[],
       );
     }
+    final requested = movieNumbers.toSet();
     // 按列表顺序取，保证反馈清单的番号顺序与用户看到的一致。
     final targets = current.paged.items
         .map((item) => item.movieNumber)
-        .where(current.selectedMovieNumbers.contains)
+        .where(requested.contains)
         .toList(growable: false);
     if (targets.isEmpty) {
       return const MovieSubscriptionBatchToggleResult(
@@ -344,7 +280,7 @@ class MovieSubscriptionManager extends _$MovieSubscriptionManager
           .where((number) => !skipped.contains(number))
           .toList();
 
-      _removeRows(accepted.toSet(), keepSelected: skipped);
+      _removeRows(accepted.toSet());
       if (accepted.isNotEmpty) {
         _broadcastUnsubscribed(accepted, fromBatch: true);
       }
@@ -421,11 +357,8 @@ class MovieSubscriptionManager extends _$MovieSubscriptionManager
     );
   }
 
-  /// 移除若干行 + 同步扣减 total、重算 hasMore、清理多选与进行中集合。
-  ///
-  /// [keepSelected] 里的番号即使被清出多选集合也会被放回——批量取消订阅要让被
-  /// 跳过的项保持选中。
-  void _removeRows(Set<String> movieNumbers, {Set<String>? keepSelected}) {
+  /// 移除若干行 + 同步扣减 total、重算 hasMore、清理进行中集合。
+  void _removeRows(Set<String> movieNumbers) {
     final current = state.value;
     if (current == null || movieNumbers.isEmpty) return;
 
@@ -434,23 +367,11 @@ class MovieSubscriptionManager extends _$MovieSubscriptionManager
         .toList(growable: false);
     final removedCount = current.paged.items.length - nextItems.length;
 
-    final nextSelected = Set<String>.of(current.selectedMovieNumbers)
-      ..removeAll(movieNumbers);
-    if (keepSelected != null) {
-      nextSelected.addAll(
-        keepSelected.where(current.selectedMovieNumbers.contains),
-      );
-    }
     final nextPending = Set<String>.of(current.pendingMovieNumbers)
       ..removeAll(movieNumbers);
 
     if (removedCount <= 0) {
-      state = AsyncData(
-        current.copyWith(
-          selectedMovieNumbers: nextSelected,
-          pendingMovieNumbers: nextPending,
-        ),
-      );
+      state = AsyncData(current.copyWith(pendingMovieNumbers: nextPending));
       return;
     }
 
@@ -465,7 +386,6 @@ class MovieSubscriptionManager extends _$MovieSubscriptionManager
           total: nextTotal,
           hasMore: nextItems.length < nextTotal,
         ),
-        selectedMovieNumbers: nextSelected,
         pendingMovieNumbers: nextPending,
       ),
     );

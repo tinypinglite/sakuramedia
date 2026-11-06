@@ -577,7 +577,7 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
           !selectedIds.contains(change.movieNumber)) {
         return;
       }
-      setState(() => selectedIds.remove(change.movieNumber));
+      removeSelection([change.movieNumber]);
     });
 
     final body = AppPageRefreshScope(
@@ -665,8 +665,10 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
                           errorMessage: movies.initialError != null
                               ? _scope.errorText(AppLocalizations.of(context))
                               : null,
-                          onMovieTap: (movie) =>
-                              widget.onMovieTap(context, movie.movieNumber),
+                          onMovieTap: (movie) => selectionAwareTap(
+                            movie.movieNumber,
+                            () => widget.onMovieTap(context, movie.movieNumber),
+                          )(),
                           onMovieMenuRequest: (movie, globalPosition) {
                             unawaited(
                               showMovieCollectionFeatureActionMenu(
@@ -679,10 +681,9 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
                                     .removeMovies(<String>[movie.movieNumber]),
                                 onEnterSelection:
                                     widget.useMobileSelectionLayout
-                                    ? () {
-                                        enterSelection();
-                                        toggleSelect(movie.movieNumber);
-                                      }
+                                    ? () => enterSelection(
+                                        initial: movie.movieNumber,
+                                      )
                                     : null,
                               ),
                             );
@@ -701,7 +702,7 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent>
                           isMovieSelected: (movie) =>
                               isSelected(movie.movieNumber),
                           onMovieSelectedChanged: (movie, _) =>
-                              toggleSelect(movie.movieNumber),
+                              handleSelectTap(movie.movieNumber),
                         ),
                       ),
                     PagedLoadMoreFooterSliver(

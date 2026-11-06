@@ -120,11 +120,14 @@ class _MobilePornboxPageState extends ConsumerState<MobilePornboxPage>
                               ? l10n.errorVideoListLoadFailed
                               : null,
                           emptyMessage: l10n.videoEmptyList,
-                          onVideoTap: openActions,
+                          onVideoTap: (video) => selectionAwareTap(
+                            video.id,
+                            () => openActions(video),
+                          )(),
                           selectionMode: selectionMode,
                           selectedIds: selectedIds,
                           onVideoToggleSelect: (video) =>
-                              toggleSelect(video.id),
+                              handleSelectTap(video.id),
                           wrapCard: selectionMode
                               ? null
                               : (cardContext, video, card) =>

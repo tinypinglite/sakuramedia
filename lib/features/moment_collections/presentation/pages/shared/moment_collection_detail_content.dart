@@ -66,6 +66,16 @@ class _MomentCollectionDetailContentState
       ? '$mobileMomentCollectionsPath/${widget.collectionId}'
       : '$desktopMomentCollectionsPath/${widget.collectionId}';
 
+  @override
+  List<int> get selectionOrderedIds =>
+      ref
+          .read(_providerRef)
+          .value
+          ?.points
+          .map((point) => point.pointId)
+          .toList(growable: false) ??
+      const <int>[];
+
   MomentCollectionDetailProvider get _providerRef =>
       momentCollectionDetailProvider(widget.collectionId);
 
@@ -397,10 +407,7 @@ class _MomentCollectionDetailContentState
               item,
               context,
               onLongPress: _isMobile && !selectionMode
-                  ? () {
-                      enterSelection();
-                      toggleSelect(point.pointId);
-                    }
+                  ? selectionLongPressHandler(point.pointId)
                   : null,
             );
           },
@@ -437,9 +444,7 @@ class _MomentCollectionDetailContentState
       playButtonKey: _isMobile
           ? null
           : Key('$_keyPrefix-grid-play-${point.pointId}'),
-      onTap: selectionMode
-          ? () => toggleSelect(point.pointId)
-          : () => _preview(context, item),
+      onTap: selectionAwareTap(point.pointId, () => _preview(context, item)),
       menuKey: Key('$_keyPrefix-grid-menu-${point.pointId}'),
       onOpenSource: _isMobile ? null : _openMovieCallback(item),
       openSourceLabel: l10n.momentSourceMovie,

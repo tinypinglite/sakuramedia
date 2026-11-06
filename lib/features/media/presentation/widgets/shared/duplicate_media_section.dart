@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/media/data/duplicate_media_group_dto.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/presentation/media_placeholders.dart';
 import 'package:sakuramedia/features/media/presentation/providers/duplicate_media_provider.dart';
+import 'package:sakuramedia/features/media/presentation/widgets/shared/media_group_batch_selection.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_file_group_card.dart';
 import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.dart';
@@ -70,18 +71,20 @@ class DuplicateMediaSection extends HookConsumerWidget {
     );
     final groups = asyncState.value?.items ?? const <DuplicateMediaGroupDto>[];
     final spacing = context.appSpacing;
-    final selectionMode = useState(false);
-    final selectedIds = useState(<int>{});
     final deleting = useState(false);
-    final selected = [
-      for (final group in groups)
-        for (final item in group.mediaItems)
-          if (selectedIds.value.contains(item.id)) item,
-    ];
-    void exitSelection() {
-      selectionMode.value = false;
-      selectedIds.value = {};
-    }
+    final kindRef = useRef(kind);
+    kindRef.value = kind;
+    final selection = useMediaGroupSelection<DuplicateMediaGroupDto>(
+      currentGroups: () =>
+          ref.read(duplicateMediaProvider(kindRef.value)).value?.items ??
+          const <DuplicateMediaGroupDto>[],
+      itemsOf: (group) => group.mediaItems,
+    );
+    final selected = selectedMediaGroupItems(
+      groups: groups,
+      itemsOf: (group) => group.mediaItems,
+      selectedIds: selection.selectedIds,
+    );
 
     Future<void> deleteSelected() async {
       if (deleting.value || selected.isEmpty) return;
@@ -106,7 +109,7 @@ class DuplicateMediaSection extends HookConsumerWidget {
           currentGroups.any(
             (group) => group.mediaItems.every((item) => ids.contains(item.id)),
           )) {
-        exitSelection();
+        selection.exitSelection();
         showToast(l10n.mediaListDuplicateChanged, tone: AppToastTone.success);
         return;
       }
@@ -119,7 +122,7 @@ class DuplicateMediaSection extends HookConsumerWidget {
       );
       if (!context.mounted) return;
       deleting.value = false;
-      if (submitted) exitSelection();
+      if (submitted) selection.exitSelection();
     }
 
     final deleteButton = AppButton(
@@ -184,12 +187,8 @@ class DuplicateMediaSection extends HookConsumerWidget {
             ? () => onOpenMovieDetail!(context, first.movieNumber!)
             : null,
         onDelete: (item) => unawaited(deleteMedia(group, item)),
-        selectedIds: selectionMode.value ? selectedIds.value : null,
-        onToggle: (item) {
-          final next = {...selectedIds.value};
-          if (!next.remove(item.id)) next.add(item.id);
-          selectedIds.value = next;
-        },
+        selectedIds: selection.active ? selection.selectedIds : null,
+        onToggle: (item) => selection.handleSelectionTap(item.id),
         itemSupplement: (item) {
           final headingDiffers =
               item.displayHeading(l10n) != first.displayHeading(l10n);
@@ -245,9 +244,9 @@ class DuplicateMediaSection extends HookConsumerWidget {
             selectAllKey: Key('$keyPrefix-duplicates-clear-selection'),
             onToggleAll: deleting.value || selected.isEmpty
                 ? null
-                : () => selectedIds.value = {},
+                : () => selection.clearSelection(),
             exitKey: Key('$keyPrefix-duplicates-exit-selection'),
-            onExitSelection: deleting.value ? null : exitSelection,
+            onExitSelection: deleting.value ? null : selection.exitSelection,
           )
         : AppGlassSelectionHeader(
             selectionLabel: l10n.mediaListSelectedCopies(selected.length),
@@ -256,9 +255,9 @@ class DuplicateMediaSection extends HookConsumerWidget {
             selectAllKey: Key('$keyPrefix-duplicates-clear-selection'),
             onToggleAll: deleting.value || selected.isEmpty
                 ? null
-                : () => selectedIds.value = {},
+                : () => selection.clearSelection(),
             exitKey: Key('$keyPrefix-duplicates-exit-selection'),
-            onExitSelection: deleting.value ? null : exitSelection,
+            onExitSelection: deleting.value ? null : selection.exitSelection,
             actions: <AppGlassSelectionAction>[
               AppGlassSelectionAction(
                 key: Key('$keyPrefix-duplicates-batch-delete'),
@@ -273,20 +272,20 @@ class DuplicateMediaSection extends HookConsumerWidget {
           );
 
     final content = AppFixedHeaderLayout(
-      header: selectionMode.value
+      header: selection.active
           ? selectionHeader
           : _DuplicateMediaHeader(
               mobile: mobile,
               kind: kind,
               keyPrefix: keyPrefix,
               onKindChanged: (next) {
-                exitSelection();
+                selection.exitSelection();
                 onKindChanged(next);
               },
               onRefresh: onRefresh,
               onSelect: groups.isEmpty
                   ? null
-                  : () => selectionMode.value = true,
+                  : () => selection.enterSelection(),
             ),
       headerBottomSpacing: context.appSpacing.lg,
       child: CustomScrollView(
@@ -297,7 +296,7 @@ class DuplicateMediaSection extends HookConsumerWidget {
             child: Padding(
               padding: EdgeInsets.only(bottom: spacing.md),
               child: Text(
-                selectionMode.value
+                selection.active
                     ? l10n.mediaListDuplicateSelectionHint
                     : l10n.mediaListDuplicateDescription,
                 key: Key('$keyPrefix-duplicate-description'),
@@ -364,7 +363,7 @@ class DuplicateMediaSection extends HookConsumerWidget {
     return Column(
       children: [
         Expanded(child: content),
-        if (mobile && selectionMode.value)
+        if (mobile && selection.active)
           AppSelectionBottomBar(actions: [deleteButton]),
       ],
     );

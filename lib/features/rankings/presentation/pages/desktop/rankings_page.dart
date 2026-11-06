@@ -309,10 +309,13 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
                               ? rankedMoviePlaceholders(count: 24)
                               : paged.items,
                           errorMessage: initialErrorMessage,
-                          onMovieTap: (movie) => context.pushDesktopMovieDetail(
-                            movieNumber: movie.movieNumber,
-                            fallbackPath: desktopRankingsPath,
-                          ),
+                          onMovieTap: (movie) => selectionAwareTap(
+                            movie.movieNumber,
+                            () => context.pushDesktopMovieDetail(
+                              movieNumber: movie.movieNumber,
+                              fallbackPath: desktopRankingsPath,
+                            ),
+                          )(),
                           onMovieMenuRequest: (movie, globalPosition) =>
                               requestMovieCollectionMenu(
                                 context,
@@ -332,7 +335,7 @@ class _DesktopRankingsPageState extends ConsumerState<DesktopRankingsPage>
                           isMovieSelected: (movie) =>
                               isSelected(movie.movieNumber),
                           onMovieSelectedChanged: (movie, _) =>
-                              toggleSelect(movie.movieNumber),
+                              handleSelectTap(movie.movieNumber),
                         ),
                       ),
                     // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
