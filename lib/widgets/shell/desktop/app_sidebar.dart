@@ -3,15 +3,14 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/app/providers/app_shell_providers.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/notification_center_provider.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/configuration_tab_request_provider.dart';
+import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
-import 'package:sakuramedia/widgets/shell/desktop/sidebar_appearance_menu.dart';
-import 'package:sakuramedia/widgets/shell/desktop/sidebar_version_footer.dart';
+import 'package:sakuramedia/widgets/shell/app_sidebar_account_card.dart';
 import 'package:sakuramedia/widgets/shell/window/app_window_drag_area.dart';
 
 class AppSidebar extends ConsumerWidget {
@@ -56,7 +55,7 @@ class AppSidebar extends ConsumerWidget {
                 width: sidebarTokens.expandedWidth,
                 borderRadius: BorderRadius.circular(sidebarTokens.panelRadius),
                 padding: EdgeInsets.zero,
-                child: _buildSidebarColumn(context, fadeColor: glassTint),
+                child: _buildSidebarColumn(context, ref, fadeColor: glassTint),
               ),
             ),
           ),
@@ -91,6 +90,7 @@ class AppSidebar extends ConsumerWidget {
           maxWidth: sidebarTokens.expandedWidth,
           child: _buildSidebarColumn(
             context,
+            ref,
             fadeColor: appColors.sidebarBackground,
           ),
         ),
@@ -98,7 +98,11 @@ class AppSidebar extends ConsumerWidget {
     );
   }
 
-  Widget _buildSidebarColumn(BuildContext context, {required Color fadeColor}) {
+  Widget _buildSidebarColumn(
+    BuildContext context,
+    WidgetRef ref, {
+    required Color fadeColor,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -122,9 +126,15 @@ class AppSidebar extends ConsumerWidget {
         ),
         Padding(
           padding: EdgeInsets.all(context.appSpacing.sm),
-          child: _SidebarAccountCard(
+          child: AppSidebarAccountCard(
             onLogout: () {
               context.logOut();
+            },
+            onOpenPluginUpdates: () {
+              ref
+                  .read(configurationTabRequestProvider.notifier)
+                  .request('configuration-tab-plugins');
+              context.goPrimaryRoute(desktopConfigurationPath);
             },
           ),
         ),
@@ -149,148 +159,6 @@ class AppSidebar extends ConsumerWidget {
       );
     }
     return children;
-  }
-}
-
-class _SidebarAccountCard extends StatelessWidget {
-  const _SidebarAccountCard({required this.onLogout});
-
-  final VoidCallback onLogout;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = appL10n(context);
-    final colors = context.appColors;
-    final spacing = context.appSpacing;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final buttonFill = colors.surfaceCard.withValues(
-      alpha: isDark ? 0.06 : 0.34,
-    );
-    final buttonBorder = colors.borderSubtle.fadedBy(isDark ? 0.75 : 0.55);
-    final cardFill = colors.surfaceCard.withValues(
-      alpha: isDark ? 0.055 : 0.34,
-    );
-
-    return Container(
-      key: const Key('sidebar-account-card'),
-      width: double.infinity,
-      constraints: const BoxConstraints(minHeight: 88),
-      padding: EdgeInsets.all(spacing.sm),
-      decoration: BoxDecoration(
-        borderRadius: context.appRadius.lgBorder,
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            cardFill,
-            cardFill.withValues(alpha: cardFill.a * 0.55),
-          ],
-        ),
-        border: Border.all(
-          color: colors.borderSubtle.fadedBy(isDark ? 0.72 : 0.50),
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: <Widget>[
-          Row(
-            children: <Widget>[
-              Container(
-                key: const Key('sidebar-account-avatar'),
-                width: 30,
-                height: 30,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: <Color>[
-                      Theme.of(context).colorScheme.primary,
-                      Theme.of(context).colorScheme.secondary,
-                    ],
-                  ),
-                ),
-                child: Text(
-                  'S',
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s12,
-                    weight: AppTextWeight.medium,
-                  ).copyWith(color: Theme.of(context).colorScheme.onPrimary),
-                ),
-              ),
-              SizedBox(width: spacing.sm),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: <Widget>[
-                    Text(
-                      l10n.appTitle,
-                      key: const Key('sidebar-account-title'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s12,
-                        weight: AppTextWeight.medium,
-                      ),
-                    ),
-                    const SizedBox(height: 1),
-                    Row(
-                      children: <Widget>[
-                        Container(
-                          width: 6,
-                          height: 6,
-                          decoration: BoxDecoration(
-                            color: context.appTextPalette.success,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        SizedBox(width: spacing.xs),
-                        Flexible(
-                          child: Text(
-                            l10n.shellSignedIn,
-                            key: const Key('sidebar-account-status'),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: resolveAppTextStyle(
-                              context,
-                              size: AppTextSize.s10,
-                              tone: AppTextTone.tertiary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: spacing.xs),
-              const SidebarAppearanceMenu(),
-            ],
-          ),
-          Row(
-            children: <Widget>[
-              const Expanded(child: SidebarVersionFooter()),
-              SizedBox(width: spacing.xs),
-              AppIconButton(
-                key: const Key('sidebar-logout-button'),
-                icon: const Icon(Icons.logout_rounded),
-                tooltip: l10n.shellLogout,
-                semanticLabel: l10n.shellLogout,
-                iconColor: context.appTextPalette.tertiary,
-                backgroundColor: buttonFill,
-                borderColor: buttonBorder,
-                borderRadius: context.appRadius.smBorder,
-                onPressed: onLogout,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 }
 

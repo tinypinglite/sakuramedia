@@ -43,7 +43,7 @@ LiquidGlassSettings appModalGlassSettings(
 ///
 /// 直接使用库里为 iOS 27 `glassEffect(.regular)` 调校的 premium 材质。
 /// 不叠加自绘洗色、高光或描边，避免把液态玻璃降级成半透明色块。
-class AppModalGlassSurface extends StatefulWidget {
+class AppModalGlassSurface extends StatelessWidget {
   const AppModalGlassSurface({
     super.key,
     required this.child,
@@ -56,25 +56,14 @@ class AppModalGlassSurface extends StatefulWidget {
   final AppModalGlassStrength strength;
 
   @override
-  State<AppModalGlassSurface> createState() => _AppModalGlassSurfaceState();
-}
-
-class _AppModalGlassSurfaceState extends State<AppModalGlassSurface> {
-  // materialize 期间，库会按 visibility 在 premium / lightweight 渲染分支间
-  // 切换；固定内容 key，避免分支切换时重建有状态弹窗内容并重复触发请求。
-  final GlobalKey _contentKey = GlobalKey(
-    debugLabel: 'app-modal-glass-content',
-  );
-
-  @override
   Widget build(BuildContext context) {
-    final radius = widget.borderRadius ?? context.appRadius.xlBorder;
+    final radius = borderRadius ?? context.appRadius.xlBorder;
 
     return AppGlassSurface(
       tone: AppGlassTone.modal,
       borderRadius: radius,
-      glassSettings: appModalGlassSettings(context, strength: widget.strength),
-      child: KeyedSubtree(key: _contentKey, child: widget.child),
+      glassSettings: appModalGlassSettings(context, strength: strength),
+      child: child,
     );
   }
 }

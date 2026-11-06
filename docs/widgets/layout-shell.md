@@ -3,15 +3,14 @@
 ## 应用壳层
 
 - `AppDesktopShell`：`lib/widgets/shell/desktop/app_desktop_shell.dart`，桌面工作台容器。`AppShellLayout.immersive` 变体用于播放页等全出血场景：内容区去掉圆角与外边距，顶栏隐藏。macOS / Windows 下由 `DesktopAmbientBackdrop` 在侧栏和内容后面提供主题色对角光与环境底；桌面和移动环境底共享 `AppAmbientGlow` 光斑实现，各自保留位置、尺寸和测试 Key。玻璃桌面页内容区透明，由卡片和分区承载层级，不再由壳层或页面铺整块全高底色。玻璃侧栏展开时，页面和标准顶栏左内边距收到 `lg`，与侧栏面板自身的外侧 margin 合成 24px gutter；收起时恢复桌面页面边距。非玻璃桌面由壳层提供 `surfaceElevated` 底色，页面不再重复铺根背景。
-- `AppSidebar`、`AppSidebarGroup`、`AppSidebarItem`：`app_sidebar.dart`，桌面导航分组和条目。macOS / Windows 展开态是一块从窗口边缘内收 `outerInset`、使用 `panelRadius` 圆角的 `AppGlassSurface.sidebar` 浮板；红绿灯和收起按钮仍固定在窗口坐标系，自然落在玻璃内。侧栏收起时面板、边距和内容一起归零并 `Offstage` 卸载（不是留一条窄栏），展开/悬停态由 `AppShellSidebarCollapsed` 驱动。底部账户卡承载产品名、登录状态、固定产品首字母 `S`、明暗/主题色入口、版本行和退出按钮。
-- `SidebarAppearanceMenu`：`sidebar_appearance_menu.dart`，账户卡内的明暗模式三态切换图标与主题色小浮窗（浮层由 `AppAnchoredPopover` 承载）；读写 `appearanceProvider`，沿用设置页持久化，选色后自动收起。
+- `AppSidebar`、`AppSidebarGroup`、`AppSidebarItem`：`app_sidebar.dart`，桌面导航分组和条目。macOS / Windows 展开态是一块从窗口边缘内收 `outerInset`、使用 `panelRadius` 圆角的 `AppGlassSurface.sidebar` 浮板；红绿灯和收起按钮仍固定在窗口坐标系，自然落在玻璃内。侧栏收起时面板、边距和内容一起归零并 `Offstage` 卸载（不是留一条窄栏），展开/悬停态由 `AppShellSidebarCollapsed` 驱动。
+- `AppSidebarAccountCard`：`app_sidebar_account_card.dart`，桌面侧栏和移动概览抽屉共用的底部账户卡，承载产品名、登录状态、固定产品首字母 `S`、明暗/主题色入口、版本行和退出按钮。
+- `SidebarAppearanceMenu`：`sidebar_appearance_menu.dart`，账户卡内的明暗模式三态切换图标与主题色菜单；读写 `appearanceProvider`，沿用设置页持久化。
 - `AppSidebarToggleButton`：`app_sidebar_toggle_button.dart`，收起/展开按钮。窗口坐标位置由 `sidebarToggleButtonLeft` 计算：macOS 排在自绘红绿灯右侧，其它平台贴左缘。
 - `AppMacTrafficLights`：`lib/widgets/shell/window/app_mac_traffic_lights.dart`，macOS 自绘红绿灯（系统按钮由 `window_bootstrap_desktop.dart` 隐藏）。用于与自绘窗口标题栏对齐；非 macOS 平台不渲染。
 - `AppTopBar`：`app_top_bar.dart`，桌面页面顶栏和操作区；搜索框固定显示在顶栏右侧（不再在侧栏），聚焦时 Esc 清空并失焦，不再提供折叠/展开搜索的图标按钮。玻璃桌面页使用透明顶栏、同高（32）的 `AppTopBarGlassSearchField`（保留文字图搜 / 图片图搜后缀），刷新和返回使用同尺寸的 `AppGlassIconButton`；非玻璃桌面继续使用标准 `CatalogSearchField` 和普通图标按钮。高对比度下搜索框回退 solid，玻璃刷新和返回回退普通控件。
-- `SidebarVersionFooter`：`desktop/sidebar_version_footer.dart`，桌面侧栏底部版本行；嵌入账户卡第二行，收紧外扩但保留 hover 底色的左右内缩。有更新时 info 图标带小圆点，点开为上方版本浮层（客户端 / 服务端 / 发布页 / 插件更新，浮层由 `AppAnchoredPopover` 承载）。
-- `AppVersionInfoCard`：`app_version_info_card.dart`，移动端抽屉里的版本卡片（完整信息内联展示）。
-- `AppVersionRow`、`AppVersionUpdateNotice`：`app_version_info_parts.dart`，上述两处的共用行与更新提示块。
-- 版本更新检查状态由 `appUpdateCheckProvider`（`lib/app/providers/app_update_check_provider.dart`）统一提供：每小时轮询、单项失败静默保留旧值；桌面页脚与移动卡片共用，不要再在组件内各写一份 Timer。
+- `SidebarVersionFooter`：`sidebar_version_footer.dart`，桌面侧栏与移动抽屉账户卡共用的版本行。有更新时 info 图标带小圆点，点开菜单显示客户端 / 服务端版本、更新提示、发布页和插件更新入口。
+- 版本更新检查状态由 `appUpdateCheckProvider`（`lib/app/providers/app_update_check_provider.dart`）统一提供：每小时轮询、单项失败静默保留旧值；桌面侧栏与移动抽屉共用，不要再在组件内各写一份 Timer。
 - `AppMobileShell`、`AppMobileSubpageShell`：`lib/widgets/shell/mobile/`，移动一级入口和子页面容器。所有一级分支统一使用 `AppMobileAmbientBackdrop`，页面根背景保持透明。iOS / Android 底栏统一使用 `GlassTabBar.bottom` 浮动玻璃胶囊，仅高对比度回退为实色 `CupertinoTabBar`。玻璃底栏通过 `Scaffold.extendBody` 让页面内容从 Dock 后方滚过，底栏高度由 body 的 `MediaQuery.padding.bottom` 传给滚动页，末尾留白统一由 `bottomSafeAreaSliver` 补齐；实色兜底栏不开启穿底。`AppMobileSubpageShell(glassChrome: true)` 使用透明页面底、常驻 AppBar 和 44×44 玻璃返回钮；全部内容列表子页启用，非列表的设置、搜索、插件和导入页保持原样。所有移动子页的状态栏颜色都是透明的：玻璃子页露出环境底，普通子页露出页面底色，不再出现独立白条。
 - `AppWindowDragArea`：`lib/widgets/shell/window/`，桌面窗口拖拽区。
 - Windows 窗口是不透明的（没有系统毛玻璃），窗口底色只在重绘间隙可见；`DesktopAmbientBackdrop` 在 Windows 上作为纯渐变氛围层使用，不承诺原生模糊。

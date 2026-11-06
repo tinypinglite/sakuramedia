@@ -5,9 +5,9 @@ import 'package:sakuramedia/features/activity/presentation/providers/notificatio
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
-import 'package:sakuramedia/widgets/shell/app_version_info_card.dart';
+import 'package:sakuramedia/widgets/shell/app_sidebar_account_card.dart';
 
-/// 概览分支的侧滑抽屉：菜单分组 + 未读消息徽标 + 版本卡片。
+/// 概览分支的侧滑抽屉：菜单分组 + 未读消息徽标 + 桌面同款账户卡。
 ///
 /// 只负责展示与收起；点选后把菜单 key 交给 [onMenuSelected]（路由映射由
 /// `lib/routes/mobile_routes.dart` 注入），避免壳层反向依赖具体路由。
@@ -273,25 +273,16 @@ class MobileOverviewDrawer extends ConsumerWidget {
                           _systemAccountItems(l10n),
                         ),
                       ),
-                      SizedBox(height: spacing.md),
-                      const AppVersionInfoCard(
-                        cardKey: Key('mobile-overview-drawer-version-card'),
-                      ),
                     ],
                   ),
                 ),
               ),
               SizedBox(height: spacing.md),
-              _MobileOverviewDrawerSection(
-                key: const Key('mobile-overview-drawer-bottom-actions'),
-                items: <Widget>[
-                  _MobileOverviewDrawerItem(
-                    key: const Key('mobile-overview-drawer-logout'),
-                    icon: Icons.logout_rounded,
-                    label: l10n.shellLogout,
-                    onTap: () => _selectMenu(context, 'logout'),
-                  ),
-                ],
+              AppSidebarAccountCard(
+                key: const Key('mobile-overview-drawer-account-card'),
+                logoutKey: const Key('mobile-overview-drawer-logout'),
+                onLogout: () => _selectMenu(context, 'logout'),
+                onOpenPluginUpdates: () => _selectMenu(context, 'plugins'),
               ),
             ],
           ),

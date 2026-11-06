@@ -2,7 +2,7 @@
 
 ## 桌面对话框
 
-- `showAppDialog<T>`：`lib/widgets/base/overlays/app_dialog.dart`，桌面弹窗统一入口。参数与 `showDialog` 对齐，但转场交给 `GlassMaterializeTransition` 驱动液态玻璃的自身 visibility，避免 `DialogRoute` 的祖先淡入让玻璃边框晚于内容出现。桌面弹窗必须走这个入口，不再直接调用 `showDialog`。
+- `showAppDialog<T>`：`lib/widgets/base/overlays/app_dialog.dart`，桌面弹窗统一入口。转场使用 `250ms` 整树淡出，与 `liquid_glass_widgets` 的 `GlassDialog` 关闭行为一致：内容和玻璃一起退场。不要用 `GlassMaterializeTransition` 做弹窗转场，否则退场会先抽掉内容、只留下短暂的空玻璃骨架。业务弹窗必须走这个入口，不再直接调用 `showDialog`。
 - 资源导入弹窗在桌面端于打开时确定高度：媒体库和目录列表异步加载时，玻璃面不会在入场动画中改变尺寸；移动端仍由底部抽屉的固定高度承载。
 - `AppDesktopDialog`：`lib/widgets/base/overlays/app_desktop_dialog.dart`，统一桌面弹窗宽度、标题区、内容区和动作区。默认整块使用 `AppGlassTone.modal` 的中性 regular glass，正文直接铺在玻璃上，输入框和按钮各自负责局部可读性；显式传 `backgroundColor` 或 `shape` 时保留实色弹窗，供图片预览等特殊内容使用。
 - `showAppAdaptiveModal<T>`：`app_adaptive_modal.dart`，需要按平台选择弹层形态时使用；`dialogKey` / `drawerKey` 可分别指定两端测试锚点，`builder` 会被 `AppAdaptiveModalShellScope` 包住，body 可用 `maybeIsDrawer(context)` 感知壳体。
@@ -27,7 +27,6 @@
   - `AppMenuPresentation` 由**触发方式**决定，不按平台：长按 / 右键用 `popup`（默认，锚定按压点），「更多」按钮的动作列表用 `bottomDrawer`。
   - 锚定弹层使用 `AppGlassSurface` 的自绘玻璃 platter，宽度按内容测量：桌面 160–240、移动 180–260；桌面行高 30（副标题 44）、图标 16、圆角 18、外层留白 4、行内左右 10；移动行高 38（副标题 50）、图标 18、圆角 24、外层留白 6、行内左右 12。标题 `s14`，副标题 `s12`。操作表仍为行高 52、图标 18、正文 `s12`。
   - 锚定弹层只显示玻璃动作 platter，保留图标、hover、危险色和禁用态；透明 barrier、无背景压暗和源内容预览，点击外部或返回键得到 `null`。不要退回 `showMenu` 或 `PopupMenuItem`。
-- `AppAnchoredPopover` / `AppPopoverController`：`app_anchored_popover.dart`，桌面「触发器 + 锚定浮层」通用骨架；负责测量触发器、上下/左右定位、全屏遮罩、外部点击关闭、可选入场动画与 Esc 关闭。面板背景、滚动和 footer 由调用方提供。
 - `AppGlassFilterPopover`：`app_glass_filter_popover.dart`，桌面筛选的唯一高层入口。标准入口负责触发器、计数信息、滚动区和 `AppGlassFilterFooter`；图片搜索、演员标签等特殊入口通过 `triggerBuilder` / `footerBuilder` 复用同一弹层与关闭语义。
 - `AppGlassPopover` / `AppGlassSortSection` / `AppGlassFilterFooter`：`app_glass_popover.dart`，玻璃弹层低层壳与共享分节。`AppGlassPopover` 固定 468 宽、圆角 24，内容按固有高度布局并自动避让屏幕边缘；复杂面板传 `scrollable: true`，内容区限高并独立滚动，footer 固定。`AppGlassSortSection` 只负责字段 + 方向分节；`AppGlassFilterFooter` 统一「即时生效 + 重置」底栏。筛选正文使用 `AppFilterChoiceSection`，不再有第二套玻璃选择分节。
 - `AppFilterChoiceSection` / `AppFilterChip` / `AppFilterRangeSection`：筛选面板正文统一使用这三个组件。单选分节用分段控件（2–6 项等宽、更多项滚动）；多选胶囊用轻量中性 `AppFilterChip`；双滑块用原生 `RangeSlider` 换 Apple 皮肤。不要再在业务页面拼 `AppTextButton` chip、`RangeSlider` 主题或分节标题。

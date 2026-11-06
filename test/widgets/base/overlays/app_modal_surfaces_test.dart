@@ -46,6 +46,35 @@ void main() {
     expect(find.byKey(_dialogContentKey), findsNothing);
   });
 
+  testWidgets('desktop dialog close transition finishes within 300ms', (
+    tester,
+  ) async {
+    await _pumpHost(
+      tester,
+      theme: sakuraDesktopThemeData,
+      size: const Size(1100, 760),
+      onPressed: (context) => showAppDialog<void>(
+        context: context,
+        builder: (_) => const AppDesktopDialog(
+          dialogKey: _dialogKey,
+          contentKey: _dialogContentKey,
+          closeButtonKey: _dialogCloseKey,
+          width: 320,
+          child: SizedBox(height: 120),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(_triggerKey));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(_dialogCloseKey));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+
+    expect(find.byKey(_dialogContentKey), findsNothing);
+  });
+
   testWidgets('bottom drawer keeps its content anchor', (tester) async {
     await _pumpHost(
       tester,
@@ -65,7 +94,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('desktop dialog keeps state through the glass transition', (
+  testWidgets('desktop dialog keeps state through the dialog transition', (
     tester,
   ) async {
     var initCount = 0;

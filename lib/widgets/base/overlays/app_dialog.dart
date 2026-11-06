@@ -1,11 +1,11 @@
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 
 /// 桌面弹窗统一入口。
 ///
-/// 与 [showDialog] 的差别只在转场：不用祖先 [FadeTransition] 淡整棵弹窗，
-/// 而是让 liquid glass 通过自身的 visibility/materialize 通道入退场。
+/// 使用与 `liquid_glass_widgets` 的 `GlassDialog` 相同的整树淡出：关闭时
+/// 内容和玻璃一起退场，不使用 materialize 的内容/玻璃错峰动画，避免大弹窗
+/// 关闭时先抽掉内容、只留下玻璃骨架。
 Future<T?> showAppDialog<T>({
   required BuildContext context,
   required WidgetBuilder builder,
@@ -13,62 +13,23 @@ Future<T?> showAppDialog<T>({
   Color? barrierColor,
   bool useRootNavigator = true,
 }) {
-  final navigator = Navigator.of(context, rootNavigator: useRootNavigator);
-  final localizations = MaterialLocalizations.of(context);
-  final themes = InheritedTheme.capture(from: context, to: navigator.context);
   final dialogTheme = DialogTheme.of(context);
   final resolvedBarrierColor =
       barrierColor ??
       dialogTheme.barrierColor ??
       context.appColors.modalBarrier;
 
-  return showRawDialog<T>(
+  return showDialog<T>(
     context: context,
     builder: builder,
+    barrierColor: resolvedBarrierColor,
+    barrierDismissible: barrierDismissible,
     useRootNavigator: useRootNavigator,
-    routeBuilder: (routeContext, _) => _AppDialogRoute<T>(
-      context: routeContext,
-      builder: builder,
-      barrierColor: resolvedBarrierColor,
-      barrierDismissible: barrierDismissible,
-      barrierLabel: localizations.modalBarrierDismissLabel,
-      useSafeArea: true,
-      themes: themes,
-      traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+    traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+    animationStyle: const AnimationStyle(
+      duration: Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      reverseCurve: Curves.easeOut,
     ),
   );
-}
-
-class _AppDialogRoute<T> extends DialogRoute<T> {
-  _AppDialogRoute({
-    required super.context,
-    required super.builder,
-    required super.barrierColor,
-    super.barrierDismissible,
-    super.barrierLabel,
-    super.useSafeArea,
-    super.themes,
-    super.traversalEdgeBehavior,
-  });
-
-  @override
-  Duration get transitionDuration => GlassDefaults.materializeDuration;
-
-  @override
-  Duration get reverseTransitionDuration => GlassDefaults.dematerializeDuration;
-
-  @override
-  Widget buildTransitions(
-    BuildContext context,
-    Animation<double> animation,
-    Animation<double> secondaryAnimation,
-    Widget child,
-  ) {
-    return GlassMaterializeTransition(
-      animation: animation,
-      scaleFrom: 1.04,
-      contentSigma: 4,
-      child: child,
-    );
-  }
 }

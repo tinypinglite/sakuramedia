@@ -25,8 +25,7 @@ class AppUpdateCheckState {
 
 /// 版本更新检查：每小时轮询一次，失败静默（单项失败保留上一次结果）。
 ///
-/// 桌面侧栏页脚与移动抽屉版本卡片共用这一份状态；此前两处各写一份
-/// Timer + 检查流程，任何一处改动都要同步另一处。
+/// 桌面侧栏与移动抽屉共用这一份状态，避免两处各写一份 Timer + 检查流程。
 ///
 /// keepAlive（手写 `NotifierProvider` 默认不自动释放）：桌面侧栏常驻所以
 /// 一直有监听者；移动端首次打开抽屉时创建并首查，之后状态与轮询跨抽屉
@@ -103,6 +102,4 @@ class AppUpdateCheck extends Notifier<AppUpdateCheckState> {
 }
 
 final appUpdateCheckProvider =
-    NotifierProvider<AppUpdateCheck, AppUpdateCheckState>(
-      AppUpdateCheck.new,
-    );
+    NotifierProvider<AppUpdateCheck, AppUpdateCheckState>(AppUpdateCheck.new);
