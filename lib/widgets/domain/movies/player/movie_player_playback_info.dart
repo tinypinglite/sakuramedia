@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 
@@ -993,17 +994,12 @@ class _MoviePlayerPlaybackInfoRow extends StatelessWidget {
         ),
         if (data.copyable) ...[
           SizedBox(width: context.appSpacing.xs),
-          SizedBox(
-            width: 24,
-            height: 24,
-            child: IconButton(
-              key: data.copyButtonKey,
-              padding: EdgeInsets.zero,
-              iconSize: 14,
-              tooltip: AppLocalizations.of(context).commonCopy,
-              onPressed: () => _handleCopy(context),
-              icon: const Icon(Icons.copy, color: Colors.white70),
-            ),
+          AppIconButton(
+            key: data.copyButtonKey,
+            size: AppIconButtonSize.mini,
+            tooltip: AppLocalizations.of(context).commonCopy,
+            onPressed: () => _handleCopy(context),
+            icon: const Icon(Icons.copy, color: Colors.white70),
           ),
         ],
       ],

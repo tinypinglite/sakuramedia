@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dar
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_view_model.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
@@ -745,9 +746,9 @@ class MovieDetailErrorState extends StatelessWidget {
       children: [
         AppEmptyState(message: message),
         SizedBox(height: context.appSpacing.lg),
-        TextButton(
+        AppTextButton(
+          label: AppLocalizations.of(context).commonRetry,
           onPressed: onRetry,
-          child: Text(AppLocalizations.of(context).commonRetry),
         ),
       ],
     );

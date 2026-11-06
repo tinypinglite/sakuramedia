@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/media/presentation/providers/media_librarie
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_cover_thumbnail.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_list_item_meta_label.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_list_item_technical_label.dart';
+import 'package:sakuramedia/features/media/presentation/widgets/shared/media_tags_line.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
@@ -340,7 +341,7 @@ class _FileRow extends StatelessWidget {
                                 (item.tags.isNotEmpty ||
                                     item.isMediaTagsManuallyManaged)) ...[
                               SizedBox(height: spacing.xs),
-                              _MediaTagsLine(item: item, keyPrefix: keyPrefix),
+                              MediaTagsLine(item: item, keyPrefix: keyPrefix),
                             ],
                           ],
                         ),
@@ -363,44 +364,6 @@ class _FileRow extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _MediaTagsLine extends StatelessWidget {
-  const _MediaTagsLine({required this.item, required this.keyPrefix});
-
-  final MediaListItemDto item;
-  final String keyPrefix;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return SingleChildScrollView(
-      key: Key('$keyPrefix-media-tags-${item.id}'),
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          if (item.isMediaTagsManuallyManaged)
-            Padding(
-              padding: EdgeInsetsDirectional.only(end: context.appSpacing.xs),
-              child: AppBadge(
-                label: l10n.mediaListTagsManualBadge,
-                tone: AppBadgeTone.primary,
-                size: AppBadgeSize.compact,
-              ),
-            ),
-          for (final tag in item.tags)
-            Padding(
-              padding: EdgeInsetsDirectional.only(end: context.appSpacing.xs),
-              child: AppBadge(
-                label: tag.name,
-                tone: AppBadgeTone.neutral,
-                size: AppBadgeSize.compact,
-              ),
-            ),
-        ],
       ),
     );
   }

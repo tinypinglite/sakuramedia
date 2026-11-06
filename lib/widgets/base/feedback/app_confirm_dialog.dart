@@ -1,26 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
-import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
-
-/// 决定 [showAppConfirmDialog] 用哪种壳显示。
-enum AppConfirmVariant {
-  /// 读 `AppPlatformScope.maybeOf`：`mobile` → 底部抽屉，其余（`desktop` /
-  /// null）→ 桌面对话框。参考 `AppTabBar._resolveVariant`。
-  auto,
-
-  /// 显式强制走桌面对话框（`AppDesktopDialog`）。
-  dialog,
-
-  /// 显式强制走底部抽屉（`showAppBottomDrawer`）。
-  drawer,
-}
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 /// 统一的二次确认弹窗：标题 + 正文 + 「取消 / 确认」两个按钮。
 ///
@@ -33,7 +17,7 @@ enum AppConfirmVariant {
 ///   drawer 分支下 [dialogKey] 透传为 `drawerKey`。
 /// - [extraContent] 在正文与按钮之间插入自定义内容（如带 key 的路径文本），
 ///   `null` 时不渲染。
-/// - [variant] 决定壳体；默认 [AppConfirmVariant.auto]。
+/// - [variant] 决定壳体；默认 [AppAdaptiveModalVariant.auto]。
 /// - [onConfirm] 传了 → 点确认后内部把确认按钮置 `isLoading`、禁用取消，
 ///   `await onConfirm()` 成功后 pop(true)；抛异常时 toast 兜底 + 恢复按钮状态、
 ///   **不 pop**。不传则保持旧行为：点确认立即 pop(true) 由 caller 自行调 API。
@@ -51,12 +35,11 @@ Future<bool> showAppConfirmDialog(
   Key? confirmKey,
   Key? cancelKey,
   Widget? extraContent,
-  AppConfirmVariant variant = AppConfirmVariant.auto,
+  AppAdaptiveModalVariant variant = AppAdaptiveModalVariant.auto,
   Future<void> Function()? onConfirm,
   String? failureFallback,
 }) async {
   final l10n = appL10n(context);
-  final resolved = _resolveVariant(context, variant);
   Widget buildBody(BuildContext _) => _ConfirmBody(
     title: title,
     message: message,
@@ -70,42 +53,16 @@ Future<bool> showAppConfirmDialog(
     failureFallback: failureFallback ?? l10n.baseActionFailed,
   );
 
-  if (resolved == AppConfirmVariant.drawer) {
-    final confirmed = await showAppBottomDrawer<bool>(
-      context: context,
-      drawerKey: dialogKey,
-      maxHeightFactor: 0.42,
-      builder: buildBody,
-    );
-    return confirmed ?? false;
-  }
-
-  final confirmed = await showAppDialog<bool>(
+  final confirmed = await showAppAdaptiveModal<bool>(
     context: context,
-    barrierColor: context.appColors.modalBarrier,
-    builder: (dialogContext) {
-      return AppDesktopDialog(
-        dialogKey: dialogKey,
-        width: dialogContext.appLayoutTokens.dialogWidthSm,
-        onClose: () => Navigator.of(dialogContext).maybePop(),
-        child: buildBody(dialogContext),
-      );
-    },
+    variant: variant,
+    modalKey: dialogKey,
+    desktopWidth: context.appLayoutTokens.dialogWidthSm,
+    mobileMaxHeightFactor: 0.42,
+    desktopOnClose: () => Navigator.of(context, rootNavigator: true).maybePop(),
+    builder: buildBody,
   );
   return confirmed ?? false;
-}
-
-AppConfirmVariant _resolveVariant(
-  BuildContext context,
-  AppConfirmVariant variant,
-) {
-  if (variant != AppConfirmVariant.auto) {
-    return variant;
-  }
-  final platform = AppPlatformScope.maybeOf(context);
-  return platform == AppPlatform.mobile
-      ? AppConfirmVariant.drawer
-      : AppConfirmVariant.dialog;
 }
 
 /// dialog 与 drawer 两个壳共享的正文 + 双按钮布局，同时承载 `onConfirm` 的 loading 状态。

@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button_content.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
 enum AppTextButtonSize { medium, small, xSmall, xxSmall, xxxSmall }
@@ -61,46 +61,9 @@ class AppTextButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final componentTokens = context.appComponentTokens;
     final colors = context.appColors;
-    final (height, horizontal, gap, iconSize, textSize) = switch (size) {
-      AppTextButtonSize.medium => (
-        componentTokens.buttonHeightMd,
-        componentTokens.buttonHorizontalPaddingMd,
-        componentTokens.buttonGapMd,
-        componentTokens.iconSizeSm,
-        AppTextSize.s14,
-      ),
-      AppTextButtonSize.small => (
-        componentTokens.buttonHeightSm,
-        componentTokens.buttonHorizontalPaddingSm,
-        componentTokens.buttonGapSm,
-        componentTokens.iconSizeSm,
-        AppTextSize.s14,
-      ),
-      AppTextButtonSize.xSmall => (
-        componentTokens.buttonHeightXs,
-        componentTokens.buttonHorizontalPaddingXs,
-        componentTokens.buttonGapXs,
-        componentTokens.iconSizeXs,
-        AppTextSize.s12,
-      ),
-      AppTextButtonSize.xxSmall => (
-        componentTokens.buttonHeight2xs,
-        componentTokens.buttonHorizontalPadding2xs,
-        componentTokens.buttonGap2xs,
-        componentTokens.iconSize2xs,
-        AppTextSize.s10,
-      ),
-      AppTextButtonSize.xxxSmall => (
-        componentTokens.buttonHeight3xs,
-        componentTokens.buttonHorizontalPadding3xs,
-        componentTokens.buttonGap3xs,
-        componentTokens.iconSize3xs,
-        AppTextSize.s10,
-      ),
-    };
-    final borderRadius = context.appRadius.smBorder;
+    final (height, horizontalPadding, gap, iconSize, textSize) =
+        resolveAppButtonContentMetrics(context, size._contentSize);
     final isPlainSelected =
         isSelected && selectedStyle == AppTextButtonSelectedStyle.plain;
     final tone = isSelected
@@ -120,7 +83,9 @@ class AppTextButton extends StatelessWidget {
             AppTextButtonBackgroundStyle.transparent => Colors.transparent,
             AppTextButtonBackgroundStyle.muted => colors.surfaceMuted,
           };
-    final disabledColor = colors.borderSubtle;
+    final contentColor = _usesActiveStyle
+        ? foregroundColor
+        : colors.borderStrong;
     final labelStyle = resolveAppTextStyle(
       context,
       size: textSize,
@@ -136,61 +101,36 @@ class AppTextButton extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           height: height,
-          padding: EdgeInsets.symmetric(horizontal: horizontal),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           decoration: BoxDecoration(
             color: _usesActiveStyle
                 ? backgroundColor
-                : disabledColor.withValues(alpha: 0.32),
-            borderRadius: borderRadius,
+                : colors.borderSubtle.withValues(alpha: 0.32),
+            borderRadius: context.appRadius.smBorder,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (isLoading)
-                SizedBox(
-                  width: iconSize,
-                  height: iconSize,
-                  child: AppInlineSpinner(color: foregroundColor),
-                )
-              else if (icon != null)
-                IconTheme(
-                  data: IconThemeData(
-                    size: iconSize,
-                    color: _usesActiveStyle
-                        ? foregroundColor
-                        : colors.borderStrong,
-                  ),
-                  child: icon!,
-                ),
-              if (isLoading || icon != null) SizedBox(width: gap),
-              Flexible(
-                child: Text(
-                  key: labelKey,
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style: labelStyle.copyWith(
-                    color: _usesActiveStyle
-                        ? foregroundColor
-                        : colors.borderStrong,
-                  ),
-                ),
-              ),
-              if (trailingIcon != null) ...[
-                SizedBox(width: gap),
-                IconTheme(
-                  data: IconThemeData(
-                    size: iconSize,
-                    color: _usesActiveStyle
-                        ? foregroundColor
-                        : colors.borderStrong,
-                  ),
-                  child: trailingIcon!,
-                ),
-              ],
-            ],
+          child: buildAppButtonContent(
+            label: label,
+            labelKey: labelKey,
+            labelStyle: labelStyle.copyWith(color: contentColor),
+            icon: icon,
+            trailingIcon: trailingIcon,
+            isLoading: isLoading,
+            iconSize: iconSize,
+            gap: gap,
+            iconColor: contentColor,
           ),
         ),
       ),
     );
   }
+}
+
+extension on AppTextButtonSize {
+  AppButtonContentSize get _contentSize => switch (this) {
+    AppTextButtonSize.medium => AppButtonContentSize.medium,
+    AppTextButtonSize.small => AppButtonContentSize.small,
+    AppTextButtonSize.xSmall => AppButtonContentSize.xSmall,
+    AppTextButtonSize.xxSmall => AppButtonContentSize.xxSmall,
+    AppTextButtonSize.xxxSmall => AppButtonContentSize.xxxSmall,
+  };
 }

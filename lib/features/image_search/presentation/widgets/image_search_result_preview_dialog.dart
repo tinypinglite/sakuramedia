@@ -9,12 +9,10 @@ class ImageSearchResultPreviewDialog extends StatelessWidget {
   const ImageSearchResultPreviewDialog({
     super.key,
     required this.item,
-    this.presentation = MediaPreviewPresentation.dialog,
     this.onActorSelected,
   });
 
   final ImageSearchResultItemDto item;
-  final MediaPreviewPresentation presentation;
   final ValueChanged<int>? onActorSelected;
 
   @override
@@ -39,7 +37,6 @@ class ImageSearchResultPreviewDialog extends StatelessWidget {
         if (item.mediaId > 0) MediaPreviewAction.play,
         if (item.movieNumber.isNotEmpty) MediaPreviewAction.openMovieDetail,
       },
-      presentation: presentation,
       useInlineNavigation: true,
       onActorSelected: onActorSelected,
     );

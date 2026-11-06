@@ -1,9 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/image_search/presentation/actions/image_search_launcher.dart';
-import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_preview_overlay.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/shared/video_thumbnail_content.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 class DesktopVideoThumbnailPage extends StatelessWidget {
   const DesktopVideoThumbnailPage({super.key, required this.videoId});
@@ -15,7 +15,7 @@ class DesktopVideoThumbnailPage extends StatelessWidget {
     return VideoThumbnailContent(
       key: const Key('desktop-video-thumbnail-page-surface'),
       videoId: videoId,
-      thumbnailPreviewPresentation: MoviePlotPreviewPresentation.dialog,
+      thumbnailPreviewPresentation: AppAdaptiveModalVariant.dialog,
       onSearchSimilar: (imageUrl, fileName) => launchDesktopImageSearchFromUrl(
         context,
         imageUrl: imageUrl,

@@ -1,7 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/moments/presentation/moment_listing_models.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_cover_hover_info.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_cover_card.dart';
@@ -61,10 +60,7 @@ class MomentCard extends StatelessWidget {
         hoverEnabled: !selectionMode,
         selectionMode: selectionMode,
         isSelected: isSelected,
-        cover: MaskedImage(
-          url: item.image?.origin ?? '',
-          fit: BoxFit.cover,
-        ),
+        cover: MaskedImage(url: item.image?.origin ?? '', fit: BoxFit.cover),
         infoBuilder: (context) => _buildHoverInfo(context),
       ),
     );
@@ -74,58 +70,44 @@ class MomentCard extends StatelessWidget {
   /// 下方一整行动作按钮（播放 / 影片 / 加入合集 / 删除，按回调是否为空显隐）。
   Widget _buildHoverInfo(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final spacing = context.appSpacing;
-    final play = onPlay;
-    final openMovie = onOpenMovie;
-    final addToCollection = onAddToCollection;
-    final delete = onDelete;
     // 与时刻预览的播放入口对齐：来源媒体已删除（mediaId<=0）时不提供播放，
     // 避免播到该影片的其它媒体。
-    final canPlay = play != null && item.mediaId > 0;
-    final actions = <Widget>[
-      if (canPlay)
-        AppCoverHoverActionButton(
-          key: Key('moment-card-play-${item.pointId}'),
-          icon: Icons.play_arrow_rounded,
-          onTap: play,
-          primary: true,
-          tooltip: l10n.widgetMomentActionPlay,
-        ),
-      if (openMovie != null)
-        AppCoverHoverActionButton(
-          key: Key('moment-card-movie-${item.pointId}'),
-          icon: Icons.movie_outlined,
-          onTap: openMovie,
-          tooltip: l10n.widgetMomentActionMovie,
-        ),
-      if (addToCollection != null)
-        AppCoverHoverActionButton(
-          key: Key('moment-card-add-collection-${item.pointId}'),
-          icon: Icons.playlist_add_rounded,
-          onTap: addToCollection,
-          tooltip: l10n.widgetMomentActionAddToCollection,
-        ),
-      if (delete != null)
-        AppCoverHoverActionButton(
-          key: Key('moment-card-delete-${item.pointId}'),
-          icon: Icons.delete_outline_rounded,
-          onTap: delete,
-          tooltip: l10n.widgetMomentActionDelete,
-        ),
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AppCoverHoverInfoRow(
-          key: Key('moment-card-info-${item.pointId}'),
-          label: item.localizedDisplayLabel(l10n),
-          meta: item.localizedHoverMeta(l10n),
-        ),
-        if (actions.isNotEmpty) ...[
-          SizedBox(height: spacing.sm),
-          AppCoverHoverActionBar(actions: actions),
-        ],
+    return AppCoverHoverPanel(
+      info: AppCoverHoverInfoRow(
+        key: Key('moment-card-info-${item.pointId}'),
+        label: item.localizedDisplayLabel(l10n),
+        meta: item.localizedHoverMeta(l10n),
+      ),
+      actions: [
+        if (onPlay != null && item.mediaId > 0)
+          AppCoverHoverActionButton(
+            key: Key('moment-card-play-${item.pointId}'),
+            icon: Icons.play_arrow_rounded,
+            onTap: onPlay,
+            primary: true,
+            tooltip: l10n.widgetMomentActionPlay,
+          ),
+        if (onOpenMovie != null)
+          AppCoverHoverActionButton(
+            key: Key('moment-card-movie-${item.pointId}'),
+            icon: Icons.movie_outlined,
+            onTap: onOpenMovie,
+            tooltip: l10n.widgetMomentActionMovie,
+          ),
+        if (onAddToCollection != null)
+          AppCoverHoverActionButton(
+            key: Key('moment-card-add-collection-${item.pointId}'),
+            icon: Icons.playlist_add_rounded,
+            onTap: onAddToCollection,
+            tooltip: l10n.widgetMomentActionAddToCollection,
+          ),
+        if (onDelete != null)
+          AppCoverHoverActionButton(
+            key: Key('moment-card-delete-${item.pointId}'),
+            icon: Icons.delete_outline_rounded,
+            onTap: onDelete,
+            tooltip: l10n.widgetMomentActionDelete,
+          ),
       ],
     );
   }

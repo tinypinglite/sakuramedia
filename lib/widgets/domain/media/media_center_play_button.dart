@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/interaction/app_clickable.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
 /// 媒体封面居中的播放入口。
 ///
@@ -22,22 +22,15 @@ class MediaCenterPlayButton extends StatelessWidget {
         child: SizedBox.square(
           dimension: diameter,
           child: ClipOval(
-            child: AppClickable(
-              enabled: true,
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  mouseCursor: SystemMouseCursors.click,
-                  key: buttonKey,
-                  onTap: onTap,
-                  child: Padding(
-                    padding: EdgeInsets.all(padding),
-                    child: Icon(
-                      Icons.play_circle_outline_rounded,
-                      size: iconSize,
-                      color: Colors.white.withValues(alpha: 0.92),
-                    ),
-                  ),
+            child: AppInteractiveSurface(
+              key: buttonKey,
+              onTap: onTap,
+              child: Padding(
+                padding: EdgeInsets.all(padding),
+                child: Icon(
+                  Icons.play_circle_outline_rounded,
+                  size: iconSize,
+                  color: Colors.white.withValues(alpha: 0.92),
                 ),
               ),
             ),

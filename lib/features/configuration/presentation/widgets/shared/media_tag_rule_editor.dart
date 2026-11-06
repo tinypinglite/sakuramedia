@@ -9,31 +9,23 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_switch.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 Future<MediaTagDto?> showMediaTagRuleEditor(
   BuildContext context, {
   required bool mobile,
   MediaTagDto? initialTag,
 }) {
-  final editor = _MediaTagRuleEditor(initialTag: initialTag);
-  if (mobile) {
-    return showAppBottomDrawer<MediaTagDto>(
-      context: context,
-      drawerKey: const Key('media-tag-rule-editor-drawer'),
-      heightFactor: 0.88,
-      builder: (_) => editor,
-    );
-  }
-  return showAppDialog<MediaTagDto>(
+  return showAppAdaptiveModal<MediaTagDto>(
     context: context,
-    builder: (_) => AppDesktopDialog(
-      dialogKey: const Key('media-tag-rule-editor-dialog'),
-      constraints: const BoxConstraints(maxWidth: 620, maxHeight: 760),
-      child: editor,
-    ),
+    variant: mobile
+        ? AppAdaptiveModalVariant.drawer
+        : AppAdaptiveModalVariant.dialog,
+    dialogKey: const Key('media-tag-rule-editor-dialog'),
+    drawerKey: const Key('media-tag-rule-editor-drawer'),
+    desktopConstraints: const BoxConstraints(maxWidth: 620, maxHeight: 760),
+    mobileHeightFactor: 0.88,
+    builder: (_) => _MediaTagRuleEditor(initialTag: initialTag),
   );
 }
 

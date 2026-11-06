@@ -13,8 +13,8 @@ import 'package:sakuramedia/features/media/presentation/providers/media_api_prov
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_merge_playback_candidates.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_player_layout.dart';
-import 'package:sakuramedia/features/movies/presentation/providers/movie_merged_playback_factory_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/merged_playback_factory_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/features/image_search/presentation/actions/image_search_launcher.dart';
@@ -106,7 +106,7 @@ class _MovieMergedPlayContentState extends ConsumerState<MovieMergedPlayContent>
         for (final media in medias)
           Media(resolveMediaUrl(rawUrl: media.playUrl, baseUrl: baseUrl)!),
       ]);
-      final playback = ref.read(movieMergedPlaybackFactoryProvider)();
+      final playback = ref.read(mergedPlaybackFactoryProvider)();
       final frames = CollectionFilmstripController(
         episodeCount: medias.length,
         frameLoader: (index) async {

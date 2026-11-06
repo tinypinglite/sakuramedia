@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 
 class AppPagedLoadMoreFooter extends StatelessWidget {
@@ -72,18 +73,11 @@ class AppPagedLoadMoreFooter extends StatelessWidget {
                 ),
               ),
               SizedBox(width: spacing.sm),
-              TextButton(
+              AppTextButton(
+                label: l10n.commonRetry,
                 onPressed: onRetry,
-                style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: spacing.sm,
-                    vertical: spacing.xs,
-                  ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(l10n.commonRetry),
+                size: AppTextButtonSize.xSmall,
+                emphasis: AppTextButtonEmphasis.accent,
               ),
             ],
           ),

@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_stream_status.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 
 class CatalogSearchStreamStatusCard extends StatelessWidget {
   const CatalogSearchStreamStatusCard({super.key, required this.status});
@@ -9,18 +10,12 @@ class CatalogSearchStreamStatusCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
     final spacing = context.appSpacing;
 
-    return Container(
+    return AppContentCard(
       key: const Key('catalog-search-stream-status-card'),
-      width: double.infinity,
       padding: EdgeInsets.all(spacing.md),
-      decoration: BoxDecoration(
-        color: colors.surfaceCard,
-        borderRadius: context.appRadius.mdBorder,
-        border: Border.all(color: colors.borderSubtle),
-      ),
+      borderRadius: context.appRadius.mdBorder,
       child: Center(
         child: SizedBox(
           width: double.infinity,

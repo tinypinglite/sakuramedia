@@ -5,6 +5,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/domain/media/media_transfer_result_dialog.dart';
 import 'package:sakuramedia/widgets/domain/media_import/import_failed_items_dialog.dart';
 
@@ -28,19 +29,11 @@ class ActivityTaskRunCard extends StatelessWidget {
     final progressValue = taskRun.progressValue;
     final summary = taskRun.displaySummary(l10n);
 
-    return Container(
+    return AppContentCard(
       key: Key('activity-task-${taskRun.id}'),
-      width: double.infinity,
-      padding: EdgeInsets.all(context.appSpacing.lg),
-      decoration: BoxDecoration(
-        color: backgroundColor ?? colors.surfaceCard,
-        borderRadius: context.appRadius.mdBorder,
-        border: Border.all(
-          color: highlighted
-              ? Theme.of(context).colorScheme.primary
-              : colors.borderSubtle,
-        ),
-      ),
+      backgroundColor: backgroundColor,
+      borderColor: highlighted ? Theme.of(context).colorScheme.primary : null,
+      borderRadius: context.appRadius.mdBorder,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

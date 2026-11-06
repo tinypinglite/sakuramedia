@@ -10,11 +10,10 @@ import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
-import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/domain/clips/clip_selection_status_bar.dart';
-import 'package:sakuramedia/widgets/domain/media/movie_media_thumbnail_grid.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/domain/media/thumbnail_clip_selection_section.dart';
 
 /// 媒体缩略图页签内容。
 ///
@@ -39,7 +38,7 @@ class MediaThumbnailTab extends ConsumerWidget {
   });
 
   final int? mediaId;
-  final MoviePlotPreviewPresentation thumbnailPreviewPresentation;
+  final AppAdaptiveModalVariant thumbnailPreviewPresentation;
   final void Function(int index, Offset globalPosition)?
   onThumbnailMenuRequested;
   final VoidCallback? onCreateClip;
@@ -55,141 +54,103 @@ class MediaThumbnailTab extends ConsumerWidget {
       movieDetailThumbnailProvider(mediaId: mediaId).notifier,
     );
     final thumbnails = state.thumbnails;
+    final l10n = AppLocalizations.of(context);
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final autoColumns = resolveGridColumnCount(
-          width: constraints.maxWidth,
-          spacing: context.appSpacing.sm,
-          targetWidth: context.appComponentTokens.movieThumbnailTargetWidth,
-        );
-        final resolvedColumns = state.usesAutoColumns
-            ? autoColumns
-            : (state.columns ?? autoColumns);
-        if (state.usesAutoColumns && state.columns != autoColumns) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted) {
-              controller.applyAutoColumns(autoColumns);
-            }
-          });
+    return ThumbnailClipSelectionSection(
+      padding: EdgeInsets.only(
+        top: context.appSpacing.md,
+        bottom: context.appSpacing.lg,
+      ),
+      spacing: context.appSpacing.sm,
+      gridGap: context.appSpacing.md,
+      keyPrefix: keyPrefix,
+      thumbnails: thumbnails,
+      isLoading: state.isLoading,
+      errorMessage: state.errorMessage,
+      columns: state.columns,
+      usesAutoColumns: state.usesAutoColumns,
+      onAutoColumnsResolved: controller.applyAutoColumns,
+      activeIndex: state.activeIndex,
+      onRetry: controller.retry,
+      onThumbnailMenuRequested: onThumbnailMenuRequested,
+      clipSelectionMode: state.clipSelectionMode,
+      clipStartIndex: state.clipStartIndex,
+      clipEndIndex: state.clipEndIndex,
+      clipStartSeconds: state.clipStartThumbnail?.offsetSeconds,
+      clipEndSeconds: state.clipEndThumbnail?.offsetSeconds,
+      clipDurationSeconds: state.clipSelectionDurationSeconds,
+      canCreateClip: state.canCreateClip,
+      onCreateClip: onCreateClip,
+      onClearClipSelection: controller.clearClipSelection,
+      onColumnsChanged: controller.setColumns,
+      toolbarBuilder: (context, columns, width) {
+        if (width < _compactToolbarWidthThreshold) {
+          return _MediaThumbnailCompactToolbar(
+            key: Key('$keyPrefix-toolbar'),
+            keyPrefix: keyPrefix,
+            selectedIntervalSeconds: state.selectedIntervalSeconds,
+            selectedColumns: columns,
+            onSelectInterval: controller.setIntervalSeconds,
+            onSelectColumns: controller.setColumns,
+            clipSelectionMode: state.clipSelectionMode,
+            onToggleClipSelectionMode: onCreateClip == null
+                ? null
+                : controller.toggleClipSelectionMode,
+            glassChrome: glassChrome,
+          );
         }
-
-        return Padding(
-          padding: EdgeInsets.only(
-            top: context.appSpacing.md,
-            bottom: context.appSpacing.lg,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (constraints.maxWidth < _compactToolbarWidthThreshold)
-                _MediaThumbnailCompactToolbar(
-                  key: Key('$keyPrefix-toolbar'),
-                  keyPrefix: keyPrefix,
-                  selectedIntervalSeconds: state.selectedIntervalSeconds,
-                  selectedColumns: resolvedColumns,
-                  onSelectInterval: controller.setIntervalSeconds,
-                  onSelectColumns: controller.setColumns,
-                  clipSelectionMode: state.clipSelectionMode,
-                  onToggleClipSelectionMode: onCreateClip == null
-                      ? null
-                      : controller.toggleClipSelectionMode,
-                  glassChrome: glassChrome,
-                )
-              else
-                Wrap(
-                  key: Key('$keyPrefix-toolbar'),
-                  spacing: _MediaThumbnailControlGroup.groupSpacing,
-                  runSpacing: context.appSpacing.xs,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    _MediaThumbnailIntervalSelector(
-                      keyPrefix: keyPrefix,
-                      options: _intervalOptions,
-                      selectedIntervalSeconds: state.selectedIntervalSeconds,
-                      onSelect: controller.setIntervalSeconds,
-                    ),
-                    _MediaThumbnailColumnsSelector(
-                      keyPrefix: keyPrefix,
-                      options: _columnOptions,
-                      selectedColumns: resolvedColumns,
-                      onSelect: controller.setColumns,
-                    ),
-                    if (onCreateClip != null)
-                      AppIconButton(
-                        key: Key('$keyPrefix-clip-toggle'),
-                        tooltip: state.clipSelectionMode
-                            ? AppLocalizations.of(
-                                context,
-                              ).widgetMediaClipSelectionExit
-                            : AppLocalizations.of(
-                                context,
-                              ).widgetMediaClipSelectionEnter,
-                        isSelected: state.clipSelectionMode,
-                        size: AppIconButtonSize.mini,
-                        selectedIconColor: Theme.of(
-                          context,
-                        ).colorScheme.primary,
-                        onPressed: controller.toggleClipSelectionMode,
-                        icon: const Icon(Icons.content_cut_rounded),
-                      ),
-                  ],
-                ),
-              if (state.clipSelectionMode) ...[
-                SizedBox(height: context.appSpacing.sm),
-                ClipSelectionStatusBar(
-                  keyPrefix: keyPrefix,
-                  startSeconds: state.clipStartThumbnail?.offsetSeconds,
-                  endSeconds: state.clipEndThumbnail?.offsetSeconds,
-                  durationSeconds: state.clipSelectionDurationSeconds,
-                  canCreate: state.canCreateClip,
-                  onCreate: onCreateClip,
-                  onClear: controller.clearClipSelection,
-                ),
-              ],
-              SizedBox(height: context.appSpacing.md),
-              Expanded(
-                child: MovieMediaThumbnailGrid(
-                  thumbnails: thumbnails,
-                  isLoading: state.isLoading,
-                  errorMessage: state.errorMessage,
-                  columns: resolvedColumns,
-                  activeIndex: state.activeIndex,
-                  isScrollLocked: false,
-                  onRetry: controller.retry,
-                  onThumbnailMenuRequested: onThumbnailMenuRequested,
-                  clipStartIndex: state.clipStartIndex,
-                  clipEndIndex: state.clipEndIndex,
-                  keyPrefix: keyPrefix,
-                  onThumbnailTap: (index) {
-                    if (state.clipSelectionMode) {
-                      controller.handleClipSelectionTap(index);
-                      return;
-                    }
-                    controller.selectIndex(index);
-                    showMoviePlotPreviewOverlay(
-                      context: context,
-                      plotImages: thumbnails
-                          .map((item) => item.image)
-                          .toList(growable: false),
-                      initialIndex: index,
-                      onRequestImageMenu: onThumbnailMenuRequested == null
-                          ? null
-                          : (menuContext, previewIndex, globalPosition) async {
-                              onThumbnailMenuRequested!(
-                                previewIndex,
-                                globalPosition,
-                              );
-                            },
-                      presentation: thumbnailPreviewPresentation,
-                      thumbnailStripLayout:
-                          MoviePlotPreviewThumbnailStripLayout.fixed,
-                    );
-                  },
-                ),
+        return Wrap(
+          key: Key('$keyPrefix-toolbar'),
+          spacing: _MediaThumbnailControlGroup.groupSpacing,
+          runSpacing: context.appSpacing.xs,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            _MediaThumbnailIntervalSelector(
+              keyPrefix: keyPrefix,
+              options: _intervalOptions,
+              selectedIntervalSeconds: state.selectedIntervalSeconds,
+              onSelect: controller.setIntervalSeconds,
+            ),
+            _MediaThumbnailColumnsSelector(
+              keyPrefix: keyPrefix,
+              options: _columnOptions,
+              selectedColumns: columns,
+              onSelect: controller.setColumns,
+            ),
+            if (onCreateClip != null)
+              AppIconButton(
+                key: Key('$keyPrefix-clip-toggle'),
+                tooltip: state.clipSelectionMode
+                    ? l10n.widgetMediaClipSelectionExit
+                    : l10n.widgetMediaClipSelectionEnter,
+                isSelected: state.clipSelectionMode,
+                size: AppIconButtonSize.mini,
+                selectedIconColor: Theme.of(context).colorScheme.primary,
+                onPressed: controller.toggleClipSelectionMode,
+                icon: const Icon(Icons.content_cut_rounded),
               ),
-            ],
-          ),
+          ],
+        );
+      },
+      onThumbnailTap: (index) {
+        if (state.clipSelectionMode) {
+          controller.handleClipSelectionTap(index);
+          return;
+        }
+        controller.selectIndex(index);
+        showMoviePlotPreviewOverlay(
+          context: context,
+          plotImages: thumbnails
+              .map((item) => item.image)
+              .toList(growable: false),
+          initialIndex: index,
+          onRequestImageMenu: onThumbnailMenuRequested == null
+              ? null
+              : (menuContext, previewIndex, globalPosition) async {
+                  onThumbnailMenuRequested!(previewIndex, globalPosition);
+                },
+          variant: thumbnailPreviewPresentation,
+          thumbnailStripLayout: MoviePlotPreviewThumbnailStripLayout.fixed,
         );
       },
     );

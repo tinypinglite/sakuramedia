@@ -3,9 +3,7 @@ import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/domain/media/media_center_play_button.dart';
 import 'package:sakuramedia/widgets/domain/media/media_duration_badge.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_action_grid.dart';
@@ -30,21 +28,16 @@ Future<MediaMovieAction?> showMediaMovieActionsOverlay({
     mobile: mobile,
     canOpenMovieDetail: canOpenMovieDetail,
   );
-  if (mobile) {
-    return showAppBottomDrawer<MediaMovieAction>(
-      context: context,
-      drawerKey: const Key('media-row-movie-actions-drawer'),
-      maxHeightFactor: 0.62,
-      builder: (_) => content,
-    );
-  }
-  return showAppDialog<MediaMovieAction>(
+  return showAppAdaptiveModal<MediaMovieAction>(
     context: context,
-    builder: (dialogContext) => AppDesktopDialog(
-      dialogKey: const Key('media-row-movie-actions-dialog'),
-      width: dialogContext.appLayoutTokens.dialogWidthMd,
-      child: content,
-    ),
+    variant: mobile
+        ? AppAdaptiveModalVariant.drawer
+        : AppAdaptiveModalVariant.dialog,
+    dialogKey: const Key('media-row-movie-actions-dialog'),
+    drawerKey: const Key('media-row-movie-actions-drawer'),
+    desktopWidth: context.appLayoutTokens.dialogWidthMd,
+    mobileMaxHeightFactor: 0.62,
+    builder: (_) => content,
   );
 }
 

@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/media/presentation/widgets/shared/media_cov
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_list_item_meta_label.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_list_item_path_line.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_list_item_technical_label.dart';
+import 'package:sakuramedia/features/media/presentation/widgets/shared/media_tags_line.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
@@ -349,7 +350,7 @@ class _MediaListItemBody extends StatelessWidget {
         if (item.isJav &&
             (item.tags.isNotEmpty || item.isMediaTagsManuallyManaged)) ...[
           SizedBox(height: spacing.xs),
-          _MediaTagsLine(item: item),
+          MediaTagsLine(item: item, maxTags: 3),
         ],
         SizedBox(height: spacing.xs),
         pathLine,
@@ -447,51 +448,6 @@ class _MediaListItemHeading extends StatelessWidget {
           ),
         ],
       ],
-    );
-  }
-}
-
-class _MediaTagsLine extends StatelessWidget {
-  const _MediaTagsLine({required this.item});
-
-  final MediaListItemDto item;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final visibleTags = item.tags.take(3).toList(growable: false);
-    final overflow = item.tags.length - visibleTags.length;
-    return SingleChildScrollView(
-      key: Key('${item.id}-media-tags'),
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          if (item.isMediaTagsManuallyManaged)
-            Padding(
-              padding: EdgeInsetsDirectional.only(end: context.appSpacing.xs),
-              child: AppBadge(
-                label: l10n.mediaListTagsManualBadge,
-                tone: AppBadgeTone.primary,
-                size: AppBadgeSize.compact,
-              ),
-            ),
-          for (final tag in visibleTags)
-            Padding(
-              padding: EdgeInsetsDirectional.only(end: context.appSpacing.xs),
-              child: AppBadge(
-                label: tag.name,
-                tone: AppBadgeTone.neutral,
-                size: AppBadgeSize.compact,
-              ),
-            ),
-          if (overflow > 0)
-            AppBadge(
-              label: l10n.mediaListTagsOverflow(overflow),
-              tone: AppBadgeTone.neutral,
-              size: AppBadgeSize.compact,
-            ),
-        ],
-      ),
     );
   }
 }

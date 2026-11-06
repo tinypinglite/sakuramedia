@@ -27,7 +27,7 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/video_collection_episode_actions.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_mutation_events_provider.dart';
-import 'package:sakuramedia/features/videos/presentation/providers/video_collection_playback_factory_provider.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/merged_playback_factory_provider.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
@@ -171,7 +171,7 @@ class _VideoCollectionPlayContentState
         return;
       }
       final startIndex = resolvedStartIndex.clamp(0, playUrls.length - 1);
-      final playback = ref.read(videoCollectionPlaybackFactoryProvider)();
+      final playback = ref.read(mergedPlaybackFactoryProvider)();
       final player = playback.player;
       final videoController = playback.videoController;
       // 「整部合集」关键帧面板：按可播成员顺序逐集拉「首个媒体」的缩略图（媒体自身时间轴

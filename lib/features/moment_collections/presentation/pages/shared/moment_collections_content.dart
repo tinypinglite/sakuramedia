@@ -1,8 +1,7 @@
 import 'dart:async';
 
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/moment_collections/data/dto/moment_collection_dto.dart';
 import 'package:sakuramedia/features/moment_collections/presentation/moment_collection_placeholders.dart';
@@ -11,21 +10,12 @@ import 'package:sakuramedia/features/moment_collections/presentation/providers/m
 import 'package:sakuramedia/features/moment_collections/presentation/providers/moment_collections_overview_provider.dart';
 import 'package:sakuramedia/features/moment_collections/presentation/widgets/moment_collection_editor.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
-import 'package:sakuramedia/widgets/base/forms/app_search_field.dart';
-import 'package:sakuramedia/widgets/base/forms/app_glass_search_field.dart';
-import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
-import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_wrap.dart';
-import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_list_content.dart';
 
-/// 时刻合集列表内容：桌面网格页 / 移动子页两套壳共用同一份取数与卡片逻辑。
+/// 时刻合集列表共享内容：桌面网格页 / 移动子页两套壳共用同一份取数与卡片逻辑。
 class MomentCollectionsContent extends ConsumerStatefulWidget {
   const MomentCollectionsContent({
     super.key,
@@ -43,231 +33,19 @@ class MomentCollectionsContent extends ConsumerStatefulWidget {
 
 class _MomentCollectionsContentState
     extends ConsumerState<MomentCollectionsContent> {
-  final TextEditingController _searchController = TextEditingController();
-  String _keyword = '';
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
+  Future<void> _refresh() {
+    return ref.read(momentCollectionsOverviewProvider.notifier).refresh();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    ref.listen(momentCollectionMutationEventsProvider, (_, next) {
-      if (next.value != null) {
-        unawaited(
-          ref.read(momentCollectionsOverviewProvider.notifier).refresh(),
-        );
-      }
-    });
-    final async = ref.watch(momentCollectionsOverviewProvider);
-    if (widget.isMobile) {
-      return Column(
-        key: const Key('mobile-moment-collections-page'),
-        children: [
-          Padding(
-            padding: EdgeInsets.only(top: context.appSpacing.sm),
-            child: Row(
-              children: [
-                Expanded(
-                  child: AppGlassSearchField(
-                    fieldKey: const Key(
-                      'mobile-moment-collections-search-field',
-                    ),
-                    controller: _searchController,
-                    hintText: l10n.momentCollectionSearchHint,
-                    onChanged: (value) =>
-                        setState(() => _keyword = value.trim().toLowerCase()),
-                    clearKey: const Key(
-                      'mobile-moment-collections-search-clear',
-                    ),
-                  ),
-                ),
-                SizedBox(width: context.appSpacing.sm),
-                AppGlassIconButton(
-                  key: const Key('mobile-moment-collections-create-button'),
-                  tooltip: l10n.momentCollectionCreateTitle,
-                  icon: Icons.add_rounded,
-                  onPressed: () => _edit(context, ref),
-                ),
-              ],
-            ),
-          ),
-          Expanded(child: _buildMobileBody(context, ref, async)),
-        ],
-      );
-    }
-    return AppPageRefreshScope(
-      onRefresh: ref.read(momentCollectionsOverviewProvider.notifier).refresh,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                l10n.momentCollectionSectionTitle,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s18,
-                  weight: AppTextWeight.semibold,
-                  tone: AppTextTone.primary,
-                ),
-              ),
-              const Spacer(),
-              AppTextButton(
-                key: const Key('moment-collections-create-button'),
-                label: l10n.momentCollectionCreateTitle,
-                size: AppTextButtonSize.small,
-                onPressed: () => _edit(context, ref),
-              ),
-            ],
-          ),
-          SizedBox(height: context.appSpacing.sm),
-          AppSearchField(
-            fieldKey: const Key('moment-collections-search-field'),
-            controller: _searchController,
-            hintText: l10n.momentCollectionSearchHint,
-            onChanged: (value) =>
-                setState(() => _keyword = value.trim().toLowerCase()),
-            clearKey: const Key('moment-collections-search-clear'),
-          ),
-          SizedBox(height: context.appSpacing.lg),
-          Expanded(child: _buildDesktopBody(context, ref, async)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDesktopBody(
+  Future<void> _open(
     BuildContext context,
-    WidgetRef ref,
-    AsyncValue<List<MomentCollectionDto>> async,
-  ) {
-    final spacing = context.appSpacing;
-    final l10n = AppLocalizations.of(context);
-    final isLoading = async.isLoading && async.value == null;
-    if (!isLoading && async.hasError && async.value == null) {
-      return AppEmptyState(
-        message: apiErrorMessage(
-          async.error!,
-          fallback: l10n.momentErrorCollectionLoadFailed,
-          l10n: l10n,
-        ),
-      );
-    }
-    final allCollections = isLoading
-        ? momentCollectionPlaceholders(count: 8)
-        : async.value ?? const <MomentCollectionDto>[];
-    if (allCollections.isEmpty) {
-      return AppEmptyState(message: l10n.momentCollectionEmptyDesktop);
-    }
-    final collections = isLoading || _keyword.isEmpty
-        ? allCollections
-        : allCollections
-              .where(
-                (collection) =>
-                    collection.name.toLowerCase().contains(_keyword),
-              )
-              .toList(growable: false);
-    if (collections.isEmpty) {
-      return AppEmptyState(message: l10n.momentCollectionNoMatch);
-    }
-    return AppSkeletonizer(
-      enabled: isLoading,
-      // 懒加载：合集上千时不首帧构建全部卡片与封面图请求。
-      child: CustomScrollView(
-        slivers: [
-          SliverPadding(
-            padding: EdgeInsets.only(bottom: spacing.lg),
-            sliver: AppAdaptiveCardWrapSliver<MomentCollectionDto>(
-              gridKey: const Key('moment-collections-grid'),
-              items: collections,
-              orientation: AppCardGridOrientation.landscape,
-              itemBuilder: (context, collection, _) => CollectionCard.moment(
-                collection: collection,
-                onTap: () => widget.onOpenDetail(collection.id),
-                onEdit: () => _edit(context, ref, collection: collection),
-                onDelete: () => _delete(context, ref, collection),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMobileBody(
-    BuildContext context,
-    WidgetRef ref,
-    AsyncValue<List<MomentCollectionDto>> async,
-  ) {
-    final isLoading = async.isLoading && async.value == null;
-    final spacing = context.appSpacing;
-    final l10n = AppLocalizations.of(context);
-    final allCollections = isLoading
-        ? momentCollectionPlaceholders()
-        : async.value ?? const <MomentCollectionDto>[];
-    final collections = isLoading || _keyword.isEmpty
-        ? allCollections
-        : allCollections
-              .where(
-                (collection) =>
-                    collection.name.toLowerCase().contains(_keyword),
-              )
-              .toList(growable: false);
-    return AppSkeletonizer(
-      enabled: isLoading,
-      child: AppAdaptiveRefreshScrollView(
-        key: const Key('moment-collections-scroll'),
-        onRefresh: ref.read(momentCollectionsOverviewProvider.notifier).refresh,
-        slivers: <Widget>[
-          if (async.hasError && allCollections.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: AppEmptyState(
-                message: apiErrorMessage(
-                  async.error!,
-                  fallback: l10n.momentErrorCollectionLoadFailed,
-                  l10n: l10n,
-                ),
-              ),
-            )
-          else if (allCollections.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: AppEmptyState(message: l10n.momentCollectionEmptyMobile),
-            )
-          else if (collections.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: AppEmptyState(message: l10n.momentCollectionNoMatch),
-            )
-          else
-            SliverPadding(
-              padding: EdgeInsets.symmetric(vertical: spacing.md),
-              // 懒加载：合集上千时不首帧构建全部卡片与封面图请求。
-              sliver: AppAdaptiveCardWrapSliver<MomentCollectionDto>(
-                gridKey: const Key('mobile-moment-collections-grid'),
-                items: collections,
-                orientation: AppCardGridOrientation.landscape,
-                itemBuilder: (context, collection, _) => CollectionCard.moment(
-                  collection: collection,
-                  onTap: () => widget.onOpenDetail(collection.id),
-                  onEdit: () => _edit(context, ref, collection: collection),
-                  onDelete: () => _delete(context, ref, collection),
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
+    MomentCollectionDto collection,
+  ) async {
+    widget.onOpenDetail(collection.id);
   }
 
   Future<void> _edit(
-    BuildContext context,
-    WidgetRef ref, {
+    BuildContext context, {
     MomentCollectionDto? collection,
   }) async {
     final l10n = AppLocalizations.of(context);
@@ -275,7 +53,9 @@ class _MomentCollectionsContentState
       context,
       collection: collection,
     );
-    if (result == null) return;
+    if (!mounted || result == null) {
+      return;
+    }
     final notifier = ref.read(momentCollectionsOverviewProvider.notifier);
     if (collection == null) {
       notifier.insertCollection(result);
@@ -288,7 +68,6 @@ class _MomentCollectionsContentState
 
   Future<void> _delete(
     BuildContext context,
-    WidgetRef ref,
     MomentCollectionDto collection,
   ) async {
     final l10n = AppLocalizations.of(context);
@@ -303,7 +82,9 @@ class _MomentCollectionsContentState
       confirmLabel: l10n.commonDelete,
       confirmKey: const Key('moment-collection-delete-confirm-button'),
     );
-    if (!confirmed) return;
+    if (!mounted || !confirmed) {
+      return;
+    }
     try {
       await ref
           .read(momentCollectionsApiProvider)
@@ -311,8 +92,16 @@ class _MomentCollectionsContentState
       ref
           .read(momentCollectionsOverviewProvider.notifier)
           .removeCollection(collection.id);
-      showToast(l10n.momentCollectionDeletedToast, tone: AppToastTone.success);
+      if (mounted) {
+        showToast(
+          l10n.momentCollectionDeletedToast,
+          tone: AppToastTone.success,
+        );
+      }
     } catch (error) {
+      if (!mounted) {
+        return;
+      }
       showToast(
         apiErrorMessage(
           error,
@@ -322,5 +111,53 @@ class _MomentCollectionsContentState
         tone: AppToastTone.error,
       );
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    ref.listen(momentCollectionMutationEventsProvider, (_, next) {
+      if (next.value != null) {
+        unawaited(
+          ref.read(momentCollectionsOverviewProvider.notifier).refresh(),
+        );
+      }
+    });
+
+    final l10n = AppLocalizations.of(context);
+    return CollectionListContent<MomentCollectionDto>(
+      mobile: widget.isMobile,
+      keyPrefix: widget.isMobile
+          ? 'mobile-moment-collections'
+          : 'moment-collections',
+      title: l10n.momentCollectionSectionTitle,
+      searchHint: l10n.momentCollectionSearchHint,
+      createLabel: l10n.momentCollectionCreateTitle,
+      emptyDesktopMessage: l10n.momentCollectionEmptyDesktop,
+      emptyMobileMessage: l10n.momentCollectionEmptyMobile,
+      noMatchMessage: l10n.momentCollectionNoMatch,
+      loadErrorMessage: l10n.momentErrorCollectionLoadFailed,
+      collections: ref.watch(momentCollectionsOverviewProvider),
+      onRefresh: _refresh,
+      placeholders: (mobile) =>
+          momentCollectionPlaceholders(count: mobile ? 6 : 8),
+      nameOf: (collection) => collection.name,
+      cardBuilder:
+          (
+            context,
+            collection, {
+            required onTap,
+            required onEdit,
+            required onDelete,
+          }) => CollectionCard.moment(
+            collection: collection,
+            onTap: onTap,
+            onEdit: onEdit,
+            onDelete: onDelete,
+          ),
+      onOpen: _open,
+      onCreate: (context) => _edit(context),
+      onEdit: (context, collection) => _edit(context, collection: collection),
+      onDelete: _delete,
+    );
   }
 }

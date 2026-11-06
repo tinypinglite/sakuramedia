@@ -49,9 +49,9 @@ import 'package:sakuramedia/features/movies/presentation/pages/mobile/rated_movi
 import 'package:sakuramedia/features/recent_views/presentation/pages/mobile/recent_views_page.dart';
 import 'package:sakuramedia/features/overview/presentation/pages/mobile/system_overview_page.dart';
 import 'package:sakuramedia/features/playlists/presentation/pages/mobile/playlist_detail_page.dart';
-import 'package:sakuramedia/features/playlists/presentation/pages/mobile/system_playlist_page.dart';
+import 'package:sakuramedia/features/playlists/presentation/pages/shared/system_playlist_page.dart';
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
-import 'package:sakuramedia/features/search/presentation/pages/mobile/catalog_search_page.dart';
+import 'package:sakuramedia/features/search/presentation/catalog_search_page.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/pages/mobile/follow_page.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/pages/mobile/movie_subscriptions_page.dart';
 import 'package:sakuramedia/features/tags/presentation/pages/mobile/tags_page.dart';
@@ -125,8 +125,9 @@ class MobileSearchRouteData extends _MobileSubpageRouteData
 
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
-    return MobileCatalogSearchPage(
+    return CatalogSearchPage(
       initialQuery: '',
+      mobile: true,
       initialUseOnlineSearch: resolveBoolQueryParameter(
         state,
         names: const <String>['useOnlineSearch', 'use-online-search'],
@@ -242,8 +243,9 @@ class MobileSearchQueryRouteData extends _MobileSubpageRouteData
 
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
-    return MobileCatalogSearchPage(
+    return CatalogSearchPage(
       initialQuery: query,
+      mobile: true,
       initialUseOnlineSearch: resolveBoolQueryParameter(
         state,
         names: const <String>['useOnlineSearch', 'use-online-search'],
@@ -429,7 +431,7 @@ class MobileFavoritesRouteData extends _MobileSubpageRouteData
 
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
-    return const MobileSystemPlaylistPage(kind: PlaylistKind.favorites);
+    return const SystemPlaylistPage(kind: PlaylistKind.favorites, mobile: true);
   }
 }
 
@@ -452,7 +454,10 @@ class MobileRecentlyPlayedRouteData extends _MobileSubpageRouteData
 
   @override
   Widget buildSubpage(BuildContext context, GoRouterState state) {
-    return const MobileSystemPlaylistPage(kind: PlaylistKind.recentlyPlayed);
+    return const SystemPlaylistPage(
+      kind: PlaylistKind.recentlyPlayed,
+      mobile: true,
+    );
   }
 }
 

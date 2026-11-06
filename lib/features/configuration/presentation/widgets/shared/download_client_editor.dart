@@ -12,10 +12,10 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/forms/form_submit_state.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_form_dialog.dart';
 
 Future<DownloadClientDto?> showDownloadClientEditor(
   BuildContext context, {
@@ -24,23 +24,24 @@ Future<DownloadClientDto?> showDownloadClientEditor(
   required List<MediaProviderDto> providers,
   DownloadClientDto? initialClient,
 }) {
-  final editor = _DownloadClientEditor(
-    mobile: mobile,
-    libraries: libraries,
-    providers: providers,
-    initialClient: initialClient,
-  );
-  if (mobile) {
-    return showAppBottomDrawer<DownloadClientDto>(
-      context: context,
-      drawerKey: const Key('mobile-downloader-editor-drawer'),
-      heightFactor: 0.9,
-      builder: (_) => editor,
-    );
-  }
-  return showAppDialog<DownloadClientDto>(
+  return showAppAdaptiveModal<DownloadClientDto>(
     context: context,
-    builder: (_) => editor,
+    variant: mobile
+        ? AppAdaptiveModalVariant.drawer
+        : AppAdaptiveModalVariant.dialog,
+    drawerKey: const Key('mobile-downloader-editor-drawer'),
+    desktopWidth: context.appLayoutTokens.dialogWidthMd,
+    desktopInsetPadding: EdgeInsets.symmetric(
+      horizontal: context.appLayoutTokens.dialogInsetPadding,
+      vertical: context.appLayoutTokens.dialogInsetPadding,
+    ),
+    mobileHeightFactor: 0.9,
+    builder: (_) => _DownloadClientEditor(
+      mobile: mobile,
+      libraries: libraries,
+      providers: providers,
+      initialClient: initialClient,
+    ),
   );
 }
 
@@ -62,23 +63,18 @@ class _DownloadClientEditor extends ConsumerStatefulWidget {
       _DownloadClientEditorState();
 }
 
-class _DownloadClientEditorState extends ConsumerState<_DownloadClientEditor> {
-  final _formKey = GlobalKey<FormState>();
+class _DownloadClientEditorState extends ConsumerState<_DownloadClientEditor>
+    with FormSubmitState<_DownloadClientEditor> {
   late final TextEditingController _nameController;
   late ProviderConfigFormController _providerConfigController;
   int? _selectedLibraryId;
-  bool _isSubmitting = false;
   bool _isTesting = false;
-  bool _hasAttemptedSubmit = false;
   DownloadClientDiagnosticReportDto? _diagnosticReport;
 
   bool get _isEditing => widget.initialClient != null;
 
-  AutovalidateMode? get _autovalidateMode => widget.mobile
-      ? (_hasAttemptedSubmit
-            ? AutovalidateMode.onUserInteraction
-            : AutovalidateMode.disabled)
-      : null;
+  @override
+  bool get usesMobileFormValidation => widget.mobile;
 
   MediaProviderDto? _providerForLibrary(int? libraryId) {
     if (libraryId == null) return null;
@@ -152,22 +148,12 @@ class _DownloadClientEditorState extends ConsumerState<_DownloadClientEditor> {
     );
   }
 
-  void _markSubmitAttempted() {
-    if (widget.mobile) {
-      FocusScope.of(context).unfocus();
-      if (!_hasAttemptedSubmit) {
-        setState(() => _hasAttemptedSubmit = true);
-      }
-    }
-  }
-
   Future<void> _submit() async {
-    if (_isSubmitting || _isTesting) return;
-    _markSubmitAttempted();
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (isSubmitting || _isTesting) return;
+    if (!validateForm()) return;
     final l10n = AppLocalizations.of(context);
     final value = _formValue();
-    setState(() => _isSubmitting = true);
+    setSubmitting(true);
     try {
       final client = _isEditing
           ? await ref
@@ -187,7 +173,7 @@ class _DownloadClientEditorState extends ConsumerState<_DownloadClientEditor> {
       Navigator.of(context).pop(client);
     } catch (error) {
       if (!mounted) return;
-      setState(() => _isSubmitting = false);
+      setSubmitting(false);
       showToast(
         apiErrorMessage(
           error,
@@ -202,9 +188,8 @@ class _DownloadClientEditorState extends ConsumerState<_DownloadClientEditor> {
   }
 
   Future<void> _testClient() async {
-    if (_isSubmitting || _isTesting) return;
-    _markSubmitAttempted();
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (isSubmitting || _isTesting) return;
+    if (!validateForm()) return;
     final l10n = AppLocalizations.of(context);
     final value = _formValue();
     final libraryId = value.libraryId;
@@ -249,11 +234,11 @@ class _DownloadClientEditorState extends ConsumerState<_DownloadClientEditor> {
   Widget _buildMobile(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return AppBottomFormSheet(
-      formKey: _formKey,
+      formKey: formKey,
       title: _isEditing ? l10n.downloaderEditTitle : l10n.downloaderAdd,
       subtitle: l10n.downloaderFormSubtitle,
       submitKey: const Key('mobile-downloader-submit-button'),
-      isSubmitting: _isSubmitting,
+      isSubmitting: isSubmitting,
       submitDisabled: _isTesting,
       onSubmit: _submit,
       body: Column(
@@ -266,7 +251,7 @@ class _DownloadClientEditorState extends ConsumerState<_DownloadClientEditor> {
             label: l10n.downloaderTestConfig,
             icon: const Icon(Icons.rule_rounded),
             isLoading: _isTesting,
-            onPressed: _isSubmitting || _isTesting ? null : _testClient,
+            onPressed: isSubmitting || _isTesting ? null : _testClient,
           ),
         ],
       ),
@@ -274,74 +259,21 @@ class _DownloadClientEditorState extends ConsumerState<_DownloadClientEditor> {
   }
 
   Widget _buildDesktop(BuildContext context) {
-    final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    return AppDesktopDialog(
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: context.appLayoutTokens.dialogInsetPadding,
-        vertical: context.appLayoutTokens.dialogInsetPadding,
-      ),
-      width: context.appLayoutTokens.dialogWidthMd,
-      showCloseButton: !_isSubmitting,
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _isEditing ? l10n.downloaderEditTitle : l10n.downloaderAdd,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s18,
-                  weight: AppTextWeight.semibold,
-                  tone: AppTextTone.primary,
-                ),
-              ),
-              SizedBox(height: spacing.xl),
-              _buildFields(context),
-              SizedBox(height: spacing.xl),
-              PopScope(
-                canPop: !_isSubmitting,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: AppButton(
-                        onPressed: _isTesting || _isSubmitting
-                            ? null
-                            : () => Navigator.of(context).pop(),
-                        label: l10n.commonCancel,
-                      ),
-                    ),
-                    SizedBox(width: spacing.md),
-                    Expanded(
-                      child: AppButton(
-                        onPressed: _isTesting || _isSubmitting ? null : _submit,
-                        label: l10n.commonSave,
-                        variant: AppButtonVariant.primary,
-                        isLoading: _isSubmitting,
-                      ),
-                    ),
-                    SizedBox(width: spacing.md),
-                    Expanded(
-                      child: AppButton(
-                        key: const Key('download-client-test-button'),
-                        onPressed: _isTesting || _isSubmitting
-                            ? null
-                            : _testClient,
-                        label: l10n.downloaderTestConfig,
-                        icon: const Icon(Icons.rule_rounded),
-                        size: AppButtonSize.small,
-                        isLoading: _isTesting,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+    return AppDesktopFormDialog(
+      formKey: formKey,
+      title: _isEditing ? l10n.downloaderEditTitle : l10n.downloaderAdd,
+      body: _buildFields(context),
+      isSubmitting: isSubmitting,
+      isBusy: isSubmitting || _isTesting,
+      onSubmit: _submit,
+      extraAction: AppButton(
+        key: const Key('download-client-test-button'),
+        onPressed: isSubmitting || _isTesting ? null : _testClient,
+        label: l10n.downloaderTestConfig,
+        icon: const Icon(Icons.rule_rounded),
+        size: AppButtonSize.small,
+        isLoading: _isTesting,
       ),
     );
   }
@@ -358,8 +290,8 @@ class _DownloadClientEditorState extends ConsumerState<_DownloadClientEditor> {
           onLibraryChanged: _selectLibrary,
           providerConfigController: _providerConfigController,
           isEditing: _isEditing,
-          enabled: !_isSubmitting && !_isTesting,
-          autovalidateMode: _autovalidateMode,
+          enabled: !isSubmitting && !_isTesting,
+          autovalidateMode: autovalidateMode,
         ),
         if (_diagnosticReport != null) ...[
           SizedBox(height: spacing.lg),

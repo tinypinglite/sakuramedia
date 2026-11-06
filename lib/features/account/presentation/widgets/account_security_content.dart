@@ -23,9 +23,7 @@ import 'package:sakuramedia/widgets/base/forms/app_password_field.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/domain/account/api_key_generate_panel.dart';
 
 /// 账号安全设置：桌面分类页与移动子页共用业务逻辑和表单状态。
@@ -692,18 +690,17 @@ class _AccountSecurityContentState
   }
 
   Future<void> _openGeneratePanel() async {
-    if (widget.mobile) {
-      await showAppBottomDrawer<void>(
-        context: context,
-        drawerKey: const Key('mobile-api-key-generate-drawer'),
-        maxHeightFactor: 0.6,
-        builder: (_) => const ApiKeyGeneratePanel(keyPrefix: 'mobile'),
-      );
-      return;
-    }
-    await showAppDialog<void>(
+    await showAppAdaptiveModal<void>(
       context: context,
-      builder: (_) => const _ApiKeyGenerateDialog(),
+      variant: widget.mobile
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
+      drawerKey: const Key('mobile-api-key-generate-drawer'),
+      desktopWidth: context.appComponentTokens.playlistDialogWidth,
+      mobileMaxHeightFactor: 0.6,
+      builder: (_) => ApiKeyGeneratePanel(
+        keyPrefix: widget.mobile ? 'mobile' : 'configuration',
+      ),
     );
   }
 
@@ -872,18 +869,6 @@ class _AccountProfilePill extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _ApiKeyGenerateDialog extends StatelessWidget {
-  const _ApiKeyGenerateDialog();
-
-  @override
-  Widget build(BuildContext context) {
-    return AppDesktopDialog(
-      width: context.appComponentTokens.playlistDialogWidth,
-      child: const ApiKeyGeneratePanel(keyPrefix: 'configuration'),
     );
   }
 }

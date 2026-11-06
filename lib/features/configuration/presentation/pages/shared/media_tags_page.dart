@@ -15,7 +15,6 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_inline_action_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
@@ -119,10 +118,13 @@ class MediaTagsPage extends ConsumerWidget {
                         ),
                       ),
                       SizedBox(width: spacing.sm),
-                      AppInlineActionButton(
+                      AppIconButton(
                         key: Key('media-tag-edit-${tag.id}'),
-                        icon: Icons.edit_outlined,
-                        onTap: () => unawaited(
+                        icon: const Icon(Icons.edit_outlined),
+                        tooltip: l10n.commonEdit,
+                        size: AppIconButtonSize.inline,
+                        iconColor: context.appTextPalette.secondary,
+                        onPressed: () => unawaited(
                           showMediaTagRuleEditor(
                             context,
                             mobile: false,
@@ -131,10 +133,13 @@ class MediaTagsPage extends ConsumerWidget {
                         ),
                       ),
                       SizedBox(width: spacing.xs),
-                      AppInlineActionButton(
+                      AppIconButton(
                         key: Key('media-tag-delete-${tag.id}'),
-                        icon: Icons.delete_outline_rounded,
-                        onTap: () => _deleteTag(context, ref, tag),
+                        icon: const Icon(Icons.delete_outline_rounded),
+                        tooltip: l10n.commonDelete,
+                        size: AppIconButtonSize.inline,
+                        iconColor: context.appTextPalette.secondary,
+                        onPressed: () => _deleteTag(context, ref, tag),
                       ),
                     ],
                   ),

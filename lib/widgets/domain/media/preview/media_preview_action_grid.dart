@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
 enum MediaPreviewActionGridLayout { wrap, fixedColumns, horizontalScroll }
 
@@ -150,59 +151,54 @@ class MediaPreviewActionTile extends StatelessWidget {
         : context.appTextPalette.muted;
     final textTone = canTap ? AppTextTone.primary : AppTextTone.muted;
 
-    return Material(
+    return AppInteractiveSurface(
       key: item.key,
-      color: Colors.transparent,
-      child: InkWell(
-        mouseCursor: canTap
-            ? SystemMouseCursors.click
-            : SystemMouseCursors.basic,
-        borderRadius: context.appRadius.smBorder,
-        onTap: canTap ? item.onTap : null,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: colors.surfaceElevated,
-                borderRadius: context.appRadius.pillBorder,
-                border: Border.all(color: colors.borderSubtle),
-              ),
-              child: SizedBox(
-                width: 40,
-                height: 40,
-                child: Center(
-                  child: item.isLoading
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator.adaptive(
-                            strokeWidth: 2,
-                          ),
-                        )
-                      : Icon(
-                          item.icon,
-                          size: tokens.iconSizeMd,
-                          color: iconColor,
+      enabled: canTap,
+      onTap: item.onTap,
+      semanticLabel: item.label,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: colors.surfaceElevated,
+              borderRadius: context.appRadius.pillBorder,
+              border: Border.all(color: colors.borderSubtle),
+            ),
+            child: SizedBox(
+              width: 40,
+              height: 40,
+              child: Center(
+                child: item.isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator.adaptive(
+                          strokeWidth: 2,
                         ),
-                ),
+                      )
+                    : Icon(
+                        item.icon,
+                        size: tokens.iconSizeMd,
+                        color: iconColor,
+                      ),
               ),
             ),
-            SizedBox(height: spacing.xs),
-            Text(
-              item.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                weight: AppTextWeight.regular,
-                tone: textTone,
-              ),
+          ),
+          SizedBox(height: spacing.xs),
+          Text(
+            item.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              weight: AppTextWeight.regular,
+              tone: textTone,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

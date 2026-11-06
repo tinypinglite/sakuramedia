@@ -8,6 +8,7 @@ import 'package:sakuramedia/widgets/base/interaction/app_context_menu_trigger.da
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_episode_queue_item.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 enum VideoCollectionEpisodeAction { remove, delete }
 
@@ -71,7 +72,7 @@ Future<bool> showVideoEpisodeDeleteConfirmation({
     confirmLabel: l10n.videoEpisodeDeleteTitle,
     danger: true,
     // 横屏使用紧凑确认窗；菜单仍为移动操作表。
-    variant: AppConfirmVariant.dialog,
+    variant: AppAdaptiveModalVariant.dialog,
     confirmKey: const Key('video-episode-delete-confirm'),
     onConfirm: onConfirm,
   );

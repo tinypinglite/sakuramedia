@@ -15,12 +15,11 @@ import 'package:sakuramedia/features/configuration/presentation/providers/provid
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/media_provider_login_card.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/forms/form_submit_state.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_form_dialog.dart';
 
 Future<MediaLibraryDto?> showMediaLibraryEditor(
   BuildContext context, {
@@ -28,22 +27,23 @@ Future<MediaLibraryDto?> showMediaLibraryEditor(
   required List<MediaProviderDto> providers,
   MediaLibraryDto? initialLibrary,
 }) {
-  final editor = _MediaLibraryEditor(
-    mobile: mobile,
-    providers: providers,
-    initialLibrary: initialLibrary,
-  );
-  if (mobile) {
-    return showAppBottomDrawer<MediaLibraryDto>(
-      context: context,
-      drawerKey: const Key('mobile-media-library-editor-drawer'),
-      heightFactor: 0.78,
-      builder: (_) => editor,
-    );
-  }
-  return showAppDialog<MediaLibraryDto>(
+  return showAppAdaptiveModal<MediaLibraryDto>(
     context: context,
-    builder: (_) => editor,
+    variant: mobile
+        ? AppAdaptiveModalVariant.drawer
+        : AppAdaptiveModalVariant.dialog,
+    drawerKey: const Key('mobile-media-library-editor-drawer'),
+    desktopWidth: context.appLayoutTokens.dialogWidthMd,
+    desktopInsetPadding: EdgeInsets.symmetric(
+      horizontal: context.appLayoutTokens.dialogInsetPadding,
+      vertical: context.appLayoutTokens.dialogInsetPadding,
+    ),
+    mobileHeightFactor: 0.78,
+    builder: (_) => _MediaLibraryEditor(
+      mobile: mobile,
+      providers: providers,
+      initialLibrary: initialLibrary,
+    ),
   );
 }
 
@@ -63,8 +63,8 @@ class _MediaLibraryEditor extends ConsumerStatefulWidget {
       _MediaLibraryEditorState();
 }
 
-class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor>
+    with FormSubmitState<_MediaLibraryEditor> {
   late final TextEditingController _nameController;
   late final FocusNode _nameFocusNode;
   late final ProviderLoginApi _providerLoginApi;
@@ -73,10 +73,11 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor> {
   ProviderLoginSessionDto? _loginSession;
   bool _manualLoginMode = false;
   bool _isOpeningLogin = false;
-  bool _hasAttemptedSubmit = false;
-  bool _isSubmitting = false;
 
   bool get _isEditing => widget.initialLibrary != null;
+
+  @override
+  bool get usesMobileFormValidation => widget.mobile;
 
   MediaProviderDto? get _selectedProvider =>
       _findProvider(widget.providers, _selectedProviderKey ?? '');
@@ -85,12 +86,6 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor> {
 
   Set<String> get _managedLoginKeys =>
       _libraryLogin?.managedConfigKeys.toSet() ?? const <String>{};
-
-  AutovalidateMode? get _autovalidateMode => widget.mobile
-      ? (_hasAttemptedSubmit
-            ? AutovalidateMode.onUserInteraction
-            : AutovalidateMode.disabled)
-      : null;
 
   @override
   void initState() {
@@ -188,16 +183,9 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor> {
   }
 
   Future<void> _submit() async {
-    if (_isSubmitting) return;
+    if (isSubmitting) return;
     final l10n = AppLocalizations.of(context);
-    if (widget.mobile) {
-      FocusScope.of(context).unfocus();
-      if (!_hasAttemptedSubmit) {
-        setState(() => _hasAttemptedSubmit = true);
-      }
-    }
-    if (!(_formKey.currentState?.validate() ?? false) ||
-        _selectedProviderKey == null) {
+    if (!validateForm() || _selectedProviderKey == null) {
       return;
     }
     final login = _libraryLogin;
@@ -223,7 +211,7 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor> {
           : const <String>{},
       authSessionId: authSessionId,
     );
-    setState(() => _isSubmitting = true);
+    setSubmitting(true);
     try {
       final library = _isEditing
           ? await ref
@@ -246,7 +234,7 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor> {
       Navigator.of(context).pop(library);
     } catch (error) {
       if (!mounted) return;
-      setState(() => _isSubmitting = false);
+      setSubmitting(false);
       showToast(
         apiErrorMessage(
           error,
@@ -270,75 +258,27 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor> {
     final provider = _selectedProvider;
     final unavailable = _isEditing && provider == null;
     return AppBottomFormSheet(
-      formKey: _formKey,
+      formKey: formKey,
       title: _isEditing ? l10n.mediaLibraryEditTitle : l10n.mediaLibraryAdd,
       subtitle: unavailable
           ? l10n.mediaLibraryEditSubtitleUnavailable
           : l10n.mediaLibraryEditSubtitle,
       submitKey: const Key('mobile-media-library-submit-button'),
-      isSubmitting: _isSubmitting,
+      isSubmitting: isSubmitting,
       onSubmit: _submit,
       body: _buildBody(context),
     );
   }
 
   Widget _buildDesktop(BuildContext context) {
-    final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    return AppDesktopDialog(
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: context.appLayoutTokens.dialogInsetPadding,
-        vertical: context.appLayoutTokens.dialogInsetPadding,
-      ),
-      width: context.appLayoutTokens.dialogWidthMd,
-      showCloseButton: !_isSubmitting,
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _isEditing ? l10n.mediaLibraryEditTitle : l10n.mediaLibraryAdd,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s18,
-                  weight: AppTextWeight.semibold,
-                  tone: AppTextTone.primary,
-                ),
-              ),
-              SizedBox(height: spacing.xl),
-              _buildBody(context),
-              SizedBox(height: spacing.xl),
-              PopScope(
-                canPop: !_isSubmitting,
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: AppButton(
-                        onPressed: _isSubmitting
-                            ? null
-                            : () => Navigator.of(context).pop(),
-                        label: l10n.commonCancel,
-                      ),
-                    ),
-                    SizedBox(width: spacing.md),
-                    Expanded(
-                      child: AppButton(
-                        onPressed: _isSubmitting ? null : _submit,
-                        label: l10n.commonSave,
-                        variant: AppButtonVariant.primary,
-                        isLoading: _isSubmitting,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+    return AppDesktopFormDialog(
+      formKey: formKey,
+      title: _isEditing ? l10n.mediaLibraryEditTitle : l10n.mediaLibraryAdd,
+      body: _buildBody(context),
+      isSubmitting: isSubmitting,
+      isBusy: isSubmitting,
+      onSubmit: _submit,
     );
   }
 
@@ -354,8 +294,8 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor> {
         MediaLibraryFormFields(
           nameController: _nameController,
           nameFocusNode: widget.mobile ? _nameFocusNode : null,
-          enabled: !_isSubmitting,
-          autovalidateMode: _autovalidateMode,
+          enabled: !isSubmitting,
+          autovalidateMode: autovalidateMode,
           onNameSubmitted: (_) => _submit(),
         ),
         SizedBox(height: spacing.lg),
@@ -367,7 +307,7 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor> {
           MediaLibraryProviderSelectField(
             providers: widget.providers,
             value: _selectedProviderKey,
-            enabled: !_isEditing && !_isSubmitting,
+            enabled: !_isEditing && !isSubmitting,
             onChanged: _selectProvider,
           ),
         if (provider != null && login != null) ...[
@@ -376,7 +316,7 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor> {
             provider: provider,
             session: _loginSession,
             manualMode: _manualLoginMode,
-            isBusy: _isSubmitting || _isOpeningLogin,
+            isBusy: isSubmitting || _isOpeningLogin,
             onLogin: _loginProvider,
             onUseManual: _useManualLogin,
           ),
@@ -384,10 +324,10 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor> {
             SizedBox(height: spacing.md),
             ProviderConfigFormFields(
               controller: _providerConfigController,
-              enabled: !_isSubmitting,
+              enabled: !isSubmitting,
               isEditing: _isEditing,
               onlyKeys: managedKeys,
-              autovalidateMode: _autovalidateMode,
+              autovalidateMode: autovalidateMode,
             ),
           ],
         ],
@@ -395,10 +335,10 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor> {
           SizedBox(height: spacing.lg),
           ProviderConfigFormFields(
             controller: _providerConfigController,
-            enabled: !_isSubmitting,
+            enabled: !isSubmitting,
             isEditing: _isEditing,
             excludedKeys: login == null ? const <String>{} : managedKeys,
-            autovalidateMode: _autovalidateMode,
+            autovalidateMode: autovalidateMode,
           ),
         ],
       ],

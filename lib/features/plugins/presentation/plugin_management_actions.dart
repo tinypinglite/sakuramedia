@@ -14,6 +14,7 @@ import 'package:sakuramedia/features/shared/presentation/restart_messages.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 /// 插件管理页共用的安装、启停、更新、删除和刷新流程。
 ///
@@ -28,8 +29,8 @@ class PluginManagementActions {
 
   bool get _isMobile => AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
 
-  AppConfirmVariant get _confirmVariant =>
-      _isMobile ? AppConfirmVariant.drawer : AppConfirmVariant.auto;
+  AppAdaptiveModalVariant get _confirmVariant =>
+      _isMobile ? AppAdaptiveModalVariant.drawer : AppAdaptiveModalVariant.auto;
 
   Future<void> install() async {
     PluginZipFile? file;

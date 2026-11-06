@@ -4,6 +4,7 @@ import 'package:sakuramedia/features/configuration/data/dto/provider_login_dto.d
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 
 class MediaProviderLoginCard extends StatelessWidget {
   const MediaProviderLoginCard({
@@ -27,7 +28,6 @@ class MediaProviderLoginCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final spacing = context.appSpacing;
-    final colors = context.appColors;
     final accountLabel = session?.accountLabel;
     final status = session == null
         ? null
@@ -35,13 +35,10 @@ class MediaProviderLoginCard extends StatelessWidget {
         ? l10n.providerLoginSuccessWithoutAccount
         : l10n.providerLoginSuccess(accountLabel);
 
-    return Container(
+    return AppContentCard(
       padding: EdgeInsets.all(spacing.md),
-      decoration: BoxDecoration(
-        color: colors.noticeSurface,
-        borderRadius: context.appRadius.mdBorder,
-        border: Border.all(color: colors.borderSubtle),
-      ),
+      backgroundColor: context.appColors.noticeSurface,
+      borderRadius: context.appRadius.mdBorder,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -187,12 +187,13 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
             ),
             suffix: _searchController.text.isEmpty
                 ? null
-                : IconButton(
+                : AppIconButton(
                     icon: Icon(
                       Icons.close,
                       size: context.appComponentTokens.iconSizeSm,
                     ),
-                    splashRadius: 16,
+                    tooltip: l10n.baseClearSearch,
+                    size: AppIconButtonSize.mini,
                     onPressed: () {
                       _searchController.clear();
                       widget.onQueryChanged?.call('');

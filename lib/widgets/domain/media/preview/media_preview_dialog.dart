@@ -17,9 +17,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
 import 'package:sakuramedia/widgets/domain/media/media_center_play_button.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_action_grid.dart';
@@ -53,27 +51,6 @@ class MediaPreviewItem {
   bool get isVideo => videoItemId != null && videoItemId! > 0;
 }
 
-enum MediaPreviewPresentation {
-  /// 读 `AppPlatformScope.maybeOf`：`mobile` → 底部抽屉，其余（`desktop` /
-  /// null）→ 桌面对话框。与 `AppConfirmVariant.auto` 同范式。
-  auto,
-  dialog,
-  bottomDrawer,
-}
-
-/// 把 [MediaPreviewPresentation.auto] 解析为具体形态；非 auto 原样返回。
-MediaPreviewPresentation resolveMediaPreviewPresentation(
-  BuildContext context,
-  MediaPreviewPresentation presentation,
-) {
-  if (presentation != MediaPreviewPresentation.auto) {
-    return presentation;
-  }
-  return AppPlatformScope.maybeOf(context) == AppPlatform.mobile
-      ? MediaPreviewPresentation.bottomDrawer
-      : MediaPreviewPresentation.dialog;
-}
-
 /// 预览层关闭后，由调用页面执行的外部跳转动作。
 ///
 /// 保存与标记由预览层自身处理；相似图、播放、影片详情与加入合集必须先关闭
@@ -87,21 +64,30 @@ enum MediaPreviewAction {
 
 Future<MediaPreviewAction?> showMediaPreviewOverlay({
   required BuildContext context,
-  required MediaPreviewPresentation presentation,
+  required AppAdaptiveModalVariant variant,
   required WidgetBuilder builder,
   Key? drawerKey,
 }) {
-  final resolved = resolveMediaPreviewPresentation(context, presentation);
-  if (resolved == MediaPreviewPresentation.bottomDrawer) {
-    return showAppBottomDrawer<MediaPreviewAction>(
-      context: context,
-      maxHeightFactor: 0.7,
-      drawerKey: drawerKey,
-      ignoreTopSafeArea: true,
-      builder: builder,
-    );
-  }
-  return showAppDialog<MediaPreviewAction>(context: context, builder: builder);
+  final insetPadding = EdgeInsets.symmetric(
+    horizontal: context.appSpacing.xxxl,
+    vertical: context.appSpacing.xxl,
+  );
+  return showAppAdaptiveModal<MediaPreviewAction>(
+    context: context,
+    variant: variant,
+    dialogKey: const Key('image-search-result-preview-dialog'),
+    drawerKey: drawerKey,
+    desktopContentKey: const Key('image-search-result-preview-dialog-content'),
+    desktopWidth: context.appComponentTokens.movieDetailDialogWidth,
+    desktopHeight: math.min(
+      context.appComponentTokens.movieDetailDialogMinHeight,
+      math.max(0.0, MediaQuery.sizeOf(context).height - insetPadding.vertical),
+    ),
+    desktopInsetPadding: insetPadding,
+    mobileMaxHeightFactor: 0.7,
+    drawerIgnoreTopSafeArea: true,
+    builder: builder,
+  );
 }
 
 class MediaPreviewDialog extends ConsumerStatefulWidget {
@@ -111,7 +97,6 @@ class MediaPreviewDialog extends ConsumerStatefulWidget {
     this.availableActions = const <MediaPreviewAction>{},
     this.onPointRemoved,
     this.closeOnPointRemoved = false,
-    this.presentation = MediaPreviewPresentation.dialog,
     this.useInlineNavigation = false,
     this.onActorSelected,
   });
@@ -120,7 +105,6 @@ class MediaPreviewDialog extends ConsumerStatefulWidget {
   final Set<MediaPreviewAction> availableActions;
   final VoidCallback? onPointRemoved;
   final bool closeOnPointRemoved;
-  final MediaPreviewPresentation presentation;
   final bool useInlineNavigation;
 
   /// Records the selected actor before the overlay closes; navigation belongs
@@ -300,8 +284,7 @@ class _MediaPreviewDialogState extends ConsumerState<MediaPreviewDialog> {
   }
 
   bool _isBottomDrawer(BuildContext context) =>
-      resolveMediaPreviewPresentation(context, widget.presentation) ==
-      MediaPreviewPresentation.bottomDrawer;
+      AppAdaptiveModalShellScope.maybeIsDrawer(context);
 
   @override
   Widget build(BuildContext context) {
@@ -314,25 +297,14 @@ class _MediaPreviewDialogState extends ConsumerState<MediaPreviewDialog> {
       return _buildPreviewContent(context, previewHeight: previewHeight);
     }
 
-    final spacing = context.appSpacing;
-    final insetPadding = EdgeInsets.symmetric(
-      horizontal: spacing.xxxl,
-      vertical: spacing.xxl,
-    );
     final dialogHeight = math.min(
       context.appComponentTokens.movieDetailDialogMinHeight,
-      math.max(0.0, MediaQuery.sizeOf(context).height - insetPadding.vertical),
+      math.max(
+        0.0,
+        MediaQuery.sizeOf(context).height - context.appSpacing.xxl * 2,
+      ),
     );
-    final previewHeight = dialogHeight * 0.5;
-
-    return AppDesktopDialog(
-      dialogKey: const Key('image-search-result-preview-dialog'),
-      contentKey: const Key('image-search-result-preview-dialog-content'),
-      insetPadding: insetPadding,
-      width: context.appComponentTokens.movieDetailDialogWidth,
-      height: dialogHeight,
-      child: _buildPreviewContent(context, previewHeight: previewHeight),
-    );
+    return _buildPreviewContent(context, previewHeight: dialogHeight * 0.5);
   }
 
   Widget _buildPreviewContent(
@@ -730,7 +702,7 @@ class _MediaPreviewDialogState extends ConsumerState<MediaPreviewDialog> {
 
   void _handlePlay() {
     debugPrint(
-      '[player-debug] preview_play_tap movie=${widget.item.movieNumber} mediaId=${widget.item.mediaId} offsetSeconds=${widget.item.offsetSeconds} presentation=${widget.presentation.name}',
+      '[player-debug] preview_play_tap movie=${widget.item.movieNumber} mediaId=${widget.item.mediaId} offsetSeconds=${widget.item.offsetSeconds} presentation=${_isBottomDrawer(context) ? 'drawer' : 'dialog'}',
     );
     Navigator.of(context).pop(MediaPreviewAction.play);
   }

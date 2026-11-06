@@ -793,6 +793,7 @@ class DesktopSearchRouteData extends _DesktopShellPageRouteData
   Widget buildContent(BuildContext context, GoRouterState state) {
     return CatalogSearchPage(
       initialQuery: '',
+      mobile: false,
       initialUseOnlineSearch: resolveBoolQueryParameter(
         state,
         names: const <String>['useOnlineSearch', 'use-online-search'],
@@ -827,6 +828,7 @@ class DesktopSearchQueryRouteData extends _DesktopShellPageRouteData
   Widget buildContent(BuildContext context, GoRouterState state) {
     return CatalogSearchPage(
       initialQuery: query,
+      mobile: false,
       initialUseOnlineSearch: resolveBoolQueryParameter(
         state,
         names: const <String>['useOnlineSearch', 'use-online-search'],

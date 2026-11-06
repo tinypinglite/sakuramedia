@@ -56,6 +56,10 @@ class AppAdaptiveModalShellScope extends InheritedWidget {
 /// `AppAdaptiveModalShellScope.maybeIsDrawer(context)` 感知当前壳体；`modalKey`
 /// 透传为 drawer 分支的 `drawerKey`、dialog 分支的 `dialogKey`，需要两端各用
 /// 不同测试锚点时再传 [dialogKey] / [drawerKey]（优先级高于 `modalKey`）。
+/// 桌面端默认使用 [desktopWidth] / [desktopHeight]；需要保留原有最大尺寸时
+/// 传 [desktopConstraints]（与 width/height 互斥），[desktopInsetPadding]
+/// / [desktopContentKey] / [desktopBackgroundColor] / [desktopOnClose] 则透传给
+/// [AppDesktopDialog]。[drawerIgnoreTopSafeArea] 透传给 [showAppBottomDrawer]。
 ///
 /// 收敛此前多处手写「`AppPlatform == mobile ? drawer : dialog`」dispatch
 /// （配置页的 Provider 表单 / directory_picker_dialog）。
@@ -68,8 +72,14 @@ Future<T?> showAppAdaptiveModal<T>({
   Key? drawerKey,
   double? desktopWidth,
   double? desktopHeight,
+  BoxConstraints? desktopConstraints,
+  EdgeInsets? desktopInsetPadding,
+  Key? desktopContentKey,
+  Color? desktopBackgroundColor,
+  VoidCallback? desktopOnClose,
   double mobileHeightFactor = 0.9,
   double? mobileMaxHeightFactor,
+  bool drawerIgnoreTopSafeArea = false,
   bool barrierDismissible = true,
   bool enableDrag = true,
   bool showDrawerHandle = true,
@@ -77,6 +87,11 @@ Future<T?> showAppAdaptiveModal<T>({
   AppModalGlassStrength glassStrength = kAppModalGlassStrength,
   AppAdaptiveModalVariant variant = AppAdaptiveModalVariant.auto,
 }) {
+  assert(
+    desktopConstraints == null ||
+        (desktopWidth == null && desktopHeight == null),
+    'Use either desktopConstraints or desktopWidth/desktopHeight sizing.',
+  );
   final resolved = _resolveVariant(context, variant);
   if (resolved == AppAdaptiveModalVariant.drawer) {
     return showAppBottomDrawer<T>(
@@ -84,6 +99,7 @@ Future<T?> showAppAdaptiveModal<T>({
       drawerKey: drawerKey ?? modalKey,
       heightFactor: mobileHeightFactor,
       maxHeightFactor: mobileMaxHeightFactor,
+      ignoreTopSafeArea: drawerIgnoreTopSafeArea,
       enableDrag: enableDrag,
       isDismissible: barrierDismissible,
       showHandle: showDrawerHandle,
@@ -100,8 +116,15 @@ Future<T?> showAppAdaptiveModal<T>({
     barrierDismissible: barrierDismissible,
     builder: (dialogContext) => AppDesktopDialog(
       dialogKey: dialogKey ?? modalKey,
-      width: desktopWidth ?? dialogContext.appLayoutTokens.dialogWidthMd,
-      height: desktopHeight,
+      width: desktopConstraints == null
+          ? desktopWidth ?? dialogContext.appLayoutTokens.dialogWidthMd
+          : null,
+      height: desktopConstraints == null ? desktopHeight : null,
+      constraints: desktopConstraints,
+      insetPadding: desktopInsetPadding,
+      contentKey: desktopContentKey,
+      backgroundColor: desktopBackgroundColor,
+      onClose: desktopOnClose,
       showCloseButton: showDesktopCloseButton,
       glassStrength: glassStrength,
       child: AppAdaptiveModalShellScope(

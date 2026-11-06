@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
-enum AppIconButtonSize { mini, compact, regular }
+enum AppIconButtonSize { mini, compact, inline, regular }
 
 /// AppIconButton(compact) 的设计边长：iconSizeMd(20) + xs(4) × 2 = 28。
 ///
@@ -68,6 +68,10 @@ class AppIconButton extends StatelessWidget {
       AppIconButtonSize.compact => (
         context.appComponentTokens.iconSizeMd + context.appSpacing.xs * 2,
         context.appComponentTokens.iconSizeMd,
+      ),
+      AppIconButtonSize.inline => (
+        context.appLayoutTokens.inlineActionButtonSize,
+        context.appComponentTokens.iconSizeSm,
       ),
       AppIconButtonSize.regular => (
         context.appComponentTokens.iconSizeMd + context.appSpacing.md * 2,

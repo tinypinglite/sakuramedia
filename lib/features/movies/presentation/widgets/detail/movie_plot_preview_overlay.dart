@@ -11,17 +11,13 @@ import 'package:sakuramedia/core/platform/haptic_feedback.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_clickable.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_trigger.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_thumbnail.dart';
 
 enum MoviePlotPreviewThumbnailStripLayout { adaptive, fixed }
-
-enum MoviePlotPreviewPresentation { dialog, bottomDrawer }
 
 // 移动端剧情图预览底部抽屉高度比例，可在这里统一调整。
 const double kMoviePlotPreviewDrawerHeightFactor = 0.7;
@@ -32,8 +28,7 @@ Future<void> showMoviePlotPreviewOverlay({
   required int initialIndex,
   Future<void> Function(BuildContext context, int index, Offset globalPosition)?
   onRequestImageMenu,
-  MoviePlotPreviewPresentation presentation =
-      MoviePlotPreviewPresentation.dialog,
+  AppAdaptiveModalVariant variant = AppAdaptiveModalVariant.dialog,
   MoviePlotPreviewThumbnailStripLayout thumbnailStripLayout =
       MoviePlotPreviewThumbnailStripLayout.adaptive,
 }) {
@@ -41,86 +36,40 @@ Future<void> showMoviePlotPreviewOverlay({
     return Future<void>.value();
   }
 
-  switch (presentation) {
-    case MoviePlotPreviewPresentation.dialog:
-      return showAppDialog<void>(
-        context: context,
-        builder: (dialogContext) => _MoviePlotPreviewDialog(
-          plotImages: plotImages,
-          initialIndex: initialIndex,
-          onRequestImageMenu: onRequestImageMenu,
-          thumbnailStripLayout: thumbnailStripLayout,
-          enablePinchToFullscreen: false,
-        ),
-      );
-    case MoviePlotPreviewPresentation.bottomDrawer:
-      return showAppBottomDrawer<void>(
-        context: context,
-        drawerKey: const Key('movie-plot-preview-bottom-drawer'),
-        heightFactor: kMoviePlotPreviewDrawerHeightFactor,
-        ignoreTopSafeArea: true,
-        builder: (sheetContext) => _MoviePlotPreviewContent(
-          plotImages: plotImages,
-          initialIndex: initialIndex,
-          onRequestImageMenu: onRequestImageMenu,
-          thumbnailStripLayout: thumbnailStripLayout,
-          enablePinchToFullscreen: isMobileAppPlatform(),
-        ),
-      );
-  }
-}
-
-class _MoviePlotPreviewDialog extends StatelessWidget {
-  const _MoviePlotPreviewDialog({
-    required this.plotImages,
-    required this.initialIndex,
-    required this.onRequestImageMenu,
-    required this.thumbnailStripLayout,
-    required this.enablePinchToFullscreen,
-  });
-
-  final List<MovieImageDto> plotImages;
-  final int initialIndex;
-  final Future<void> Function(
-    BuildContext context,
-    int index,
-    Offset globalPosition,
-  )?
-  onRequestImageMenu;
-  final MoviePlotPreviewThumbnailStripLayout thumbnailStripLayout;
-  final bool enablePinchToFullscreen;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.appComponentTokens;
-    final screenSize = MediaQuery.sizeOf(context);
-
-    final maxWidth = math.min(
-      screenSize.width - 64,
-      tokens.movieDetailPlotPreviewMaxWidth,
-    );
-    final maxHeight = math.min(
-      screenSize.height - 64,
-      tokens.movieDetailPlotPreviewMaxHeight,
-    );
-
-    return AppDesktopDialog(
-      dialogKey: const Key('movie-plot-preview-dialog'),
-      backgroundColor: context.appColors.surfaceCard,
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: context.appSpacing.xxl,
-        vertical: context.appSpacing.xxl,
+  final tokens = context.appComponentTokens;
+  final screenSize = MediaQuery.sizeOf(context);
+  return showAppAdaptiveModal<void>(
+    context: context,
+    variant: variant,
+    dialogKey: const Key('movie-plot-preview-dialog'),
+    drawerKey: const Key('movie-plot-preview-bottom-drawer'),
+    desktopConstraints: BoxConstraints(
+      maxWidth: math.min(
+        screenSize.width - 64,
+        tokens.movieDetailPlotPreviewMaxWidth,
       ),
-      constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: maxHeight),
-      child: _MoviePlotPreviewContent(
-        plotImages: plotImages,
-        initialIndex: initialIndex,
-        onRequestImageMenu: onRequestImageMenu,
-        thumbnailStripLayout: thumbnailStripLayout,
-        enablePinchToFullscreen: enablePinchToFullscreen,
+      maxHeight: math.min(
+        screenSize.height - 64,
+        tokens.movieDetailPlotPreviewMaxHeight,
       ),
-    );
-  }
+    ),
+    desktopInsetPadding: EdgeInsets.symmetric(
+      horizontal: context.appSpacing.xxl,
+      vertical: context.appSpacing.xxl,
+    ),
+    desktopBackgroundColor: context.appColors.surfaceCard,
+    drawerIgnoreTopSafeArea: true,
+    mobileHeightFactor: kMoviePlotPreviewDrawerHeightFactor,
+    builder: (modalContext) => _MoviePlotPreviewContent(
+      plotImages: plotImages,
+      initialIndex: initialIndex,
+      onRequestImageMenu: onRequestImageMenu,
+      thumbnailStripLayout: thumbnailStripLayout,
+      enablePinchToFullscreen:
+          AppAdaptiveModalShellScope.maybeIsDrawer(modalContext) &&
+          isMobileAppPlatform(),
+    ),
+  );
 }
 
 class _MoviePlotPreviewContent extends StatefulWidget {

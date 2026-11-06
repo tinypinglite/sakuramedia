@@ -1,11 +1,10 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/forms/app_picker_header.dart';
 import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_picker_results.dart';
 
 /// 从一个合集列表里选一个目标合集。返回选中的合集；取消返回 `null`。
 ///
@@ -85,19 +84,9 @@ class _CollectionTargetPicker<T extends Object> extends ConsumerStatefulWidget {
 
 class _CollectionTargetPickerState<T extends Object>
     extends ConsumerState<_CollectionTargetPicker<T>> {
-  final TextEditingController _searchController = TextEditingController();
-  String _keyword = '';
-
-  bool get _isBottomDrawer => AppAdaptiveModalShellScope.maybeIsDrawer(context);
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
   Future<void> _createAndPick() async {
-    final created = await widget.onCreate(context, _isBottomDrawer);
+    final isDrawer = AppAdaptiveModalShellScope.maybeIsDrawer(context);
+    final created = await widget.onCreate(context, isDrawer);
     if (created != null && mounted) {
       Navigator.of(context).pop(created);
     }
@@ -105,98 +94,34 @@ class _CollectionTargetPickerState<T extends Object>
 
   @override
   Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    final collectionsAsync = widget.watchCollections(ref);
-    return Column(
-      mainAxisSize: _isBottomDrawer ? MainAxisSize.max : MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AppPickerHeader(
-          title: widget.title ?? l10n.widgetCollectionPickerTitle,
-          searchController: _searchController,
-          searchFieldKey: const Key('collection-target-picker-search-field'),
-          searchHintText: l10n.widgetCollectionPickerSearchHint,
-          onSearchChanged: (value) =>
-              setState(() => _keyword = value.trim().toLowerCase()),
-          clearSearchKey: const Key('collection-target-picker-search-clear'),
-          onClose: () => Navigator.of(context).pop(),
-          closeKey: const Key('collection-target-picker-close-button'),
-        ),
-        SizedBox(height: spacing.lg),
-        AppPickerListFrame(
-          isDrawer: _isBottomDrawer,
-          child: _buildBody(context, collectionsAsync),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBody(
-    BuildContext context,
-    AsyncValue<List<T>> collectionsAsync,
-  ) {
-    final l10n = AppLocalizations.of(context);
-    if (collectionsAsync.isLoading && !collectionsAsync.hasValue) {
-      return const AppPickerIosState(loading: true);
-    }
-    if (collectionsAsync.hasError && !collectionsAsync.hasValue) {
-      return _buildStateWithCreate(
-        context,
-        AppPickerIosState(
-          message: apiErrorMessage(
-            collectionsAsync.error!,
-            fallback: l10n.widgetCollectionPickerLoadFailed,
-            l10n: l10n,
-          ),
-        ),
-      );
-    }
-    final allCollections = collectionsAsync.value ?? <T>[];
-    final excluded = widget.excludedCollectionId;
-    var collections = excluded == null
-        ? allCollections
-        : allCollections
-              .where((collection) => widget.idOf(collection) != excluded)
-              .toList(growable: false);
-    if (_keyword.isNotEmpty) {
-      collections = collections
-          .where(
-            (collection) =>
-                widget.nameOf(collection).toLowerCase().contains(_keyword),
-          )
-          .toList(growable: false);
-    }
-    if (collections.isEmpty) {
-      return _buildStateWithCreate(
-        context,
-        AppPickerIosState(
-          message: allCollections.isEmpty
-              ? l10n.widgetCollectionPickerEmpty
-              : l10n.widgetCollectionPickerNoMatch,
-        ),
-      );
-    }
-    return SingleChildScrollView(
-      child: AppPickerIosSection(
-        children: [
-          for (final collection in collections)
-            AppPickerIosRow(
-              optionKey: Key(
-                '${widget.optionKeyPrefix}${widget.idOf(collection)}',
-              ),
-              title: widget.nameOf(collection),
-              trailingText: widget.countTextOf(collection),
-              trailingIcon: Icon(
-                Icons.chevron_right_rounded,
-                size: 18,
-                color: context.appTextPalette.muted,
-              ),
-              onTap: () => Navigator.of(context).pop(collection),
-            ),
-          _buildCreateRow(context, l10n),
-        ],
+    return CollectionPickerResults<T>(
+      collections: widget.watchCollections(ref),
+      chrome: (
+        title: widget.title ?? l10n.widgetCollectionPickerTitle,
+        keyPrefix: 'collection-target-picker',
+        emptyMessage: l10n.widgetCollectionPickerEmpty,
       ),
+      nameOf: widget.nameOf,
+      where: (collection) =>
+          widget.idOf(collection) != widget.excludedCollectionId,
+      rowsBuilder: (context, visible) => [
+        for (final collection in visible)
+          AppPickerIosRow(
+            optionKey: Key(
+              '${widget.optionKeyPrefix}${widget.idOf(collection)}',
+            ),
+            title: widget.nameOf(collection),
+            trailingText: widget.countTextOf(collection),
+            trailingIcon: Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: context.appTextPalette.muted,
+            ),
+            onTap: () => Navigator.of(context).pop(collection),
+          ),
+        _buildCreateRow(context, l10n),
+      ],
     );
   }
 
@@ -209,20 +134,6 @@ class _CollectionTargetPickerState<T extends Object>
       titleColor: accent,
       onTap: _createAndPick,
       optionKey: const Key('collection-target-picker-create-button'),
-    );
-  }
-
-  Widget _buildStateWithCreate(BuildContext context, Widget state) {
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          state,
-          AppPickerIosSection(
-            children: [_buildCreateRow(context, AppLocalizations.of(context))],
-          ),
-        ],
-      ),
     );
   }
 }

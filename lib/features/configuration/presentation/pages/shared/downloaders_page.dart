@@ -18,7 +18,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_inline_action_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
@@ -580,16 +580,22 @@ class _DesktopDownloaderCard extends StatelessWidget {
                 ),
               ),
               SizedBox(width: spacing.sm),
-              AppInlineActionButton(
+              AppIconButton(
                 key: Key('download-client-edit-${client.id}'),
-                icon: Icons.edit_outlined,
-                onTap: onEdit,
+                icon: const Icon(Icons.edit_outlined),
+                tooltip: l10n.commonEdit,
+                size: AppIconButtonSize.inline,
+                iconColor: context.appTextPalette.secondary,
+                onPressed: onEdit,
               ),
               SizedBox(width: spacing.xs),
-              AppInlineActionButton(
+              AppIconButton(
                 key: Key('download-client-delete-${client.id}'),
-                icon: Icons.delete_outline,
-                onTap: onDelete,
+                icon: const Icon(Icons.delete_outline),
+                tooltip: l10n.commonDelete,
+                size: AppIconButtonSize.inline,
+                iconColor: context.appTextPalette.secondary,
+                onPressed: onDelete,
               ),
             ],
           ),
@@ -665,9 +671,10 @@ class _MobileDownloaderCard extends StatelessWidget {
         ),
       ],
       onTap: onEdit,
-      trailingAction: IconButton(
+      trailingAction: AppIconButton(
         key: Key('mobile-downloader-delete-${client.id}'),
         tooltip: l10n.commonDelete,
+        size: AppIconButtonSize.mini,
         icon: const Icon(Icons.delete_outline),
         onPressed: onDelete,
       ),

@@ -27,8 +27,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_mobile_confirm_actions.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
@@ -141,7 +140,9 @@ class MovieDetailOverlayPresenter {
       message: l10n.moviePageBlacklistWarning,
       confirmLabel: l10n.moviePageBlacklistConfirm,
       danger: true,
-      variant: mobile ? AppConfirmVariant.drawer : AppConfirmVariant.dialog,
+      variant: mobile
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
     );
   }
 
@@ -170,7 +171,9 @@ class MovieDetailOverlayPresenter {
       dialogKey: const Key('movie-detail-refresh-metadata-dialog'),
       confirmKey: const Key('movie-detail-refresh-metadata-confirm'),
       cancelKey: const Key('movie-detail-refresh-metadata-cancel'),
-      variant: mobile ? AppConfirmVariant.drawer : AppConfirmVariant.dialog,
+      variant: mobile
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
     );
   }
 
@@ -218,9 +221,9 @@ class MovieDetailOverlayPresenter {
   }) {
     return showMediaPreviewOverlay(
       context: context,
-      presentation: mobile
-          ? MediaPreviewPresentation.bottomDrawer
-          : MediaPreviewPresentation.dialog,
+      variant: mobile
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
       drawerKey: mobile
           ? const Key('movie-media-point-preview-bottom-sheet')
           : null,
@@ -229,9 +232,6 @@ class MovieDetailOverlayPresenter {
         availableActions: availableActions,
         onPointRemoved: onPointRemoved,
         closeOnPointRemoved: true,
-        presentation: mobile
-            ? MediaPreviewPresentation.bottomDrawer
-            : MediaPreviewPresentation.dialog,
       ),
     );
   }
@@ -276,9 +276,9 @@ class MovieDetailOverlayPresenter {
       context: context,
       plotImages: movie.plotImages,
       initialIndex: initialIndex,
-      presentation: mobile
-          ? MoviePlotPreviewPresentation.bottomDrawer
-          : MoviePlotPreviewPresentation.dialog,
+      variant: mobile
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
       onRequestImageMenu: onRequestImageMenu,
     );
   }
@@ -323,26 +323,18 @@ class MovieDetailOverlayPresenter {
     if (candidates.length == 1) {
       return Future<MovieMergePlaybackCandidateDto?>.value(candidates.single);
     }
-    if (mobile) {
-      return showAppBottomDrawer<MovieMergePlaybackCandidateDto>(
-        context: context,
-        drawerKey: const Key('movie-merge-playback-library-drawer'),
-        maxHeightFactor: 0.5,
-        builder: (drawerContext) => MovieMergePlaybackCandidateList(
-          candidates: candidates,
-          onSelected: (candidate) => Navigator.of(drawerContext).pop(candidate),
-        ),
-      );
-    }
-    return showAppDialog<MovieMergePlaybackCandidateDto>(
+    return showAppAdaptiveModal<MovieMergePlaybackCandidateDto>(
       context: context,
-      builder: (dialogContext) => AppDesktopDialog(
-        dialogKey: const Key('movie-merge-playback-library-dialog'),
-        width: dialogContext.appLayoutTokens.dialogWidthSm,
-        child: MovieMergePlaybackCandidateList(
-          candidates: candidates,
-          onSelected: (candidate) => Navigator.of(dialogContext).pop(candidate),
-        ),
+      variant: mobile
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
+      dialogKey: const Key('movie-merge-playback-library-dialog'),
+      drawerKey: const Key('movie-merge-playback-library-drawer'),
+      desktopWidth: context.appLayoutTokens.dialogWidthSm,
+      mobileMaxHeightFactor: 0.5,
+      builder: (modalContext) => MovieMergePlaybackCandidateList(
+        candidates: candidates,
+        onSelected: (candidate) => Navigator.of(modalContext).pop(candidate),
       ),
     );
   }

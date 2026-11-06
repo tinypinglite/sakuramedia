@@ -169,13 +169,14 @@ class _TagBrowseSurfaceState extends ConsumerState<TagBrowseSurface> {
                     ),
                     suffix: _query.isEmpty
                         ? null
-                        : IconButton(
+                        : AppIconButton(
                             key: const Key('tags-browse-search-clear'),
                             icon: Icon(
                               Icons.close_rounded,
                               size: context.appComponentTokens.iconSizeSm,
                             ),
-                            splashRadius: 16,
+                            tooltip: l10n.baseClearSearch,
+                            size: AppIconButtonSize.mini,
                             onPressed: _clearQuery,
                           ),
                     contentPadding: EdgeInsets.symmetric(

@@ -14,21 +14,15 @@ import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/data/multi_version_movie_dto.dart';
 import 'package:sakuramedia/features/media/presentation/media_placeholders.dart';
 import 'package:sakuramedia/features/media/presentation/providers/multi_version_movies_provider.dart';
+import 'package:sakuramedia/features/media/presentation/widgets/shared/media_group_batch_selection.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_file_group_card.dart';
-import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
-import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.dart';
-import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
-import 'package:sakuramedia/features/shared/presentation/widgets/paged_async_section.dart';
+import 'package:sakuramedia/features/media/presentation/widgets/shared/media_group_paged_slivers.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_filter_chip.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
@@ -69,67 +63,18 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
       ),
     );
     final spacing = context.appSpacing;
-    final selectionMode = useState(false);
-    final selectedIds = useState(<int>{});
-    final deleting = useState(false);
     final updatingMovieNumber = useState<String?>(null);
     final groups = asyncState.value?.items ?? const <MultiVersionMovieDto>[];
-    final selected = [
-      for (final group in groups)
-        for (final item in group.mediaItems)
-          if (selectedIds.value.contains(item.id)) item,
-    ];
-    void exitSelection() {
-      selectionMode.value = false;
-      selectedIds.value = {};
-    }
-
-    Future<void> deleteSelected() async {
-      if (deleting.value || selected.isEmpty) return;
-      final confirmed = await showAppConfirmDialog(
-        context,
-        title: l10n.mediaListVersionsBatchDeleteTitle,
-        message: l10n.mediaListVersionsBatchDeleteMessage(selected.length),
-        confirmLabel: l10n.commonDelete,
-        danger: true,
-        dialogKey: Key('$keyPrefix-versions-batch-confirm-dialog'),
-        confirmKey: Key('$keyPrefix-versions-batch-confirm'),
-      );
-      if (!confirmed || !context.mounted) return;
-      final currentGroups = ref.read(provider).value?.items ?? [];
-      final ids = selected.map((item) => item.id).toSet();
-      final currentIds = currentGroups
-          .expand((group) => group.mediaItems)
-          .map((item) => item.id)
-          .toSet();
-      if (!currentIds.containsAll(ids) ||
-          currentGroups.any(
-            (group) => group.mediaItems.every((item) => ids.contains(item.id)),
-          )) {
-        exitSelection();
-        showToast(l10n.mediaListVersionsChanged, tone: AppToastTone.success);
-        return;
-      }
-      deleting.value = true;
-      final submitted = await submitBatchOperation(
-        context,
-        ref,
-        operation: BatchOperationType.mediaDelete,
-        ids: selected.map((item) => item.id).toList(growable: false),
-      );
-      if (!context.mounted) return;
-      deleting.value = false;
-      if (submitted) exitSelection();
-    }
-
-    final deleteButton = AppButton(
-      key: Key('$keyPrefix-versions-batch-delete'),
-      label: l10n.mediaListBatchDeleteSelected,
-      icon: const Icon(Icons.delete_outline_rounded),
-      variant: AppButtonVariant.danger,
-      size: mobile ? AppButtonSize.medium : AppButtonSize.small,
-      isLoading: deleting.value,
-      onPressed: selected.isEmpty || deleting.value ? null : deleteSelected,
+    final selection = useMediaGroupBatchSelection(
+      context: context,
+      ref: ref,
+      groups: groups,
+      itemsOf: (group) => group.mediaItems,
+      currentGroups: () => ref.read(provider).value?.items ?? const [],
+      keyBase: '$keyPrefix-versions',
+      confirmTitle: l10n.mediaListVersionsBatchDeleteTitle,
+      confirmMessage: l10n.mediaListVersionsBatchDeleteMessage,
+      changedMessage: l10n.mediaListVersionsChanged,
     );
 
     Future<void> refresh() async {
@@ -243,7 +188,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
                     label: filter.label,
                     selected: filter.state.value,
                     onPressed: () {
-                      exitSelection();
+                      selection.exitSelection();
                       filter.state.value = !filter.state.value;
                       if (scrollController.hasClients) {
                         scrollController.jumpTo(0);
@@ -287,7 +232,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
         mobile: mobile,
         onOpen: () => onOpenMovieDetail(context, group.movieNumber),
         onDelete: (item) => unawaited(deleteVersion(group, item)),
-        selectedIds: selectionMode.value ? selectedIds.value : null,
+        selectedIds: selection.selectionMode ? selection.selectedIds : null,
         statusLabel: group.isProcessed
             ? l10n.mediaListVersionsProcessedBadge
             : null,
@@ -303,15 +248,11 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
           ),
           size: AppTextButtonSize.xSmall,
           isLoading: updating,
-          onPressed: updatingMovieNumber.value != null || deleting.value
+          onPressed: updatingMovieNumber.value != null || selection.deleting
               ? null
               : () => unawaited(setProcessed(group, !group.isProcessed)),
         ),
-        onToggle: (item) {
-          final next = {...selectedIds.value};
-          if (!next.remove(item.id)) next.add(item.id);
-          selectedIds.value = next;
-        },
+        onToggle: selection.toggle,
       );
     }
 
@@ -324,41 +265,6 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
             if (includeProcessed.value) l10n.mediaListVersionsIncludeProcessed,
           ].join(' / ');
     final totalLabel = l10n.mediaListTotalMovies(asyncState.value?.total ?? 0);
-
-    final selectionHeader = mobile
-        ? AppMobileSelectionHeader(
-            selectionLabel: l10n.mediaListSelectedCopies(selected.length),
-            countKey: Key('$keyPrefix-versions-selected-count'),
-            selectAllTooltip: l10n.mediaListClearSelection,
-            selectAllKey: Key('$keyPrefix-versions-clear-selection'),
-            onToggleAll: deleting.value || selected.isEmpty
-                ? null
-                : () => selectedIds.value = {},
-            exitKey: Key('$keyPrefix-versions-exit-selection'),
-            onExitSelection: deleting.value ? null : exitSelection,
-          )
-        : AppGlassSelectionHeader(
-            selectionLabel: l10n.mediaListSelectedCopies(selected.length),
-            countKey: Key('$keyPrefix-versions-selected-count'),
-            selectAllLabel: l10n.mediaListClearSelection,
-            selectAllKey: Key('$keyPrefix-versions-clear-selection'),
-            onToggleAll: deleting.value || selected.isEmpty
-                ? null
-                : () => selectedIds.value = {},
-            exitKey: Key('$keyPrefix-versions-exit-selection'),
-            onExitSelection: deleting.value ? null : exitSelection,
-            actions: <AppGlassSelectionAction>[
-              AppGlassSelectionAction(
-                key: Key('$keyPrefix-versions-batch-delete'),
-                label: l10n.mediaListBatchDeleteSelected,
-                icon: Icons.delete_outline_rounded,
-                foregroundColor: context.appTextPalette.error,
-                onTap: selected.isEmpty || deleting.value
-                    ? null
-                    : () => unawaited(deleteSelected()),
-              ),
-            ],
-          );
 
     final filterHeader = mobile
         ? AppMobileListHeader(
@@ -388,9 +294,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
                 key: Key('$keyPrefix-versions-select'),
                 tooltip: l10n.baseSelect,
                 icon: Icons.check_circle_outline,
-                onPressed: groups.isEmpty
-                    ? null
-                    : () => selectionMode.value = true,
+                onPressed: groups.isEmpty ? null : selection.enterSelection,
               ),
               AppGlassIconButton(
                 key: Key('$keyPrefix-versions-refresh'),
@@ -422,9 +326,7 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
                   icon: Icons.check_circle_outline,
                   label: l10n.baseSelect,
                   enabled: groups.isNotEmpty,
-                  onTap: groups.isEmpty
-                      ? () {}
-                      : () => selectionMode.value = true,
+                  onTap: groups.isEmpty ? () {} : selection.enterSelection,
                 ),
                 AppGlassHeaderButton(
                   key: Key('$keyPrefix-versions-refresh'),
@@ -440,79 +342,39 @@ class MultiVersionMoviesSection extends HookConsumerWidget {
           );
 
     final content = AppFixedHeaderLayout(
-      header: selectionMode.value ? selectionHeader : filterHeader,
+      header: selection.selectionMode
+          ? selection.buildHeader(context, mobile: mobile)
+          : filterHeader,
       headerBottomSpacing: context.appSpacing.lg,
       child: CustomScrollView(
         key: Key('$keyPrefix-versions-scroll'),
         controller: scrollController,
-        slivers: [
-          if (selectionMode.value)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.only(bottom: spacing.md),
-                child: Text(
-                  l10n.mediaListVersionsSelectionHint,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s12,
-                    weight: AppTextWeight.regular,
-                    tone: AppTextTone.secondary,
-                  ),
-                ),
-              ),
-            ),
-          SliverPagedAsyncSection<
-            PagedListState<MultiVersionMovieDto>,
-            MultiVersionMovieDto
-          >(
-            asyncState: asyncState,
-            pagedOf: (state) => state,
-            itemSpacing: spacing.lg,
-            initialErrorMessage: l10n.errorMultiVersionMovieLoadFailed,
-            emptyMessage: l10n.mediaListVersionsEmpty,
-            // loading 用占位分组渲染真实组卡，由 [AppSkeletonizer] 灰化。
-            skeletonBuilder: (context) {
-              final placeholders = multiVersionMoviePlaceholders();
-              return AppSkeletonizer(
-                enabled: true,
-                child: Column(
-                  children: [
-                    for (
-                      var index = 0;
-                      index < placeholders.length;
-                      index++
-                    ) ...[
-                      if (index > 0) SizedBox(height: spacing.lg),
-                      buildGroup(context, placeholders[index]),
-                    ],
-                  ],
-                ),
-              );
-            },
-            initialRetryKey: Key('$keyPrefix-versions-retry'),
-            onReload: () => unawaited(ref.read(provider.notifier).reload()),
-            onLoadMore: () => unawaited(ref.read(provider.notifier).loadMore()),
-            itemBuilder: (context, group, index) => buildGroup(context, group),
-            // 页脚由 PagedLoadMoreFooterSliver 独立渲染。
-            showLoadMoreFooter: false,
+        slivers: mediaGroupPagedSlivers<MultiVersionMovieDto>(
+          context: context,
+          description: selection.selectionMode
+              ? l10n.mediaListVersionsSelectionHint
+              : null,
+          asyncState: asyncState,
+          skeletonItems: multiVersionMoviePlaceholders(),
+          itemBuilder: (context, group, index) => buildGroup(context, group),
+          initialErrorMessage: l10n.errorMultiVersionMovieLoadFailed,
+          emptyMessage: l10n.mediaListVersionsEmpty,
+          initialRetryKey: Key('$keyPrefix-versions-retry'),
+          onReload: () => unawaited(ref.read(provider.notifier).reload()),
+          onLoadMore: () => unawaited(ref.read(provider.notifier).loadMore()),
+          watchFooter: (ref) => ref.watch(
+            provider.select((s) => pagedLoadMoreFooterSnapshot(s.value)),
           ),
-          PagedLoadMoreFooterSliver(
-            watchFooter: (ref) => ref.watch(
-              provider.select((s) => pagedLoadMoreFooterSnapshot(s.value)),
-            ),
-            onLoadMore: (ref) =>
-                unawaited(ref.read(provider.notifier).loadMore()),
-          ),
-          SliverToBoxAdapter(child: SizedBox(height: spacing.xxl)),
-          ...bottomSafeAreaSliver(context),
-        ],
+          footerLoadMore: (ref) =>
+              unawaited(ref.read(provider.notifier).loadMore()),
+        ),
       ),
     );
     return Column(
       children: [
         Expanded(child: content),
-        if (mobile && selectionMode.value)
-          AppSelectionBottomBar(actions: [deleteButton]),
+        if (mobile && selection.selectionMode)
+          selection.buildBottomBar(context),
       ],
     );
   }

@@ -3,6 +3,7 @@ import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/features/clips/presentation/clip_placeholders.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_grid_card.dart';
 
@@ -169,10 +170,10 @@ class _MovieClipFeedback extends StatelessWidget {
           ),
           if (actionLabel != null && onAction != null) ...[
             SizedBox(width: context.appSpacing.sm),
-            TextButton(
+            AppTextButton(
               key: const Key('movie-clip-strip-retry'),
+              label: actionLabel!,
               onPressed: onAction,
-              child: Text(actionLabel!),
             ),
           ],
         ],

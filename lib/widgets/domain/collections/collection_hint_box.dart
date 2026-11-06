@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 
 /// 合集横滑区的轻量提示条：用于空态与加载失败的文案占位。
 ///
@@ -11,14 +12,9 @@ class CollectionHintBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
+    return AppContentCard(
       padding: EdgeInsets.all(context.appSpacing.md),
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
-        borderRadius: context.appRadius.mdBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
-      ),
+      borderRadius: context.appRadius.mdBorder,
       child: Text(
         message,
         style: resolveAppTextStyle(

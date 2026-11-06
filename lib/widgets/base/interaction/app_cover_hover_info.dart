@@ -271,6 +271,37 @@ class AppCoverHoverActionBar extends StatelessWidget {
   }
 }
 
+/// 封面卡悬停面板：信息行 + 可选补充资料 + 一整行动作按钮。
+///
+/// 统一各封面卡重复的 `Column(InfoRow + gap + ActionBar)` 结构；动作内容仍由
+/// 各卡片按可用回调构造。
+class AppCoverHoverPanel extends StatelessWidget {
+  const AppCoverHoverPanel({
+    super.key,
+    required this.info,
+    this.details,
+    this.actions = const [],
+  });
+
+  final Widget info;
+  final Widget? details;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      spacing: context.appSpacing.sm,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        info,
+        ?details,
+        if (actions.isNotEmpty) AppCoverHoverActionBar(actions: actions),
+      ],
+    );
+  }
+}
+
 /// 悬停动作按钮直径：与 [appCompactIconButtonSize] 同档（28）。
 ///
 /// `buttonHeightXs` 在 mobile 那套是 32，与桌面顶栏动作槽对不齐，所以这里

@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 
 /// 移动端配置流程/引导卡:标题 + 描述 + 可选 tip + 可选 [AppBadge] 状态 +
 /// 底部 CTA 按钮。用作「先做 X → 再做 Y → 最后 Z」的多步流程卡,
@@ -32,38 +33,20 @@ class MobileConfigOnboardingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    return Container(
+    return AppContentCard(
+      title: title,
+      headerTrailing: badgeLabel == null
+          ? null
+          : AppBadge(
+              label: badgeLabel!,
+              tone: badgeTone ?? AppBadgeTone.warning,
+              size: AppBadgeSize.compact,
+            ),
+      headerBottomSpacing: tip != null ? spacing.sm : spacing.xs,
       padding: EdgeInsets.all(spacing.md),
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  title,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s14,
-                    weight: AppTextWeight.semibold,
-                    tone: AppTextTone.primary,
-                  ),
-                ),
-              ),
-              if (badgeLabel != null)
-                AppBadge(
-                  label: badgeLabel!,
-                  tone: badgeTone ?? AppBadgeTone.warning,
-                  size: AppBadgeSize.compact,
-                ),
-            ],
-          ),
-          SizedBox(height: tip != null ? spacing.sm : spacing.xs),
           Text(
             description,
             style: resolveAppTextStyle(

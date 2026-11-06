@@ -12,9 +12,8 @@
 
 这些组件只表达 UI 状态或触发时机；请求、页码、筛选和重试由 feature Provider 提供。自动加载失败后不要自动重试，恢复分页统一走页脚或选择器里的显式重试操作。
 
-## 统一文字和网格
+## 统一网格
 
-- `AppText`：`lib/widgets/base/typography/app_text.dart`，按应用 token 表达文字层级。
 - `AppAdaptiveCardGrid<T>` / `AppAdaptiveCardSliver<T>`：自适应列数、固定比例或 masonry 布局，并可接入骨架、错误、空态和内容 builder。
 - `AppAdaptiveCardWrapSliver<T>`：`app_adaptive_card_wrap.dart`，自然高度卡片网格的 Sliver 版——按 `orientation` 取统一列数切列宽，卡片保持自身内容高度不被固定比例拉伸（合集列表用）；按行懒构建，直接放进 `CustomScrollView.slivers`。需要行内等高时传 `stretchRows: true`。
 - `StaggeredTilePlacement` / `StaggeredLayoutResult`：`staggered_layout.dart`，只在需要自定义交错布局时使用。

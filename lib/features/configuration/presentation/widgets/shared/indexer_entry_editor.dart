@@ -7,12 +7,11 @@ import 'package:sakuramedia/features/configuration/presentation/forms/indexer_en
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/indexer_settings_actions.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/forms/form_submit_state.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_form_dialog.dart';
 
 Future<IndexerEntryDto?> showIndexerEntryEditor(
   BuildContext context, {
@@ -21,23 +20,24 @@ Future<IndexerEntryDto?> showIndexerEntryEditor(
   required List<DownloadClientDto> downloadClients,
   IndexerEntryDto? initialEntry,
 }) {
-  final editor = _IndexerEntryEditor(
-    mobile: mobile,
-    existingEntries: existingEntries,
-    downloadClients: downloadClients,
-    initialEntry: initialEntry,
-  );
-  if (mobile) {
-    return showAppBottomDrawer<IndexerEntryDto>(
-      context: context,
-      drawerKey: const Key('mobile-indexer-editor-drawer'),
-      heightFactor: 0.8,
-      builder: (_) => editor,
-    );
-  }
-  return showAppDialog<IndexerEntryDto>(
+  return showAppAdaptiveModal<IndexerEntryDto>(
     context: context,
-    builder: (_) => editor,
+    variant: mobile
+        ? AppAdaptiveModalVariant.drawer
+        : AppAdaptiveModalVariant.dialog,
+    drawerKey: const Key('mobile-indexer-editor-drawer'),
+    desktopWidth: context.appLayoutTokens.dialogWidthMd,
+    desktopInsetPadding: EdgeInsets.symmetric(
+      horizontal: context.appLayoutTokens.dialogInsetPadding,
+      vertical: context.appLayoutTokens.dialogInsetPadding,
+    ),
+    mobileHeightFactor: 0.8,
+    builder: (_) => _IndexerEntryEditor(
+      mobile: mobile,
+      existingEntries: existingEntries,
+      downloadClients: downloadClients,
+      initialEntry: initialEntry,
+    ),
   );
 }
 
@@ -59,21 +59,16 @@ class _IndexerEntryEditor extends ConsumerStatefulWidget {
       _IndexerEntryEditorState();
 }
 
-class _IndexerEntryEditorState extends ConsumerState<_IndexerEntryEditor> {
-  final _formKey = GlobalKey<FormState>();
+class _IndexerEntryEditorState extends ConsumerState<_IndexerEntryEditor>
+    with FormSubmitState<_IndexerEntryEditor> {
   late final IndexerEntryFormController _controller;
   late final FocusNode _nameFocusNode;
   late final FocusNode _urlFocusNode;
-  bool _hasAttemptedSubmit = false;
-  bool _isSubmitting = false;
 
   bool get _isEditing => widget.initialEntry != null;
 
-  AutovalidateMode? get _autovalidateMode => widget.mobile
-      ? (_hasAttemptedSubmit
-            ? AutovalidateMode.onUserInteraction
-            : AutovalidateMode.disabled)
-      : null;
+  @override
+  bool get usesMobileFormValidation => widget.mobile;
 
   @override
   void initState() {
@@ -91,21 +86,12 @@ class _IndexerEntryEditorState extends ConsumerState<_IndexerEntryEditor> {
     super.dispose();
   }
 
-  void _markSubmitAttempted() {
-    if (!widget.mobile) return;
-    FocusScope.of(context).unfocus();
-    if (!_hasAttemptedSubmit) {
-      setState(() => _hasAttemptedSubmit = true);
-    }
-  }
-
   IndexerEntryDto _buildEntry() {
     return _controller.toDto(widget.downloadClients);
   }
 
   void _submitDesktop() {
-    _markSubmitAttempted();
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (!validateForm()) return;
     final entry = _buildEntry();
     if (entry.downloadClients.isEmpty) {
       showToast(
@@ -118,9 +104,8 @@ class _IndexerEntryEditorState extends ConsumerState<_IndexerEntryEditor> {
   }
 
   Future<void> _submitMobile() async {
-    if (_isSubmitting) return;
-    _markSubmitAttempted();
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (isSubmitting) return;
+    if (!validateForm()) return;
     final l10n = AppLocalizations.of(context);
     final entry = _buildEntry();
     if (entry.downloadClients.isEmpty) {
@@ -136,7 +121,7 @@ class _IndexerEntryEditorState extends ConsumerState<_IndexerEntryEditor> {
     } else {
       nextEntries.add(entry);
     }
-    setState(() => _isSubmitting = true);
+    setSubmitting(true);
     final saved = await saveIndexerDraft(
       ref: ref,
       context: context,
@@ -148,7 +133,7 @@ class _IndexerEntryEditorState extends ConsumerState<_IndexerEntryEditor> {
     );
     if (!mounted) return;
     if (!saved) {
-      setState(() => _isSubmitting = false);
+      setSubmitting(false);
       return;
     }
     Navigator.of(context).pop(entry);
@@ -162,69 +147,24 @@ class _IndexerEntryEditorState extends ConsumerState<_IndexerEntryEditor> {
   Widget _buildMobile(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return AppBottomFormSheet(
-      formKey: _formKey,
+      formKey: formKey,
       title: _isEditing ? l10n.indexerEditTitle : l10n.indexerAdd,
       subtitle: l10n.indexerFormSubtitle,
       submitKey: const Key('mobile-indexer-submit-button'),
-      isSubmitting: _isSubmitting,
+      isSubmitting: isSubmitting,
       onSubmit: _submitMobile,
       body: _buildFields(context),
     );
   }
 
   Widget _buildDesktop(BuildContext context) {
-    final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    return AppDesktopDialog(
-      insetPadding: EdgeInsets.symmetric(
-        horizontal: context.appLayoutTokens.dialogInsetPadding,
-        vertical: context.appLayoutTokens.dialogInsetPadding,
-      ),
-      width: context.appLayoutTokens.dialogWidthMd,
-      child: Form(
-        key: _formKey,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _isEditing ? l10n.indexerEditTitle : l10n.indexerAdd,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s18,
-                weight: AppTextWeight.semibold,
-                tone: AppTextTone.primary,
-              ),
-            ),
-            SizedBox(height: spacing.xl),
-            Flexible(
-              child: SingleChildScrollView(child: _buildFields(context)),
-            ),
-            SizedBox(height: spacing.xl),
-            Row(
-              children: [
-                Expanded(
-                  child: AppButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    label: l10n.commonCancel,
-                  ),
-                ),
-                SizedBox(width: spacing.md),
-                Expanded(
-                  child: AppButton(
-                    key: const Key('indexer-entry-submit-button'),
-                    onPressed: widget.downloadClients.isEmpty
-                        ? null
-                        : _submitDesktop,
-                    label: l10n.commonSave,
-                    variant: AppButtonVariant.primary,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    return AppDesktopFormDialog(
+      formKey: formKey,
+      title: _isEditing ? l10n.indexerEditTitle : l10n.indexerAdd,
+      body: _buildFields(context),
+      submitKey: const Key('indexer-entry-submit-button'),
+      onSubmit: widget.downloadClients.isEmpty ? null : _submitDesktop,
     );
   }
 
@@ -238,8 +178,8 @@ class _IndexerEntryEditorState extends ConsumerState<_IndexerEntryEditor> {
       selectedDownloadClientIds: _controller.selectedDownloadClientIds,
       existingEntries: widget.existingEntries,
       editingEntryId: widget.initialEntry?.id,
-      enabled: !_isSubmitting,
-      autovalidateMode: _autovalidateMode,
+      enabled: !isSubmitting,
+      autovalidateMode: autovalidateMode,
       nameFocusNode: widget.mobile ? _nameFocusNode : null,
       urlFocusNode: widget.mobile ? _urlFocusNode : null,
       onKindChanged: (value) => setState(() => _controller.kind = value),

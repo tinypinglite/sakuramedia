@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_subscri
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_card.dart';
 
@@ -195,10 +196,10 @@ class _MovieSimilarMovieFeedback extends StatelessWidget {
           ),
           if (actionLabel != null && onAction != null) ...[
             SizedBox(width: context.appSpacing.sm),
-            TextButton(
+            AppTextButton(
               key: const Key('movie-similar-strip-retry'),
+              label: actionLabel!,
               onPressed: onAction,
-              child: Text(actionLabel!),
             ),
           ],
         ],

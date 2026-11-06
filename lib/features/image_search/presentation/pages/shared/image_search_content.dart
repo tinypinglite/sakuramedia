@@ -26,11 +26,13 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
 import 'package:sakuramedia/features/image_search/presentation/widgets/actor_selector_dialog.dart';
 import 'package:sakuramedia/features/image_search/presentation/widgets/image_search_filter_panel.dart';
@@ -687,18 +689,11 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
                   ),
                 ),
                 SizedBox(width: spacing.sm),
-                TextButton(
+                AppTextButton(
+                  label: l10n.imageSearchContinueLoading,
                   onPressed: _loadMoreManually,
-                  style: TextButton.styleFrom(
-                    foregroundColor: Theme.of(context).colorScheme.primary,
-                    padding: EdgeInsets.symmetric(
-                      horizontal: spacing.sm,
-                      vertical: spacing.xs,
-                    ),
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  child: Text(l10n.imageSearchContinueLoading),
+                  size: AppTextButtonSize.xSmall,
+                  emphasis: AppTextButtonEmphasis.accent,
                 ),
               ],
             ),
@@ -737,18 +732,11 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
                 ),
               ),
               SizedBox(width: spacing.sm),
-              TextButton(
+              AppTextButton(
+                label: l10n.commonRetry,
                 onPressed: _notifier.loadMore,
-                style: TextButton.styleFrom(
-                  foregroundColor: Theme.of(context).colorScheme.primary,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: spacing.sm,
-                    vertical: spacing.xs,
-                  ),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(l10n.commonRetry),
+                size: AppTextButtonSize.xSmall,
+                emphasis: AppTextButtonEmphasis.accent,
               ),
             ],
           ),
@@ -956,21 +944,20 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
 
   Future<void> _openResultPreviewDialog(ImageSearchResultItemDto item) async {
     int? selectedActorId;
-    final presentation =
+    final variant =
         widget.resultPreviewPresentation ==
             ImageSearchResultPreviewPresentation.bottomDrawer
-        ? MediaPreviewPresentation.bottomDrawer
-        : MediaPreviewPresentation.dialog;
+        ? AppAdaptiveModalVariant.drawer
+        : AppAdaptiveModalVariant.dialog;
     final action = await showMediaPreviewOverlay(
       context: context,
-      presentation: presentation,
-      drawerKey: presentation == MediaPreviewPresentation.bottomDrawer
+      variant: variant,
+      drawerKey: variant == AppAdaptiveModalVariant.drawer
           ? const Key('image-search-result-preview-bottom-sheet')
           : null,
       builder: (_) {
         return ImageSearchResultPreviewDialog(
           item: item,
-          presentation: presentation,
           onActorSelected: (actorId) => selectedActorId = actorId,
         );
       },

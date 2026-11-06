@@ -108,63 +108,49 @@ class ClipGridCard extends StatelessWidget {
   /// （播放 / 影片 / 加入合集 / 重命名 / 删除，按回调是否为空显隐）。
   Widget _buildHoverInfo(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final spacing = context.appSpacing;
-    final play = onPlay;
-    final openMovie = onOpenMovie;
-    final addToCollection = onAddToCollection;
-    final rename = onRename;
-    final delete = onDelete;
-    final actions = <Widget>[
-      if (play != null)
-        AppCoverHoverActionButton(
-          key: Key('clip-grid-card-play-${clip.clipId}'),
-          icon: Icons.play_arrow_rounded,
-          onTap: play,
-          primary: true,
-          tooltip: l10n.widgetClipActionPlay,
-        ),
-      if (openMovie != null)
-        AppCoverHoverActionButton(
-          key: Key('clip-grid-card-movie-${clip.clipId}'),
-          icon: Icons.movie_outlined,
-          onTap: openMovie,
-          tooltip: l10n.widgetClipActionMovie,
-        ),
-      if (addToCollection != null)
-        AppCoverHoverActionButton(
-          key: Key('clip-grid-card-add-collection-${clip.clipId}'),
-          icon: Icons.playlist_add_rounded,
-          onTap: addToCollection,
-          tooltip: l10n.widgetClipActionAddToCollection,
-        ),
-      if (rename != null)
-        AppCoverHoverActionButton(
-          key: Key('clip-grid-card-rename-${clip.clipId}'),
-          icon: Icons.edit_outlined,
-          onTap: rename,
-          tooltip: l10n.widgetClipActionRename,
-        ),
-      if (delete != null)
-        AppCoverHoverActionButton(
-          key: Key('clip-grid-card-delete-${clip.clipId}'),
-          icon: Icons.delete_outline_rounded,
-          onTap: delete,
-          tooltip: l10n.commonDelete,
-        ),
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AppCoverHoverInfoRow(
-          key: Key('clip-grid-card-info-${clip.clipId}'),
-          label: clip.displayTitle(l10n),
-          meta: clip.metaLine(l10n),
-        ),
-        if (actions.isNotEmpty) ...[
-          SizedBox(height: spacing.sm),
-          AppCoverHoverActionBar(actions: actions),
-        ],
+    return AppCoverHoverPanel(
+      info: AppCoverHoverInfoRow(
+        key: Key('clip-grid-card-info-${clip.clipId}'),
+        label: clip.displayTitle(l10n),
+        meta: clip.metaLine(l10n),
+      ),
+      actions: [
+        if (onPlay != null)
+          AppCoverHoverActionButton(
+            key: Key('clip-grid-card-play-${clip.clipId}'),
+            icon: Icons.play_arrow_rounded,
+            onTap: onPlay,
+            primary: true,
+            tooltip: l10n.widgetClipActionPlay,
+          ),
+        if (onOpenMovie != null)
+          AppCoverHoverActionButton(
+            key: Key('clip-grid-card-movie-${clip.clipId}'),
+            icon: Icons.movie_outlined,
+            onTap: onOpenMovie,
+            tooltip: l10n.widgetClipActionMovie,
+          ),
+        if (onAddToCollection != null)
+          AppCoverHoverActionButton(
+            key: Key('clip-grid-card-add-collection-${clip.clipId}'),
+            icon: Icons.playlist_add_rounded,
+            onTap: onAddToCollection,
+            tooltip: l10n.widgetClipActionAddToCollection,
+          ),
+        if (onRename != null)
+          AppCoverHoverActionButton(
+            key: Key('clip-grid-card-rename-${clip.clipId}'),
+            icon: Icons.edit_outlined,
+            onTap: onRename,
+            tooltip: l10n.widgetClipActionRename,
+          ),
+        if (onDelete != null)
+          AppCoverHoverActionButton(
+            key: Key('clip-grid-card-delete-${clip.clipId}'),
+            icon: Icons.delete_outline_rounded,
+            onTap: onDelete,
+            tooltip: l10n.commonDelete,
+          ),
       ],
     );
   }
@@ -174,30 +160,26 @@ class ClipGridCard extends StatelessWidget {
     Offset globalPosition,
   ) async {
     final l10n = AppLocalizations.of(context);
-    final openMovie = onOpenMovie;
-    final addToCollection = onAddToCollection;
-    final rename = onRename;
-    final delete = onDelete;
     final action = await showAppActionMenu<_ClipCardAction>(
       context: context,
       globalPosition: globalPosition,
       items: [
-        if (openMovie != null)
+        if (onOpenMovie != null)
           AppMenuItem(
             value: _ClipCardAction.openMovie,
             label: l10n.widgetClipActionMovie,
           ),
-        if (addToCollection != null)
+        if (onAddToCollection != null)
           AppMenuItem(
             value: _ClipCardAction.addToCollection,
             label: l10n.widgetClipActionAddToCollection,
           ),
-        if (rename != null)
+        if (onRename != null)
           AppMenuItem(
             value: _ClipCardAction.rename,
             label: l10n.widgetClipActionRename,
           ),
-        if (delete != null)
+        if (onDelete != null)
           AppMenuItem(
             value: _ClipCardAction.delete,
             label: l10n.commonDelete,
@@ -210,13 +192,13 @@ class ClipGridCard extends StatelessWidget {
     }
     switch (action) {
       case _ClipCardAction.openMovie:
-        openMovie?.call();
+        onOpenMovie?.call();
       case _ClipCardAction.addToCollection:
-        addToCollection?.call();
+        onAddToCollection?.call();
       case _ClipCardAction.rename:
-        rename?.call();
+        onRename?.call();
       case _ClipCardAction.delete:
-        delete?.call();
+        onDelete?.call();
     }
   }
 }

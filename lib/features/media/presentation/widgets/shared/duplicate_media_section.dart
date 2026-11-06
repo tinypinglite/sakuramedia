@@ -8,24 +8,18 @@ import 'package:sakuramedia/features/media/data/duplicate_media_group_dto.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/presentation/media_placeholders.dart';
 import 'package:sakuramedia/features/media/presentation/providers/duplicate_media_provider.dart';
+import 'package:sakuramedia/features/media/presentation/widgets/shared/media_group_batch_selection.dart';
 import 'package:sakuramedia/features/media/presentation/widgets/shared/media_file_group_card.dart';
-import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
-import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.dart';
-import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
-import 'package:sakuramedia/features/shared/presentation/widgets/paged_async_section.dart';
+import 'package:sakuramedia/features/media/presentation/widgets/shared/media_group_paged_slivers.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_collection_chips.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
 import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
-import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
@@ -70,66 +64,16 @@ class DuplicateMediaSection extends HookConsumerWidget {
     );
     final groups = asyncState.value?.items ?? const <DuplicateMediaGroupDto>[];
     final spacing = context.appSpacing;
-    final selectionMode = useState(false);
-    final selectedIds = useState(<int>{});
-    final deleting = useState(false);
-    final selected = [
-      for (final group in groups)
-        for (final item in group.mediaItems)
-          if (selectedIds.value.contains(item.id)) item,
-    ];
-    void exitSelection() {
-      selectionMode.value = false;
-      selectedIds.value = {};
-    }
-
-    Future<void> deleteSelected() async {
-      if (deleting.value || selected.isEmpty) return;
-      final l10n = AppLocalizations.of(context);
-      final confirmed = await showAppConfirmDialog(
-        context,
-        title: l10n.mediaListDuplicateBatchDeleteTitle,
-        message: l10n.mediaListDuplicateBatchDeleteMessage(selected.length),
-        confirmLabel: l10n.commonDelete,
-        danger: true,
-        dialogKey: Key('$keyPrefix-duplicates-batch-confirm-dialog'),
-        confirmKey: Key('$keyPrefix-duplicates-batch-confirm'),
-      );
-      if (!confirmed || !context.mounted) return;
-      final currentGroups = ref.read(provider).value?.items ?? [];
-      final ids = selected.map((item) => item.id).toSet();
-      final currentIds = currentGroups
-          .expand((group) => group.mediaItems)
-          .map((item) => item.id)
-          .toSet();
-      if (!currentIds.containsAll(ids) ||
-          currentGroups.any(
-            (group) => group.mediaItems.every((item) => ids.contains(item.id)),
-          )) {
-        exitSelection();
-        showToast(l10n.mediaListDuplicateChanged, tone: AppToastTone.success);
-        return;
-      }
-      deleting.value = true;
-      final submitted = await submitBatchOperation(
-        context,
-        ref,
-        operation: BatchOperationType.mediaDelete,
-        ids: selected.map((item) => item.id).toList(growable: false),
-      );
-      if (!context.mounted) return;
-      deleting.value = false;
-      if (submitted) exitSelection();
-    }
-
-    final deleteButton = AppButton(
-      key: Key('$keyPrefix-duplicates-batch-delete'),
-      label: l10n.mediaListBatchDeleteSelected,
-      icon: const Icon(Icons.delete_outline_rounded),
-      variant: AppButtonVariant.danger,
-      size: mobile ? AppButtonSize.medium : AppButtonSize.small,
-      isLoading: deleting.value,
-      onPressed: selected.isEmpty || deleting.value ? null : deleteSelected,
+    final selection = useMediaGroupBatchSelection(
+      context: context,
+      ref: ref,
+      groups: groups,
+      itemsOf: (group) => group.mediaItems,
+      currentGroups: () => ref.read(provider).value?.items ?? const [],
+      keyBase: '$keyPrefix-duplicates',
+      confirmTitle: l10n.mediaListDuplicateBatchDeleteTitle,
+      confirmMessage: l10n.mediaListDuplicateBatchDeleteMessage,
+      changedMessage: l10n.mediaListDuplicateChanged,
     );
 
     Future<void> deleteMedia(
@@ -184,12 +128,8 @@ class DuplicateMediaSection extends HookConsumerWidget {
             ? () => onOpenMovieDetail!(context, first.movieNumber!)
             : null,
         onDelete: (item) => unawaited(deleteMedia(group, item)),
-        selectedIds: selectionMode.value ? selectedIds.value : null,
-        onToggle: (item) {
-          final next = {...selectedIds.value};
-          if (!next.remove(item.id)) next.add(item.id);
-          selectedIds.value = next;
-        },
+        selectedIds: selection.selectionMode ? selection.selectedIds : null,
+        onToggle: selection.toggle,
         itemSupplement: (item) {
           final headingDiffers =
               item.displayHeading(l10n) != first.displayHeading(l10n);
@@ -237,135 +177,54 @@ class DuplicateMediaSection extends HookConsumerWidget {
       );
     }
 
-    final selectionHeader = mobile
-        ? AppMobileSelectionHeader(
-            selectionLabel: l10n.mediaListSelectedCopies(selected.length),
-            countKey: Key('$keyPrefix-duplicates-selected-count'),
-            selectAllTooltip: l10n.mediaListClearSelection,
-            selectAllKey: Key('$keyPrefix-duplicates-clear-selection'),
-            onToggleAll: deleting.value || selected.isEmpty
-                ? null
-                : () => selectedIds.value = {},
-            exitKey: Key('$keyPrefix-duplicates-exit-selection'),
-            onExitSelection: deleting.value ? null : exitSelection,
-          )
-        : AppGlassSelectionHeader(
-            selectionLabel: l10n.mediaListSelectedCopies(selected.length),
-            countKey: Key('$keyPrefix-duplicates-selected-count'),
-            selectAllLabel: l10n.mediaListClearSelection,
-            selectAllKey: Key('$keyPrefix-duplicates-clear-selection'),
-            onToggleAll: deleting.value || selected.isEmpty
-                ? null
-                : () => selectedIds.value = {},
-            exitKey: Key('$keyPrefix-duplicates-exit-selection'),
-            onExitSelection: deleting.value ? null : exitSelection,
-            actions: <AppGlassSelectionAction>[
-              AppGlassSelectionAction(
-                key: Key('$keyPrefix-duplicates-batch-delete'),
-                label: l10n.mediaListBatchDeleteSelected,
-                icon: Icons.delete_outline_rounded,
-                foregroundColor: context.appTextPalette.error,
-                onTap: selected.isEmpty || deleting.value
-                    ? null
-                    : () => unawaited(deleteSelected()),
-              ),
-            ],
-          );
-
     final content = AppFixedHeaderLayout(
-      header: selectionMode.value
-          ? selectionHeader
+      header: selection.selectionMode
+          ? selection.buildHeader(context, mobile: mobile)
           : _DuplicateMediaHeader(
               mobile: mobile,
               kind: kind,
               keyPrefix: keyPrefix,
               onKindChanged: (next) {
-                exitSelection();
+                selection.exitSelection();
                 onKindChanged(next);
               },
               onRefresh: onRefresh,
-              onSelect: groups.isEmpty
-                  ? null
-                  : () => selectionMode.value = true,
+              onSelect: groups.isEmpty ? null : selection.enterSelection,
             ),
       headerBottomSpacing: context.appSpacing.lg,
       child: CustomScrollView(
         key: Key('$keyPrefix-duplicate-scroll-view'),
         controller: scrollController,
-        slivers: [
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.only(bottom: spacing.md),
-              child: Text(
-                selectionMode.value
-                    ? l10n.mediaListDuplicateSelectionHint
-                    : l10n.mediaListDuplicateDescription,
-                key: Key('$keyPrefix-duplicate-description'),
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.secondary,
-                ),
-              ),
-            ),
+        slivers: mediaGroupPagedSlivers<DuplicateMediaGroupDto>(
+          context: context,
+          description: selection.selectionMode
+              ? l10n.mediaListDuplicateSelectionHint
+              : l10n.mediaListDuplicateDescription,
+          descriptionKey: Key('$keyPrefix-duplicate-description'),
+          asyncState: asyncState,
+          skeletonItems: duplicateMediaGroupPlaceholders(),
+          itemBuilder: (context, group, index) => buildGroup(context, group),
+          initialErrorMessage: l10n.errorDuplicateMediaLoadFailed,
+          emptyMessage: l10n.mediaListDuplicateEmpty,
+          initialRetryKey: Key('$keyPrefix-duplicate-initial-retry-button'),
+          onReload: () => unawaited(ref.read(provider.notifier).reload()),
+          onLoadMore: () => unawaited(ref.read(provider.notifier).loadMore()),
+          watchFooter: (ref) => ref.watch(
+            duplicateMediaProvider(
+              kind,
+            ).select((s) => pagedLoadMoreFooterSnapshot(s.value)),
           ),
-          SliverPagedAsyncSection<
-            PagedListState<DuplicateMediaGroupDto>,
-            DuplicateMediaGroupDto
-          >(
-            asyncState: asyncState,
-            pagedOf: (state) => state,
-            itemSpacing: spacing.lg,
-            initialErrorMessage: l10n.errorDuplicateMediaLoadFailed,
-            emptyMessage: l10n.mediaListDuplicateEmpty,
-            // loading 用占位分组渲染真实组卡，由 [AppSkeletonizer] 灰化。
-            skeletonBuilder: (context) {
-              final placeholders = duplicateMediaGroupPlaceholders();
-              return AppSkeletonizer(
-                enabled: true,
-                child: Column(
-                  children: [
-                    for (
-                      var index = 0;
-                      index < placeholders.length;
-                      index++
-                    ) ...[
-                      if (index > 0) SizedBox(height: spacing.lg),
-                      buildGroup(context, placeholders[index]),
-                    ],
-                  ],
-                ),
-              );
-            },
-            initialRetryKey: Key('$keyPrefix-duplicate-initial-retry-button'),
-            onReload: () => unawaited(ref.read(provider.notifier).reload()),
-            onLoadMore: () => unawaited(ref.read(provider.notifier).loadMore()),
-            itemBuilder: (context, group, index) => buildGroup(context, group),
-            // 页脚由 [PagedLoadMoreFooterSliver] 独立渲染。
-            showLoadMoreFooter: false,
+          footerLoadMore: (ref) => unawaited(
+            ref.read(duplicateMediaProvider(kind).notifier).loadMore(),
           ),
-          // 页脚独立订阅 loadMore 状态：翻页 loading/失败翻转只重建它。
-          PagedLoadMoreFooterSliver(
-            watchFooter: (ref) => ref.watch(
-              duplicateMediaProvider(
-                kind,
-              ).select((s) => pagedLoadMoreFooterSnapshot(s.value)),
-            ),
-            onLoadMore: (ref) => unawaited(
-              ref.read(duplicateMediaProvider(kind).notifier).loadMore(),
-            ),
-          ),
-          SliverToBoxAdapter(child: SizedBox(height: spacing.xxl)),
-          ...bottomSafeAreaSliver(context),
-        ],
+        ),
       ),
     );
     return Column(
       children: [
         Expanded(child: content),
-        if (mobile && selectionMode.value)
-          AppSelectionBottomBar(actions: [deleteButton]),
+        if (mobile && selection.selectionMode)
+          selection.buildBottomBar(context),
       ],
     );
   }

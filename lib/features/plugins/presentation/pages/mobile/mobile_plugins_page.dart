@@ -277,15 +277,10 @@ class _MobilePluginsEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Container(
+    return AppContentCard(
       padding: EdgeInsets.symmetric(
         horizontal: context.appSpacing.md,
         vertical: context.appSpacing.xl,
-      ),
-      decoration: BoxDecoration(
-        color: context.appColors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
       ),
       child: AppEmptyState(
         icon: Icons.extension_outlined,
@@ -325,7 +320,6 @@ class _MobilePluginCard extends StatelessWidget {
         : AppBadgeTone.neutral;
     return AppContentCard(
       key: Key('mobile-plugin-card-${plugin.pluginId}'),
-      title: null,
       padding: EdgeInsets.zero,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,

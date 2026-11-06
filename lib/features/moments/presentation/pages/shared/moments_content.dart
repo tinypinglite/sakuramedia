@@ -32,6 +32,7 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/use_multi_selection.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
@@ -114,52 +115,21 @@ class MomentsContent extends HookConsumerWidget {
     final filter =
         ref.watch(momentsProvider.select((async) => async.value?.filter)) ??
         ref.read(momentsProvider.notifier).filter;
-    final selectionMode = useState(false);
-    final selectedPointIds = useState<Set<int>>(<int>{});
-    final selectedCount = selectedPointIds.value.length;
+    final selection = useMultiSelection<int>();
     final submitting = watchBatchOperationSubmitting(ref, const [
       BatchOperationType.momentCollectionAdd,
       BatchOperationType.momentCollectionRemove,
       BatchOperationType.mediaPointDelete,
     ]);
 
-    void exitSelection() {
-      selectionMode.value = false;
-      selectedPointIds.value = <int>{};
-    }
-
-    void enterSelection([MomentListItem? item]) {
-      selectionMode.value = true;
-      if (item == null) return;
-      final next = <int>{...selectedPointIds.value, item.pointId};
-      selectedPointIds.value = next;
-    }
-
-    void toggleSelection(MomentListItem item) {
-      final next = <int>{...selectedPointIds.value};
-      if (!next.add(item.pointId)) {
-        next.remove(item.pointId);
-      }
-      selectedPointIds.value = next;
-    }
-
-    void toggleSelectAll(Iterable<MomentListItem> items) {
-      final currentItems = items.toList(growable: false);
-      final ids = currentItems.map((item) => item.pointId).toSet();
-      final allSelected =
-          ids.isNotEmpty && ids.every(selectedPointIds.value.contains);
-      final next = <int>{...selectedPointIds.value};
-      if (allSelected) {
-        next.removeWhere(ids.contains);
-      } else {
-        next.addAll(ids);
-      }
-      selectedPointIds.value = next;
-    }
+    void batchAddToCollection() =>
+        unawaited(_batchAddToCollection(context, ref, paged.items, selection));
+    void batchDelete() =>
+        unawaited(_batchDelete(context, ref, paged.items, selection));
 
     useEffect(() {
-      if (selectionMode.value || selectedPointIds.value.isNotEmpty) {
-        exitSelection();
+      if (selection.selectionMode || selection.selectedCount > 0) {
+        selection.exit();
       }
       return null;
     }, [filter.sortOrder, filter.kindFilter]);
@@ -178,39 +148,25 @@ class MomentsContent extends HookConsumerWidget {
       header: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _buildMomentsHeader(
-            context,
-            ref,
-            scrollController,
-            listHeaderKey,
-            paged,
-            filter,
-            selectionMode: selectionMode.value,
-            selectedCount: selectedCount,
-            selectedPointIds: selectedPointIds.value,
-            onEnterSelection: () => enterSelection(),
-            onExitSelection: exitSelection,
-            onToggleAll: () => toggleSelectAll(paged.items),
-            onBatchAddToCollection: () => unawaited(
-              _batchAddToCollection(
-                context,
-                ref,
-                paged.items,
-                selectedPointIds.value,
-                exitSelection,
-              ),
+          if (selection.selectionMode)
+            _buildSelectionHeader(
+              context,
+              paged.items,
+              selection: selection,
+              onBatchAddToCollection: batchAddToCollection,
+              onBatchDelete: batchDelete,
+              submitting: submitting,
+            )
+          else
+            _buildHeader(
+              context,
+              ref,
+              scrollController,
+              listHeaderKey,
+              paged,
+              filter,
+              () => selection.enter(),
             ),
-            onBatchDelete: () => unawaited(
-              _batchDelete(
-                context,
-                ref,
-                paged.items,
-                selectedPointIds.value,
-                exitSelection,
-              ),
-            ),
-            submitting: submitting,
-          ),
         ],
       ),
       headerBottomSpacing: useMobileFilterDrawer
@@ -221,12 +177,10 @@ class MomentsContent extends HookConsumerWidget {
           context,
           ref,
           paged,
-          selectionMode: selectionMode.value,
-          isSelected: (item) => selectedPointIds.value.contains(item.pointId),
-          onSelectedChanged: toggleSelection,
+          selection: selection,
           onLongPress: (item) {
-            if (!selectionMode.value) {
-              enterSelection(item);
+            if (!selection.selectionMode) {
+              selection.enter(item.pointId);
             }
           },
         ),
@@ -269,7 +223,8 @@ class MomentsContent extends HookConsumerWidget {
               ),
       ),
     );
-    final pageWithSelectionBar = useMobileFilterDrawer && selectionMode.value
+    final pageWithSelectionBar =
+        useMobileFilterDrawer && selection.selectionMode
         ? Column(
             children: [
               Expanded(child: page),
@@ -279,33 +234,17 @@ class MomentsContent extends HookConsumerWidget {
                     key: Key('$keyPrefix-batch-add-collection-button'),
                     label: l10n.momentAddToCollection,
                     variant: AppButtonVariant.secondary,
-                    onPressed: selectedCount == 0 || submitting
+                    onPressed: selection.selectedCount == 0 || submitting
                         ? null
-                        : () => unawaited(
-                            _batchAddToCollection(
-                              context,
-                              ref,
-                              paged.items,
-                              selectedPointIds.value,
-                              exitSelection,
-                            ),
-                          ),
+                        : batchAddToCollection,
                   ),
                   AppButton(
                     key: Key('$keyPrefix-batch-delete-button'),
                     label: l10n.commonDelete,
                     variant: AppButtonVariant.danger,
-                    onPressed: selectedCount == 0 || submitting
+                    onPressed: selection.selectedCount == 0 || submitting
                         ? null
-                        : () => unawaited(
-                            _batchDelete(
-                              context,
-                              ref,
-                              paged.items,
-                              selectedPointIds.value,
-                              exitSelection,
-                            ),
-                          ),
+                        : batchDelete,
                   ),
                 ],
               ),
@@ -453,87 +392,38 @@ class MomentsContent extends HookConsumerWidget {
     );
   }
 
-  Widget _buildMomentsHeader(
-    BuildContext context,
-    WidgetRef ref,
-    ScrollController scrollController,
-    GlobalKey listHeaderKey,
-    PagedViewSnapshot<MomentListItem> paged,
-    MomentsFilter filter, {
-    required bool selectionMode,
-    required int selectedCount,
-    required Set<int> selectedPointIds,
-    required VoidCallback onEnterSelection,
-    required VoidCallback onExitSelection,
-    required VoidCallback onToggleAll,
-    required VoidCallback onBatchAddToCollection,
-    required VoidCallback onBatchDelete,
-    required bool submitting,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (selectionMode)
-          _buildSelectionHeader(
-            context,
-            paged.items,
-            selectedCount: selectedCount,
-            selectedPointIds: selectedPointIds,
-            onToggleAll: onToggleAll,
-            onBatchAddToCollection: onBatchAddToCollection,
-            onBatchDelete: onBatchDelete,
-            onExitSelection: onExitSelection,
-            submitting: submitting,
-          ),
-        if (!selectionMode)
-          _buildHeader(
-            context,
-            ref,
-            scrollController,
-            listHeaderKey,
-            paged,
-            filter,
-            onEnterSelection,
-          ),
-      ],
-    );
-  }
-
   Widget _buildSelectionHeader(
     BuildContext context,
     List<MomentListItem> items, {
-    required int selectedCount,
-    required Set<int> selectedPointIds,
-    required VoidCallback onToggleAll,
+    required MultiSelection<int> selection,
     required VoidCallback onBatchAddToCollection,
     required VoidCallback onBatchDelete,
-    required VoidCallback onExitSelection,
     required bool submitting,
   }) {
-    final ids = items.map((item) => item.pointId).toSet();
-    final allSelected = ids.isNotEmpty && ids.every(selectedPointIds.contains);
-    final hasSelection = selectedCount > 0;
+    final ids = items.map((item) => item.pointId);
+    final allSelected = selection.isAllSelected(ids);
+    final hasSelection = selection.selectedCount > 0;
     final l10n = AppLocalizations.of(context);
     if (useMobileFilterDrawer) {
       return AppMobileSelectionHeader(
-        selectionLabel: l10n.momentSelectedCount(selectedCount),
+        selectionLabel: l10n.momentSelectedCount(selection.selectedCount),
         exitKey: Key('$keyPrefix-exit-selection-button'),
-        onExitSelection: onExitSelection,
+        onExitSelection: selection.exit,
         selectAllKey: Key('$keyPrefix-select-all-button'),
         selectAllTooltip: allSelected
             ? l10n.momentDeselectAll
             : l10n.momentSelectAll,
-        onToggleAll: onToggleAll,
+        onToggleAll: () => selection.toggleAll(ids),
       );
     }
     return AppGlassSelectionHeader(
-      selectionLabel: l10n.momentSelectedCount(selectedCount),
+      selectionLabel: l10n.momentSelectedCount(selection.selectedCount),
       selectAllLabel: allSelected
           ? l10n.momentDeselectAll
           : l10n.momentSelectAll,
       selectAllKey: Key('$keyPrefix-select-all-button'),
-      onToggleAll: onToggleAll,
-      onExitSelection: onExitSelection,
+      onToggleAll: () => selection.toggleAll(ids),
+      onExitSelection: selection.exit,
       exitKey: Key('$keyPrefix-exit-selection-button'),
       actions: <AppGlassSelectionAction>[
         AppGlassSelectionAction(
@@ -751,9 +641,7 @@ class MomentsContent extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     PagedViewSnapshot<MomentListItem> paged, {
-    required bool selectionMode,
-    required bool Function(MomentListItem item) isSelected,
-    required ValueChanged<MomentListItem> onSelectedChanged,
+    required MultiSelection<int> selection,
     required ValueChanged<MomentListItem> onLongPress,
   }) {
     final isLoading = paged.isInitialLoading;
@@ -793,10 +681,10 @@ class MomentsContent extends HookConsumerWidget {
         onItemAddToCollection: (item) =>
             unawaited(addMomentItemToCollection(context, item: item)),
         onItemDelete: (item) => unawaited(_deleteItem(context, ref, item)),
-        selectionMode: selectionMode,
-        isSelected: isSelected,
-        onSelectedChanged: onSelectedChanged,
-        onLongPress: useMobileFilterDrawer && !selectionMode
+        selectionMode: selection.selectionMode,
+        isSelected: (item) => selection.isSelected(item.pointId),
+        onSelectedChanged: (item) => selection.toggle(item.pointId),
+        onLongPress: useMobileFilterDrawer && !selection.selectionMode
             ? onLongPress
             : null,
       ),
@@ -864,11 +752,10 @@ class MomentsContent extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     List<MomentListItem> items,
-    Set<int> selectedPointIds,
-    VoidCallback onFinished,
+    MultiSelection<int> selection,
   ) async {
     final selected = items
-        .where((item) => selectedPointIds.contains(item.pointId))
+        .where((item) => selection.isSelected(item.pointId))
         .toList(growable: false);
     if (selected.isEmpty) return;
     final target = await showPickMomentCollectionDialog(context);
@@ -881,18 +768,17 @@ class MomentsContent extends HookConsumerWidget {
       ids: selected.map((item) => item.pointId).toList(growable: false),
     );
     if (!context.mounted) return;
-    if (submitted) onFinished();
+    if (submitted) selection.exit();
   }
 
   Future<void> _batchDelete(
     BuildContext context,
     WidgetRef ref,
     List<MomentListItem> items,
-    Set<int> selectedPointIds,
-    VoidCallback onFinished,
+    MultiSelection<int> selection,
   ) async {
     final selected = items
-        .where((item) => selectedPointIds.contains(item.pointId))
+        .where((item) => selection.isSelected(item.pointId))
         .toList(growable: false);
     if (selected.isEmpty) return;
     final l10n = AppLocalizations.of(context);
@@ -913,7 +799,7 @@ class MomentsContent extends HookConsumerWidget {
       ids: selected.map((item) => item.pointId).toList(growable: false),
     );
     if (!context.mounted) return;
-    if (submitted) onFinished();
+    if (submitted) selection.exit();
   }
 
   Future<void> _refreshAfterPointDelete(WidgetRef ref) async {

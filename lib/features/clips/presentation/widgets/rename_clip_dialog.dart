@@ -2,10 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 /// 切片重命名的呈现形态：桌面弹窗 / 移动端底部抽屉。
 enum RenameClipDialogPresentation { dialog, bottomDrawer }
@@ -17,35 +15,22 @@ Future<String?> showRenameClipDialog(
   RenameClipDialogPresentation presentation =
       RenameClipDialogPresentation.dialog,
 }) {
-  switch (presentation) {
-    case RenameClipDialogPresentation.dialog:
-      return showAppDialog<String>(
-        context: context,
-        builder: (dialogContext) =>
-            RenameClipDialog(initialTitle: initialTitle),
-      );
-    case RenameClipDialogPresentation.bottomDrawer:
-      return showAppBottomDrawer<String>(
-        context: context,
-        drawerKey: const Key('rename-clip-bottom-sheet'),
-        maxHeightFactor: 0.5,
-        builder: (sheetContext) => RenameClipDialog(
-          initialTitle: initialTitle,
-          presentation: RenameClipDialogPresentation.bottomDrawer,
-        ),
-      );
-  }
+  return showAppAdaptiveModal<String>(
+    context: context,
+    variant: presentation == RenameClipDialogPresentation.bottomDrawer
+        ? AppAdaptiveModalVariant.drawer
+        : AppAdaptiveModalVariant.dialog,
+    drawerKey: const Key('rename-clip-bottom-sheet'),
+    desktopWidth: context.appComponentTokens.playlistDialogWidth,
+    mobileMaxHeightFactor: 0.5,
+    builder: (_) => RenameClipDialog(initialTitle: initialTitle),
+  );
 }
 
 class RenameClipDialog extends StatefulWidget {
-  const RenameClipDialog({
-    super.key,
-    required this.initialTitle,
-    this.presentation = RenameClipDialogPresentation.dialog,
-  });
+  const RenameClipDialog({super.key, required this.initialTitle});
 
   final String initialTitle;
-  final RenameClipDialogPresentation presentation;
 
   @override
   State<RenameClipDialog> createState() => _RenameClipDialogState();
@@ -72,12 +57,6 @@ class _RenameClipDialogState extends State<RenameClipDialog> {
 
   @override
   Widget build(BuildContext context) {
-    if (widget.presentation == RenameClipDialogPresentation.dialog) {
-      return AppDesktopDialog(
-        width: context.appComponentTokens.playlistDialogWidth,
-        child: _buildContent(context),
-      );
-    }
     return SingleChildScrollView(child: _buildContent(context));
   }
 

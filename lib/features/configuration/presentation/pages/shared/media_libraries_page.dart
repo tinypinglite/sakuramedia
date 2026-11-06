@@ -17,7 +17,6 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_inline_action_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
@@ -307,16 +306,22 @@ class _MediaLibrariesPageState extends ConsumerState<MediaLibrariesPage> {
             ),
           ),
           SizedBox(width: context.appSpacing.sm),
-          AppInlineActionButton(
+          AppIconButton(
             key: Key('media-library-edit-${library.id}'),
-            icon: Icons.edit_outlined,
-            onTap: () => _editLibrary(library),
+            icon: const Icon(Icons.edit_outlined),
+            tooltip: l10n.commonEdit,
+            size: AppIconButtonSize.inline,
+            iconColor: context.appTextPalette.secondary,
+            onPressed: () => _editLibrary(library),
           ),
           SizedBox(width: context.appSpacing.xs),
-          AppInlineActionButton(
+          AppIconButton(
             key: Key('media-library-delete-${library.id}'),
-            icon: Icons.delete_outline,
-            onTap: () => _deleteLibrary(library),
+            icon: const Icon(Icons.delete_outline),
+            tooltip: l10n.commonDelete,
+            size: AppIconButtonSize.inline,
+            iconColor: context.appTextPalette.secondary,
+            onPressed: () => _deleteLibrary(library),
           ),
         ],
       ),

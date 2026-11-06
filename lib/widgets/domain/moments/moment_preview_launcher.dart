@@ -1,12 +1,13 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/moments/presentation/moment_listing_models.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/domain/moments/moment_image.dart';
 
 Future<MediaPreviewAction?> showMomentPreviewOverlay({
   required BuildContext context,
   required MomentListItem item,
-  required MediaPreviewPresentation presentation,
+  required AppAdaptiveModalVariant variant,
   Key? drawerKey,
   // 仅传真实收藏 ID；推荐条目的 item.pointId 是推荐 ID。
   int? pointId,
@@ -20,7 +21,7 @@ Future<MediaPreviewAction?> showMomentPreviewOverlay({
   final movieNumber = item.movieNumber;
   return showMediaPreviewOverlay(
     context: context,
-    presentation: presentation,
+    variant: variant,
     drawerKey: drawerKey,
     builder: (_) => MediaPreviewDialog(
       item: MediaPreviewItem(
@@ -44,7 +45,6 @@ Future<MediaPreviewAction?> showMomentPreviewOverlay({
       },
       onPointRemoved: onPointRemoved,
       closeOnPointRemoved: closeOnPointRemoved,
-      presentation: presentation,
       useInlineNavigation: useInlineNavigation,
       onActorSelected: onActorSelected,
     ),

@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button_content.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
 enum AppButtonVariant { primary, secondary, ghost, danger }
@@ -48,52 +49,8 @@ class AppButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final theme = Theme.of(context);
-    final componentTokens = context.appComponentTokens;
-    final (height, horizontal, gap, iconSize, textSize) = switch (size) {
-      AppButtonSize.large => (
-        componentTokens.buttonHeightLg,
-        componentTokens.buttonHorizontalPaddingMd,
-        componentTokens.buttonGapMd,
-        componentTokens.iconSizeSm,
-        AppTextSize.s14,
-      ),
-      AppButtonSize.medium => (
-        componentTokens.buttonHeightMd,
-        componentTokens.buttonHorizontalPaddingMd,
-        componentTokens.buttonGapMd,
-        componentTokens.iconSizeSm,
-        AppTextSize.s14,
-      ),
-      AppButtonSize.small => (
-        componentTokens.buttonHeightSm,
-        componentTokens.buttonHorizontalPaddingSm,
-        componentTokens.buttonGapSm,
-        componentTokens.iconSizeSm,
-        AppTextSize.s14,
-      ),
-      AppButtonSize.xSmall => (
-        componentTokens.buttonHeightXs,
-        componentTokens.buttonHorizontalPaddingXs,
-        componentTokens.buttonGapXs,
-        componentTokens.iconSizeXs,
-        AppTextSize.s12,
-      ),
-      AppButtonSize.xxSmall => (
-        componentTokens.buttonHeight2xs,
-        componentTokens.buttonHorizontalPadding2xs,
-        componentTokens.buttonGap2xs,
-        componentTokens.iconSize2xs,
-        AppTextSize.s10,
-      ),
-      AppButtonSize.xxxSmall => (
-        componentTokens.buttonHeight3xs,
-        componentTokens.buttonHorizontalPadding3xs,
-        componentTokens.buttonGap3xs,
-        componentTokens.iconSize3xs,
-        AppTextSize.s10,
-      ),
-    };
-    final borderRadius = this.borderRadius ?? context.appRadius.smBorder;
+    final (height, horizontalPadding, gap, iconSize, textSize) =
+        resolveAppButtonContentMetrics(context, size._contentSize);
     final isSecondarySelected =
         variant == AppButtonVariant.secondary && isSelected;
     final isGhostSelected = variant == AppButtonVariant.ghost && isSelected;
@@ -122,9 +79,7 @@ class AppButton extends StatelessWidget {
       ),
     };
 
-    final disabledColor = colors.borderSubtle;
-    final effectiveDisabledBackground =
-        disabledBackgroundColor ?? disabledColor;
+    final disabledBackground = disabledBackgroundColor ?? colors.borderSubtle;
     final tone = switch (variant) {
       AppButtonVariant.primary => AppTextTone.onMedia,
       AppButtonVariant.secondary =>
@@ -152,64 +107,38 @@ class AppButton extends StatelessWidget {
           duration: const Duration(milliseconds: 120),
           height: height,
           alignment: Alignment.center,
-          padding: EdgeInsets.symmetric(horizontal: horizontal),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           decoration: BoxDecoration(
-            color: _isEnabled ? backgroundColor : effectiveDisabledBackground,
-            borderRadius: borderRadius,
+            color: _isEnabled ? backgroundColor : disabledBackground,
+            borderRadius: borderRadius ?? context.appRadius.smBorder,
             border: Border.all(
-              color: _isEnabled ? borderColor : effectiveDisabledBackground,
+              color: _isEnabled ? borderColor : disabledBackground,
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (isLoading)
-                SizedBox(
-                  width: iconSize,
-                  height: iconSize,
-                  child: CircularProgressIndicator.adaptive(
-                    backgroundColor: switch (Theme.of(context).platform) {
-                      TargetPlatform.iOS ||
-                      TargetPlatform.macOS => effectiveForeground,
-                      _ => null,
-                    },
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      effectiveForeground,
-                    ),
-                  ),
-                )
-              else if (icon != null)
-                IconTheme(
-                  data: IconThemeData(
-                    size: iconSize,
-                    color: effectiveForeground,
-                  ),
-                  child: icon!,
-                ),
-              if (isLoading || icon != null) SizedBox(width: gap),
-              Flexible(
-                child: Text(
-                  key: labelKey,
-                  label,
-                  overflow: TextOverflow.ellipsis,
-                  style: labelStyle,
-                ),
-              ),
-              if (trailingIcon != null) ...[
-                SizedBox(width: gap),
-                IconTheme(
-                  data: IconThemeData(
-                    size: iconSize,
-                    color: effectiveForeground,
-                  ),
-                  child: trailingIcon!,
-                ),
-              ],
-            ],
+          child: buildAppButtonContent(
+            label: label,
+            labelKey: labelKey,
+            labelStyle: labelStyle,
+            icon: icon,
+            trailingIcon: trailingIcon,
+            isLoading: isLoading,
+            iconSize: iconSize,
+            gap: gap,
+            iconColor: effectiveForeground,
           ),
         ),
       ),
     );
   }
+}
+
+extension on AppButtonSize {
+  AppButtonContentSize get _contentSize => switch (this) {
+    AppButtonSize.large => AppButtonContentSize.large,
+    AppButtonSize.medium => AppButtonContentSize.medium,
+    AppButtonSize.small => AppButtonContentSize.small,
+    AppButtonSize.xSmall => AppButtonContentSize.xSmall,
+    AppButtonSize.xxSmall => AppButtonContentSize.xxSmall,
+    AppButtonSize.xxxSmall => AppButtonContentSize.xxxSmall,
+  };
 }

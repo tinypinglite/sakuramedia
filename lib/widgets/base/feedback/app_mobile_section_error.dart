@@ -1,13 +1,11 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
-import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 
 /// 移动端 section 级错误态卡片。
 ///
 /// 跟桌面版 [`AppSectionError`](app_section_error.dart) 是姊妹关系——
-/// 桌面无卡壳、左对齐；移动有卡壳、居中、全宽重试按钮。
+/// 桌面无卡壳、左对齐；移动有卡壳、内容居中。
 /// 参数 `{title, message, onRetry}` 与桌面版对齐，方便调用方复用文案。
 class AppMobileSectionError extends StatelessWidget {
   const AppMobileSectionError({
@@ -25,43 +23,17 @@ class AppMobileSectionError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l10n = appL10n(context);
-    final spacing = context.appSpacing;
-    final colors = context.appColors;
-
     return Container(
-      padding: EdgeInsets.all(spacing.lg),
       decoration: BoxDecoration(
-        color: colors.surfaceCard,
+        color: context.appColors.surfaceCard,
         borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: colors.borderSubtle),
+        border: Border.all(color: context.appColors.borderSubtle),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          AppEmptyState(message: title),
-          SizedBox(height: spacing.sm),
-          Text(
-            message,
-            textAlign: TextAlign.center,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.secondary,
-            ),
-          ),
-          SizedBox(height: spacing.md),
-          SizedBox(
-            width: double.infinity,
-            child: AppButton(
-              key: retryButtonKey,
-              label: l10n.commonRetry,
-              variant: AppButtonVariant.primary,
-              onPressed: () => onRetry(),
-            ),
-          ),
-        ],
+      child: AppEmptyState(
+        title: title,
+        message: message,
+        retryKey: retryButtonKey,
+        onRetry: () => onRetry(),
       ),
     );
   }

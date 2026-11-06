@@ -29,7 +29,6 @@ export 'package:sakuramedia/theme/app_spacing.dart';
 export 'package:sakuramedia/theme/app_theme_color.dart';
 export 'package:sakuramedia/theme/app_toast_tokens.dart';
 export 'package:sakuramedia/theme/app_typography.dart';
-export 'package:sakuramedia/widgets/base/typography/app_text.dart';
 
 final sakuraThemeData = sakuraDesktopThemeData;
 

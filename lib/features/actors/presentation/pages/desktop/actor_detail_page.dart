@@ -8,6 +8,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
@@ -196,9 +197,9 @@ class _ActorDetailErrorState extends StatelessWidget {
       children: [
         AppEmptyState(message: message),
         SizedBox(height: context.appSpacing.lg),
-        TextButton(
+        AppTextButton(
+          label: AppLocalizations.of(context).commonRetry,
           onPressed: onRetry,
-          child: Text(AppLocalizations.of(context).commonRetry),
         ),
       ],
     );

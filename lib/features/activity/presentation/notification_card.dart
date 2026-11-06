@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/activity/presentation/activity_filter_state
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 
 /// 通知列表卡片。已读为「无感」自动处理，卡片本身不区分已读/未读视觉，
@@ -16,84 +17,73 @@ class NotificationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
     final l10n = AppLocalizations.of(context);
-    return SizedBox(
-      width: double.infinity,
-      child: Container(
-        key: Key('activity-notification-${notification.id}'),
-        width: double.infinity,
-        padding: EdgeInsets.all(context.appSpacing.lg),
-        decoration: BoxDecoration(
-          color: colors.surfaceCard,
-          borderRadius: context.appRadius.mdBorder,
-          border: Border.all(
-            color: Theme.of(
-              context,
-            ).colorScheme.primary.withValues(alpha: 0.28),
+    return AppContentCard(
+      key: Key('activity-notification-${notification.id}'),
+      borderRadius: context.appRadius.mdBorder,
+      borderColor: Theme.of(
+        context,
+      ).colorScheme.primary.withValues(alpha: 0.28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      notification.title,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s14,
+                        weight: AppTextWeight.regular,
+                        tone: AppTextTone.secondary,
+                      ),
+                    ),
+                    SizedBox(height: context.appSpacing.xs),
+                    Text(
+                      notification.content,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s14,
+                        weight: AppTextWeight.regular,
+                        tone: AppTextTone.secondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        notification.title,
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s14,
-                          weight: AppTextWeight.regular,
-                          tone: AppTextTone.secondary,
-                        ),
-                      ),
-                      SizedBox(height: context.appSpacing.xs),
-                      Text(
-                        notification.content,
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s14,
-                          weight: AppTextWeight.regular,
-                          tone: AppTextTone.secondary,
-                        ),
-                      ),
-                    ],
-                  ),
+          SizedBox(height: context.appSpacing.md),
+          Wrap(
+            spacing: context.appSpacing.sm,
+            runSpacing: context.appSpacing.sm,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              AppBadge(
+                label: labelForNotificationCategory(
+                  notification.category,
+                  l10n,
                 ),
-              ],
-            ),
-            SizedBox(height: context.appSpacing.md),
-            Wrap(
-              spacing: context.appSpacing.sm,
-              runSpacing: context.appSpacing.sm,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                AppBadge(
-                  label: labelForNotificationCategory(
-                    notification.category,
-                    l10n,
-                  ),
-                  tone: notificationCategoryTone(notification.category),
+                tone: notificationCategoryTone(notification.category),
+              ),
+              Text(
+                formatUpdatedAtLabel(notification.createdAt) ??
+                    l10n.activityTimeUnknown,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.regular,
+                  tone: AppTextTone.muted,
                 ),
-                Text(
-                  formatUpdatedAtLabel(notification.createdAt) ??
-                      l10n.activityTimeUnknown,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s12,
-                    weight: AppTextWeight.regular,
-                    tone: AppTextTone.muted,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

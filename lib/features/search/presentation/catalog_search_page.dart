@@ -13,7 +13,9 @@ import 'package:sakuramedia/features/search/presentation/providers/catalog_searc
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
+import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/routes/desktop_routes.dart';
+import 'package:sakuramedia/routes/mobile_routes.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/domain/search/catalog_search_content.dart';
 
@@ -21,12 +23,12 @@ class CatalogSearchPage extends ConsumerStatefulWidget {
   const CatalogSearchPage({
     super.key,
     required this.initialQuery,
-    this.fallbackPath,
+    required this.mobile,
     this.initialUseOnlineSearch = false,
   });
 
   final String initialQuery;
-  final String? fallbackPath;
+  final bool mobile;
   final bool initialUseOnlineSearch;
 
   @override
@@ -50,10 +52,11 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
     _pageCacheHandle = ref
         .read(riverpodPageCacheProvider)
         .obtain(
-          key: desktopSearchPageCacheKey(_scope.cacheKey),
+          key: _pageCacheKey(_scope.cacheKey),
           resolveLinks: () {
-            final link =
-                ref.read(catalogSearchProvider(_scope).notifier).cacheLink;
+            final link = ref
+                .read(catalogSearchProvider(_scope).notifier)
+                .cacheLink;
             return link == null ? const [] : [link];
           },
         );
@@ -75,9 +78,9 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
       vsync: this,
       initialIndex:
           ref.read(catalogSearchProvider(_scope)).activeKind ==
-                  CatalogSearchKind.movies
-              ? 0
-              : 1,
+              CatalogSearchKind.movies
+          ? 0
+          : 1,
     );
   }
 
@@ -104,8 +107,9 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
           .read(catalogSearchProvider(_scope).notifier)
           .submit(
             widget.initialQuery,
-            useOnlineSearch:
-                ref.read(catalogSearchProvider(_scope)).useOnlineSearch,
+            useOnlineSearch: ref
+                .read(catalogSearchProvider(_scope))
+                .useOnlineSearch,
           ),
     );
   }
@@ -131,35 +135,46 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
       },
     );
     return CatalogSearchContent(
-      surfaceColor: context.appColors.surfaceElevated,
+      surfaceColor: widget.mobile
+          ? context.appColors.surfaceCard
+          : context.appColors.surfaceElevated,
       state: searchState,
       textController: _textController,
       tabController: _tabController,
       useOnlineSearch: searchState.useOnlineSearch,
-      onOnlineSearchToggle:
-          (value) => ref
-              .read(catalogSearchProvider(_scope).notifier)
-              .setUseOnlineSearch(value),
+      onOnlineSearchToggle: (value) => ref
+          .read(catalogSearchProvider(_scope).notifier)
+          .setUseOnlineSearch(value),
       onSubmitSearch: _submitSearch,
-      onTabSelected:
-          (index) => ref
-              .read(catalogSearchProvider(_scope).notifier)
-              .setActiveKind(_kindForIndex(index)),
-      onMovieTap:
-          (movie) =>
-              context.pushDesktopMovieDetail(movieNumber: movie.movieNumber),
-      onMovieMenuRequest:
-          (movie, globalPosition) => requestMovieCollectionMenu(
-            context,
-            movie.movieNumber,
-            globalPosition,
-            isSubscribed: movie.isSubscribed,
-          ),
+      onTabSelected: (index) => ref
+          .read(catalogSearchProvider(_scope).notifier)
+          .setActiveKind(_kindForIndex(index)),
+      onMovieTap: (movie) {
+        if (widget.mobile) {
+          MobileMovieDetailRouteData(
+            movieNumber: movie.movieNumber,
+          ).push(context);
+        } else {
+          context.pushDesktopMovieDetail(movieNumber: movie.movieNumber);
+        }
+      },
+      onMovieMenuRequest: (movie, globalPosition) => requestMovieCollectionMenu(
+        context,
+        movie.movieNumber,
+        globalPosition,
+        isSubscribed: movie.isSubscribed,
+      ),
       onMovieToggleCollectionType: _hoverFeatureActions.toggleCollectionType,
       onMovieBlacklist: _hoverFeatureActions.blacklist,
-      onActorTap: (actor) => context.pushDesktopActorDetail(actorId: actor.id),
-      onMovieSubscriptionTap:
-          (movie) => _toggleMovieSubscription(movie.movieNumber),
+      onActorTap: (actor) {
+        if (widget.mobile) {
+          MobileActorDetailRouteData(actorId: actor.id).push(context);
+        } else {
+          context.pushDesktopActorDetail(actorId: actor.id);
+        }
+      },
+      onMovieSubscriptionTap: (movie) =>
+          _toggleMovieSubscription(movie.movieNumber),
       onActorSubscriptionTap: (actor) => _toggleActorSubscription(actor.id),
       onFallbackToOnlineSearch: () {
         ref
@@ -177,31 +192,45 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
   void _submitSearch() {
     final submittedQuery = _textController.text;
     final trimmedQuery = submittedQuery.trim();
+    final searchState = ref.read(catalogSearchProvider(_scope));
+    final useOnlineSearch = searchState.useOnlineSearch;
     final routeLocation = _routeLocationFor(
       query: submittedQuery,
-      useOnlineSearch: ref.read(catalogSearchProvider(_scope)).useOnlineSearch,
+      useOnlineSearch: useOnlineSearch,
     );
     final currentLocation = _currentRouteLocationOr(routeLocation);
 
-    if (trimmedQuery.isNotEmpty &&
-        routeLocation == currentLocation &&
-        ref.read(catalogSearchProvider(_scope)).useOnlineSearch ==
-            widget.initialUseOnlineSearch) {
+    if (widget.mobile &&
+        trimmedQuery.isEmpty &&
+        currentLocation == mobileSearchPath) {
+      return;
+    }
+
+    if (routeLocation == currentLocation &&
+        widget.initialUseOnlineSearch == useOnlineSearch &&
+        (widget.mobile || trimmedQuery.isNotEmpty)) {
       unawaited(
         ref
             .read(catalogSearchProvider(_scope).notifier)
-            .submit(
-              submittedQuery,
-              useOnlineSearch:
-                  ref.read(catalogSearchProvider(_scope)).useOnlineSearch,
-            ),
+            .submit(submittedQuery, useOnlineSearch: useOnlineSearch),
       );
       return;
     }
 
+    if (widget.mobile) {
+      if (trimmedQuery.isEmpty) {
+        MobileSearchRouteData(useOnlineSearch: useOnlineSearch).push(context);
+      } else {
+        MobileSearchQueryRouteData(
+          query: trimmedQuery,
+          useOnlineSearch: useOnlineSearch,
+        ).push(context);
+      }
+      return;
+    }
     context.pushDesktopSearch(
       query: submittedQuery,
-      useOnlineSearch: ref.read(catalogSearchProvider(_scope)).useOnlineSearch,
+      useOnlineSearch: useOnlineSearch,
     );
   }
 
@@ -223,6 +252,12 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
       return;
     }
     showActorSubscriptionFeedback(result, l10n: AppLocalizations.of(context));
+  }
+
+  String _pageCacheKey(String location) {
+    return widget.mobile
+        ? mobileSearchPageCacheKey(location)
+        : desktopSearchPageCacheKey(location);
   }
 
   String _resolveCachePath() {
@@ -247,12 +282,19 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
     required bool useOnlineSearch,
   }) {
     final trimmed = query.trim();
-    if (trimmed.isEmpty) {
-      return DesktopSearchRouteData(useOnlineSearch: useOnlineSearch).location;
+    if (widget.mobile) {
+      return trimmed.isEmpty
+          ? MobileSearchRouteData(useOnlineSearch: useOnlineSearch).location
+          : MobileSearchQueryRouteData(
+              query: trimmed,
+              useOnlineSearch: useOnlineSearch,
+            ).location;
     }
-    return DesktopSearchQueryRouteData(
-      query: trimmed,
-      useOnlineSearch: useOnlineSearch,
-    ).location;
+    return trimmed.isEmpty
+        ? DesktopSearchRouteData(useOnlineSearch: useOnlineSearch).location
+        : DesktopSearchQueryRouteData(
+            query: trimmed,
+            useOnlineSearch: useOnlineSearch,
+          ).location;
   }
 }

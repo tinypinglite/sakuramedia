@@ -11,13 +11,13 @@ import 'package:sakuramedia/features/clips/presentation/widgets/create_clip_dial
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_thumbnail_provider.dart';
-import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_preview_overlay.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_detail_dto.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_mutation_events_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/videos_api_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/video_display_title.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 import 'package:sakuramedia/widgets/domain/media/media_thumbnail_action_support.dart';
@@ -35,7 +35,7 @@ class VideoThumbnailContent extends ConsumerStatefulWidget {
   });
 
   final int videoId;
-  final MoviePlotPreviewPresentation thumbnailPreviewPresentation;
+  final AppAdaptiveModalVariant thumbnailPreviewPresentation;
   final Future<void> Function(String imageUrl, String fileName) onSearchSimilar;
   final Future<void> Function(int offsetSeconds) onPlay;
 

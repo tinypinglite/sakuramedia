@@ -18,7 +18,7 @@ import 'package:sakuramedia/features/overview/presentation/pages/mobile/mobile_o
 import 'package:sakuramedia/features/clips/presentation/pages/desktop/clips_page.dart';
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
 import 'package:sakuramedia/features/playlists/presentation/pages/desktop/playlists_page.dart';
-import 'package:sakuramedia/features/playlists/presentation/pages/desktop/system_playlist_page.dart';
+import 'package:sakuramedia/features/playlists/presentation/pages/shared/system_playlist_page.dart';
 import 'package:sakuramedia/features/recent_views/presentation/pages/desktop/recent_views_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/desktop/rated_movies_page.dart';
 import 'package:sakuramedia/features/rankings/presentation/pages/desktop/rankings_page.dart';
@@ -420,12 +420,14 @@ final Map<String, WidgetBuilder> _desktopRouteBuilders =
       desktopTagsPath: (_) => const DesktopTagsPage(),
       desktopMomentsPath: (_) => const DesktopMomentsPage(),
       desktopPlaylistsPath: (_) => const DesktopPlaylistsPage(),
-      desktopFavoritesPath: (_) => const DesktopSystemPlaylistPage(
+      desktopFavoritesPath: (_) => const SystemPlaylistPage(
         kind: PlaylistKind.favorites,
+        mobile: false,
         fallbackPath: desktopFavoritesPath,
       ),
-      desktopRecentlyPlayedPath: (_) => const DesktopSystemPlaylistPage(
+      desktopRecentlyPlayedPath: (_) => const SystemPlaylistPage(
         kind: PlaylistKind.recentlyPlayed,
+        mobile: false,
         fallbackPath: desktopRecentlyPlayedPath,
       ),
       desktopRecentViewsPath: (_) => const DesktopRecentViewsPage(),

@@ -309,10 +309,9 @@ class MovieSummaryCard extends StatelessWidget {
           icon: movie.isSubscribed
               ? Icons.favorite_rounded
               : Icons.favorite_border_rounded,
-          tooltip:
-              movie.isSubscribed
-                  ? l10n.widgetMovieUnsubscribe
-                  : l10n.widgetMovieSubscribeMovie,
+          tooltip: movie.isSubscribed
+              ? l10n.widgetMovieUnsubscribe
+              : l10n.widgetMovieSubscribeMovie,
           onTap: isSubscriptionUpdating ? null : onSubscriptionTap,
         ),
       if (onToggleCollectionType != null)
@@ -404,7 +403,7 @@ class MovieSummaryCard extends StatelessWidget {
     final heatText = TextPainter(
       text: TextSpan(
         text: _formatMovieHeat(movie.heat),
-        style: _onMediaStyle(context, size: AppTextSize.s10),
+        style: resolveCoverOverlayTextStyle(context, size: AppTextSize.s10),
       ),
       textDirection: Directionality.of(context),
       textScaler: MediaQuery.textScalerOf(context),
@@ -531,38 +530,6 @@ class _StatusBadge extends StatelessWidget {
       child: Icon(icon, size: componentTokens.iconSizeXl, color: iconColor),
     );
   }
-}
-
-/// 封面 / 信息条上的文字：onMedia 白色 + macOS 文本样式的行高与字距。
-TextStyle _onMediaStyle(
-  BuildContext context, {
-  required AppTextSize size,
-  AppTextWeight weight = AppTextWeight.regular,
-}) {
-  return switch (size) {
-    AppTextSize.s12 => resolveAppTextStyle(
-      context,
-      size: size,
-      weight: weight,
-      tone: AppTextTone.onMedia,
-      height: 16 / 13,
-      letterSpacing: -0.08,
-    ),
-    AppTextSize.s10 => resolveAppTextStyle(
-      context,
-      size: size,
-      weight: weight,
-      tone: AppTextTone.onMedia,
-      height: 13 / 10,
-      letterSpacing: 0.12,
-    ),
-    _ => resolveAppTextStyle(
-      context,
-      size: size,
-      weight: weight,
-      tone: AppTextTone.onMedia,
-    ),
-  };
 }
 
 String _metaLine(MovieListItemDto movie, AppLocalizations l10n) {

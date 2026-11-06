@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/series_import
 import 'package:sakuramedia/features/search/data/catalog_search_stream_stats.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
@@ -409,13 +410,12 @@ class _ActionRow extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return SizedBox(
       width: double.infinity,
-      child: FilledButton(
+      child: AppButton(
+        label: state.hasNewMovies
+            ? l10n.movieWidgetSeriesImportDoneWithRefresh
+            : l10n.commonDone,
+        variant: AppButtonVariant.primary,
         onPressed: state.canDismiss ? onDone : null,
-        child: Text(
-          state.hasNewMovies
-              ? l10n.movieWidgetSeriesImportDoneWithRefresh
-              : l10n.commonDone,
-        ),
       ),
     );
   }
@@ -438,6 +438,7 @@ class _FailureView extends StatelessWidget {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final radius = context.appRadius;
+    final l10n = AppLocalizations.of(context);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -477,16 +478,17 @@ class _FailureView extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: OutlinedButton(
+              child: AppButton(
+                label: l10n.movieWidgetClose,
                 onPressed: onClose,
-                child: Text(AppLocalizations.of(context).movieWidgetClose),
               ),
             ),
             SizedBox(width: spacing.md),
             Expanded(
-              child: FilledButton(
+              child: AppButton(
+                label: l10n.commonRetry,
+                variant: AppButtonVariant.primary,
                 onPressed: onRetry,
-                child: Text(AppLocalizations.of(context).commonRetry),
               ),
             ),
           ],

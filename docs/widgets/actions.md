@@ -16,7 +16,7 @@
 
 路径：`lib/widgets/base/actions/app_icon_button.dart`
 
-图标操作按钮，支持 `mini`、`compact`、`regular` 尺寸。必须提供可理解的 tooltip 或等价语义。
+图标操作按钮，支持 `mini`、`compact`、`inline`、`regular` 尺寸。`inline` 固定 32×32、`iconSizeSm`，用于设置页和列表行右侧的编辑/删除/同步等紧凑动作。必须提供可理解的 tooltip 或等价语义。
 
 ## `AppGlassIconButton`
 
@@ -35,12 +35,6 @@
 路径：`lib/widgets/base/interaction/app_clickable.dart`
 
 只为没有内置鼠标指针的自定义点击区域提供鼠标指针，不负责点击回调和按下反馈。**需要点击反馈时用 `AppInteractiveSurface`**；只有确实要自行实现手势（例如自定义 `GestureDetector` 的拖拽 / 多指逻辑）时才在它外层包 `AppClickable`。调用方必须根据实际交互状态传入 `enabled`；禁用区域使用系统默认箭头指针。
-
-## `AppInlineActionButton`
-
-路径：`lib/widgets/base/actions/app_inline_action_button.dart`
-
-适合列表行或信息块内的轻量操作。需要异步反馈时使用它已有的 loading/disabled 语义，不要在页面外层再套一套状态。
 
 ## `AppSwitch`
 

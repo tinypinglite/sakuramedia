@@ -1,11 +1,11 @@
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/layout/glass/app_glass_chrome_settings.dart';
+import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
-/// 页面内和顶栏玻璃搜索框共用的 [GlassTextField.search] 外壳。
+/// 页面内和顶栏玻璃搜索框共用的 [AppTextField] 外壳。
 ///
-/// 调用方保留各自的尺寸、焦点和前后缀语义，只共享玻璃质感与字体配置。
+/// 调用方保留各自的尺寸、焦点和前后缀语义；玻璃质感、字体、高对比度和
+/// 动效统一由 [AppTextField] 提供。
 Widget buildAppGlassSearchField({
   Key? key,
   required BuildContext context,
@@ -18,46 +18,18 @@ Widget buildAppGlassSearchField({
   ValueChanged<String>? onChanged,
   ValueChanged<String>? onSubmitted,
 }) {
-  final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
-  final reduceMotion = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
-  final inheritedFontFamily = resolveAppFontFamily(context);
-  final textStyle = resolveAppTextStyle(
-    context,
-    size: AppTextSize.s14,
-    weight: AppTextWeight.regular,
-    tone: AppTextTone.primary,
-  ).copyWith(fontFamily: inheritedFontFamily);
-  final placeholderStyle = resolveAppTextStyle(
-    context,
-    size: AppTextSize.s14,
-    weight: AppTextWeight.regular,
-    tone: AppTextTone.muted,
-  ).copyWith(fontFamily: inheritedFontFamily);
-
-  return GlassTextField.search(
-    key: key,
+  return AppTextField(
+    fieldKey: key,
     controller: controller,
     focusNode: focusNode,
-    placeholder: placeholder,
-    prefixIcon: prefixIcon,
-    suffixIcon: suffixIcon,
+    hintText: placeholder,
+    prefix: prefixIcon,
+    suffix: suffixIcon,
+    textInputAction: TextInputAction.search,
     onChanged: onChanged,
-    onSubmitted: onSubmitted,
+    onFieldSubmitted: onSubmitted,
     height: height,
-    shape: LiquidRoundedRectangle(borderRadius: height / 2),
-    padding: EdgeInsets.symmetric(horizontal: context.appSpacing.md),
-    iconSpacing: context.appSpacing.sm,
-    textStyle: textStyle,
-    placeholderStyle: placeholderStyle,
-    settings: highContrast ? null : appGlassHeaderSettings(context),
-    useOwnLayer: !highContrast,
-    quality: highContrast ? null : GlassQuality.premium,
-    surfaceStyle: highContrast
-        ? GlassSurfaceStyle.solid
-        : GlassSurfaceStyle.glass,
-    color: highContrast ? context.appColors.surfaceMuted : null,
-    interactionBehavior: highContrast || reduceMotion
-        ? GlassInteractionBehavior.none
-        : GlassInteractionBehavior.glowOnly,
+    contentPadding: EdgeInsets.symmetric(horizontal: context.appSpacing.md),
+    borderRadius: BorderRadius.circular(height / 2),
   );
 }

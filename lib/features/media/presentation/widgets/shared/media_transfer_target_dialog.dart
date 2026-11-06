@@ -1,13 +1,10 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/features/media/data/media_transfer_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 Future<int?> showMediaTransferTargetDialog(
   BuildContext context, {
@@ -18,21 +15,13 @@ Future<int?> showMediaTransferTargetDialog(
     selectedCount: selectedCount,
     candidates: candidates,
   );
-  if (AppPlatformScope.maybeOf(context) == AppPlatform.mobile) {
-    return showAppBottomDrawer<int>(
-      context: context,
-      drawerKey: const Key('media-management-transfer-drawer'),
-      maxHeightFactor: 0.58,
-      builder: (_) => body,
-    );
-  }
-  return showAppDialog<int>(
+  return showAppAdaptiveModal<int>(
     context: context,
-    builder: (_) => AppDesktopDialog(
-      dialogKey: const Key('media-management-transfer-dialog'),
-      width: context.appLayoutTokens.dialogWidthSm,
-      child: body,
-    ),
+    dialogKey: const Key('media-management-transfer-dialog'),
+    drawerKey: const Key('media-management-transfer-drawer'),
+    desktopWidth: context.appLayoutTokens.dialogWidthSm,
+    mobileMaxHeightFactor: 0.58,
+    builder: (_) => body,
   );
 }
 

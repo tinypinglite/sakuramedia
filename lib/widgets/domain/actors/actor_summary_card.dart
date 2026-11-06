@@ -94,34 +94,22 @@ class ActorSummaryCard extends StatelessWidget {
 
   /// 悬停面板：姓名、资料与订阅 / 取消订阅动作。
   Widget _buildHoverInfo(BuildContext context) {
-    final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    final subscribe = onSubscriptionTap;
-    final actions = <Widget>[
-      if (subscribe != null)
-        AppCoverHoverActionButton(
-          key: Key('actor-summary-card-subscription-action-${actor.id}'),
-          icon: actor.isSubscribed
-              ? Icons.favorite_rounded
-              : Icons.favorite_border_rounded,
-          tooltip:
-              actor.isSubscribed
-                  ? l10n.widgetActorUnsubscribe
-                  : l10n.widgetActorSubscribe,
-          onTap: isSubscriptionUpdating ? null : subscribe,
-        ),
-    ];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AppCoverHoverInfoRow(label: actor.displayName),
-        SizedBox(height: spacing.sm),
-        _buildHoverStats(context),
-        if (actions.isNotEmpty) ...[
-          SizedBox(height: spacing.sm),
-          AppCoverHoverActionBar(actions: actions),
-        ],
+    return AppCoverHoverPanel(
+      info: AppCoverHoverInfoRow(label: actor.displayName),
+      details: _buildHoverStats(context),
+      actions: [
+        if (onSubscriptionTap != null)
+          AppCoverHoverActionButton(
+            key: Key('actor-summary-card-subscription-action-${actor.id}'),
+            icon: actor.isSubscribed
+                ? Icons.favorite_rounded
+                : Icons.favorite_border_rounded,
+            tooltip: actor.isSubscribed
+                ? l10n.widgetActorUnsubscribe
+                : l10n.widgetActorSubscribe,
+            onTap: isSubscriptionUpdating ? null : onSubscriptionTap,
+          ),
       ],
     );
   }

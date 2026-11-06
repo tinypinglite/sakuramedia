@@ -1,16 +1,8 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:sakuramedia/features/clip_collections/presentation/providers/clip_collections_api_provider.dart';
-import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/clip_collections/data/dto/clip_collection_dto.dart';
+import 'package:sakuramedia/features/clip_collections/presentation/providers/clip_collections_api_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
-import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 
 /// 合集新建/编辑的呈现形态：桌面弹窗 / 移动端底部抽屉。
 enum ClipCollectionEditPresentation { dialog, bottomDrawer }
@@ -43,188 +35,47 @@ Future<ClipCollectionDto?> _showClipCollectionEditDialog(
   ClipCollectionDto? collection,
   required ClipCollectionEditPresentation presentation,
 }) {
-  switch (presentation) {
-    case ClipCollectionEditPresentation.dialog:
-      return showAppDialog<ClipCollectionDto>(
-        context: context,
-        builder: (dialogContext) =>
-            ClipCollectionEditDialog(collection: collection),
-      );
-    case ClipCollectionEditPresentation.bottomDrawer:
-      return showAppBottomDrawer<ClipCollectionDto>(
-        context: context,
-        drawerKey: const Key('clip-collection-edit-bottom-sheet'),
-        maxHeightFactor: 0.62,
-        builder: (sheetContext) => ClipCollectionEditDialog(
-          collection: collection,
-          presentation: ClipCollectionEditPresentation.bottomDrawer,
-        ),
-      );
-  }
-}
-
-/// 合集新建/编辑共用对话框：`collection` 为空表示新建。
-class ClipCollectionEditDialog extends ConsumerStatefulWidget {
-  const ClipCollectionEditDialog({
-    super.key,
-    this.collection,
-    this.presentation = ClipCollectionEditPresentation.dialog,
-  });
-
-  final ClipCollectionDto? collection;
-  final ClipCollectionEditPresentation presentation;
-
-  bool get isEditing => collection != null;
-
-  @override
-  ConsumerState<ClipCollectionEditDialog> createState() =>
-      _ClipCollectionEditDialogState();
-}
-
-class _ClipCollectionEditDialogState
-    extends ConsumerState<ClipCollectionEditDialog> {
-  final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _nameController;
-  late final TextEditingController _descriptionController;
-  bool _isSubmitting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _nameController = TextEditingController(
-      text: widget.collection?.name ?? '',
-    );
-    _descriptionController = TextEditingController(
-      text: widget.collection?.description ?? '',
-    );
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _descriptionController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (widget.presentation == ClipCollectionEditPresentation.dialog) {
-      return AppDesktopDialog(
-        width: context.appComponentTokens.playlistDialogWidth,
-        child: _buildForm(context),
-      );
-    }
-    return SingleChildScrollView(child: _buildForm(context));
-  }
-
-  Widget _buildForm(BuildContext context) {
-    final spacing = context.appSpacing;
-    final l10n = AppLocalizations.of(context);
-    return Form(
-      key: _formKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            widget.isEditing
-                ? l10n.clipCollectionEdit
-                : l10n.clipCollectionCreate,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s14,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.secondary,
-            ),
-          ),
-          SizedBox(height: spacing.md),
-          AppTextField(
-            fieldKey: const Key('clip-collection-name-field'),
-            controller: _nameController,
-            hintText: l10n.clipCollectionNameHint,
-            enabled: !_isSubmitting,
-            validator: (value) => value == null || value.trim().isEmpty
-                ? l10n.clipCollectionNameRequired
-                : null,
-          ),
-          SizedBox(height: spacing.sm),
-          AppTextField(
-            fieldKey: const Key('clip-collection-description-field'),
-            controller: _descriptionController,
-            hintText: l10n.clipCollectionDescriptionHint,
-            enabled: !_isSubmitting,
-          ),
-          SizedBox(height: spacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: AppButton(
-                  label: l10n.commonCancel,
-                  onPressed: _isSubmitting
-                      ? null
-                      : () => Navigator.of(context).pop(),
-                ),
-              ),
-              SizedBox(width: spacing.md),
-              Expanded(
-                child: AppButton(
-                  key: const Key('clip-collection-submit-button'),
-                  label: widget.isEditing
-                      ? l10n.commonSave
-                      : l10n.clipCollectionCreateAction,
-                  variant: AppButtonVariant.primary,
-                  isLoading: _isSubmitting,
-                  onPressed: _submit,
-                ),
-              ),
-            ],
-          ),
-        ],
+  final l10n = AppLocalizations.of(context);
+  final isEditing = collection != null;
+  return showCollectionEditor<ClipCollectionDto>(
+    context,
+    config: CollectionEditorConfig<ClipCollectionDto>(
+      presentation: switch (presentation) {
+        ClipCollectionEditPresentation.dialog =>
+          CollectionEditorPresentation.dialog,
+        ClipCollectionEditPresentation.bottomDrawer =>
+          CollectionEditorPresentation.drawer,
+      },
+      keyPrefix: 'clip-collection',
+      copy: CollectionEditorCopy(
+        title: isEditing ? l10n.clipCollectionEdit : l10n.clipCollectionCreate,
+        nameHint: l10n.clipCollectionNameHint,
+        descriptionHint: l10n.clipCollectionDescriptionHint,
+        nameRequiredMessage: l10n.clipCollectionNameRequired,
+        submitLabel: isEditing
+            ? l10n.commonSave
+            : l10n.clipCollectionCreateAction,
       ),
-    );
-  }
-
-  Future<void> _submit() async {
-    if (_isSubmitting || !_formKey.currentState!.validate()) {
-      return;
-    }
-    final l10n = AppLocalizations.of(context);
-    setState(() => _isSubmitting = true);
-    final api = ref.read(clipCollectionsApiProvider);
-    try {
-      final ClipCollectionDto result;
-      if (widget.isEditing) {
-        result = await api.updateCollection(
-          collectionId: widget.collection!.id,
+      initialName: collection?.name ?? '',
+      initialDescription: collection?.description ?? '',
+      errorFallback: (l10n) => isEditing
+          ? l10n.clipCollectionSaveFailed
+          : l10n.clipCollectionCreateFailed,
+      drawerKey: const Key('clip-collection-edit-bottom-sheet'),
+      drawerMaxHeightFactor: 0.62,
+      onSubmit: (ref, name, description) {
+        final api = ref.read(clipCollectionsApiProvider);
+        if (collection == null) {
+          return api.createCollection(name: name, description: description);
+        }
+        return api.updateCollection(
+          collectionId: collection.id,
           payload: UpdateClipCollectionPayload(
-            name: _nameController.text.trim(),
-            description: _descriptionController.text.trim(),
+            name: name.trim(),
+            description: description.trim(),
           ),
         );
-      } else {
-        result = await api.createCollection(
-          name: _nameController.text,
-          description: _descriptionController.text,
-        );
-      }
-      if (!mounted) {
-        return;
-      }
-      Navigator.of(context).pop(result);
-    } catch (error) {
-      showToast(
-        apiErrorMessage(
-          error,
-          fallback: widget.isEditing
-              ? l10n.clipCollectionSaveFailed
-              : l10n.clipCollectionCreateFailed,
-          l10n: l10n,
-        ),
-        tone: AppToastTone.error,
-      );
-      if (mounted) {
-        setState(() => _isSubmitting = false);
-      }
-    }
-  }
+      },
+    ),
+  );
 }

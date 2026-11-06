@@ -1,7 +1,42 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/interaction/app_clickable.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
+
+class _MoviePlayerOverlayIconButton extends StatelessWidget {
+  const _MoviePlayerOverlayIconButton({
+    required this.buttonKey,
+    required this.icon,
+    required this.onPressed,
+    this.tooltip,
+  });
+
+  final Key buttonKey;
+  final IconData icon;
+  final VoidCallback onPressed;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final button = AppInteractiveSurface(
+      key: buttonKey,
+      onTap: onPressed,
+      child: SizedBox(
+        width: context.appOverlayTokens.playerBackBadgeMinHeight,
+        height: context.appOverlayTokens.playerBackBadgeMinHeight,
+        child: Icon(
+          icon,
+          size: context.appComponentTokens.iconSizeSm,
+          color: context.appTextPalette.onMedia,
+        ),
+      ),
+    );
+    if (tooltip == null || tooltip!.isEmpty) {
+      return button;
+    }
+    return Tooltip(message: tooltip!, child: button);
+  }
+}
 
 class MoviePlayerBackButton extends StatelessWidget {
   const MoviePlayerBackButton({super.key, required this.onPressed});
@@ -10,30 +45,10 @@ class MoviePlayerBackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final componentTokens = context.appComponentTokens;
-    final overlayTokens = context.appOverlayTokens;
-
-    return AppClickable(
-      enabled: true,
-      child: Material(
-        type: MaterialType.transparency,
-        borderRadius: context.appRadius.pillBorder,
-        child: InkWell(
-          mouseCursor: SystemMouseCursors.click,
-          key: const Key('movie-player-back-button'),
-          borderRadius: context.appRadius.pillBorder,
-          onTap: onPressed,
-          child: SizedBox(
-            width: overlayTokens.playerBackBadgeMinHeight,
-            height: overlayTokens.playerBackBadgeMinHeight,
-            child: Icon(
-              Icons.arrow_back_ios_new_rounded,
-              size: componentTokens.iconSizeSm,
-              color: context.appTextPalette.onMedia,
-            ),
-          ),
-        ),
-      ),
+    return _MoviePlayerOverlayIconButton(
+      buttonKey: const Key('movie-player-back-button'),
+      icon: Icons.arrow_back_ios_new_rounded,
+      onPressed: onPressed,
     );
   }
 }
@@ -45,32 +60,11 @@ class MoviePlayerInfoButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final componentTokens = context.appComponentTokens;
-    final overlayTokens = context.appOverlayTokens;
-    return Tooltip(
-      message: AppLocalizations.of(context).widgetMoviePlayerInfoTooltip,
-      child: AppClickable(
-        enabled: true,
-        child: Material(
-          type: MaterialType.transparency,
-          borderRadius: context.appRadius.pillBorder,
-          child: InkWell(
-            mouseCursor: SystemMouseCursors.click,
-            key: const Key('movie-player-info-button'),
-            borderRadius: context.appRadius.pillBorder,
-            onTap: onPressed,
-            child: SizedBox(
-              width: overlayTokens.playerBackBadgeMinHeight,
-              height: overlayTokens.playerBackBadgeMinHeight,
-              child: Icon(
-                Icons.info_outline_rounded,
-                size: componentTokens.iconSizeSm,
-                color: context.appTextPalette.onMedia,
-              ),
-            ),
-          ),
-        ),
-      ),
+    return _MoviePlayerOverlayIconButton(
+      buttonKey: const Key('movie-player-info-button'),
+      icon: Icons.info_outline_rounded,
+      onPressed: onPressed,
+      tooltip: AppLocalizations.of(context).widgetMoviePlayerInfoTooltip,
     );
   }
 }

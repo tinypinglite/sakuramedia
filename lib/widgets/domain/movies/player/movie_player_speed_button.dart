@@ -1,11 +1,8 @@
-import 'dart:async';
-
-import 'package:flutter/gestures.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
-import 'package:sakuramedia/widgets/base/overlays/overlay_entry_rebuild.dart';
+import 'package:sakuramedia/widgets/domain/movies/player/movie_player_hover_menu.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_menu_widgets.dart';
 
 const List<double> kMoviePlayerPlaybackRates = <double>[
@@ -17,8 +14,6 @@ const List<double> kMoviePlayerPlaybackRates = <double>[
   0.75,
   0.5,
 ];
-
-const Duration _moviePlayerSpeedMenuCloseDelay = Duration(milliseconds: 80);
 
 class MoviePlayerSpeedButton extends StatefulWidget {
   const MoviePlayerSpeedButton({
@@ -36,26 +31,27 @@ class MoviePlayerSpeedButton extends StatefulWidget {
   State<MoviePlayerSpeedButton> createState() => _MoviePlayerSpeedButtonState();
 }
 
-class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton> {
-  final LayerLink _layerLink = LayerLink();
-  final GlobalKey _buttonKey = GlobalKey();
-
-  OverlayEntry? _overlayEntry;
-  Timer? _closeTimer;
-  bool _isButtonHovered = false;
-  bool _isMenuHovered = false;
+class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton>
+    with MoviePlayerHoverMenuStateMixin<MoviePlayerSpeedButton> {
   bool _isSelectingRate = false;
   double? _hoveredRate;
   late double _displayRate;
   late bool _displayHasExplicitSelection;
-  double _buttonWidth = 0;
-  Rect? _buttonRect;
-  Rect? _menuRect;
 
-  double get _menuHeight =>
+  @override
+  double get hoverMenuWidth => context.appOverlayTokens.menuWidthSm;
+
+  @override
+  double get hoverMenuHeight =>
       (kMoviePlayerPlaybackRates.length *
           context.appOverlayTokens.menuItemHeight) +
       (context.appOverlayTokens.menuVerticalPadding * 2);
+
+  @override
+  bool get canOpenHoverMenu => !_isSelectingRate;
+
+  @override
+  void onHoverMenuClosed() => _hoveredRate = null;
 
   @override
   void initState() {
@@ -71,145 +67,7 @@ class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton> {
     _displayHasExplicitSelection = widget.hasExplicitSelection;
     if ((oldWidget.currentRate - widget.currentRate).abs() >= 0.001 ||
         oldWidget.hasExplicitSelection != widget.hasExplicitSelection) {
-      requestOverlayEntryRebuild(_overlayEntry);
-    }
-  }
-
-  @override
-  void dispose() {
-    _closeTimer?.cancel();
-    _removeOverlay(notify: false);
-    super.dispose();
-  }
-
-  void _handleButtonEnter(PointerEnterEvent event) {
-    if (_isSelectingRate) {
-      return;
-    }
-    _isButtonHovered = true;
-    _closeTimer?.cancel();
-    _showOverlay();
-  }
-
-  void _handleButtonExit(PointerExitEvent event) {
-    _isButtonHovered = false;
-    _scheduleCloseIfNeeded();
-  }
-
-  void _handleButtonTap() {
-    if (_isSelectingRate) {
-      return;
-    }
-    if (_overlayEntry != null) {
-      _removeOverlay();
-      return;
-    }
-    _showOverlay();
-  }
-
-  void _handleMenuEnter(PointerEnterEvent event) {
-    _isMenuHovered = true;
-    _closeTimer?.cancel();
-  }
-
-  void _handleMenuExit(PointerExitEvent event) {
-    _isMenuHovered = false;
-    _scheduleCloseIfNeeded();
-  }
-
-  void _scheduleCloseIfNeeded() {
-    _closeTimer?.cancel();
-    if (_isButtonHovered || _isMenuHovered) {
-      return;
-    }
-    _closeTimer = Timer(_moviePlayerSpeedMenuCloseDelay, () {
-      if (!_isButtonHovered && !_isMenuHovered) {
-        _removeOverlay();
-      }
-    });
-  }
-
-  void _showOverlay() {
-    if (_isSelectingRate) {
-      return;
-    }
-    if (_overlayEntry != null) {
-      requestOverlayEntryRebuild(_overlayEntry);
-      return;
-    }
-    final overlay = Overlay.of(context);
-    final overlayBox = overlay.context.findRenderObject() as RenderBox?;
-    final buttonBox =
-        _buttonKey.currentContext?.findRenderObject() as RenderBox?;
-    if (overlayBox == null || buttonBox == null) {
-      return;
-    }
-
-    final buttonTopLeft = buttonBox.localToGlobal(
-      Offset.zero,
-      ancestor: overlayBox,
-    );
-    _buttonWidth = buttonBox.size.width;
-    _buttonRect = buttonTopLeft & buttonBox.size;
-    final overlayTokens = context.appOverlayTokens;
-    _menuRect = Rect.fromLTWH(
-      buttonTopLeft.dx + ((_buttonWidth - overlayTokens.menuWidthSm) / 2),
-      buttonTopLeft.dy - (_menuHeight + overlayTokens.menuGap),
-      overlayTokens.menuWidthSm,
-      _menuHeight + overlayTokens.menuGap,
-    );
-    _overlayEntry = OverlayEntry(builder: _buildOverlay);
-    overlay.insert(_overlayEntry!);
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  void _removeOverlay({bool notify = true}) {
-    _closeTimer?.cancel();
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    _hoveredRate = null;
-    _buttonRect = null;
-    _menuRect = null;
-    if (notify && mounted) {
-      setState(() {});
-    }
-  }
-
-  void _handleOverlayHover(PointerHoverEvent event) {
-    if (_isSelectingRate) {
-      return;
-    }
-    final buttonRect = _buttonRect;
-    final menuRect = _menuRect;
-    if (buttonRect == null || menuRect == null) {
-      return;
-    }
-    final position = event.position;
-    _isButtonHovered = buttonRect.contains(position);
-    _isMenuHovered = menuRect.contains(position);
-    if (_isButtonHovered || _isMenuHovered) {
-      _closeTimer?.cancel();
-      return;
-    }
-    _removeOverlay();
-  }
-
-  void _handleOverlayPointerDown(PointerDownEvent event) {
-    if (_isSelectingRate) {
-      return;
-    }
-    final buttonRect = _buttonRect;
-    final menuRect = _menuRect;
-    if (buttonRect == null || menuRect == null) {
-      return;
-    }
-    final position = event.position;
-    final hitsButton = buttonRect.contains(position);
-    final hitsMenu = menuRect.contains(position);
-    if (!hitsButton && !hitsMenu) {
-      _removeOverlay();
+      rebuildHoverMenuOverlay();
     }
   }
 
@@ -226,117 +84,50 @@ class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton> {
       await widget.onRateSelected(rate);
     } finally {
       if (mounted) {
-        _removeOverlay(notify: false);
+        removeHoverMenu(notify: false);
         setState(() {
           _isSelectingRate = false;
         });
       } else {
-        _removeOverlay(notify: false);
+        removeHoverMenu(notify: false);
       }
     }
   }
 
-  Widget _buildOverlay(BuildContext context) {
-    final overlayTokens = context.appOverlayTokens;
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: Listener(
-            behavior: HitTestBehavior.translucent,
-            onPointerDown: _handleOverlayPointerDown,
-            child: MouseRegion(
-              opaque: false,
-              onHover: _handleOverlayHover,
-              child: Stack(
-                children: [
-                  CompositedTransformFollower(
-                    link: _layerLink,
-                    showWhenUnlinked: false,
-                    offset: Offset(
-                      (_buttonWidth - overlayTokens.menuWidthSm) / 2,
-                      -(_menuHeight + overlayTokens.menuGap),
-                    ),
-                    child: MouseRegion(
-                      onEnter: _handleMenuEnter,
-                      onExit: _handleMenuExit,
-                      // OverlayEntry 不在 route 的 Material 子树内, 缺 Material 时
-                      // DefaultTextStyle 会落到 WidgetsApp 的红色兜底样式(黄双下划线)。
-                      child: Material(
-                        color: Colors.transparent,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            _MoviePlayerSpeedMenu(
-                              currentRate: _displayRate,
-                              hoveredRate: _hoveredRate,
-                              onHoveredRateChanged: (rate) {
-                                if (_hoveredRate == rate) {
-                                  return;
-                                }
-                                _hoveredRate = rate;
-                                requestOverlayEntryRebuild(_overlayEntry);
-                              },
-                              onRateSelected: _handleRateSelected,
-                            ),
-                            SizedBox(
-                              width: overlayTokens.menuWidthSm,
-                              height: overlayTokens.menuGap,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
+  @override
+  Widget buildHoverMenu(BuildContext context) {
+    return _MoviePlayerSpeedMenu(
+      currentRate: _displayRate,
+      hoveredRate: _hoveredRate,
+      onHoveredRateChanged: (rate) {
+        if (_hoveredRate == rate) {
+          return;
+        }
+        _hoveredRate = rate;
+        rebuildHoverMenuOverlay();
+      },
+      onRateSelected: _handleRateSelected,
     );
   }
 
   @override
-  Widget build(BuildContext context) {
-    final overlayTokens = context.appOverlayTokens;
+  Widget buildHoverMenuButtonContent(BuildContext context) {
     final label = _displayHasExplicitSelection
         ? formatMoviePlayerPlaybackRateLabel(_displayRate)
         : AppLocalizations.of(context).widgetMoviePlayerSpeed;
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: _handleButtonEnter,
-      onExit: _handleButtonExit,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: _handleButtonTap,
-        child: CompositedTransformTarget(
-          link: _layerLink,
-          child: Container(
-            key: _buttonKey,
-            constraints: BoxConstraints(
-              minWidth: overlayTokens.controlMinWidth,
-              minHeight: overlayTokens.controlMinHeight,
-            ),
-            padding: EdgeInsets.symmetric(
-              horizontal: overlayTokens.controlHorizontalPadding,
-              vertical: overlayTokens.controlVerticalPadding,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              label,
-              key: const Key('movie-player-speed-button'),
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                tone: AppTextTone.onMedia,
-              ),
-            ),
-          ),
-        ),
+    return Text(
+      label,
+      key: const Key('movie-player-speed-button'),
+      style: resolveAppTextStyle(
+        context,
+        size: AppTextSize.s14,
+        tone: AppTextTone.onMedia,
       ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) => buildHoverMenuButton(context);
 }
 
 class _MoviePlayerSpeedMenu extends StatelessWidget {

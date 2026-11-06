@@ -95,57 +95,43 @@ class VideoSummaryCard extends StatelessWidget {
   /// 悬停展开内容：单行「标题 + 时长 · 大小」，下方一整行动作按钮
   /// （播放 / 缩略图 / 加入合集 / 删除，按回调是否为空显隐）。
   Widget _buildHoverInfo(BuildContext context) {
-    final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    final play = onPlay;
-    final canPlay = play != null && video.canPlay;
-    final thumbnails = onThumbnails;
-    final addToCollection = onAddToCollection;
-    final delete = onDelete;
-    final actions = <Widget>[
-      if (canPlay)
-        AppCoverHoverActionButton(
-          key: Key('video-summary-card-play-${video.id}'),
-          icon: Icons.play_arrow_rounded,
-          onTap: play,
-          primary: true,
-          tooltip: l10n.videoPlay,
-        ),
-      if (thumbnails != null)
-        AppCoverHoverActionButton(
-          key: Key('video-summary-card-thumbnails-${video.id}'),
-          icon: Icons.photo_library_outlined,
-          onTap: thumbnails,
-          tooltip: l10n.videoThumbnails,
-        ),
-      if (addToCollection != null)
-        AppCoverHoverActionButton(
-          key: Key('video-summary-card-add-collection-${video.id}'),
-          icon: Icons.playlist_add_rounded,
-          onTap: addToCollection,
-          tooltip: l10n.videoAddToCollection,
-        ),
-      if (delete != null)
-        AppCoverHoverActionButton(
-          key: Key('video-summary-card-delete-${video.id}'),
-          icon: Icons.delete_outline_rounded,
-          onTap: delete,
-          tooltip: l10n.commonDelete,
-        ),
-    ];
-    return Column(
+    return AppCoverHoverPanel(
       key: Key('video-summary-card-info-${video.id}'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AppCoverHoverInfoRow(
-          label: video.displayTitle(l10n),
-          meta: _metaLine(),
-        ),
-        if (actions.isNotEmpty) ...[
-          SizedBox(height: spacing.sm),
-          AppCoverHoverActionBar(actions: actions),
-        ],
+      info: AppCoverHoverInfoRow(
+        label: video.displayTitle(l10n),
+        meta: _metaLine(),
+      ),
+      actions: [
+        if (onPlay != null && video.canPlay)
+          AppCoverHoverActionButton(
+            key: Key('video-summary-card-play-${video.id}'),
+            icon: Icons.play_arrow_rounded,
+            onTap: onPlay,
+            primary: true,
+            tooltip: l10n.videoPlay,
+          ),
+        if (onThumbnails != null)
+          AppCoverHoverActionButton(
+            key: Key('video-summary-card-thumbnails-${video.id}'),
+            icon: Icons.photo_library_outlined,
+            onTap: onThumbnails,
+            tooltip: l10n.videoThumbnails,
+          ),
+        if (onAddToCollection != null)
+          AppCoverHoverActionButton(
+            key: Key('video-summary-card-add-collection-${video.id}'),
+            icon: Icons.playlist_add_rounded,
+            onTap: onAddToCollection,
+            tooltip: l10n.videoAddToCollection,
+          ),
+        if (onDelete != null)
+          AppCoverHoverActionButton(
+            key: Key('video-summary-card-delete-${video.id}'),
+            icon: Icons.delete_outline_rounded,
+            onTap: onDelete,
+            tooltip: l10n.commonDelete,
+          ),
       ],
     );
   }

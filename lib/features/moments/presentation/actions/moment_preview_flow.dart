@@ -13,6 +13,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/routes/mobile_routes.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_dialog.dart';
 import 'package:sakuramedia/widgets/domain/media/quick_play_dialog.dart';
 import 'package:sakuramedia/widgets/domain/moments/moment_image.dart';
@@ -40,7 +41,7 @@ Future<void> showMomentPreviewFlow({
     context: context,
     item: item,
     pointId: isRecommendation ? null : item.pointId,
-    presentation: MediaPreviewPresentation.auto,
+    variant: AppAdaptiveModalVariant.auto,
     drawerKey: drawerKey,
     onPointRemoved: onPointRemoved,
     // 推荐条目删除标记后卡片仍在，保留预览层让用户可重新添加。

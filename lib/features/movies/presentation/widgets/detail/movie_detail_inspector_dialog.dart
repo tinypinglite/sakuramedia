@@ -6,10 +6,10 @@ import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dar
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_inspector_panel.dart';
-import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_preview_overlay.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_navigation_actions.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
@@ -118,7 +118,7 @@ Future<void> showMobileMovieDetailInspectorBottomSheet({
         movieCoverUrl: movieCoverUrl,
         selectedMedia: selectedMedia,
         pane: pane,
-        thumbnailPreviewPresentation: MoviePlotPreviewPresentation.bottomDrawer,
+        thumbnailPreviewPresentation: AppAdaptiveModalVariant.drawer,
         onSearchSimilar: onSearchSimilar,
         onPlay: onPlay,
         onSearchSelection: (query) => context.pushMobileSearch(query: query),

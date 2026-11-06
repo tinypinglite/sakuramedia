@@ -4,7 +4,7 @@ import 'package:sakuramedia/theme.dart';
 class AppContentCard extends StatelessWidget {
   const AppContentCard({
     super.key,
-    required this.title,
+    this.title,
     required this.child,
     this.padding,
     this.titleStyle,
@@ -13,6 +13,7 @@ class AppContentCard extends StatelessWidget {
     this.headerTrailing,
     this.backgroundColor,
     this.borderColor,
+    this.borderRadius,
   });
 
   final String? title;
@@ -30,6 +31,9 @@ class AppContentCard extends StatelessWidget {
 
   /// 卡片描边；默认 `borderSubtle`。
   final Color? borderColor;
+
+  /// 卡片圆角；默认 `lgBorder`。
+  final BorderRadius? borderRadius;
 
   @override
   Widget build(BuildContext context) {
@@ -54,36 +58,36 @@ class AppContentCard extends StatelessWidget {
       padding: padding ?? EdgeInsets.all(context.appSpacing.lg),
       decoration: BoxDecoration(
         color: backgroundColor ?? context.appColors.surfaceCard,
-        borderRadius: context.appRadius.lgBorder,
+        borderRadius: borderRadius ?? context.appRadius.lgBorder,
         border: Border.all(
           color: borderColor ?? context.appColors.borderSubtle,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (titleText != null) ...[
-            if (!hasHeaderLeading && !hasHeaderTrailing)
-              titleText
-            else
-              Row(
-                children: [
-                  if (hasHeaderLeading) ...[
-                    headerLeading!,
-                    SizedBox(width: context.appSpacing.md),
-                  ],
-                  Expanded(child: titleText),
-                  if (hasHeaderTrailing) ...[
-                    SizedBox(width: context.appSpacing.md),
-                    headerTrailing!,
-                  ],
-                ],
-              ),
-            SizedBox(height: headerBottomSpacing ?? context.appSpacing.lg),
-          ],
-          child,
-        ],
-      ),
+      child: titleText == null
+          ? child
+          : Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!hasHeaderLeading && !hasHeaderTrailing)
+                  titleText
+                else
+                  Row(
+                    children: [
+                      if (hasHeaderLeading) ...[
+                        headerLeading!,
+                        SizedBox(width: context.appSpacing.md),
+                      ],
+                      Expanded(child: titleText),
+                      if (hasHeaderTrailing) ...[
+                        SizedBox(width: context.appSpacing.md),
+                        headerTrailing!,
+                      ],
+                    ],
+                  ),
+                SizedBox(height: headerBottomSpacing ?? context.appSpacing.lg),
+                child,
+              ],
+            ),
     );
   }
 }

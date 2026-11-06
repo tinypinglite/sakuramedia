@@ -12,31 +12,23 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 Future<MediaTagAssignmentDto?> showMediaTagAssignmentEditor(
   BuildContext context, {
   required int mediaId,
   required bool mobile,
 }) {
-  final editor = _MediaTagAssignmentEditor(mediaId: mediaId, mobile: mobile);
-  if (mobile) {
-    return showAppBottomDrawer<MediaTagAssignmentDto>(
-      context: context,
-      drawerKey: const Key('media-tag-assignment-drawer'),
-      heightFactor: 0.86,
-      builder: (_) => editor,
-    );
-  }
-  return showAppDialog<MediaTagAssignmentDto>(
+  return showAppAdaptiveModal<MediaTagAssignmentDto>(
     context: context,
-    builder: (_) => AppDesktopDialog(
-      dialogKey: const Key('media-tag-assignment-dialog'),
-      constraints: const BoxConstraints(maxWidth: 680, maxHeight: 720),
-      child: editor,
-    ),
+    variant: mobile
+        ? AppAdaptiveModalVariant.drawer
+        : AppAdaptiveModalVariant.dialog,
+    dialogKey: const Key('media-tag-assignment-dialog'),
+    drawerKey: const Key('media-tag-assignment-drawer'),
+    desktopConstraints: const BoxConstraints(maxWidth: 680, maxHeight: 720),
+    mobileHeightFactor: 0.86,
+    builder: (_) => _MediaTagAssignmentEditor(mediaId: mediaId, mobile: mobile),
   );
 }
 

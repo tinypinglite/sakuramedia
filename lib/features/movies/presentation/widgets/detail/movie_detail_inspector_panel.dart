@@ -22,6 +22,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_update_bar.dart';
@@ -32,7 +33,6 @@ import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 import 'package:sakuramedia/widgets/domain/media/media_thumbnail_action_support.dart';
 import 'package:sakuramedia/widgets/domain/media/media_thumbnail_tab.dart';
-import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_preview_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_magnet_search_content.dart';
 
 /// 检查器承载的功能：评论 / 磁力搜索 / 缩略图。
@@ -53,7 +53,7 @@ class MovieDetailInspectorPanel extends ConsumerStatefulWidget {
     required this.pane,
     this.movieTitle,
     this.movieCoverUrl,
-    this.thumbnailPreviewPresentation = MoviePlotPreviewPresentation.dialog,
+    this.thumbnailPreviewPresentation = AppAdaptiveModalVariant.dialog,
     this.onSearchSimilar,
     this.onPlay,
     this.onSearchSelection,
@@ -68,7 +68,7 @@ class MovieDetailInspectorPanel extends ConsumerStatefulWidget {
 
   /// 本弹窗承载的功能（由入口键决定，弹窗内不可切换）。
   final MovieDetailInspectorPane pane;
-  final MoviePlotPreviewPresentation thumbnailPreviewPresentation;
+  final AppAdaptiveModalVariant thumbnailPreviewPresentation;
   final Future<void> Function(
     MovieMediaThumbnailDto thumbnail,
     String imageUrl,
@@ -353,9 +353,7 @@ class _MovieDetailReviewTabState extends ConsumerState<_MovieDetailReviewTab> {
       result.response.created
           ? l10n.movieWidgetDownloadSubmitted(result.clientName)
           : l10n.movieWidgetDownloadTaskExists,
-      tone: result.response.created
-          ? AppToastTone.success
-          : AppToastTone.info,
+      tone: result.response.created ? AppToastTone.success : AppToastTone.info,
     );
   }
 
