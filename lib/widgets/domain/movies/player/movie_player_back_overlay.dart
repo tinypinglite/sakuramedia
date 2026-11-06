@@ -141,7 +141,7 @@ class MoviePlayerBackOverlay extends StatelessWidget {
   Widget build(BuildContext context) {
     final overlayTokens = context.appOverlayTokens;
     // Align(topLeft) 兜底：本组件可能被放进 `StackFit.expand` 的 Stack（如
-    // MoviePlayerSurfaceFrame 的 readiness 蒙版层）而拿到「强制撑满」的 tight 约束。
+    // 播放器 readiness 蒙版层）而拿到「强制撑满」的 tight 约束。
     // 若不收口，tight 约束会穿透到 SizedBox/Icon，把返回箭头 glyph 居中到屏幕正中。
     // Align 在被撑满时给子节点宽松约束并左上对齐，保证按钮恒按自身大小贴左上角。
     return Align(

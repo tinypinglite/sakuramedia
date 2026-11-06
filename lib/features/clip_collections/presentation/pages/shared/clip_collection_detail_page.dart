@@ -7,35 +7,41 @@ import 'package:sakuramedia/features/clips/presentation/actions/clip_playback_la
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_actions_panel.dart';
 
-/// 桌面切片合集详情壳：桌面语义（网格 / hover / 顶栏内联批量 /
-/// 桌面对话框 / 直接播放切片）收在壳里，实现在 [ClipCollectionDetailContent]。
-class DesktopClipCollectionDetailPage extends StatelessWidget {
-  const DesktopClipCollectionDetailPage({
+/// 切片合集详情壳。平台差异只保留一个 [mobile] 维度和几个真实分叉点。
+class ClipCollectionDetailPage extends StatelessWidget {
+  const ClipCollectionDetailPage({
     super.key,
     required this.collectionId,
+    required this.mobile,
   });
 
   final int collectionId;
+  final bool mobile;
 
   @override
   Widget build(BuildContext context) {
     return ClipCollectionDetailContent(
       collectionId: collectionId,
-      keyPrefix: 'clip-collection',
-      useMobileSelectionLayout: false,
-      hoistTitleToSubpageShell: false,
-      playAllBuilder: (context, {required enabled, required onPlayFrom}) {
-        return AppButton(
-          key: const Key('clip-collection-play-all-button'),
-          label: AppLocalizations.of(context).clipCollectionPlayAll,
-          variant: AppButtonVariant.primary,
-          onPressed: enabled ? onPlayFrom : null,
-        );
-      },
+      keyPrefix: mobile ? 'mobile-clip-collection' : 'clip-collection',
+      useMobileSelectionLayout: mobile,
+      hoistTitleToSubpageShell: mobile,
+      playAllBuilder: _buildPlayAll,
       onMemberTap: (context, clip, actions) {
+        if (mobile) {
+          showClipActionsSheet(
+            context,
+            clip: clip,
+            onPlay: () => actions.playSingle(context, clip),
+            onOpenMovie: _openMovieCallback(context, clip),
+            onRemoveFromCollection: () => actions.remove(clip),
+            onDelete: () => actions.delete(clip),
+          );
+          return;
+        }
         showClipActionsDialog(
           context,
           clip: clip,
@@ -68,14 +74,21 @@ class DesktopClipCollectionDetailPage extends StatelessWidget {
             message: message,
             danger: true,
             confirmLabel: confirmLabel,
+            dialogKey: mobile ? drawerKey : null,
             confirmKey: confirmKey,
             onConfirm: onConfirm,
             failureFallback: AppLocalizations.of(
               context,
             ).clipCollectionDeleteFailed,
           ),
-      onEditCollection: (context, collection) async {
-        return showEditClipCollectionDialog(context, collection: collection);
+      onEditCollection: (context, collection) {
+        return showEditClipCollectionDialog(
+          context,
+          collection: collection,
+          presentation: mobile
+              ? ClipCollectionEditPresentation.bottomDrawer
+              : ClipCollectionEditPresentation.dialog,
+        );
       },
       onAddClips: (context, memberClipIds) async {
         await showAddClipsToCollectionDialog(
@@ -84,6 +97,27 @@ class DesktopClipCollectionDetailPage extends StatelessWidget {
           memberClipIds: memberClipIds,
         );
       },
+    );
+  }
+
+  Widget _buildPlayAll(
+    BuildContext context, {
+    required bool enabled,
+    required VoidCallback onPlayFrom,
+  }) {
+    if (mobile) {
+      return AppTextButton(
+        key: const Key('mobile-clip-collection-play-all-button'),
+        label: AppLocalizations.of(context).clipCollectionPlay,
+        size: AppTextButtonSize.xSmall,
+        onPressed: onPlayFrom,
+      );
+    }
+    return AppButton(
+      key: const Key('clip-collection-play-all-button'),
+      label: AppLocalizations.of(context).clipCollectionPlayAll,
+      variant: AppButtonVariant.primary,
+      onPressed: enabled ? onPlayFrom : null,
     );
   }
 
@@ -100,6 +134,10 @@ class DesktopClipCollectionDetailPage extends StatelessWidget {
     if (movieNumber == null || movieNumber.isEmpty) {
       return;
     }
-    DesktopRoutes.movieDetail(movieNumber: movieNumber).push(context);
+    if (mobile) {
+      MobileRoutes.movieDetail(movieNumber: movieNumber).push(context);
+    } else {
+      DesktopRoutes.movieDetail(movieNumber: movieNumber).push(context);
+    }
   }
 }

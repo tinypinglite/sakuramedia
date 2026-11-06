@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_rate_coordinator.dart';
+import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface.dart';
 
 void main() {
   group('MoviePlayerPlaybackRateCoordinator', () {

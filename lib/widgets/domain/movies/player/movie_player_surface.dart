@@ -7,6 +7,8 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, ValueListenable, defaultTargetPlatform;
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
@@ -19,20 +21,221 @@ import 'package:sakuramedia/widgets/base/media/video/playback_resume_prompt.dart
 import 'package:sakuramedia/widgets/base/media/video/player_screen_orientation.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_system_controls.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_controls_theme.dart';
+import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_controls.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_media_source.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_mobile_drawer_coordinator.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_mobile_drawers.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_native_stats_sampler.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_seek_bar_preview.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_error_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_rate_coordinator.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_resume_seek_coordinators.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface_controller.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface_coordinators.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface_readiness.dart';
+
+const String moviePlayerUserAgent =
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+    'AppleWebKit/537.36 (KHTML, like Gecko) '
+    'Chrome/125.0.0.0 Safari/537.36';
+
+Media buildMoviePlayerMedia(String resolvedUrl, {Duration? startPosition}) =>
+    Media(
+      resolvedUrl,
+      start: startPosition,
+      httpHeaders: const <String, String>{'User-Agent': moviePlayerUserAgent},
+    );
+
+PlayerConfiguration buildMoviePlayerConfiguration({TargetPlatform? platform}) =>
+    switch (platform ?? defaultTargetPlatform) {
+      TargetPlatform.macOS ||
+      TargetPlatform.windows => const PlayerConfiguration(libass: true),
+      _ => const PlayerConfiguration(),
+    };
+
+class MoviePlayerSurfaceController {
+  final _seekController = StreamController<Duration>.broadcast();
+  final _playController = StreamController<void>.broadcast();
+
+  Stream<Duration> get seekStream => _seekController.stream;
+  Stream<void> get playStream => _playController.stream;
+
+  void seekTo(Duration position) {
+    if (_seekController.isClosed) return;
+    _seekController.add(position);
+  }
+
+  void play() {
+    if (_playController.isClosed) return;
+    _playController.add(null);
+  }
+
+  void dispose() {
+    _seekController.close();
+    _playController.close();
+  }
+}
+
+MoviePlayerMobileSpeedDisplayState _mobileSpeedDisplayState(
+  double rate,
+  bool hasExplicitSelection,
+) => MoviePlayerMobileSpeedDisplayState(
+  rate: rate,
+  hasExplicitSelection: hasExplicitSelection,
+);
+
+class MoviePlayerPlaybackRateCoordinator extends ChangeNotifier {
+  MoviePlayerPlaybackRateCoordinator({
+    required Future<void> Function(double rate) setRate,
+    required double initialRate,
+  }) : _setRate = setRate,
+       _currentRate = initialRate,
+       _mobileSpeedDisplay = ValueNotifier(
+         _mobileSpeedDisplayState(initialRate, false),
+       );
+
+  final Future<void> Function(double rate) _setRate;
+  final ValueNotifier<MoviePlayerMobileSpeedDisplayState> _mobileSpeedDisplay;
+  double _currentRate;
+  bool _hasExplicitSelection = false;
+  double? _pendingRate;
+
+  double get currentRate => _currentRate;
+  bool get hasExplicitSelection => _hasExplicitSelection;
+  ValueListenable<MoviePlayerMobileSpeedDisplayState> get mobileSpeedDisplay =>
+      _mobileSpeedDisplay;
+
+  void onRateStreamEvent(double rate) {
+    final pendingRate = _pendingRate;
+    if (pendingRate != null && (pendingRate - rate).abs() >= 0.001) {
+      return;
+    }
+    if (pendingRate != null) {
+      _pendingRate = null;
+    }
+    final display = _mobileSpeedDisplay.value;
+    if ((display.rate - rate).abs() >= 0.001) {
+      _mobileSpeedDisplay.value = _mobileSpeedDisplayState(
+        rate,
+        display.hasExplicitSelection,
+      );
+    }
+    if ((_currentRate - rate).abs() < 0.001) {
+      return;
+    }
+    _currentRate = rate;
+    notifyListeners();
+  }
+
+  Future<void> select(double rate) async {
+    final previousRate = _currentRate;
+    final previousSelection = _hasExplicitSelection;
+    _pendingRate = rate;
+    _currentRate = rate;
+    _hasExplicitSelection = true;
+    notifyListeners();
+    try {
+      await _setRate(rate);
+      _pendingRate = null;
+    } catch (_) {
+      _pendingRate = null;
+      _currentRate = previousRate;
+      _hasExplicitSelection = previousSelection;
+      notifyListeners();
+    }
+  }
+
+  Future<void> selectFromMobile(double rate) async {
+    _mobileSpeedDisplay.value = _mobileSpeedDisplayState(rate, true);
+    await select(rate);
+    _mobileSpeedDisplay.value = _mobileSpeedDisplayState(
+      _currentRate,
+      _hasExplicitSelection,
+    );
+  }
+
+  void resetMobileDisplayForNewMedia(double newInitialRate) {
+    _mobileSpeedDisplay.value = _mobileSpeedDisplayState(newInitialRate, false);
+  }
+
+  @override
+  void dispose() {
+    _mobileSpeedDisplay.dispose();
+    super.dispose();
+  }
+}
+
+typedef MoviePlayerSurfaceOpen =
+    Future<void> Function(
+      String resolvedUrl, {
+      required Duration? startPosition,
+      required bool play,
+    });
+
+Future<int?> applyMoviePlayerSubtitleSelection({
+  required Future<void> Function(SubtitleTrack track) setSubtitleTrack,
+  required MoviePlayerSubtitleOption? selectedOption,
+  required Future<String> Function(MoviePlayerSubtitleOption option)
+  loadSubtitleText,
+  required VoidCallback onError,
+}) async {
+  try {
+    if (selectedOption == null) {
+      await setSubtitleTrack(SubtitleTrack.no());
+      return null;
+    }
+    final subtitleText = await loadSubtitleText(selectedOption);
+    await setSubtitleTrack(
+      SubtitleTrack.data(
+        subtitleText,
+        title: selectedOption.title,
+        language: selectedOption.language,
+      ),
+    );
+    return selectedOption.subtitleId;
+  } catch (_) {
+    try {
+      await setSubtitleTrack(SubtitleTrack.no());
+    } catch (_) {
+      // Keep the original failure as the user-visible signal.
+    }
+    onError();
+    return null;
+  }
+}
+
+Future<void> openMoviePlayerSurface({
+  required MoviePlayerSurfaceOpen open,
+  required Future<void> Function() play,
+  required Future<void> Function(Duration position) seek,
+  required Future<void> Function() waitUntilFirstFrameRendered,
+  required String resolvedUrl,
+  required Duration? initialPosition,
+  required bool Function() shouldContinue,
+  required VoidCallback markReady,
+  Future<void> Function()? waitUntilSeekReady,
+}) async {
+  final startupPosition =
+      initialPosition != null && initialPosition > Duration.zero
+      ? initialPosition
+      : null;
+  await open(
+    resolvedUrl,
+    startPosition: waitUntilSeekReady == null ? startupPosition : null,
+    play: false,
+  );
+  if (!shouldContinue()) return;
+  await play();
+  if (!shouldContinue()) return;
+  await waitUntilFirstFrameRendered();
+  if (!shouldContinue()) return;
+  if (waitUntilSeekReady != null) {
+    await waitUntilSeekReady();
+    if (!shouldContinue()) return;
+  }
+  if (startupPosition != null) {
+    await seek(startupPosition);
+    if (!shouldContinue()) return;
+  }
+  markReady();
+}
 
 class MoviePlayerSurface extends ConsumerStatefulWidget {
   const MoviePlayerSurface({
@@ -95,12 +298,13 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
 
   late final Player _player;
   late final VideoController _controller;
-  late final MoviePlayerSurfaceReadiness _readiness;
+  final ValueNotifier<bool> _isSurfaceReady = ValueNotifier<bool>(false);
   late final MoviePlayerNativeStatsSampler _statsSampler;
   late final ValueNotifier<MoviePlayerSubtitleState> _subtitleStateNotifier;
   late final ValueNotifier<bool> _isApplyingSubtitleNotifier;
   late final MoviePlayerPlaybackRateCoordinator _playbackRate;
-  late final MoviePlayerMobileDrawerCoordinator _mobileDrawer;
+  MoviePlayerMobileDrawerType? _activeDrawer;
+  bool _isInfoSideOpen = false;
   late final PlayerSystemControls _systemControls;
   bool _systemControlsReady = false;
   StreamSubscription<Duration>? _seekSubscription;
@@ -119,10 +323,6 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
   Duration? _pendingInitialSeek;
   late final MoviePlayerResumePromptCoordinator _resumePrompt;
   late final MoviePlayerStartupSeekCoordinator _startupSeek;
-  static const MoviePlayerSurfaceOpenCoordinator _openCoordinator =
-      MoviePlayerSurfaceOpenCoordinator();
-  static const MoviePlayerSurfaceSubtitleCoordinator _subtitleCoordinator =
-      MoviePlayerSurfaceSubtitleCoordinator();
 
   @override
   void initState() {
@@ -132,7 +332,6 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       _player,
       configuration: const VideoControllerConfiguration(hwdec: 'auto'),
     );
-    _readiness = MoviePlayerSurfaceReadiness();
     _statsSampler = MoviePlayerNativeStatsSampler(
       readNativeProperty: createMediaKitNativePropertyReader(_player),
       originalUrl: widget.resolvedUrl,
@@ -151,7 +350,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     )..addListener(_handleResumePromptChanged);
     _startupSeek = MoviePlayerStartupSeekCoordinator(
       seek: _player.seek,
-      isSurfaceReady: () => _readiness.isReady,
+      isSurfaceReady: () => _isSurfaceReady.value,
     );
     _subtitleStateNotifier = ValueNotifier<MoviePlayerSubtitleState>(
       widget.subtitleState,
@@ -161,8 +360,6 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       setRate: _player.setRate,
       initialRate: _player.state.rate,
     )..addListener(_handlePlaybackRateChanged);
-    _mobileDrawer = MoviePlayerMobileDrawerCoordinator()
-      ..addListener(_handleMobileDrawerChanged);
     _systemControls = PlayerSystemControls();
     _initializeSystemControls();
     _seekSubscription = widget.surfaceController.seekStream.listen(
@@ -230,10 +427,8 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     }
     if (oldWidget.resolvedUrl != widget.resolvedUrl) {
       _statsSampler.updateContext(originalUrl: widget.resolvedUrl);
-    }
-    if (oldWidget.resolvedUrl != widget.resolvedUrl) {
       _playbackRate.resetMobileDisplayForNewMedia(_player.state.rate);
-      _mobileDrawer.closeAll();
+      _closeAllMobileDrawers();
       _hasPlaybackError = false;
       unawaited(_openMedia());
     }
@@ -241,12 +436,12 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       if (widget.resumePosition == null) {
         _resumePrompt.cancel();
       } else {
-        _resumePrompt.rearm(surfaceReady: _readiness.isReady);
+        _resumePrompt.rearm(surfaceReady: _isSurfaceReady.value);
       }
     }
     if (oldWidget.useTouchOptimizedControls &&
         !widget.useTouchOptimizedControls) {
-      _mobileDrawer.closeDrawer();
+      _closeMobileDrawer();
       _systemControlsReady = true;
     } else if (!oldWidget.useTouchOptimizedControls &&
         widget.useTouchOptimizedControls) {
@@ -273,11 +468,9 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     _resumePrompt.dispose();
     _playbackRate.removeListener(_handlePlaybackRateChanged);
     _playbackRate.dispose();
-    _mobileDrawer.removeListener(_handleMobileDrawerChanged);
-    _mobileDrawer.dispose();
     _subtitleStateNotifier.dispose();
     _isApplyingSubtitleNotifier.dispose();
-    _readiness.dispose();
+    _isSurfaceReady.dispose();
     unawaited(_systemControls.resetBrightness());
     _player.dispose();
     super.dispose();
@@ -314,13 +507,13 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     debugPrint(
       '[player-debug] surface_state_open_media requestId=$requestId url=${widget.resolvedUrl} initialPositionSeconds=${widget.initialPosition?.inSeconds} startupTargetSeconds=${_startupSeek.target?.inSeconds}',
     );
-    _readiness.reset();
+    _isSurfaceReady.value = false;
     await _configureSeekFramedrop();
     if (!mounted || requestId != _openRequestId) {
       return;
     }
     try {
-      await _openCoordinator.open(
+      await openMoviePlayerSurface(
         open: (url, {required startPosition, required play}) => _player.open(
           buildMoviePlayerMedia(url, startPosition: startPosition),
           play: play,
@@ -332,15 +525,13 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
         resolvedUrl: playbackUrl,
         initialPosition: widget.initialPosition,
         shouldContinue: () => mounted && requestId == _openRequestId,
-        waitUntilSeekReady: _guardsInitialSeek
-            ? () => waitUntilInitialSeekReady(
-                firstFrame: _controller.waitUntilFirstFrameRendered,
-                positionStream: _player.stream.position,
-                currentPosition: () => _player.state.position,
-                isPlaying: () => _player.state.playing,
-                isBuffering: () => _player.state.buffering,
-              )
-            : null,
+        waitUntilSeekReady: () => waitUntilInitialSeekReady(
+          firstFrame: _controller.waitUntilFirstFrameRendered,
+          positionStream: _player.stream.position,
+          currentPosition: () => _player.state.position,
+          isPlaying: () => _player.state.playing,
+          isBuffering: () => _player.state.buffering,
+        ),
         markReady: _markSurfaceReady,
       );
     } catch (error) {
@@ -405,11 +596,9 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     } catch (_) {}
   }
 
-  bool get _guardsInitialSeek => true;
-
   void _handleSurfaceSeekRequested(Duration position) {
     _resumePrompt.resolve();
-    if (_guardsInitialSeek && !_readiness.isReady) {
+    if (!_isSurfaceReady.value) {
       _pendingInitialSeek = position;
       return;
     }
@@ -417,7 +606,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
   }
 
   void _markSurfaceReady() {
-    _readiness.markReady();
+    _isSurfaceReady.value = true;
     final pendingSeek = _pendingInitialSeek;
     _pendingInitialSeek = null;
     if (pendingSeek != null) {
@@ -440,17 +629,10 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       return;
     }
     debugPrint('[player-debug] playback_failed error=$error');
-    _mobileDrawer.closeAll();
+    _closeAllMobileDrawers();
     setState(() {
       _hasPlaybackError = true;
     });
-  }
-
-  void _handleMobileDrawerChanged() {
-    if (!mounted) {
-      return;
-    }
-    setState(() {});
   }
 
   Future<void> _handleSubtitleSelected(int? subtitleId) async {
@@ -484,7 +666,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     _isApplyingSubtitleNotifier.value = true;
 
     try {
-      final nextSubtitleId = await _subtitleCoordinator.applySelection(
+      final nextSubtitleId = await applyMoviePlayerSubtitleSelection(
         setSubtitleTrack: _player.setSubtitleTrack,
         selectedOption: selectedOption,
         loadSubtitleText: _loadSubtitleText,
@@ -538,26 +720,62 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     setState(() {});
   }
 
+  void _toggleMobileDrawer(MoviePlayerMobileDrawerType type) {
+    _updateMobileDrawers(
+      activeDrawer: _activeDrawer == type ? null : type,
+      infoSideOpen: false,
+    );
+  }
+
+  void _closeMobileDrawer() {
+    _updateMobileDrawers(activeDrawer: null, infoSideOpen: _isInfoSideOpen);
+  }
+
+  void _openInfoSide() {
+    _updateMobileDrawers(activeDrawer: null, infoSideOpen: true);
+  }
+
+  void _dismissInfoSide() {
+    _updateMobileDrawers(activeDrawer: _activeDrawer, infoSideOpen: false);
+  }
+
+  void _closeAllMobileDrawers() {
+    _updateMobileDrawers(activeDrawer: null, infoSideOpen: false);
+  }
+
+  void _updateMobileDrawers({
+    required MoviePlayerMobileDrawerType? activeDrawer,
+    required bool infoSideOpen,
+  }) {
+    if (_activeDrawer == activeDrawer && _isInfoSideOpen == infoSideOpen) {
+      return;
+    }
+    setState(() {
+      _activeDrawer = activeDrawer;
+      _isInfoSideOpen = infoSideOpen;
+    });
+  }
+
   Future<void> _handleMobilePlaybackRateSelected(double rate) async {
-    _mobileDrawer.closeDrawer();
+    _closeMobileDrawer();
     await _playbackRate.selectFromMobile(rate);
   }
 
   Future<void> _handleMobileSubtitleSelected(int subtitleId) async {
-    _mobileDrawer.closeDrawer();
+    _closeMobileDrawer();
     await _handleSubtitleSelected(subtitleId);
   }
 
   Future<void> _toggleInfoSideDrawer() async {
-    if (_mobileDrawer.isInfoSideOpen) {
-      _mobileDrawer.dismissInfoSide();
+    if (_isInfoSideOpen) {
+      _dismissInfoSide();
       return;
     }
     await _statsSampler.refreshNative();
     if (!mounted) {
       return;
     }
-    _mobileDrawer.openInfoSide();
+    _openInfoSide();
   }
 
   @override
@@ -575,20 +793,20 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       onBackPressed: widget.onBackPressed,
     );
     final mobileBottomControls = buildMoviePlayerMobileBottomControls(
-      activeDrawer: _mobileDrawer.activeDrawer,
+      activeDrawer: _activeDrawer,
       speedDisplayListenable: _playbackRate.mobileSpeedDisplay,
       onSpeedButtonPressed: () =>
-          _mobileDrawer.toggle(MoviePlayerMobileDrawerType.speed),
+          _toggleMobileDrawer(MoviePlayerMobileDrawerType.speed),
       onSubtitleButtonPressed: () =>
-          _mobileDrawer.toggle(MoviePlayerMobileDrawerType.subtitle),
+          _toggleMobileDrawer(MoviePlayerMobileDrawerType.subtitle),
     );
     final mobileFullscreenBottomControls = buildMoviePlayerMobileBottomControls(
-      activeDrawer: _mobileDrawer.activeDrawer,
+      activeDrawer: _activeDrawer,
       speedDisplayListenable: _playbackRate.mobileSpeedDisplay,
       onSpeedButtonPressed: () =>
-          _mobileDrawer.toggle(MoviePlayerMobileDrawerType.speed),
+          _toggleMobileDrawer(MoviePlayerMobileDrawerType.speed),
       onSubtitleButtonPressed: () =>
-          _mobileDrawer.toggle(MoviePlayerMobileDrawerType.subtitle),
+          _toggleMobileDrawer(MoviePlayerMobileDrawerType.subtitle),
       includeDrawerButtons: false,
     );
     final desktopBottomControls = buildMoviePlayerDesktopBottomControls(
@@ -640,18 +858,18 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
         if (widget.useTouchOptimizedControls)
           buildMoviePlayerMobileDrawerOverlay(
             context: context,
-            activeDrawer: _mobileDrawer.activeDrawer,
+            activeDrawer: _activeDrawer,
             subtitleState: widget.subtitleState,
             currentRate: _playbackRate.mobileSpeedDisplay.value.rate,
             isApplyingSubtitleListenable: _isApplyingSubtitleNotifier,
-            onDismiss: _mobileDrawer.closeDrawer,
+            onDismiss: _closeMobileDrawer,
             onRateSelected: _handleMobilePlaybackRateSelected,
             onSubtitleSelected: _handleMobileSubtitleSelected,
           ),
         buildMoviePlayerInfoSideDrawerOverlay(
           context: context,
-          isOpen: _mobileDrawer.isInfoSideOpen,
-          onDismiss: _mobileDrawer.dismissInfoSide,
+          isOpen: _isInfoSideOpen,
+          onDismiss: _dismissInfoSide,
           infoListenable: _statsSampler.snapshot,
           mediaInfo: widget.mediaInfo,
         ),
@@ -684,26 +902,44 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
           topControls,
           desktopBottomControls,
         ),
-        child: ListenableBuilder(
-          listenable: _readiness,
-          builder: (context, child) {
-            return MoviePlayerSurfaceFrame(
-              isReady: _readiness.isReady,
-              onBackPressed: widget.onBackPressed,
-              child: child!,
-            );
-          },
-          child: playerContent,
-        ),
+        child: ColoredBox(color: backgroundColor, child: playerContent),
       ),
     );
+    final framedPlayer = ValueListenableBuilder<bool>(
+      valueListenable: _isSurfaceReady,
+      child: player,
+      builder: (context, isReady, child) {
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            child!,
+            if (!isReady)
+              Positioned.fill(
+                child: ColoredBox(
+                  key: const Key('movie-player-surface-ready-mask'),
+                  color: backgroundColor,
+                  child: Center(
+                    child: VideoLoadingIndicator(
+                      label: AppLocalizations.of(
+                        context,
+                      ).widgetMoviePlayerLoading,
+                    ),
+                  ),
+                ),
+              ),
+            if (!isReady && widget.onBackPressed != null)
+              MoviePlayerBackOverlay(onPressed: widget.onBackPressed!),
+          ],
+        );
+      },
+    );
     if (!_hasPlaybackError) {
-      return player;
+      return framedPlayer;
     }
     return Stack(
       fit: StackFit.expand,
       children: [
-        player,
+        framedPlayer,
         const MoviePlayerPlaybackErrorOverlay(),
         if (widget.onBackPressed case final onBackPressed?)
           MoviePlayerBackOverlay(onPressed: onBackPressed),

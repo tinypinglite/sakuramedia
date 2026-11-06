@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_media_source.dart';
+import 'package:sakuramedia/widgets/domain/movies/player/movie_player_surface.dart';
 
 void main() {
   group('Movie player configuration', () {

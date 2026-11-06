@@ -1,9 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/app/app_platform.dart';
-import 'package:sakuramedia/features/clip_collections/presentation/pages/desktop/clip_collection_detail_page.dart';
+import 'package:sakuramedia/features/clip_collections/presentation/pages/shared/clip_collection_detail_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/desktop/clip_collection_play_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/desktop/clip_collections_page.dart';
-import 'package:sakuramedia/features/clip_collections/presentation/pages/mobile/clip_collection_detail_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/mobile/clip_collection_play_page.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/pages/mobile/clip_collections_page.dart';
 import 'package:sakuramedia/features/clips/presentation/pages/desktop/clips_page.dart';
@@ -67,8 +66,9 @@ final AppRouteDefinition desktopClipCollectionDetailRoute = AppRouteDefinition(
   platform: AppPlatform.desktop,
   path: '$desktopClipCollectionsPath/:collectionId',
   scope: AppRouteScope.shellLevel,
-  pageBuilder: (context, state) => DesktopClipCollectionDetailPage(
+  pageBuilder: (context, state) => ClipCollectionDetailPage(
     collectionId: int.parse(state.pathParameters['collectionId']!),
+    mobile: false,
   ),
   title: (l10n, [_]) => l10n.routeCollectionDetailsTitle,
   backTarget: (state) => desktopClipCollectionsPath,
@@ -137,8 +137,9 @@ final AppRouteDefinition mobileClipCollectionDetailRoute = AppRouteDefinition(
   scope: AppRouteScope.outsideShell,
   transition: AppRouteTransition.cupertino,
   subpageChrome: const AppSubpageChrome(glassChrome: true),
-  pageBuilder: (context, state) => MobileClipCollectionDetailPage(
+  pageBuilder: (context, state) => ClipCollectionDetailPage(
     collectionId: int.parse(state.pathParameters['collectionId']!),
+    mobile: true,
   ),
   title: (l10n, [_]) => l10n.routeCollectionsTitle,
   backTarget: (state) => mobileClipCollectionsPath,
