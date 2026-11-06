@@ -32,7 +32,8 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
-import 'package:sakuramedia/widgets/base/interaction/selection/use_multi_selection.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/selection_controller.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/use_selection_controller.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
@@ -115,7 +116,14 @@ class MomentsContent extends HookConsumerWidget {
     final filter =
         ref.watch(momentsProvider.select((async) => async.value?.filter)) ??
         ref.read(momentsProvider.notifier).filter;
-    final selection = useMultiSelection<int>();
+    final selection = useSelectionController<int>(
+      orderedIds: () =>
+          (ref.read(momentsProvider).value?.paged.items ??
+                  const <MomentListItem>[])
+              .map((item) => item.pointId)
+              .toList(growable: false),
+    );
+    useListenable(selection);
     final submitting = watchBatchOperationSubmitting(ref, const [
       BatchOperationType.momentCollectionAdd,
       BatchOperationType.momentCollectionRemove,
@@ -128,8 +136,8 @@ class MomentsContent extends HookConsumerWidget {
         unawaited(_batchDelete(context, ref, paged.items, selection));
 
     useEffect(() {
-      if (selection.selectionMode || selection.selectedCount > 0) {
-        selection.exit();
+      if (selection.active || selection.selectedIds.isNotEmpty) {
+        selection.exitSelection();
       }
       return null;
     }, [filter.sortOrder, filter.kindFilter]);
@@ -148,7 +156,7 @@ class MomentsContent extends HookConsumerWidget {
       header: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (selection.selectionMode)
+          if (selection.active)
             _buildSelectionHeader(
               context,
               paged.items,
@@ -165,7 +173,7 @@ class MomentsContent extends HookConsumerWidget {
               listHeaderKey,
               paged,
               filter,
-              () => selection.enter(),
+              selection.enterSelection,
             ),
         ],
       ),
@@ -173,17 +181,7 @@ class MomentsContent extends HookConsumerWidget {
           ? context.appSpacing.md
           : context.appSpacing.lg,
       after: [
-        _buildBody(
-          context,
-          ref,
-          paged,
-          selection: selection,
-          onLongPress: (item) {
-            if (!selection.selectionMode) {
-              selection.enter(item.pointId);
-            }
-          },
-        ),
+        _buildBody(context, ref, paged, selection: selection),
         // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。
         PagedLoadMoreFooterSliver(
           watchFooter: (ref) => ref.watch(
@@ -223,8 +221,7 @@ class MomentsContent extends HookConsumerWidget {
               ),
       ),
     );
-    final pageWithSelectionBar =
-        useMobileFilterDrawer && selection.selectionMode
+    final pageWithSelectionBar = useMobileFilterDrawer && selection.active
         ? Column(
             children: [
               Expanded(child: page),
@@ -395,7 +392,7 @@ class MomentsContent extends HookConsumerWidget {
   Widget _buildSelectionHeader(
     BuildContext context,
     List<MomentListItem> items, {
-    required MultiSelection<int> selection,
+    required SelectionController<int> selection,
     required VoidCallback onBatchAddToCollection,
     required VoidCallback onBatchDelete,
     required bool submitting,
@@ -408,12 +405,12 @@ class MomentsContent extends HookConsumerWidget {
       return AppMobileSelectionHeader(
         selectionLabel: l10n.momentSelectedCount(selection.selectedCount),
         exitKey: Key('$keyPrefix-exit-selection-button'),
-        onExitSelection: selection.exit,
+        onExitSelection: selection.exitSelection,
         selectAllKey: Key('$keyPrefix-select-all-button'),
         selectAllTooltip: allSelected
             ? l10n.momentDeselectAll
             : l10n.momentSelectAll,
-        onToggleAll: () => selection.toggleAll(ids),
+        onToggleAll: () => selection.toggleSelectAll(ids),
       );
     }
     return AppGlassSelectionHeader(
@@ -422,8 +419,8 @@ class MomentsContent extends HookConsumerWidget {
           ? l10n.momentDeselectAll
           : l10n.momentSelectAll,
       selectAllKey: Key('$keyPrefix-select-all-button'),
-      onToggleAll: () => selection.toggleAll(ids),
-      onExitSelection: selection.exit,
+      onToggleAll: () => selection.toggleSelectAll(ids),
+      onExitSelection: selection.exitSelection,
       exitKey: Key('$keyPrefix-exit-selection-button'),
       actions: <AppGlassSelectionAction>[
         AppGlassSelectionAction(
@@ -641,8 +638,7 @@ class MomentsContent extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     PagedViewSnapshot<MomentListItem> paged, {
-    required MultiSelection<int> selection,
-    required ValueChanged<MomentListItem> onLongPress,
+    required SelectionController<int> selection,
   }) {
     final isLoading = paged.isInitialLoading;
     final l10n = AppLocalizations.of(context);
@@ -665,7 +661,10 @@ class MomentsContent extends HookConsumerWidget {
       enabled: isLoading,
       child: MomentSliver(
         items: items,
-        onItemTap: (item) => _openMomentPreview(context, ref, item),
+        onItemTap: (item) => selection.tapHandler(
+          item.pointId,
+          () => _openMomentPreview(context, ref, item),
+        )(),
         onItemPlay: (item) => unawaited(
           playMomentItem(
             context: context,
@@ -681,11 +680,11 @@ class MomentsContent extends HookConsumerWidget {
         onItemAddToCollection: (item) =>
             unawaited(addMomentItemToCollection(context, item: item)),
         onItemDelete: (item) => unawaited(_deleteItem(context, ref, item)),
-        selectionMode: selection.selectionMode,
+        selectionMode: selection.active,
         isSelected: (item) => selection.isSelected(item.pointId),
-        onSelectedChanged: (item) => selection.toggle(item.pointId),
-        onLongPress: useMobileFilterDrawer && !selection.selectionMode
-            ? onLongPress
+        onSelectedChanged: (item) => selection.handleSelectionTap(item.pointId),
+        onLongPress: useMobileFilterDrawer && !selection.active
+            ? (item) => selection.longPressHandler(item.pointId)()
             : null,
       ),
     );
@@ -752,7 +751,7 @@ class MomentsContent extends HookConsumerWidget {
     BuildContext context,
     WidgetRef ref,
     List<MomentListItem> items,
-    MultiSelection<int> selection,
+    SelectionController<int> selection,
   ) async {
     final selected = items
         .where((item) => selection.isSelected(item.pointId))
@@ -768,14 +767,14 @@ class MomentsContent extends HookConsumerWidget {
       ids: selected.map((item) => item.pointId).toList(growable: false),
     );
     if (!context.mounted) return;
-    if (submitted) selection.exit();
+    if (submitted) selection.exitSelection();
   }
 
   Future<void> _batchDelete(
     BuildContext context,
     WidgetRef ref,
     List<MomentListItem> items,
-    MultiSelection<int> selection,
+    SelectionController<int> selection,
   ) async {
     final selected = items
         .where((item) => selection.isSelected(item.pointId))
@@ -799,7 +798,7 @@ class MomentsContent extends HookConsumerWidget {
       ids: selected.map((item) => item.pointId).toList(growable: false),
     );
     if (!context.mounted) return;
-    if (submitted) selection.exit();
+    if (submitted) selection.exitSelection();
   }
 
   Future<void> _refreshAfterPointDelete(WidgetRef ref) async {

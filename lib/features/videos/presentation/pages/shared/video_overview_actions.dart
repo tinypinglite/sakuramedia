@@ -73,6 +73,10 @@ mixin VideoOverviewActionsMixin<W extends ConsumerStatefulWidget>
       ref.read(videoSummaryProvider(overviewScope)).value?.paged.items ??
       const <VideoItemListItemDto>[];
 
+  @override
+  List<int> get selectionOrderedIds =>
+      loadedVideos.map((video) => video.id).toList(growable: false);
+
   VideoFilterState get currentFilter =>
       ref.read(videoSummaryProvider(overviewScope)).value?.filter ??
       VideoFilterState.initial;
@@ -354,7 +358,6 @@ mixin VideoOverviewActionsMixin<W extends ConsumerStatefulWidget>
     if (selected != true || !mounted) {
       return;
     }
-    enterSelection();
-    toggleSelect(video.id);
+    enterSelection(initial: video.id);
   }
 }

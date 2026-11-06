@@ -86,6 +86,17 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
       _mobile ? 'mobile-clip-collection-card' : 'clip-collection-card';
 
   @override
+  List<int> get selectionOrderedIds =>
+      ref
+          .read(clipsOverviewProvider)
+          .value
+          ?.paged
+          .items
+          .map((clip) => clip.clipId)
+          .toList(growable: false) ??
+      const <int>[];
+
+  @override
   void dispose() {
     _scrollController.dispose();
     super.dispose();
@@ -619,16 +630,16 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
             return ClipCoverCard(
               key: Key('mobile-clip-grid-card-${clip.clipId}'),
               clip: clip,
-              onTap: () => _openClipActions(clip),
+              onTap: selectionAwareTap(
+                clip.clipId,
+                () => _openClipActions(clip),
+              ),
               selectionMode: selectionMode,
               isSelected: isSelected(clip.clipId),
-              onSelectedChanged: (_) => toggleSelect(clip.clipId),
+              onSelectedChanged: selectionChangedHandler(clip.clipId),
               onLongPress: selectionMode
                   ? null
-                  : () {
-                      enterSelection();
-                      toggleSelect(clip.clipId);
-                    },
+                  : selectionLongPressHandler(clip.clipId),
             );
           }
           final movieNumber = clip.movieNumber;
@@ -636,7 +647,7 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
             key: Key('clip-grid-card-${clip.clipId}'),
             clip: clip,
             tapKey: Key('clip-grid-card-tap-${clip.clipId}'),
-            onTap: () => _openClipActions(clip),
+            onTap: selectionAwareTap(clip.clipId, () => _openClipActions(clip)),
             onPlay: () => _playClip(clip),
             onRename: () => _renameClip(clip),
             onDelete: () => _deleteClip(clip),
@@ -646,7 +657,7 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
                 : null,
             selectionMode: selectionMode,
             isSelected: isSelected(clip.clipId),
-            onSelectedChanged: (_) => toggleSelect(clip.clipId),
+            onSelectedChanged: selectionChangedHandler(clip.clipId),
           );
         },
       ),

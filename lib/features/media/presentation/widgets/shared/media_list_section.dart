@@ -28,6 +28,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_over
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/selection_controller.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
@@ -66,9 +67,7 @@ class MediaListSection extends HookConsumerWidget {
     this.onOpenMovieDetail,
     this.keyPrefix = 'media-management',
     this.mobile = false,
-    this.selectionMode = false,
-    this.onEnterSelection,
-    this.onExitSelection,
+    required this.selection,
     this.onDeleteItem,
     this.deletingItemId,
     this.onTransferItem,
@@ -108,15 +107,8 @@ class MediaListSection extends HookConsumerWidget {
   /// 移动端布局开关：流式行卡 + 底部抽屉筛选 + 多选态工具栏/底部操作条。
   final bool mobile;
 
-  /// 多选态（移动端长按进入后为 true）：行卡切换为点选、顶栏换选择工具栏、
-  /// 列表底部追加批量操作条。
-  final bool selectionMode;
-
-  /// 移动端长按行进入多选态；桌面端不用。
-  final VoidCallback? onEnterSelection;
-
-  /// 移动端退出多选态（清空选择由本组件内部调 provider）；桌面端不用。
-  final VoidCallback? onExitSelection;
+  /// 页面持有的选择状态；组件只通过它读写选择，不碰 Provider。
+  final SelectionController<int> selection;
 
   /// 单项删除入口；不传时不显示卡片级删除按钮。
   final Future<void> Function(MediaListItemDto item)? onDeleteItem;
@@ -142,6 +134,7 @@ class MediaListSection extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    useListenable(selection);
     final searchExpanded = useState(false);
     final scrollView = CustomScrollView(
       key: Key('$keyPrefix-list-scroll-view'),
@@ -150,8 +143,7 @@ class MediaListSection extends HookConsumerWidget {
         _MediaListBodySliver(
           keyPrefix: keyPrefix,
           mobile: mobile,
-          selectionMode: selectionMode,
-          onEnterSelection: onEnterSelection,
+          selection: selection,
           onOpenMovieDetail: onOpenMovieDetail,
           isDeleting: isDeleting,
           isTransferring: isTransferring,
@@ -189,7 +181,7 @@ class MediaListSection extends HookConsumerWidget {
           header: _MediaListHeader(
             keyPrefix: keyPrefix,
             mobile: mobile,
-            selectionMode: selectionMode,
+            selection: selection,
             isDeleting: isDeleting,
             isTransferring: isTransferring,
             onBatchDelete: onBatchDelete,
@@ -197,8 +189,6 @@ class MediaListSection extends HookConsumerWidget {
             isResettingThumbnails: isResettingThumbnails,
             onBatchResetThumbnails: onBatchResetThumbnails,
             onRefresh: onRefresh,
-            onEnterSelection: onEnterSelection,
-            onExitSelection: onExitSelection,
             searchExpanded: searchExpanded.value,
             onToggleSearchExpanded: () =>
                 searchExpanded.value = !searchExpanded.value,
@@ -217,12 +207,13 @@ class MediaListSection extends HookConsumerWidget {
     );
 
     // 移动端多选态：列表下方常驻批量操作条。
-    if (mobile && selectionMode) {
+    if (mobile && selection.active) {
       return Column(
         children: [
           Expanded(child: resultView),
           _MediaMobileSelectionBar(
             keyPrefix: keyPrefix,
+            selection: selection,
             isDeleting: isDeleting,
             isTransferring: isTransferring,
             isResettingThumbnails: isResettingThumbnails,
@@ -241,7 +232,7 @@ class _MediaListHeader extends ConsumerWidget {
   const _MediaListHeader({
     required this.keyPrefix,
     required this.mobile,
-    required this.selectionMode,
+    required this.selection,
     required this.isDeleting,
     required this.isTransferring,
     required this.isResettingThumbnails,
@@ -249,15 +240,13 @@ class _MediaListHeader extends ConsumerWidget {
     required this.onBatchTransfer,
     required this.onBatchResetThumbnails,
     required this.onRefresh,
-    required this.onEnterSelection,
-    required this.onExitSelection,
     required this.searchExpanded,
     required this.onToggleSearchExpanded,
   });
 
   final String keyPrefix;
   final bool mobile;
-  final bool selectionMode;
+  final SelectionController<int> selection;
   final bool isDeleting;
   final bool isTransferring;
   final bool isResettingThumbnails;
@@ -265,8 +254,6 @@ class _MediaListHeader extends ConsumerWidget {
   final Future<void> Function() onBatchTransfer;
   final Future<void> Function()? onBatchResetThumbnails;
   final Future<void> Function()? onRefresh;
-  final VoidCallback? onEnterSelection;
-  final VoidCallback? onExitSelection;
   final bool searchExpanded;
   final VoidCallback onToggleSearchExpanded;
 
@@ -327,14 +314,19 @@ class _MediaListHeader extends ConsumerWidget {
 
     final currentState = asyncState.value;
     final total = currentState?.paged.total ?? 0;
-    final selectionCount = currentState?.selectionCount ?? 0;
+    final selectionCount = selection.selectedCount;
     final hasSelection = selectionCount > 0;
     final hasItems =
         currentState != null && currentState.paged.items.isNotEmpty;
     final filter = currentState?.filter ?? MediaBrowseFilterState.initial;
     final isInitialLoading = asyncState.isLoading && !asyncState.hasValue;
     final busy = isDeleting || isTransferring || isResettingThumbnails;
-    final allLoadedSelected = currentState?.allLoadedSelected ?? false;
+    final loadedIds =
+        currentState?.paged.items
+            .map((item) => item.id)
+            .toList(growable: false) ??
+        const <int>[];
+    final allLoadedSelected = selection.isAllSelected(loadedIds);
     final canResetThumbnails =
         filter.thumbnailGenerationState ==
             MediaBrowseThumbnailGenerationFilter.terminal ||
@@ -371,30 +363,25 @@ class _MediaListHeader extends ConsumerWidget {
       onSubmitted: (value) => _applyFilter(ref, filter.copyWith(search: value)),
     );
 
-    if (mobile && selectionMode) {
+    if (mobile && selection.active) {
       return AppMobileSelectionHeader(
         key: Key('$keyPrefix-selection-header'),
         selectionLabel: l10n.mediaListSelectedItems(selectionCount),
         exitKey: Key('$keyPrefix-exit-selection-button'),
-        onExitSelection: () {
-          ref.read(mediaBrowseProvider.notifier).clearSelection();
-          onExitSelection?.call();
-        },
+        onExitSelection: selection.exitSelection,
         selectAllKey: Key('$keyPrefix-select-all-button'),
         selectAllTooltip: allLoadedSelected
             ? l10n.mediaListClearSelectAllLoaded
             : l10n.mediaListSelectAllLoaded,
         onToggleAll: !hasItems || busy
             ? null
-            : () => ref
-                  .read(mediaBrowseProvider.notifier)
-                  .toggleSelectAllLoaded(),
+            : () => selection.toggleSelectAll(loadedIds),
       );
     }
 
     // 桌面多选态：与 PornBox / 合集详情一致，整条顶栏替换成玻璃多选头，
     // 批量动作内联在右侧；移动端仍走上面的紧凑多选头 + 底部操作条。
-    if (!mobile && selectionMode) {
+    if (!mobile && selection.active) {
       return AppGlassSelectionHeader(
         selectionLabel: l10n.mediaListSelectedItems(selectionCount),
         countKey: Key('$keyPrefix-selection-count-text'),
@@ -404,9 +391,7 @@ class _MediaListHeader extends ConsumerWidget {
         selectAllKey: Key('$keyPrefix-select-all-button'),
         onToggleAll: !hasItems || busy
             ? null
-            : () => ref
-                  .read(mediaBrowseProvider.notifier)
-                  .toggleSelectAllLoaded(),
+            : () => selection.toggleSelectAll(loadedIds),
         actions: <AppGlassSelectionAction>[
           if (hasSelection)
             AppGlassSelectionAction(
@@ -437,12 +422,7 @@ class _MediaListHeader extends ConsumerWidget {
             ),
         ],
         exitKey: Key('$keyPrefix-exit-selection-button'),
-        onExitSelection: busy
-            ? null
-            : () {
-                ref.read(mediaBrowseProvider.notifier).clearSelection();
-                onExitSelection?.call();
-              },
+        onExitSelection: busy ? null : selection.exitSelection,
       );
     }
 
@@ -554,8 +534,8 @@ class _MediaListHeader extends ConsumerWidget {
             key: const Key('media-management-enter-selection-button'),
             icon: Icons.check_circle_outline,
             label: l10n.mediaListEnterSelection,
-            enabled: !busy && onEnterSelection != null,
-            onTap: onEnterSelection ?? () {},
+            enabled: !busy,
+            onTap: selection.enterSelection,
           ),
       ],
     );
@@ -678,8 +658,7 @@ class _MediaListBodySliver extends ConsumerWidget {
   const _MediaListBodySliver({
     required this.keyPrefix,
     required this.mobile,
-    required this.selectionMode,
-    required this.onEnterSelection,
+    required this.selection,
     required this.onOpenMovieDetail,
     required this.isDeleting,
     required this.isTransferring,
@@ -696,8 +675,7 @@ class _MediaListBodySliver extends ConsumerWidget {
 
   final String keyPrefix;
   final bool mobile;
-  final bool selectionMode;
-  final VoidCallback? onEnterSelection;
+  final SelectionController<int> selection;
   final void Function(BuildContext context, String movieNumber)?
   onOpenMovieDetail;
   final bool isDeleting;
@@ -730,8 +708,7 @@ class _MediaListBodySliver extends ConsumerWidget {
         ? _MediaMobileRowConsumer(
             keyPrefix: keyPrefix,
             item: item,
-            selectionMode: selectionMode,
-            onEnterSelection: onEnterSelection,
+            selection: selection,
             onOpenMovieDetail: onOpenMovieDetail,
             isDeleting: isDeleting,
             isTransferring: isTransferring,
@@ -748,7 +725,7 @@ class _MediaListBodySliver extends ConsumerWidget {
         : _MediaRowConsumer(
             keyPrefix: keyPrefix,
             item: item,
-            selectionMode: selectionMode,
+            selection: selection,
             onOpenMovieDetail: onOpenMovieDetail,
             isDeleting: isDeleting,
             isTransferring: isTransferring,
@@ -803,8 +780,7 @@ class _MediaMobileRowConsumer extends ConsumerWidget {
   const _MediaMobileRowConsumer({
     required this.keyPrefix,
     required this.item,
-    required this.selectionMode,
-    required this.onEnterSelection,
+    required this.selection,
     this.onOpenMovieDetail,
     required this.isDeleting,
     required this.isTransferring,
@@ -821,8 +797,7 @@ class _MediaMobileRowConsumer extends ConsumerWidget {
 
   final String keyPrefix;
   final MediaListItemDto item;
-  final bool selectionMode;
-  final VoidCallback? onEnterSelection;
+  final SelectionController<int> selection;
   final void Function(BuildContext context, String movieNumber)?
   onOpenMovieDetail;
   final bool isDeleting;
@@ -840,11 +815,7 @@ class _MediaMobileRowConsumer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final isSelected = ref.watch(
-      mediaBrowseProvider.select(
-        (asyncState) => asyncState.value?.isSelected(item.id) ?? false,
-      ),
-    );
+    final isSelected = selection.isSelected(item.id);
     final librariesById = ref.watch(
       mediaLibrariesProvider.select(
         (asyncState) =>
@@ -860,7 +831,7 @@ class _MediaMobileRowConsumer extends ConsumerWidget {
           item.thumbnailGenerationState ==
           MediaThumbnailGenerationState.succeeded;
       final isRetryable =
-          !selectionMode &&
+          !selection.active &&
           (item.thumbnailGenerationState ==
                   MediaThumbnailGenerationState.terminal ||
               isRegenerateThumbnails);
@@ -878,34 +849,31 @@ class _MediaMobileRowConsumer extends ConsumerWidget {
         library: library,
         mobile: true,
         selected: isSelected,
-        onTap: selectionMode
-            ? () => ref
-                  .read(mediaBrowseProvider.notifier)
-                  .toggleSelection(item.id)
-            : () => unawaited(
-                openMediaRowActions(
-                  context,
-                  ref,
-                  item,
-                  mobile: true,
-                  onOpenMovieDetail: onOpenMovieDetail,
-                ),
-              ),
-        onLongPress: selectionMode
+        onTap: selection.tapHandler(
+          item.id,
+          () => unawaited(
+            openMediaRowActions(
+              context,
+              ref,
+              item,
+              mobile: true,
+              onOpenMovieDetail: onOpenMovieDetail,
+            ),
+          ),
+        ),
+        onLongPress: selection.active
             ? null
-            : () {
-                ref.read(mediaBrowseProvider.notifier).toggleSelection(item.id);
-                onEnterSelection?.call();
-              },
-        onDelete: selectionMode || onDeleteItem == null
+            : selection.longPressHandler(item.id),
+        onDelete: selection.active || onDeleteItem == null
             ? null
             : () => unawaited(onDeleteItem!(item)),
-        onEditTags: selectionMode || busy || !item.isJav || onEditTags == null
+        onEditTags:
+            selection.active || busy || !item.isJav || onEditTags == null
             ? null
             : () => unawaited(onEditTags!(item)),
         isDeleting: deletingId == item.id,
         canDelete: !busy,
-        onTransfer: selectionMode || onTransferItem == null
+        onTransfer: selection.active || onTransferItem == null
             ? null
             : () => unawaited(onTransferItem!(item)),
         isTransferring: transferringId == item.id,
@@ -918,7 +886,7 @@ class _MediaMobileRowConsumer extends ConsumerWidget {
         retryThumbnailsLabel: isRegenerateThumbnails
             ? l10n.mediaListActionRegenerateThumbnails
             : l10n.mediaListActionRetryThumbnails,
-        onOpenActions: selectionMode || onOpenRowActions == null
+        onOpenActions: selection.active || onOpenRowActions == null
             ? null
             : () => unawaited(onOpenRowActions!(item)),
       );
@@ -945,6 +913,7 @@ class _MediaMobileRowConsumer extends ConsumerWidget {
 class _MediaMobileSelectionBar extends ConsumerWidget {
   const _MediaMobileSelectionBar({
     required this.keyPrefix,
+    required this.selection,
     required this.isDeleting,
     required this.isTransferring,
     required this.isResettingThumbnails,
@@ -954,6 +923,7 @@ class _MediaMobileSelectionBar extends ConsumerWidget {
   });
 
   final String keyPrefix;
+  final SelectionController<int> selection;
   final bool isDeleting;
   final bool isTransferring;
   final bool isResettingThumbnails;
@@ -964,11 +934,7 @@ class _MediaMobileSelectionBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final selectionCount = ref.watch(
-      mediaBrowseProvider.select(
-        (asyncState) => asyncState.value?.selectionCount ?? 0,
-      ),
-    );
+    final selectionCount = selection.selectedCount;
     final resetThumbnailsMode = ref.watch(
       mediaBrowseProvider.select(
         (asyncState) => asyncState.value?.filter.thumbnailGenerationState,
@@ -1036,7 +1002,7 @@ class _MediaRowConsumer extends ConsumerWidget {
   const _MediaRowConsumer({
     required this.keyPrefix,
     required this.item,
-    required this.selectionMode,
+    required this.selection,
     this.onOpenMovieDetail,
     required this.isDeleting,
     required this.isTransferring,
@@ -1052,7 +1018,7 @@ class _MediaRowConsumer extends ConsumerWidget {
 
   final String keyPrefix;
   final MediaListItemDto item;
-  final bool selectionMode;
+  final SelectionController<int> selection;
   final void Function(BuildContext context, String movieNumber)?
   onOpenMovieDetail;
   final bool isDeleting;
@@ -1069,11 +1035,7 @@ class _MediaRowConsumer extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
-    final isSelected = ref.watch(
-      mediaBrowseProvider.select(
-        (asyncState) => asyncState.value?.isSelected(item.id) ?? false,
-      ),
-    );
+    final isSelected = selection.isSelected(item.id);
     final librariesById = ref.watch(
       mediaLibrariesProvider.select(
         (asyncState) =>
@@ -1089,7 +1051,7 @@ class _MediaRowConsumer extends ConsumerWidget {
           item.thumbnailGenerationState ==
           MediaThumbnailGenerationState.succeeded;
       final isRetryable =
-          !selectionMode &&
+          !selection.active &&
           (item.thumbnailGenerationState ==
                   MediaThumbnailGenerationState.terminal ||
               isRegenerateThumbnails);
@@ -1107,28 +1069,28 @@ class _MediaRowConsumer extends ConsumerWidget {
         library: library,
         mobile: false,
         selected: isSelected,
-        onTap: selectionMode
-            ? () => ref
-                  .read(mediaBrowseProvider.notifier)
-                  .toggleSelection(item.id)
-            : () => unawaited(
-                openMediaRowActions(
-                  context,
-                  ref,
-                  item,
-                  mobile: false,
-                  onOpenMovieDetail: onOpenMovieDetail,
-                ),
-              ),
-        onDelete: selectionMode || onDeleteItem == null
+        onTap: selection.tapHandler(
+          item.id,
+          () => unawaited(
+            openMediaRowActions(
+              context,
+              ref,
+              item,
+              mobile: false,
+              onOpenMovieDetail: onOpenMovieDetail,
+            ),
+          ),
+        ),
+        onDelete: selection.active || onDeleteItem == null
             ? null
             : () => unawaited(onDeleteItem!(item)),
-        onEditTags: selectionMode || busy || !item.isJav || onEditTags == null
+        onEditTags:
+            selection.active || busy || !item.isJav || onEditTags == null
             ? null
             : () => unawaited(onEditTags!(item)),
         isDeleting: deletingId == item.id,
         canDelete: !busy,
-        onTransfer: selectionMode || onTransferItem == null
+        onTransfer: selection.active || onTransferItem == null
             ? null
             : () => unawaited(onTransferItem!(item)),
         isTransferring: transferringId == item.id,

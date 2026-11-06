@@ -68,15 +68,13 @@ class DownloadTaskRowState {
 
 @immutable
 class DownloadTaskCenterState {
-  const DownloadTaskCenterState({
+  DownloadTaskCenterState({
     required this.paged,
     required this.filter,
     this.pollingState = DownloadTaskPollingState.idle,
     this.clientOptions = const <DownloadClientOption>[],
     this.clientNames = const <int, String>{},
     this.pendingActionTaskIds = const <int>{},
-    this.selectionMode = false,
-    this.selectedTaskIds = const <int>{},
   });
 
   static final DownloadTaskCenterState initial = DownloadTaskCenterState(
@@ -91,16 +89,6 @@ class DownloadTaskCenterState {
   final Map<int, String> clientNames;
   final Set<int> pendingActionTaskIds;
 
-  /// 多选态：进入后行卡片整卡点击 = 勾选，行内动作与详情跳转让位。
-  final bool selectionMode;
-  final Set<int> selectedTaskIds;
-
-  int get selectionCount => selectedTaskIds.length;
-
-  bool get hasSelection => selectedTaskIds.isNotEmpty;
-
-  bool isSelected(int taskId) => selectedTaskIds.contains(taskId);
-
   bool isTaskPending(int taskId) => pendingActionTaskIds.contains(taskId);
 
   DownloadTaskCenterState copyWith({
@@ -110,8 +98,6 @@ class DownloadTaskCenterState {
     List<DownloadClientOption>? clientOptions,
     Map<int, String>? clientNames,
     Set<int>? pendingActionTaskIds,
-    bool? selectionMode,
-    Set<int>? selectedTaskIds,
   }) {
     return DownloadTaskCenterState(
       paged: paged ?? this.paged,
@@ -120,8 +106,6 @@ class DownloadTaskCenterState {
       clientOptions: clientOptions ?? this.clientOptions,
       clientNames: clientNames ?? this.clientNames,
       pendingActionTaskIds: pendingActionTaskIds ?? this.pendingActionTaskIds,
-      selectionMode: selectionMode ?? this.selectionMode,
-      selectedTaskIds: selectedTaskIds ?? this.selectedTaskIds,
     );
   }
 
@@ -137,22 +121,18 @@ class DownloadTaskCenterState {
         other.pollingState == pollingState &&
         listEquals(other.clientOptions, clientOptions) &&
         mapEquals(other.clientNames, clientNames) &&
-        setEquals(other.pendingActionTaskIds, pendingActionTaskIds) &&
-        other.selectionMode == selectionMode &&
-        setEquals(other.selectedTaskIds, selectedTaskIds);
+        setEquals(other.pendingActionTaskIds, pendingActionTaskIds);
   }
 
   @override
   int get hashCode => Object.hash(
     filter,
     pollingState,
-    selectionMode,
     Object.hashAll(clientOptions),
     Object.hashAllUnordered(
       clientNames.entries.map((entry) => Object.hash(entry.key, entry.value)),
     ),
     Object.hashAllUnordered(pendingActionTaskIds),
-    Object.hashAllUnordered(selectedTaskIds),
     paged.currentPage,
     paged.total,
     paged.hasMore,

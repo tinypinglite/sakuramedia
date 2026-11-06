@@ -238,19 +238,20 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
                         ? rankedMoviePlaceholders(count: 24)
                         : paged.items,
                     errorMessage: initialErrorMessage,
-                    onMovieTap: (movie) => context.pushMobileMovieDetail(
-                      movieNumber: movie.movieNumber,
-                    ),
+                    onMovieTap: (movie) => selectionAwareTap(
+                      movie.movieNumber,
+                      () => context.pushMobileMovieDetail(
+                        movieNumber: movie.movieNumber,
+                      ),
+                    )(),
                     onMovieMenuRequest: (movie, globalPosition) =>
                         requestMovieCollectionMenu(
                           context,
                           movie.movieNumber,
                           globalPosition,
                           isSubscribed: movie.isSubscribed,
-                          onEnterSelection: () {
-                            enterSelection();
-                            toggleSelect(movie.movieNumber);
-                          },
+                          onEnterSelection: () =>
+                              enterSelection(initial: movie.movieNumber),
                         ),
                     onMovieSubscriptionTap: (movie) =>
                         _toggleMovieSubscription(movie.movieNumber),
@@ -263,7 +264,7 @@ class _MobileRankingsPageState extends ConsumerState<MobileRankingsPage>
                     selectionMode: selectionMode,
                     isMovieSelected: (movie) => isSelected(movie.movieNumber),
                     onMovieSelectedChanged: (movie, _) =>
-                        toggleSelect(movie.movieNumber),
+                        handleSelectTap(movie.movieNumber),
                   ),
                 ),
               // loadMore 页脚独立订阅：翻页 loading / 失败只重建页脚。

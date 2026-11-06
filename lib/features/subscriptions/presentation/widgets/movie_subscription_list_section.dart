@@ -41,6 +41,8 @@ import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/selection_controller.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/use_selection_controller.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
@@ -81,6 +83,18 @@ class MovieSubscriptionListSection extends HookConsumerWidget {
     final managerProvider = movieSubscriptionManagerProvider(
       ref.watch(movieSubscriptionStatusSelectionProvider),
     );
+    final selection = useSelectionController<String>(
+      orderedIds: () {
+        final status = ref.read(movieSubscriptionStatusSelectionProvider);
+        final state = ref.read(movieSubscriptionManagerProvider(status)).value;
+        return state?.paged.items
+                .map((item) => item.movieNumber)
+                .where((number) => number.isNotEmpty)
+                .toList(growable: false) ??
+            const <String>[];
+      },
+    );
+    useListenable(selection);
     final spacing = context.appSpacing;
     final ownedScrollController = useScrollController();
     final effectiveScrollController = scrollController ?? ownedScrollController;
@@ -91,11 +105,11 @@ class MovieSubscriptionListSection extends HookConsumerWidget {
       previous,
       next,
     ) {
-      if (previous != null &&
-          next != null &&
-          previous != next &&
-          effectiveScrollController.hasClients) {
-        effectiveScrollController.jumpTo(0);
+      if (previous != null && next != null && previous != next) {
+        selection.exitSelection();
+        if (effectiveScrollController.hasClients) {
+          effectiveScrollController.jumpTo(0);
+        }
       }
     });
     final pagedView = ref.watch(
@@ -109,6 +123,7 @@ class MovieSubscriptionListSection extends HookConsumerWidget {
     final resultView = AppFixedHeaderLayout(
       header: _ListHeader(
         mobile: mobile,
+        selection: selection,
         batchDeleting: batchDeleting.value,
         batchImporting: batchImporting.value,
       ),
@@ -135,6 +150,7 @@ class MovieSubscriptionListSection extends HookConsumerWidget {
                 onOpenMovie: onOpenMovie,
                 onOpenDownloads: onOpenDownloads,
                 mobile: mobile,
+                selection: selection,
               ),
               // loadMore 的 loading / 失败提示独立订阅：翻页状态翻转只重建这个
               // footer，不重建上面的列表本体。
@@ -154,16 +170,13 @@ class MovieSubscriptionListSection extends HookConsumerWidget {
       ),
     );
     if (!mobile) return resultView;
-    final selectionMode = ref.watch(
-      managerProvider.select(
-        (asyncState) => asyncState.value?.selectionMode ?? false,
-      ),
-    );
-    if (!selectionMode) return resultView;
+    if (!selection.active) return resultView;
     return Column(
       children: [
         Expanded(child: resultView),
         _MobileSelectionBar(
+          state: ref.read(managerProvider).value,
+          selection: selection,
           deleting: batchDeleting.value,
           onDeletingChanged: (value) => batchDeleting.value = value,
           importing: batchImporting.value,
@@ -179,11 +192,13 @@ class MovieSubscriptionListSection extends HookConsumerWidget {
 class _ListHeader extends ConsumerWidget {
   const _ListHeader({
     required this.mobile,
+    required this.selection,
     required this.batchDeleting,
     required this.batchImporting,
   });
 
   final bool mobile;
+  final SelectionController<String> selection;
   final bool batchDeleting;
   final bool batchImporting;
 
@@ -194,14 +209,15 @@ class _ListHeader extends ConsumerWidget {
     );
     final asyncState = ref.watch(managerProvider);
     final current = asyncState.value;
-    if (current != null && current.selectionMode) {
+    if (current != null && selection.active) {
       return mobile
           ? _MobileSelectionHeader(
               state: current,
+              selection: selection,
               batchDeleting: batchDeleting,
               batchImporting: batchImporting,
             )
-          : _SelectionHeader(state: current);
+          : _SelectionHeader(state: current, selection: selection);
     }
 
     final filter =
@@ -255,10 +271,7 @@ class _ListHeader extends ConsumerWidget {
               icon: Icons.check_circle_outline,
               label: l10n.baseSelect,
               enabled: hasItems,
-              onTap: hasItems
-                  ? () =>
-                        ref.read(managerProvider.notifier).enterSelectionMode()
-                  : () {},
+              onTap: hasItems ? selection.enterSelection : () {},
             ),
             AppGlassHeaderButton(
               key: const Key('movie-subscriptions-refresh-button'),
@@ -306,9 +319,7 @@ class _ListHeader extends ConsumerWidget {
           key: const Key('movie-subscriptions-enter-selection-button'),
           tooltip: l10n.baseSelect,
           icon: Icons.check_circle_outline,
-          onPressed: hasItems
-              ? () => ref.read(managerProvider.notifier).enterSelectionMode()
-              : null,
+          onPressed: hasItems ? selection.enterSelection : null,
         ),
         AppGlassIconButton(
           key: const Key('movie-subscriptions-refresh-button'),
@@ -370,9 +381,10 @@ void _refresh(WidgetRef ref) {
 // --- 多选态顶栏 --------------------------------------------------------------
 
 class _SelectionHeader extends HookConsumerWidget {
-  const _SelectionHeader({required this.state});
+  const _SelectionHeader({required this.state, required this.selection});
 
   final MovieSubscriptionManagerState state;
+  final SelectionController<String> selection;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -385,36 +397,41 @@ class _SelectionHeader extends HookConsumerWidget {
     final busy =
         state.isBatchRunning || loadingDownloads.value || loadingImports.value;
 
-    final loadedCount = state.paged.items.length;
-    final allSelected = loadedCount > 0 && state.selectionCount >= loadedCount;
+    final loadedIds = state.paged.items
+        .map((item) => item.movieNumber)
+        .toList(growable: false);
+    final selectionCount = selection.selectedCount;
+    final hasSelection = selectionCount > 0;
+    final allSelected = selection.isAllSelected(loadedIds);
     final l10n = AppLocalizations.of(context);
     final selectAllLabel = allSelected
         ? l10n.subscriptionSelectionClearAll
-        : l10n.subscriptionSelectionSelectAll(loadedCount);
+        : l10n.subscriptionSelectionSelectAll(loadedIds.length);
 
     return AppGlassSelectionHeader(
       key: const Key('movie-subscriptions-selection-header'),
-      selectionLabel: l10n.subscriptionSelectionCount(state.selectionCount),
+      selectionLabel: l10n.subscriptionSelectionCount(selectionCount),
       countKey: const Key('movie-subscriptions-selection-count'),
       selectAllLabel: selectAllLabel,
       selectAllKey: const Key('movie-subscriptions-select-all-button'),
-      onToggleAll: busy || loadedCount == 0
+      onToggleAll: busy || loadedIds.isEmpty
           ? null
-          : notifier.toggleSelectAllLoaded,
+          : () => selection.toggleSelectAll(loadedIds),
       exitKey: const Key('movie-subscriptions-selection-exit'),
-      onExitSelection: busy ? null : notifier.exitSelectionMode,
+      onExitSelection: busy ? null : selection.exitSelection,
       actions: <AppGlassSelectionAction>[
         AppGlassSelectionAction(
           key: const Key('movie-subscriptions-batch-retrigger-imports-button'),
           label: l10n.subscriptionActionRetriggerImport,
           icon: Icons.refresh_rounded,
-          onTap: busy || !state.hasSelection
+          onTap: busy || !hasSelection
               ? null
               : () => unawaited(
                   _retriggerSelectedImports(
                     context,
                     ref,
                     state,
+                    selection,
                     onLoadingChanged: (value) => loadingImports.value = value,
                   ),
                 ),
@@ -424,27 +441,28 @@ class _SelectionHeader extends HookConsumerWidget {
           label: l10n.subscriptionActionDeleteDownloads,
           icon: Icons.delete_outline_rounded,
           foregroundColor: context.appTextPalette.error,
-          onTap: busy || !state.hasSelection
+          onTap: busy || !hasSelection
               ? null
               : () => unawaited(
                   _deleteSelectedDownloads(
                     context,
                     ref,
                     state,
+                    selection,
                     onLoadingChanged: (value) => loadingDownloads.value = value,
                   ),
                 ),
         ),
         AppGlassSelectionAction(
           key: const Key('movie-subscriptions-batch-unsubscribe-button'),
-          label: l10n.subscriptionBatchUnsubscribeWithCount(
-            state.selectionCount,
-          ),
+          label: l10n.subscriptionBatchUnsubscribeWithCount(selectionCount),
           icon: Icons.bookmark_remove_outlined,
           foregroundColor: context.appTextPalette.error,
-          onTap: busy || !state.hasSelection
+          onTap: busy || !hasSelection
               ? null
-              : () => unawaited(_confirmBatchUnsubscribe(context, ref, state)),
+              : () => unawaited(
+                  _confirmBatchUnsubscribe(context, ref, state, selection),
+                ),
         ),
       ],
     );
@@ -455,11 +473,13 @@ class _SelectionHeader extends HookConsumerWidget {
 class _MobileSelectionHeader extends ConsumerWidget {
   const _MobileSelectionHeader({
     required this.state,
+    required this.selection,
     required this.batchDeleting,
     required this.batchImporting,
   });
 
   final MovieSubscriptionManagerState state;
+  final SelectionController<String> selection;
   final bool batchDeleting;
   final bool batchImporting;
 
@@ -468,24 +488,26 @@ class _MobileSelectionHeader extends ConsumerWidget {
     final managerProvider = movieSubscriptionManagerProvider(
       ref.watch(movieSubscriptionStatusSelectionProvider),
     );
-    final notifier = ref.read(managerProvider.notifier);
     final busy = state.isBatchRunning || batchDeleting || batchImporting;
-    final loadedCount = state.paged.items.length;
-    final allSelected = loadedCount > 0 && state.selectionCount >= loadedCount;
+    final loadedIds = state.paged.items
+        .map((item) => item.movieNumber)
+        .toList(growable: false);
+    final selectionCount = selection.selectedCount;
+    final allSelected = selection.isAllSelected(loadedIds);
     final l10n = AppLocalizations.of(context);
 
     return AppMobileSelectionHeader(
       key: const Key('movie-subscriptions-selection-header'),
-      selectionLabel: l10n.subscriptionSelectionCount(state.selectionCount),
+      selectionLabel: l10n.subscriptionSelectionCount(selectionCount),
       exitKey: const Key('movie-subscriptions-selection-exit'),
-      onExitSelection: busy ? null : notifier.exitSelectionMode,
+      onExitSelection: busy ? null : selection.exitSelection,
       selectAllKey: const Key('movie-subscriptions-select-all-button'),
       selectAllTooltip: allSelected
           ? l10n.subscriptionSelectionClearAll
-          : l10n.subscriptionSelectionSelectAll(loadedCount),
-      onToggleAll: busy || loadedCount == 0
+          : l10n.subscriptionSelectionSelectAll(loadedIds.length),
+      onToggleAll: busy || loadedIds.isEmpty
           ? null
-          : notifier.toggleSelectAllLoaded,
+          : () => selection.toggleSelectAll(loadedIds),
     );
   }
 }
@@ -493,12 +515,16 @@ class _MobileSelectionHeader extends ConsumerWidget {
 /// 移动端贴底批量操作条：真正的危险动作放拇指够得到的地方，顶栏只留退出 / 全选。
 class _MobileSelectionBar extends ConsumerWidget {
   const _MobileSelectionBar({
+    required this.state,
+    required this.selection,
     required this.deleting,
     required this.onDeletingChanged,
     required this.importing,
     required this.onImportingChanged,
   });
 
+  final MovieSubscriptionManagerState? state;
+  final SelectionController<String> selection;
   final bool deleting;
   final ValueChanged<bool> onDeletingChanged;
   final bool importing;
@@ -506,16 +532,14 @@ class _MobileSelectionBar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final managerProvider = movieSubscriptionManagerProvider(
-      ref.watch(movieSubscriptionStatusSelectionProvider),
-    );
-    final state = ref.watch(managerProvider).value;
-    if (state == null) return const SizedBox.shrink();
+    final currentState = state;
+    if (currentState == null) return const SizedBox.shrink();
     return AppSelectionBottomBar(
       actions: _buildBatchActions(
         context,
         ref,
-        state,
+        currentState,
+        selection,
         compactLabels: true,
         loadingDownloads: deleting,
         loadingImports: importing,
@@ -523,7 +547,8 @@ class _MobileSelectionBar extends ConsumerWidget {
           _retriggerSelectedImports(
             context,
             ref,
-            state,
+            currentState,
+            selection,
             onLoadingChanged: onImportingChanged,
           ),
         ),
@@ -531,7 +556,8 @@ class _MobileSelectionBar extends ConsumerWidget {
           _deleteSelectedDownloads(
             context,
             ref,
-            state,
+            currentState,
+            selection,
             onLoadingChanged: onDeletingChanged,
           ),
         ),
@@ -548,7 +574,8 @@ class _MobileSelectionBar extends ConsumerWidget {
 List<Widget> _buildBatchActions(
   BuildContext context,
   WidgetRef ref,
-  MovieSubscriptionManagerState state, {
+  MovieSubscriptionManagerState state,
+  SelectionController<String> selection, {
   AppButtonSize size = AppButtonSize.medium,
   bool compactLabels = false,
   required bool loadingDownloads,
@@ -557,6 +584,7 @@ List<Widget> _buildBatchActions(
   required VoidCallback onDeleteDownloads,
 }) {
   final busy = state.isBatchRunning || loadingDownloads || loadingImports;
+  final hasSelection = selection.selectedCount > 0;
   final l10n = AppLocalizations.of(context);
   return <Widget>[
     AppButton(
@@ -565,7 +593,7 @@ List<Widget> _buildBatchActions(
       size: size,
       icon: compactLabels ? null : const Icon(Icons.refresh_rounded),
       isLoading: loadingImports,
-      onPressed: busy || !state.hasSelection ? null : onRetriggerImports,
+      onPressed: busy || !hasSelection ? null : onRetriggerImports,
     ),
     AppButton(
       key: const Key('movie-subscriptions-batch-delete-downloads-button'),
@@ -576,22 +604,24 @@ List<Widget> _buildBatchActions(
       variant: AppButtonVariant.danger,
       icon: compactLabels ? null : const Icon(Icons.delete_outline_rounded),
       isLoading: loadingDownloads,
-      onPressed: busy || !state.hasSelection ? null : onDeleteDownloads,
+      onPressed: busy || !hasSelection ? null : onDeleteDownloads,
     ),
     AppButton(
       key: const Key('movie-subscriptions-batch-unsubscribe-button'),
       label: compactLabels
           ? l10n.subscriptionActionUnsubscribe
-          : l10n.subscriptionBatchUnsubscribeWithCount(state.selectionCount),
+          : l10n.subscriptionBatchUnsubscribeWithCount(selection.selectedCount),
       size: size,
       variant: AppButtonVariant.danger,
       icon: compactLabels ? null : const Icon(Icons.bookmark_remove_outlined),
       isLoading: state.isBatchActionRunning(
         MovieSubscriptionBatchAction.unsubscribe,
       ),
-      onPressed: busy || !state.hasSelection
+      onPressed: busy || !hasSelection
           ? null
-          : () => unawaited(_confirmBatchUnsubscribe(context, ref, state)),
+          : () => unawaited(
+              _confirmBatchUnsubscribe(context, ref, state, selection),
+            ),
     ),
   ];
 }
@@ -601,7 +631,8 @@ List<Widget> _buildBatchActions(
 Future<void> _deleteSelectedDownloads(
   BuildContext context,
   WidgetRef ref,
-  MovieSubscriptionManagerState state, {
+  MovieSubscriptionManagerState state,
+  SelectionController<String> selection, {
   required ValueChanged<bool> onLoadingChanged,
 }) async {
   onLoadingChanged(true);
@@ -612,7 +643,7 @@ Future<void> _deleteSelectedDownloads(
       title: AppLocalizations.of(
         context,
       ).subscriptionBatchQueryingDownloadTasks,
-      items: state.selectedMovieNumbers.toList(),
+      items: selection.selectedIds.toList(),
       action: (number) async {
         tasks.addAll(
           await ref.refresh(movieDownloadTasksProvider(number).future),
@@ -666,7 +697,8 @@ Future<void> _deleteSelectedDownloads(
 Future<void> _retriggerSelectedImports(
   BuildContext context,
   WidgetRef ref,
-  MovieSubscriptionManagerState state, {
+  MovieSubscriptionManagerState state,
+  SelectionController<String> selection, {
   required ValueChanged<bool> onLoadingChanged,
 }) async {
   onLoadingChanged(true);
@@ -680,7 +712,7 @@ Future<void> _retriggerSelectedImports(
       title: AppLocalizations.of(
         context,
       ).subscriptionBatchQueryingDownloadTasks,
-      items: state.selectedMovieNumbers.toList(),
+      items: selection.selectedIds.toList(),
       action: (number) async {
         final tasks = await ref.refresh(
           movieDownloadTasksProvider(number).future,
@@ -743,9 +775,10 @@ Future<void> _confirmBatchUnsubscribe(
   BuildContext context,
   WidgetRef ref,
   MovieSubscriptionManagerState state,
+  SelectionController<String> selection,
 ) async {
   final managerProvider = movieSubscriptionManagerProvider(state.filter.status);
-  final count = state.selectionCount;
+  final count = selection.selectedCount;
   final l10n = AppLocalizations.of(context);
   final confirmed = await showAppConfirmDialog(
     context,
@@ -757,8 +790,11 @@ Future<void> _confirmBatchUnsubscribe(
   );
   if (!confirmed) return;
 
-  final result = await ref.read(managerProvider.notifier).batchUnsubscribe();
+  final result = await ref
+      .read(managerProvider.notifier)
+      .batchUnsubscribe(movieNumbers: selection.selectedIds);
   if (!context.mounted) return;
+  selection.replaceSelected(result.allSkippedNumbers);
   await showMovieSubscriptionBatchFeedback(context, result, subscribe: false);
 }
 
@@ -776,11 +812,13 @@ class _ListBodySliver extends ConsumerWidget {
     required this.onOpenMovie,
     required this.onOpenDownloads,
     required this.mobile,
+    required this.selection,
   });
 
   final void Function(BuildContext context, String movieNumber) onOpenMovie;
   final void Function(BuildContext context, String movieNumber) onOpenDownloads;
   final bool mobile;
+  final SelectionController<String> selection;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -846,6 +884,7 @@ class _ListBodySliver extends ConsumerWidget {
         mobile: mobile,
         onOpenMovie: onOpenMovie,
         onOpenDownloads: onOpenDownloads,
+        selection: selection,
       ),
       // 页脚由 [PagedLoadMoreFooterSliver] 独立渲染。
       showLoadMoreFooter: false,
@@ -956,28 +995,22 @@ class _RowConsumer extends HookConsumerWidget {
     required this.onOpenMovie,
     required this.onOpenDownloads,
     required this.mobile,
+    required this.selection,
   });
 
   final MovieSubscriptionListItemDto item;
   final void Function(BuildContext context, String movieNumber) onOpenMovie;
   final void Function(BuildContext context, String movieNumber) onOpenDownloads;
   final bool mobile;
+  final SelectionController<String> selection;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final managerProvider = movieSubscriptionManagerProvider(
       ref.watch(movieSubscriptionStatusSelectionProvider),
     );
-    final selectionMode = ref.watch(
-      managerProvider.select(
-        (asyncState) => asyncState.value?.selectionMode ?? false,
-      ),
-    );
-    final isSelected = ref.watch(
-      managerProvider.select(
-        (asyncState) => asyncState.value?.isSelected(item.movieNumber) ?? false,
-      ),
-    );
+    final selectionMode = selection.active;
+    final isSelected = selection.isSelected(item.movieNumber);
     final isPending = ref.watch(
       managerProvider.select(
         (asyncState) => asyncState.value?.isPending(item.movieNumber) ?? false,
@@ -1123,9 +1156,10 @@ class _RowConsumer extends HookConsumerWidget {
       selectionMode: selectionMode,
       isSelected: isSelected,
       isPending: isPending || deleting.value,
-      onTap: selectionMode
-          ? () => notifier.toggleSelection(item.movieNumber)
-          : () => onOpenMovie(context, item.movieNumber),
+      onTap: selection.tapHandler(
+        item.movieNumber,
+        () => onOpenMovie(context, item.movieNumber),
+      ),
       onOpenDownloads: tasks?.isNotEmpty == true
           ? () => onOpenDownloads(context, item.movieNumber)
           : null,

@@ -38,20 +38,16 @@ class MovieSubscriptionActionResult {
 ///
 /// - [paged] 由 `PagedAsyncNotifierMixin` 维护；
 /// - [filter] 走「筛选状态驱动」范式，notifier 内部另存一份字段供 `fetchPage` 读；
-/// - [selectionMode] / [selectedMovieNumbers] 是显式多选态——常规态整卡点击是
-///   「打开影片详情」，只有进了多选才改成勾选，避免两种语义抢同一个手势。
 @immutable
 class MovieSubscriptionManagerState {
-  const MovieSubscriptionManagerState({
+  MovieSubscriptionManagerState({
     required this.paged,
     required this.filter,
-    this.selectionMode = false,
-    this.selectedMovieNumbers = const <String>{},
     this.pendingMovieNumbers = const <String>{},
     this.runningBatchAction,
   });
 
-  static const MovieSubscriptionManagerState initial =
+  static final MovieSubscriptionManagerState initial =
       MovieSubscriptionManagerState(
         paged: PagedListState<MovieSubscriptionListItemDto>(),
         filter: MovieSubscriptionFilterState.initial,
@@ -60,20 +56,12 @@ class MovieSubscriptionManagerState {
   final PagedListState<MovieSubscriptionListItemDto> paged;
   final MovieSubscriptionFilterState filter;
 
-  final bool selectionMode;
-  final Set<String> selectedMovieNumbers;
-
   /// 正在执行行内动作（重置 / 取消订阅）的番号——该行按钮转 spinner。
   final Set<String> pendingMovieNumbers;
 
   final MovieSubscriptionBatchAction? runningBatchAction;
 
-  int get selectionCount => selectedMovieNumbers.length;
-  bool get hasSelection => selectedMovieNumbers.isNotEmpty;
   bool get isBatchRunning => runningBatchAction != null;
-
-  bool isSelected(String movieNumber) =>
-      selectedMovieNumbers.contains(movieNumber);
 
   bool isPending(String movieNumber) =>
       pendingMovieNumbers.contains(movieNumber);
@@ -84,22 +72,17 @@ class MovieSubscriptionManagerState {
   MovieSubscriptionManagerState copyWith({
     PagedListState<MovieSubscriptionListItemDto>? paged,
     MovieSubscriptionFilterState? filter,
-    bool? selectionMode,
-    Set<String>? selectedMovieNumbers,
     Set<String>? pendingMovieNumbers,
     Object? runningBatchAction = _kSentinel,
   }) {
     return MovieSubscriptionManagerState(
       paged: paged ?? this.paged,
       filter: filter ?? this.filter,
-      selectionMode: selectionMode ?? this.selectionMode,
-      selectedMovieNumbers: selectedMovieNumbers ?? this.selectedMovieNumbers,
       pendingMovieNumbers: pendingMovieNumbers ?? this.pendingMovieNumbers,
       // 可空且「清空」有独立语义（动作结束），走哨兵。
-      runningBatchAction:
-          identical(runningBatchAction, _kSentinel)
-              ? this.runningBatchAction
-              : runningBatchAction as MovieSubscriptionBatchAction?,
+      runningBatchAction: identical(runningBatchAction, _kSentinel)
+          ? this.runningBatchAction
+          : runningBatchAction as MovieSubscriptionBatchAction?,
     );
   }
 }

@@ -14,7 +14,9 @@ import 'package:sakuramedia/features/subscriptions/presentation/providers/movie_
 import '../../../../support/fake_http_client_adapter.dart';
 
 void main() {
-  final provider = movieSubscriptionManagerProvider(MovieSubscriptionStatus.missing);
+  final provider = movieSubscriptionManagerProvider(
+    MovieSubscriptionStatus.missing,
+  );
   late SessionStore sessionStore;
   late ApiClient apiClient;
   late FakeHttpClientAdapter adapter;
@@ -75,61 +77,58 @@ void main() {
     );
     _enqueuePage(adapter, [_item('A-1', 'pending')]);
 
-    final result = await container
-        .read(provider.notifier)
-        .resetSearch('A-1');
+    final result = await container.read(provider.notifier).resetSearch('A-1');
 
     expect(result.affectedCount, 1);
     expect(result.hasError, isFalse);
     expect(
-      container
-          .read(provider)
-          .requireValue
-          .paged
-          .items
-          .single
-          .status,
+      container.read(provider).requireValue.paged.items.single.status,
       MovieSubscriptionStatus.pending,
     );
     final request = adapter.requests.firstWhere(
       (item) => item.path == '/movie-subscriptions/search/reset',
     );
-    expect(request.body, <String, dynamic>{'movie_ids': <int>[1]});
+    expect(request.body, <String, dynamic>{
+      'movie_ids': <int>[1],
+    });
   });
 
-  test('resetAllExhausted uses the reset endpoint without legacy actions', () async {
-    _enqueuePage(adapter, [_item('A-1', 'exhausted')]);
-    await container.read(provider.future);
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/movie-subscriptions/search/reset',
-      body: <String, dynamic>{'reset_count': 1},
-    );
-    _enqueuePage(adapter, const <Map<String, dynamic>>[]);
+  test(
+    'resetAllExhausted uses the reset endpoint without legacy actions',
+    () async {
+      _enqueuePage(adapter, [_item('A-1', 'exhausted')]);
+      await container.read(provider.future);
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/movie-subscriptions/search/reset',
+        body: <String, dynamic>{'reset_count': 1},
+      );
+      _enqueuePage(adapter, const <Map<String, dynamic>>[]);
 
-    final result = await container
-        .read(provider.notifier)
-        .resetAllExhausted();
+      final result = await container
+          .read(provider.notifier)
+          .resetAllExhausted();
 
-    expect(result.affectedCount, 1);
-    expect(
-      adapter.requests.where((request) => request.method == 'POST').length,
-      1,
-    );
-  });
+      expect(result.affectedCount, 1);
+      expect(
+        adapter.requests.where((request) => request.method == 'POST').length,
+        1,
+      );
+    },
+  );
 
   test('批量取消广播携带 fromBatch，单条取消不带', () async {
     _enqueuePage(adapter, [_item('A-1', 'missing'), _item('A-2', 'missing')]);
     await container.read(provider.future);
     final changes = <MovieSubscriptionChange>[];
-    final subscription = container.listen(
-      movieSubscriptionEventsProvider,
-      (_, next) {
-        if (next.hasValue) {
-          changes.addAll(next.requireValue);
-        }
-      },
-    );
+    final subscription = container.listen(movieSubscriptionEventsProvider, (
+      _,
+      next,
+    ) {
+      if (next.hasValue) {
+        changes.addAll(next.requireValue);
+      }
+    });
     addTearDown(subscription.close);
 
     // 单条取消：其它视图只翻态，广播不带来源标记。
@@ -145,7 +144,6 @@ void main() {
 
     // 批量取消：即使只处理一条也走 reportBatch 并携带来源标记，供状态筛选视图即时移除。
     changes.clear();
-    container.read(provider.notifier).toggleSelection('A-2');
     adapter.enqueueJson(
       method: 'POST',
       path: '/movies/unsubscriptions',
@@ -155,7 +153,9 @@ void main() {
         'skipped': <Map<String, dynamic>>[],
       },
     );
-    await container.read(provider.notifier).batchUnsubscribe();
+    await container
+        .read(provider.notifier)
+        .batchUnsubscribe(movieNumbers: const ['A-2']);
     await _settleEvent();
     expect(changes.single.movieNumber, 'A-2');
     expect(changes.single.fromBatch, isTrue);

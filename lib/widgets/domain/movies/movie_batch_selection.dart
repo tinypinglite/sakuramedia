@@ -210,6 +210,9 @@ mixin MovieBatchSelectionMixin<W extends StatefulWidget>
   /// 当前可见（即「全选」覆盖范围）的番号列表。
   List<String> get batchSelectableNumbers;
 
+  @override
+  List<String> get selectionOrderedIds => batchSelectableNumbers;
+
   /// 批量订阅/取消订阅：确认 → 执行 → 反馈；全成功退出多选，部分成功则只保留
   /// 被跳过的番号仍选中，方便用户二次处理。
   Future<void> runSubscriptionBatch({required bool subscribe}) async {
@@ -239,11 +242,7 @@ mixin MovieBatchSelectionMixin<W extends StatefulWidget>
       exitSelection();
     } else {
       final skippedSet = result.allSkippedNumbers.toSet();
-      setState(() {
-        selectedIds
-          ..clear()
-          ..addAll(skippedSet);
-      });
+      replaceSelection(skippedSet);
     }
   }
 

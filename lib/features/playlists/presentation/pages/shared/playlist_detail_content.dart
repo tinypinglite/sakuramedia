@@ -214,7 +214,10 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
                       errorMessage: view.initialError != null
                           ? _scope.errorText(AppLocalizations.of(context))
                           : null,
-                      onMovieTap: widget.onMovieTap,
+                      onMovieTap: (movie) => selectionAwareTap(
+                        movie.movieNumber,
+                        () => widget.onMovieTap(movie),
+                      )(),
                       onMovieMenuRequest: (movie, globalPosition) =>
                           requestMovieCollectionMenu(
                             context,
@@ -237,7 +240,7 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
                       selectionMode: selectionMode,
                       isMovieSelected: (movie) => isSelected(movie.movieNumber),
                       onMovieSelectedChanged: (movie, _) =>
-                          toggleSelect(movie.movieNumber),
+                          handleSelectTap(movie.movieNumber),
                     ),
                   ),
                 PagedLoadMoreFooterSliver(

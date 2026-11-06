@@ -153,6 +153,16 @@ class _ClipCollectionDetailContentState
   bool get _isMobile => widget.useMobileSelectionLayout;
 
   @override
+  List<int> get selectionOrderedIds =>
+      ref
+          .read(_providerRef)
+          .value
+          ?.clips
+          .map((clip) => clip.clipId)
+          .toList(growable: false) ??
+      const <int>[];
+
+  @override
   Widget build(BuildContext context) {
     final async = ref.watch(_providerRef);
     final state = async.value;
@@ -503,14 +513,14 @@ class _ClipCollectionDetailContentState
                 clip: clip,
                 selectionMode: selectionMode,
                 isSelected: isSelected(clip.clipId),
-                onSelectedChanged: (_) => toggleSelect(clip.clipId),
-                onTap: () => _openMemberActions(context, clip),
+                onSelectedChanged: selectionChangedHandler(clip.clipId),
+                onTap: selectionAwareTap(
+                  clip.clipId,
+                  () => _openMemberActions(context, clip),
+                ),
                 onLongPress: selectionMode
                     ? null
-                    : () {
-                        enterSelection();
-                        toggleSelect(clip.clipId);
-                      },
+                    : selectionLongPressHandler(clip.clipId),
               );
             }
             final number = clip.movieNumber?.isNotEmpty == true
@@ -531,9 +541,10 @@ class _ClipCollectionDetailContentState
               playButtonKey: Key(
                 '${widget.keyPrefix}-grid-play-${clip.clipId}',
               ),
-              onTap: selectionMode
-                  ? () => toggleSelect(clip.clipId)
-                  : () => _openMemberActions(context, clip),
+              onTap: selectionAwareTap(
+                clip.clipId,
+                () => _openMemberActions(context, clip),
+              ),
               menuKey: Key('${widget.keyPrefix}-grid-menu-${clip.clipId}'),
               onOpenSource: openMovie,
               openSourceLabel: l10n.clipCollectionMovieSource,

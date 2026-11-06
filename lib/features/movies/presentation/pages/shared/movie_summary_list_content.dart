@@ -385,7 +385,7 @@ class _MovieSummaryListContentState
           !selectedIds.contains(change.movieNumber)) {
         return;
       }
-      setState(() => selectedIds.remove(change.movieNumber));
+      removeSelection([change.movieNumber]);
     });
 
     final headerBuilder = widget.headerBuilder;
@@ -491,7 +491,10 @@ class _MovieSummaryListContentState
               : items,
           errorMessage: initialErrorMessage,
           trailingLabelForMovie: widget.trailingLabelForMovie,
-          onMovieTap: (movie) => widget.onMovieTap(context, movie.movieNumber),
+          onMovieTap: (movie) => selectionAwareTap(
+            movie.movieNumber,
+            () => widget.onMovieTap(context, movie.movieNumber),
+          )(),
           onMovieMenuRequest: (movie, globalPosition) {
             unawaited(
               showMovieCollectionFeatureActionMenu(
@@ -503,10 +506,7 @@ class _MovieSummaryListContentState
                     .read(movieSummaryProvider(widget.scope).notifier)
                     .removeMovies(<String>[movie.movieNumber]),
                 onEnterSelection: widget.useMobileSelectionLayout
-                    ? () {
-                        enterSelection();
-                        toggleSelect(movie.movieNumber);
-                      }
+                    ? () => enterSelection(initial: movie.movieNumber)
                     : null,
               ),
             );
@@ -525,7 +525,8 @@ class _MovieSummaryListContentState
                   : l10n.moviePageEmptyNoMatches),
           selectionMode: selectionMode,
           isMovieSelected: (movie) => isSelected(movie.movieNumber),
-          onMovieSelectedChanged: (movie, _) => toggleSelect(movie.movieNumber),
+          onMovieSelectedChanged: (movie, _) =>
+              handleSelectTap(movie.movieNumber),
         ),
       );
     }

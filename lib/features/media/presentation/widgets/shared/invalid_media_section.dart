@@ -26,6 +26,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
+import 'package:sakuramedia/widgets/base/interaction/selection/selection_controller.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
@@ -56,6 +57,17 @@ class InvalidMediaSection extends ConsumerStatefulWidget {
 class _InvalidMediaSectionState extends ConsumerState<InvalidMediaSection>
     with MultiSelectStateMixin<InvalidMediaSection, int> {
   @override
+  List<int> get selectionOrderedIds =>
+      ref
+          .read(invalidMediaProvider)
+          .value
+          ?.paged
+          .items
+          .map((item) => item.id)
+          .toList(growable: false) ??
+      const <int>[];
+
+  @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final content = AppFixedHeaderLayout(
@@ -78,12 +90,10 @@ class _InvalidMediaSectionState extends ConsumerState<InvalidMediaSection>
             mobile: widget.mobile,
             selectionMode: selectionMode,
             selectedIds: selectedIds,
-            onToggleSelect: toggleSelect,
+            onSelectionGesture: (id, gesture) =>
+                handleSelectTap(id, gesture: gesture),
             onOpenMovieDetail: widget.onOpenMovieDetail,
-            onEnterSelection: (id) {
-              enterSelection();
-              toggleSelect(id);
-            },
+            onEnterSelection: (id) => enterSelection(initial: id),
           ),
           // loadMore 的 loading / 失败提示独立订阅：翻页状态翻转只重建这个
           // footer，不重建上面的列表本体。
@@ -348,7 +358,7 @@ class _InvalidMediaBodySliver extends ConsumerWidget {
     required this.mobile,
     required this.selectionMode,
     required this.selectedIds,
-    required this.onToggleSelect,
+    required this.onSelectionGesture,
     this.onOpenMovieDetail,
     required this.onEnterSelection,
   });
@@ -356,7 +366,7 @@ class _InvalidMediaBodySliver extends ConsumerWidget {
   final bool mobile;
   final bool selectionMode;
   final Set<int> selectedIds;
-  final ValueChanged<int> onToggleSelect;
+  final void Function(int id, SelectionGesture gesture) onSelectionGesture;
   final void Function(BuildContext context, String movieNumber)?
   onOpenMovieDetail;
   final ValueChanged<int> onEnterSelection;
@@ -395,7 +405,7 @@ class _InvalidMediaBodySliver extends ConsumerWidget {
                   mobile: mobile,
                   selectionMode: false,
                   selected: false,
-                  onToggleSelect: () {},
+                  onSelectionGesture: (_) {},
                   onOpenMovieDetail: null,
                   onEnterSelection: () {},
                 ),
@@ -414,7 +424,7 @@ class _InvalidMediaBodySliver extends ConsumerWidget {
         mobile: mobile,
         selectionMode: selectionMode,
         selected: selectedIds.contains(item.id),
-        onToggleSelect: () => onToggleSelect(item.id),
+        onSelectionGesture: (gesture) => onSelectionGesture(item.id, gesture),
         onOpenMovieDetail: onOpenMovieDetail,
         onEnterSelection: () => onEnterSelection(item.id),
       ),
@@ -430,7 +440,7 @@ class _InvalidMediaRowConsumer extends ConsumerWidget {
     required this.mobile,
     required this.selectionMode,
     required this.selected,
-    required this.onToggleSelect,
+    required this.onSelectionGesture,
     required this.onOpenMovieDetail,
     required this.onEnterSelection,
   });
@@ -439,7 +449,7 @@ class _InvalidMediaRowConsumer extends ConsumerWidget {
   final bool mobile;
   final bool selectionMode;
   final bool selected;
-  final VoidCallback onToggleSelect;
+  final ValueChanged<SelectionGesture> onSelectionGesture;
   final void Function(BuildContext context, String movieNumber)?
   onOpenMovieDetail;
   final VoidCallback onEnterSelection;
@@ -516,9 +526,11 @@ class _InvalidMediaRowConsumer extends ConsumerWidget {
       library: library,
       mobile: mobile,
       selected: selected,
-      onTap: selectionMode
-          ? onToggleSelect
-          : () => unawaited(_openActions(context, ref)),
+      onTap: SelectionInteraction.tap(
+        active: selectionMode,
+        onGesture: onSelectionGesture,
+        onNormalTap: () => unawaited(_openActions(context, ref)),
+      ),
       onLongPress: mobile && !selectionMode ? onEnterSelection : null,
       onDelete: selectionMode
           ? null

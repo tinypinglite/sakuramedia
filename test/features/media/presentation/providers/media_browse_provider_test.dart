@@ -69,60 +69,51 @@ void main() {
     );
   });
 
-  test(
-    'applyFilterState triggers reload with new query and clears selection',
-    () async {
-      adapter.enqueueJson(
-        method: 'GET',
-        path: '/media',
-        body: _mediaPage(items: [_javItemJson(id: 1)], total: 1, page: 1),
-      );
-      await container.read(mediaBrowseProvider.future);
-      container.read(mediaBrowseProvider.notifier).toggleSelection(1);
-      expect(
-        container.read(mediaBrowseProvider).requireValue.selectionCount,
-        1,
-      );
+  test('applyFilterState triggers reload with new query', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _mediaPage(items: [_javItemJson(id: 1)], total: 1, page: 1),
+    );
+    await container.read(mediaBrowseProvider.future);
 
-      adapter.enqueueJson(
-        method: 'GET',
-        path: '/media',
-        body: _mediaPage(items: const [], total: 0, page: 1),
-      );
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _mediaPage(items: const [], total: 0, page: 1),
+    );
 
-      await container
-          .read(mediaBrowseProvider.notifier)
-          .applyFilterState(
-            const MediaBrowseFilterState().copyWith(
-              kind: MediaListItemKind.jav,
-              libraryId: 8,
-              search: '  abc  ',
-              sortField: MediaBrowseSortField.heat,
-              sortDirection: SortDirection.desc,
-            ),
-          );
+    await container
+        .read(mediaBrowseProvider.notifier)
+        .applyFilterState(
+          const MediaBrowseFilterState().copyWith(
+            kind: MediaListItemKind.jav,
+            libraryId: 8,
+            search: '  abc  ',
+            sortField: MediaBrowseSortField.heat,
+            sortDirection: SortDirection.desc,
+          ),
+        );
 
-      final state = container.read(mediaBrowseProvider).requireValue;
-      expect(state.selectionCount, 0);
-      expect(state.filter.kind, MediaListItemKind.jav);
-      expect(
-        adapter.requests.last.uri.queryParameters,
-        containsPair('kind', 'jav'),
-      );
-      expect(
-        adapter.requests.last.uri.queryParameters,
-        containsPair('library_id', '8'),
-      );
-      expect(
-        adapter.requests.last.uri.queryParameters,
-        containsPair('search', 'abc'),
-      );
-      expect(
-        adapter.requests.last.uri.queryParameters,
-        containsPair('sort', 'heat:desc'),
-      );
-    },
-  );
+    final state = container.read(mediaBrowseProvider).requireValue;
+    expect(state.filter.kind, MediaListItemKind.jav);
+    expect(
+      adapter.requests.last.uri.queryParameters,
+      containsPair('kind', 'jav'),
+    );
+    expect(
+      adapter.requests.last.uri.queryParameters,
+      containsPair('library_id', '8'),
+    );
+    expect(
+      adapter.requests.last.uri.queryParameters,
+      containsPair('search', 'abc'),
+    );
+    expect(
+      adapter.requests.last.uri.queryParameters,
+      containsPair('sort', 'heat:desc'),
+    );
+  });
 
   test(
     'applyFilterState short-circuits when equal filters are supplied',
@@ -142,32 +133,24 @@ void main() {
     },
   );
 
-  test(
-    'removeItemsByIds prunes list, adjusts total, clears selection',
-    () async {
-      adapter.enqueueJson(
-        method: 'GET',
-        path: '/media',
-        body: _mediaPage(
-          items: [_javItemJson(id: 1), _javItemJson(id: 2)],
-          total: 5,
-          page: 1,
-        ),
-      );
-      await container.read(mediaBrowseProvider.future);
-      container.read(mediaBrowseProvider.notifier).toggleSelection(1);
+  test('removeItemsByIds prunes list and adjusts total', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _mediaPage(
+        items: [_javItemJson(id: 1), _javItemJson(id: 2)],
+        total: 5,
+        page: 1,
+      ),
+    );
+    await container.read(mediaBrowseProvider.future);
 
-      container.read(mediaBrowseProvider.notifier).removeItemsByIds(const [
-        1,
-        2,
-      ]);
+    container.read(mediaBrowseProvider.notifier).removeItemsByIds(const [1, 2]);
 
-      final state = container.read(mediaBrowseProvider).requireValue;
-      expect(state.paged.items, isEmpty);
-      expect(state.paged.total, 3);
-      expect(state.selectionCount, 0);
-    },
-  );
+    final state = container.read(mediaBrowseProvider).requireValue;
+    expect(state.paged.items, isEmpty);
+    expect(state.paged.total, 3);
+  });
 
   test(
     'deleteMediaFile removes the item before silent refresh completes',
@@ -217,63 +200,6 @@ void main() {
       await deletion;
     },
   );
-
-  test('toggleSelectAllLoaded / setSelected / clearSelection', () async {
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/media',
-      body: _mediaPage(
-        items: [_javItemJson(id: 10), _javItemJson(id: 20)],
-        total: 2,
-        page: 1,
-      ),
-    );
-    await container.read(mediaBrowseProvider.future);
-
-    final notifier = container.read(mediaBrowseProvider.notifier);
-    notifier.toggleSelectAllLoaded();
-    expect(container.read(mediaBrowseProvider).requireValue.selectionCount, 2);
-    expect(
-      container.read(mediaBrowseProvider).requireValue.isSelected(10),
-      isTrue,
-    );
-    expect(
-      container.read(mediaBrowseProvider).requireValue.allLoadedSelected,
-      isTrue,
-    );
-
-    // 已全选时再点同一按钮 → 取消全选当前页。
-    notifier.toggleSelectAllLoaded();
-    expect(container.read(mediaBrowseProvider).requireValue.selectionCount, 0);
-    expect(
-      container.read(mediaBrowseProvider).requireValue.allLoadedSelected,
-      isFalse,
-    );
-
-    notifier.setSelected(10, true);
-    expect(container.read(mediaBrowseProvider).requireValue.selectionCount, 1);
-    expect(
-      container.read(mediaBrowseProvider).requireValue.allLoadedSelected,
-      isFalse,
-      reason: '只选一项时不算全选',
-    );
-    notifier.toggleSelectAllLoaded();
-    expect(
-      container.read(mediaBrowseProvider).requireValue.selectionCount,
-      2,
-      reason: '部分选中时点全选应补全当前页',
-    );
-    expect(
-      container.read(mediaBrowseProvider).requireValue.isSelected(10),
-      isTrue,
-    );
-
-    notifier.toggleSelectAllLoaded();
-    expect(container.read(mediaBrowseProvider).requireValue.selectionCount, 0);
-
-    notifier.clearSelection();
-    expect(container.read(mediaBrowseProvider).requireValue.selectionCount, 0);
-  });
 }
 
 ResponseBody _responseBody(Map<String, dynamic> body) =>

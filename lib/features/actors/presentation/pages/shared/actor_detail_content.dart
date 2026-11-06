@@ -446,7 +446,6 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent> {
       }
       _applyTagSelection(next);
     });
-
     final Widget content;
     if (actorAsync.isLoading && actorState?.actor == null) {
       content = widget.loadingBuilder(context);
