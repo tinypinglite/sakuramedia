@@ -10,7 +10,7 @@
 ## 移动抽屉和表单
 
 - `showAppBottomDrawer<T>` / `AppBottomDrawerSurface`：`app_bottom_drawer.dart`，移动筛选、动作和详情抽屉。抽屉是 8px 浮起的中性玻璃面，正文直接铺在玻璃上；输入框、按钮等控件不要透明化。
-- `showMobileVideoActionsSheet`：PornBox 视频动作抽屉。封面、标题与元信息之后是整行主色「播放」按钮；缩略图、加入/移出合集和删除走三列动作格，所属合集 chips 保持可跳转。
+- `showVideoActions(..., variant: AppAdaptiveModalVariant.drawer)`：PornBox 视频动作抽屉。封面、标题与元信息之后是整行主色「播放」按钮；缩略图、加入/移出合集和删除走三列动作格，所属合集 chips 保持可跳转。桌面 / 移动只通过 `variant` 选择壳体，不再维护独立包装函数。
 - `AppBottomFormSheet`：`app_bottom_form_sheet.dart`，带表单布局和提交区域的底部 sheet。
 - `AppMobileConfirmActions`：`app_mobile_confirm_actions.dart`，移动确认操作区。
 - 所有移动筛选抽屉统一使用 `AppMobileFilterDrawerScaffold`（特殊滚动 / 锚点场景）或 `AppMobileFilterDrawer<T>`（标准筛选）承载平面分段控件和可选的 `AppGlassFilterFooter`；抽屉内不另铺一层实色卡片，正文直接落在 `AppModalGlassSurface` 上。

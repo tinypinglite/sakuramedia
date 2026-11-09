@@ -6,26 +6,19 @@ import 'package:sakuramedia/features/clip_collections/presentation/widgets/creat
 import 'package:sakuramedia/features/clips/presentation/providers/clips_api_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_membership_dialog.dart';
-
-/// 「加入合集」选择器的呈现形态：桌面弹窗 / 移动端底部抽屉。
-enum AddToClipCollectionPresentation { dialog, bottomDrawer }
 
 /// 弹出「加入合集」选择器，勾选切换切片与合集的归属（即时生效）。
 Future<void> showAddToClipCollectionDialog(
   BuildContext context, {
   required int clipId,
-  AddToClipCollectionPresentation presentation =
-      AddToClipCollectionPresentation.dialog,
+  AppAdaptiveModalVariant presentation = AppAdaptiveModalVariant.dialog,
 }) {
   final l10n = AppLocalizations.of(context);
   return showCollectionMembershipDialog<ClipCollectionDto>(
     context: context,
-    variant: switch (presentation) {
-      AddToClipCollectionPresentation.dialog => AppAdaptiveModalVariant.dialog,
-      AddToClipCollectionPresentation.bottomDrawer =>
-        AppAdaptiveModalVariant.drawer,
-    },
+    variant: presentation,
     config: CollectionMembershipConfig<ClipCollectionDto>(
       keyPrefix: 'add-to-clip-collection',
       title: l10n.clipCollectionAddToCollection,
@@ -53,8 +46,8 @@ Future<void> showAddToClipCollectionDialog(
       createCollection: (context, ref) => showCreateClipCollectionDialog(
         context,
         presentation: AppAdaptiveModalShellScope.maybeIsDrawer(context)
-            ? ClipCollectionEditPresentation.bottomDrawer
-            : ClipCollectionEditPresentation.dialog,
+            ? CollectionEditorPresentation.drawer
+            : CollectionEditorPresentation.dialog,
       ),
       idOf: (collection) => collection.id,
       nameOf: (collection) => collection.name,

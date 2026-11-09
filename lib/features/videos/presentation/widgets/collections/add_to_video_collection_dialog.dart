@@ -6,27 +6,20 @@ import 'package:sakuramedia/features/videos/presentation/providers/videos_api_pr
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/create_video_collection_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_membership_dialog.dart';
-
-/// 「加入合集」的呈现形态：桌面弹窗 / 移动端底部抽屉。
-enum AddToVideoCollectionPresentation { dialog, bottomDrawer }
 
 /// 弹出「加入合集」选择器，勾选切换视频与合集的归属（即时生效）。
 Future<void> showAddToVideoCollectionDialog(
   BuildContext context, {
   required int videoItemId,
   List<VideoCollectionRef> collectedRefs = const <VideoCollectionRef>[],
-  AddToVideoCollectionPresentation presentation =
-      AddToVideoCollectionPresentation.dialog,
+  AppAdaptiveModalVariant presentation = AppAdaptiveModalVariant.dialog,
 }) {
   final l10n = AppLocalizations.of(context);
   return showCollectionMembershipDialog<VideoCollectionDto>(
     context: context,
-    variant: switch (presentation) {
-      AddToVideoCollectionPresentation.dialog => AppAdaptiveModalVariant.dialog,
-      AddToVideoCollectionPresentation.bottomDrawer =>
-        AppAdaptiveModalVariant.drawer,
-    },
+    variant: presentation,
     config: CollectionMembershipConfig<VideoCollectionDto>(
       keyPrefix: 'add-to-video-collection',
       title: l10n.videoAddToCollection,
@@ -57,8 +50,8 @@ Future<void> showAddToVideoCollectionDialog(
       createCollection: (context, ref) => showVideoCollectionDialog(
         context,
         presentation: AppAdaptiveModalShellScope.maybeIsDrawer(context)
-            ? VideoCollectionEditPresentation.bottomDrawer
-            : VideoCollectionEditPresentation.dialog,
+            ? CollectionEditorPresentation.bottomFormSheet
+            : CollectionEditorPresentation.dialog,
       ),
       idOf: (collection) => collection.id,
       nameOf: (collection) => collection.name,

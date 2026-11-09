@@ -57,8 +57,6 @@ import 'package:sakuramedia/features/media/presentation/providers/media_api_prov
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 
-enum ImageSearchResultPreviewPresentation { dialog, bottomDrawer }
-
 Future<ImageSearchPickedFile?> _defaultImageSearchFilePicker(
   AppLocalizations l10n,
 ) {
@@ -81,8 +79,7 @@ class ImageSearchContent extends ConsumerStatefulWidget {
     this.onOpenPlayer,
     this.onOpenMovieDetail,
     this.onOpenActorDetail,
-    this.resultPreviewPresentation =
-        ImageSearchResultPreviewPresentation.dialog,
+    this.resultPreviewPresentation = AppAdaptiveModalVariant.dialog,
   });
 
   final Color surfaceColor;
@@ -104,7 +101,7 @@ class ImageSearchContent extends ConsumerStatefulWidget {
   final void Function(BuildContext context, ImageSearchResultItemDto item)?
   onOpenMovieDetail;
   final void Function(BuildContext context, int actorId)? onOpenActorDetail;
-  final ImageSearchResultPreviewPresentation resultPreviewPresentation;
+  final AppAdaptiveModalVariant resultPreviewPresentation;
 
   @override
   ConsumerState<ImageSearchContent> createState() => _ImageSearchContentState();
@@ -421,8 +418,7 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
     final usesMobileFilter =
         platform == AppPlatform.mobile ||
         (platform == null &&
-            widget.resultPreviewPresentation ==
-                ImageSearchResultPreviewPresentation.bottomDrawer);
+            widget.resultPreviewPresentation == AppAdaptiveModalVariant.drawer);
     if (usesMobileFilter) {
       return AppIconButton(
         key: const Key('desktop-image-search-toggle-filter'),
@@ -932,11 +928,7 @@ class _ImageSearchContentState extends ConsumerState<ImageSearchContent> {
 
   Future<void> _openResultPreviewDialog(ImageSearchResultItemDto item) async {
     int? selectedActorId;
-    final variant =
-        widget.resultPreviewPresentation ==
-            ImageSearchResultPreviewPresentation.bottomDrawer
-        ? AppAdaptiveModalVariant.drawer
-        : AppAdaptiveModalVariant.dialog;
+    final variant = widget.resultPreviewPresentation;
     final action = await showMediaPreviewOverlay(
       context: context,
       variant: variant,

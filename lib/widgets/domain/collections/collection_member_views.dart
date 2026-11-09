@@ -218,19 +218,10 @@ class CollectionMemberCard extends StatelessWidget {
 
   /// 悬停披露内容：单行标题/副信息与整行动作按钮（按回调显隐）。
   Widget _buildHoverInfo(BuildContext context) {
-    final spacing = context.appSpacing;
     final sub = subtitle?.trim();
-    final actions = _buildHoverActions(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        AppCoverHoverInfoRow(label: title, meta: sub),
-        if (actions.isNotEmpty) ...[
-          SizedBox(height: spacing.sm),
-          AppCoverHoverActionBar(actions: actions),
-        ],
-      ],
+    return AppCoverHoverPanel(
+      info: AppCoverHoverInfoRow(label: title, meta: sub),
+      actions: _buildHoverActions(context),
     );
   }
 

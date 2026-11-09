@@ -46,13 +46,13 @@
 
 路径：`lib/widgets/domain/clips/`
 
-包含 `ClipGridCard`、`ClipCoverCard`、`ClipCoverOverlays`、`ClipSelectionStatusBar` 和 `ClipActionsPanel`。`ClipGridCard` / `ClipCoverCard` 整卡即封面、收起态不铺文字；桌面悬停时底部渐显单行「标题 + 番号 · 时长 · 大小」与下方整行动作按钮（播放 / 影片 / 加入合集 / 重命名 / 删除，按回调显隐），移动端信息走点击后的 `ClipActionsPanel`。`ClipActionsPanel` 提供切片操作面板（封面 + 标题 + 横向操作格），移动端走底部抽屉、桌面端走居中弹窗；切片创建、删除和重命名动作由 clips feature 负责，切片播放统一走 clips feature 的 `launchClipPlayback`（桌面轻量弹窗 / 移动全屏页）。
+包含 `ClipGridCard`、`ClipCoverCard`、`ClipCoverOverlays`、`ClipSelectionStatusBar` 和 `ClipActionsPanel`。`ClipGridCard` / `ClipCoverCard` 整卡即封面、收起态不铺文字；桌面悬停时底部渐显单行「标题 + 番号 · 时长 · 大小」与下方整行动作按钮（播放 / 影片 / 加入合集 / 重命名 / 删除，按回调显隐），移动端信息走点击后的 `ClipActionsPanel`。`ClipActionsPanel` 提供切片操作面板（封面 + 标题 + 横向操作格），移动端走底部抽屉、桌面端走居中弹窗；统一入口为 `showClipActions(..., variant:)`。切片、视频和 JAV 媒体动作面板的封面头共用 `MediaActionPreviewHeader`；切片创建、删除和重命名动作由 clips feature 负责，切片播放统一走 clips feature 的 `launchClipPlayback`（桌面轻量弹窗 / 移动全屏页）。
 
 ## collections
 
 路径：`lib/widgets/domain/collections/`
 
-包含 `CollectionCard`（`.clip` / `.video` / `.moment` 命名构造）、`CollectionHintBox`、`CollectionMemberViews`、`CollectionTargetPicker` 以及 `playback/` 下的合集连播组件。影片合集、视频合集和切片合集的数据适配由各自 feature 完成；`CollectionHintBox` 是合集横滑区空态/加载失败的共用提示条。`showCollectionTargetPicker`（`collection_target_picker.dart`）是切片、时刻、视频三处「加入合集」选择器的共用实现：只负责选中一个目标合集并返回，成员写入由调用方批量执行；各域只提供数据源、行文案（`N 个切片/时刻/视频`）、行 Key 前缀和「新建合集并加入」入口，弹窗/抽屉形态与既有测试锚点由参数保持。选项行是单行卡片：浅灰底 + 细边框，名称过长单行省略，右侧依次是计数和加号；点击整行返回所选合集。`CollectionMemberCard` 由三个合集详情的成员网格共用：整卡即封面、收起态不铺文字，桌面悬停渐显标题/副信息与整行动作按钮（播放 / 影片 / 缩略图 / 加入合集 / 移出合集 / 删除，按回调显隐），移动端信息与动作走点击后的操作面板 / 预览层；时刻来源媒体已删除时隐藏播放键。三种 `CollectionCard` 统一使用封面内玻璃信息条承载标题和计数，不再渲染封面下方的实色标题栏；合集横滑区直接按 16:9 封面高度排版。视频合集卡传 `coverBackdrop: true` 时，`BoxFit.contain` 的竖图两侧铺同图暗底，移动 PornBox 横滑区和合集列表使用。
+包含 `CollectionCard`（`.clip` / `.video` / `.moment` 命名构造）、`CollectionHintBox`、`CollectionMemberViews`、`CollectionSelectionHeader`、`CollectionTargetPicker` 以及 `playback/` 下的合集连播组件。影片合集、视频合集和切片合集的数据适配由各自 feature 完成；`CollectionHintBox` 是合集横滑区空态/加载失败的共用提示条。`showCollectionTargetPicker`（`collection_target_picker.dart`）是切片、时刻、视频三处「加入合集」选择器的共用实现：只负责选中一个目标合集并返回，成员写入由调用方批量执行；各域只提供数据源、行文案（`N 个切片/时刻/视频`）、行 Key 前缀和「新建合集并加入」入口，弹窗/抽屉形态与既有测试锚点由参数保持。选项行是单行卡片：浅灰底 + 细边框，名称过长单行省略，右侧依次是计数和加号；点击整行返回所选合集。`CollectionMemberCard` 由三个合集详情的成员网格共用：整卡即封面、收起态不铺文字，桌面悬停渐显标题/副信息与整行动作按钮（播放 / 影片 / 缩略图 / 加入合集 / 移出合集 / 删除，按回调显隐），移动端信息与动作走点击后的操作面板 / 预览层；时刻来源媒体已删除时隐藏播放键。`CollectionSelectionHeader` 统一三个合集详情页的桌面内联批量动作与移动端退出/计数/全选顶栏。三种 `CollectionCard` 统一使用封面内玻璃信息条承载标题和计数，不再渲染封面下方的实色标题栏；合集横滑区直接按 16:9 封面高度排版。视频合集卡传 `coverBackdrop: true` 时，`BoxFit.contain` 的竖图两侧铺同图暗底，移动 PornBox 横滑区和合集列表使用。
 
 ## media and preview
 

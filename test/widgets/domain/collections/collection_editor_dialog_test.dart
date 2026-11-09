@@ -5,10 +5,11 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/clip_collections/data/dto/clip_collection_dto.dart';
 import 'package:sakuramedia/features/clip_collections/presentation/widgets/create_clip_collection_dialog.dart';
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
-import 'package:sakuramedia/features/playlists/presentation/widgets/edit_playlist_dialog.dart';
+import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_editor_dialog.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/create_video_collection_dialog.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../support/logged_in_session_store.dart';
@@ -80,7 +81,7 @@ void main() {
       _Host(
         label: '打开编辑播放列表',
         onPressed: (context) async {
-          result = await showEditPlaylistDialog(context, playlist: playlist);
+          result = await showPlaylistEditor(context, playlist: playlist);
         },
       ),
     );
@@ -116,7 +117,7 @@ void main() {
         onPressed: (context) async {
           result = await showVideoCollectionDialog(
             context,
-            presentation: VideoCollectionEditPresentation.bottomDrawer,
+            presentation: CollectionEditorPresentation.bottomFormSheet,
           );
         },
       ),

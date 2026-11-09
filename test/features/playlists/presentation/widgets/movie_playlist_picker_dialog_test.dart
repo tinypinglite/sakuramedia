@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dar
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/movie_playlist_picker_dialog.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../support/logged_in_session_store.dart';
@@ -82,7 +83,7 @@ void main() {
     await _openPicker(
       tester,
       bundle: bundle,
-      presentation: MoviePlaylistPickerPresentation.dialog,
+      presentation: AppAdaptiveModalVariant.dialog,
     );
 
     expect(
@@ -138,7 +139,7 @@ void main() {
       await _openPicker(
         tester,
         bundle: bundle,
-        presentation: MoviePlaylistPickerPresentation.bottomDrawer,
+        presentation: AppAdaptiveModalVariant.drawer,
       );
 
       expect(
@@ -167,21 +168,21 @@ void main() {
 Future<void> _openPicker(
   WidgetTester tester, {
   required TestApiBundle bundle,
-  required MoviePlaylistPickerPresentation presentation,
+  required AppAdaptiveModalVariant presentation,
 }) async {
   await pumpPreviewApp(
     tester,
     home: _PickerLauncher(presentation: presentation),
-    size: presentation == MoviePlaylistPickerPresentation.bottomDrawer
+    size: presentation == AppAdaptiveModalVariant.drawer
         ? const Size(390, 844)
         : const Size(1100, 760),
-    theme: presentation == MoviePlaylistPickerPresentation.bottomDrawer
+    theme: presentation == AppAdaptiveModalVariant.drawer
         ? buildSakuraMobileThemeData()
         : buildSakuraDesktopThemeData(),
-    platform: presentation == MoviePlaylistPickerPresentation.bottomDrawer
+    platform: presentation == AppAdaptiveModalVariant.drawer
         ? TargetPlatform.android
         : TargetPlatform.macOS,
-    appPlatform: presentation == MoviePlaylistPickerPresentation.bottomDrawer
+    appPlatform: presentation == AppAdaptiveModalVariant.drawer
         ? AppPlatform.mobile
         : AppPlatform.desktop,
     bundle: bundle,
@@ -194,7 +195,7 @@ Future<void> _openPicker(
 class _PickerLauncher extends StatelessWidget {
   const _PickerLauncher({required this.presentation});
 
-  final MoviePlaylistPickerPresentation presentation;
+  final AppAdaptiveModalVariant presentation;
 
   @override
   Widget build(BuildContext context) {

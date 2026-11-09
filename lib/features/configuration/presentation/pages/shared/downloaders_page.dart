@@ -227,14 +227,10 @@ class _DownloadersPageState extends ConsumerState<DownloadersPage>
             SizedBox(height: spacing.lg),
             AppSettingsGroup(
               children: [
-                AppSettingCell(
+                AppSettingCreateCell(
                   key: const Key('configuration-download-client-create-button'),
-                  icon: Icons.add_rounded,
-                  iconColor: Theme.of(context).colorScheme.primary,
                   title: l10n.downloaderCreate,
-                  titleTone: AppTextTone.accent,
-                  titleWeight: AppTextWeight.medium,
-                  trailing: const AppSettingCellChevron(),
+                  enabled: data.downloadableLibraries.isNotEmpty,
                   onTap: data.downloadableLibraries.isEmpty
                       ? null
                       : () => _createClient(data),
@@ -580,22 +576,11 @@ class _DesktopDownloaderCard extends StatelessWidget {
                 ),
               ),
               SizedBox(width: spacing.sm),
-              AppIconButton(
-                key: Key('download-client-edit-${client.id}'),
-                icon: const Icon(Icons.edit_outlined),
-                tooltip: l10n.commonEdit,
-                size: AppIconButtonSize.inline,
-                iconColor: context.appTextPalette.secondary,
-                onPressed: onEdit,
-              ),
-              SizedBox(width: spacing.xs),
-              AppIconButton(
-                key: Key('download-client-delete-${client.id}'),
-                icon: const Icon(Icons.delete_outline),
-                tooltip: l10n.commonDelete,
-                size: AppIconButtonSize.inline,
-                iconColor: context.appTextPalette.secondary,
-                onPressed: onDelete,
+              AppSettingInlineActions(
+                editKey: Key('download-client-edit-${client.id}'),
+                deleteKey: Key('download-client-delete-${client.id}'),
+                onEdit: onEdit,
+                onDelete: onDelete,
               ),
             ],
           ),

@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
-import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_actions_dialog.dart';
-import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_actions_sheet.dart';
+import 'package:sakuramedia/features/videos/presentation/pages/shared/video_actions_modal.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 import '../../../../support/pump_with_providers.dart';
 
@@ -15,13 +15,14 @@ void main() {
     await pumpWithProviders(
       tester,
       home: _ActionsHost(
-        onOpen: (context) => showDesktopVideoActionsDialog(
+        onOpen: (context) => showVideoActions(
           context,
           video: _video(),
           onPlay: () {},
           onDelete: () => deleted = true,
           collections: _collections,
           onCollectionTap: (_) {},
+          variant: AppAdaptiveModalVariant.dialog,
         ),
       ),
       theme: buildSakuraDesktopThemeData(),
@@ -51,11 +52,12 @@ void main() {
     await pumpWithProviders(
       tester,
       home: _ActionsHost(
-        onOpen: (context) => showMobileVideoActionsSheet(
+        onOpen: (context) => showVideoActions(
           context,
           video: _video(),
           onPlay: () {},
           onDelete: () => deleted = true,
+          variant: AppAdaptiveModalVariant.drawer,
         ),
       ),
       theme: buildSakuraMobileThemeData(),
@@ -82,12 +84,13 @@ void main() {
     await pumpWithProviders(
       tester,
       home: _ActionsHost(
-        onOpen: (context) => showDesktopVideoActionsDialog(
+        onOpen: (context) => showVideoActions(
           context,
           video: _video(),
           onPlay: () {},
           collections: _collections,
           onCollectionTap: (collection) => openedCollectionId = collection.id,
+          variant: AppAdaptiveModalVariant.dialog,
         ),
       ),
       theme: buildSakuraDesktopThemeData(),

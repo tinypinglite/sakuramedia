@@ -7,11 +7,11 @@ import 'package:sakuramedia/features/media/presentation/widgets/shared/media_mov
 import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/presentation/actions/video_playback_launcher.dart';
-import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_actions_dialog.dart';
-import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_actions_sheet.dart';
+import 'package:sakuramedia/features/videos/presentation/pages/shared/video_actions_modal.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_mutation_events_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/add_to_video_collection_dialog.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 /// 「媒体管理」媒体列表行点击后的动作编排：JAV → 影片操作弹层（播放 / 影片详情），
 /// PornBox → 复用视频操作弹窗 / 底部抽屉（播放 / 缩略图 / 加入合集）。
@@ -114,18 +114,7 @@ Future<void> _openPornboxActions(
   void onCollectionTap(VideoCollectionRef collection) =>
       _openCollection(context, collection.id, mobile: mobile);
 
-  if (mobile) {
-    return showMobileVideoActionsSheet(
-      context,
-      video: video,
-      onPlay: onPlay,
-      onThumbnails: onThumbnails,
-      onAddToCollection: onAddToCollection,
-      collections: item.collections,
-      onCollectionTap: onCollectionTap,
-    );
-  }
-  return showDesktopVideoActionsDialog(
+  return showVideoActions(
     context,
     video: video,
     onPlay: onPlay,
@@ -133,6 +122,9 @@ Future<void> _openPornboxActions(
     onAddToCollection: onAddToCollection,
     collections: item.collections,
     onCollectionTap: onCollectionTap,
+    variant: mobile
+        ? AppAdaptiveModalVariant.drawer
+        : AppAdaptiveModalVariant.dialog,
   );
 }
 
@@ -182,9 +174,7 @@ void _openCollection(
     ).push<void>(context);
     return;
   }
-  DesktopRoutes.videoCollectionDetail(
-    collectionId: collectionId,
-  ).push(context);
+  DesktopRoutes.videoCollectionDetail(collectionId: collectionId).push(context);
 }
 
 Future<void> _addToCollection(
@@ -199,8 +189,8 @@ Future<void> _addToCollection(
     videoItemId: videoItemId,
     collectedRefs: collections,
     presentation: mobile
-        ? AddToVideoCollectionPresentation.bottomDrawer
-        : AddToVideoCollectionPresentation.dialog,
+        ? AppAdaptiveModalVariant.drawer
+        : AppAdaptiveModalVariant.dialog,
   );
   // 弹窗内可加入 / 移出（勾选切换）：关闭后统一广播，让 PornBox 列表 / 首页合集横滑区刷新。
   ref

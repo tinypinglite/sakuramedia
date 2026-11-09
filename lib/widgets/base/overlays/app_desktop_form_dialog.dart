@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_binding.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
 
@@ -40,51 +41,15 @@ class AppDesktopFormDialog extends StatefulWidget {
   State<AppDesktopFormDialog> createState() => _AppDesktopFormDialogState();
 }
 
-class _AppDesktopFormDialogState extends State<AppDesktopFormDialog> {
-  AppModalDismissController? _dismissController;
-  bool _ownsDismissController = false;
+class _AppDesktopFormDialogState extends State<AppDesktopFormDialog>
+    with AppModalDismissBinding<AppDesktopFormDialog> {
+  @override
+  AppModalDismissController? dismissControllerFor(
+    AppDesktopFormDialog widget,
+  ) => widget.dismissController;
 
   @override
-  void initState() {
-    super.initState();
-    _bindDismissController();
-  }
-
-  @override
-  void didUpdateWidget(covariant AppDesktopFormDialog oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!identical(oldWidget.dismissController, widget.dismissController)) {
-      _releaseDismissController();
-      _bindDismissController();
-    } else if (oldWidget.isSubmitting != widget.isSubmitting) {
-      _dismissController?.setLocked(widget.isSubmitting);
-    }
-  }
-
-  @override
-  void dispose() {
-    _releaseDismissController();
-    super.dispose();
-  }
-
-  void _bindDismissController() {
-    final supplied = widget.dismissController;
-    _ownsDismissController = supplied == null;
-    _dismissController = supplied ?? AppModalDismissController();
-    _dismissController!.setLocked(widget.isSubmitting);
-  }
-
-  void _releaseDismissController() {
-    final controller = _dismissController;
-    if (controller == null) {
-      return;
-    }
-    controller.setLocked(false);
-    if (_ownsDismissController) {
-      controller.dispose();
-    }
-    _dismissController = null;
-  }
+  bool isDismissLockedFor(AppDesktopFormDialog widget) => widget.isSubmitting;
 
   @override
   Widget build(BuildContext context) {
@@ -92,7 +57,7 @@ class _AppDesktopFormDialogState extends State<AppDesktopFormDialog> {
     final spacing = context.appSpacing;
     final busy = widget.isSubmitting || widget.isBusy;
     return AppModalDismissScope(
-      controller: _dismissController!,
+      controller: boundDismissController,
       child: Form(
         key: widget.formKey,
         child: Column(

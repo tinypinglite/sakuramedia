@@ -9,7 +9,9 @@ import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_actions_panel.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 
 /// 切片合集详情壳。平台差异只保留一个 [mobile] 维度和几个真实分叉点。
 class ClipCollectionDetailPage extends StatelessWidget {
@@ -31,24 +33,16 @@ class ClipCollectionDetailPage extends StatelessWidget {
       hoistTitleToSubpageShell: mobile,
       playAllBuilder: _buildPlayAll,
       onMemberTap: (context, clip, actions) {
-        if (mobile) {
-          showClipActionsSheet(
-            context,
-            clip: clip,
-            onPlay: () => actions.playSingle(context, clip),
-            onOpenMovie: _openMovieCallback(context, clip),
-            onRemoveFromCollection: () => actions.remove(clip),
-            onDelete: () => actions.delete(clip),
-          );
-          return;
-        }
-        showClipActionsDialog(
+        showClipActions(
           context,
           clip: clip,
           onPlay: () => actions.playSingle(context, clip),
           onOpenMovie: _openMovieCallback(context, clip),
           onRemoveFromCollection: () => actions.remove(clip),
           onDelete: () => actions.delete(clip),
+          variant: mobile
+              ? AppAdaptiveModalVariant.drawer
+              : AppAdaptiveModalVariant.dialog,
         );
       },
       playSingle: (context, clip) {
@@ -86,8 +80,8 @@ class ClipCollectionDetailPage extends StatelessWidget {
           context,
           collection: collection,
           presentation: mobile
-              ? ClipCollectionEditPresentation.bottomDrawer
-              : ClipCollectionEditPresentation.dialog,
+              ? CollectionEditorPresentation.drawer
+              : CollectionEditorPresentation.dialog,
         );
       },
       onAddClips: (context, memberClipIds) async {

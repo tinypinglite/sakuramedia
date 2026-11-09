@@ -8,9 +8,10 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_subscri
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_card.dart';
+
+import 'movie_detail_strip.dart';
 
 const double _similarMovieCardWidthFactor = 0.75;
 
@@ -52,7 +53,7 @@ class MovieSimilarMovieStrip extends ConsumerWidget {
       // loading 用占位影片渲染真实卡片，由 [AppSkeletonizer] 灰化。
       return AppSkeletonizer(
         enabled: true,
-        child: _MovieSimilarMovieStripScroller(
+        child: MovieDetailStripScroller(
           scrollViewKey: const Key('movie-similar-strip-loading'),
           children: [
             for (final movie in movieListItemPlaceholders(count: 4))
@@ -66,22 +67,23 @@ class MovieSimilarMovieStrip extends ConsumerWidget {
     }
 
     if (errorMessage != null) {
-      return _MovieSimilarMovieFeedback(
+      return MovieDetailStripFeedback(
         feedbackKey: const Key('movie-similar-strip-error'),
         message: errorMessage!,
         actionLabel: AppLocalizations.of(context).commonRetry,
         onAction: onRetry,
+        retryKey: const Key('movie-similar-strip-retry'),
       );
     }
 
     if (movies.isEmpty) {
-      return _MovieSimilarMovieFeedback(
+      return MovieDetailStripFeedback(
         feedbackKey: const Key('movie-similar-strip-empty'),
         message: AppLocalizations.of(context).movieWidgetNoSimilarMovies,
       );
     }
 
-    return _MovieSimilarMovieStripScroller(
+    return MovieDetailStripScroller(
       scrollViewKey: const Key('movie-similar-strip-scroll'),
       children: movies
           .map(
@@ -123,87 +125,5 @@ Future<void> _toggleMovieSubscription(
       .toggle(movieNumber: movie.movieNumber, isSubscribed: movie.isSubscribed);
   if (context.mounted) {
     showMovieSubscriptionFeedback(result, l10n: AppLocalizations.of(context));
-  }
-}
-
-class _MovieSimilarMovieStripScroller extends StatelessWidget {
-  const _MovieSimilarMovieStripScroller({
-    required this.children,
-    this.scrollViewKey,
-  });
-
-  final List<Widget> children;
-  final Key? scrollViewKey;
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.appSpacing.sm;
-    return SingleChildScrollView(
-      key: scrollViewKey,
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: List<Widget>.generate(children.length, (index) {
-          return Padding(
-            padding: EdgeInsets.only(
-              right: index == children.length - 1 ? 0 : spacing,
-            ),
-            child: children[index],
-          );
-        }),
-      ),
-    );
-  }
-}
-
-class _MovieSimilarMovieFeedback extends StatelessWidget {
-  const _MovieSimilarMovieFeedback({
-    required this.message,
-    this.feedbackKey,
-    this.actionLabel,
-    this.onAction,
-  });
-
-  final String message;
-  final Key? feedbackKey;
-  final String? actionLabel;
-  final VoidCallback? onAction;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      key: feedbackKey,
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: context.appSpacing.md,
-        vertical: context.appSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: context.appColors.movieDetailEmptyBackground,
-        borderRadius: context.appRadius.mdBorder,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              message,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                weight: AppTextWeight.regular,
-                tone: AppTextTone.secondary,
-              ),
-            ),
-          ),
-          if (actionLabel != null && onAction != null) ...[
-            SizedBox(width: context.appSpacing.sm),
-            AppTextButton(
-              key: const Key('movie-similar-strip-retry'),
-              label: actionLabel!,
-              onPressed: onAction,
-            ),
-          ],
-        ],
-      ),
-    );
   }
 }

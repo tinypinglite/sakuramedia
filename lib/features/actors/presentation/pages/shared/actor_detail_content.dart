@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/actors/presentation/providers/actor_removal
 import 'package:sakuramedia/features/actors/presentation/providers/actor_subscription_events_provider.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actor_tag_filter_provider.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actors_api_provider.dart';
+import 'package:sakuramedia/features/actors/presentation/pages/shared/actor_detail_chrome.dart';
 import 'package:sakuramedia/features/actors/presentation/widgets/actor_merge_dialog.dart';
 import 'package:sakuramedia/features/actors/presentation/widgets/actor_profile_editor.dart';
 import 'package:sakuramedia/features/actors/presentation/widgets/actor_tag_filter_menu_button.dart';
@@ -24,6 +25,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_summary
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_state.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
@@ -33,66 +35,19 @@ import 'package:sakuramedia/widgets/domain/movies/movie_filter_sections.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_sort_menu_button.dart';
 import 'package:sakuramedia/widgets/domain/tags/media_tag_filter_section.dart';
 
-typedef ActorDetailBodyBuilder =
-    Widget Function(
-      BuildContext context,
-      ScrollController scrollController,
-      Widget child,
-      Future<void> Function()? onRefresh,
-    );
-
-typedef ActorDetailHeaderBuilder =
-    Widget Function(
-      BuildContext context,
-      ActorDetailDto actor,
-      bool isSubscribed,
-      bool isSubscriptionUpdating,
-      VoidCallback? onSubscriptionTap,
-      VoidCallback onEditTap,
-      VoidCallback onMergeTap,
-    );
-
-typedef ActorDetailErrorBuilder =
-    Widget Function(BuildContext context, String message, VoidCallback onRetry);
-
 class ActorDetailContent extends ConsumerStatefulWidget {
   const ActorDetailContent({
     super.key,
     required this.actorId,
-    required this.surfaceColor,
-    required this.contentKey,
-    required this.sectionSpacing,
+    required this.mobile,
     required this.onMovieTap,
-    required this.headerBuilder,
-    required this.loadingBuilder,
-    required this.errorBuilder,
-    required this.bodyBuilder,
-    this.enableRefresh = false,
     this.onRefreshFailure,
-    this.useMobileFilterDrawer = false,
-    this.useMobileSelectionLayout = false,
   });
 
   final int actorId;
-  final Color surfaceColor;
-  final Key contentKey;
-  final double sectionSpacing;
+  final bool mobile;
   final void Function(BuildContext context, String movieNumber) onMovieTap;
-  final ActorDetailHeaderBuilder headerBuilder;
-  final WidgetBuilder loadingBuilder;
-  final ActorDetailErrorBuilder errorBuilder;
-  final ActorDetailBodyBuilder bodyBuilder;
-  final bool enableRefresh;
   final void Function(BuildContext context)? onRefreshFailure;
-
-  /// 顶栏筛选入口点开什么：`true` 弹底部抽屉（移动端），`false` 就地展开浮层
-  /// （桌面端）。两端按钮外观、面板内容、条件即时更新行为完全一致，只有容器不同。
-  final bool useMobileFilterDrawer;
-
-  /// 移动端多选布局：入口挂到**卡片长按浮层**（顶栏不再常驻「选择」），多选态
-  /// 顶栏只留退出/计数/全选，批量动作走贴底的 `AppSelectionBottomBar`。
-  /// 桌面端保持 `false`——批量动作在顶栏内联。语义对齐 `MovieSummaryListContent`。
-  final bool useMobileSelectionLayout;
 
   @override
   ConsumerState<ActorDetailContent> createState() => _ActorDetailContentState();
@@ -293,7 +248,7 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent> {
     final filterState = args.filterState;
     final totalLabel = l10n.actorMovieCountLabel(args.total);
     final showTotal = ref.read(movieSummaryProvider(_scope)).hasValue;
-    if (widget.useMobileFilterDrawer) {
+    if (widget.mobile) {
       return AppMobileListHeader(
         leading: showTotal ? AppMobileHeaderText(countLabel: totalLabel) : null,
         actions: <Widget>[
@@ -452,15 +407,20 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent> {
       }
       _applyTagSelection(next);
     });
+    final mobile = widget.mobile;
+    final sectionSpacing = mobile
+        ? context.appSpacing.md
+        : context.appSpacing.lg;
     final Widget content;
     if (actorAsync.isLoading && actorState?.actor == null) {
-      content = widget.loadingBuilder(context);
+      content = ActorDetailLoadingBody(mobile: mobile);
     } else if (actorState?.errorMessage != null || actorState?.actor == null) {
-      content = widget.errorBuilder(
-        context,
-        actorState?.errorMessage ??
+      content = ActorDetailErrorBody(
+        mobile: mobile,
+        message:
+            actorState?.errorMessage ??
             AppLocalizations.of(context).actorDetailLoadFailed,
-        () => unawaited(
+        onRetry: () => unawaited(
           ref.read(actorDetailProvider(widget.actorId).notifier).reload(),
         ),
       );
@@ -470,36 +430,46 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent> {
           _isActorSubscribedOverride ?? actor.summary.isSubscribed;
       content = MovieSummaryListContent(
         scope: _scope,
-        surfaceColor: widget.surfaceColor,
-        contentKey: widget.contentKey,
-        sectionSpacing: widget.sectionSpacing,
+        surfaceColor: mobile
+            ? context.appColors.surfaceCard
+            : context.appColors.surfacePage,
+        contentKey: Key(
+          mobile ? 'mobile-actor-detail-page' : 'actor-detail-page',
+        ),
+        sectionSpacing: sectionSpacing,
         batchKeyPrefix: 'actor-detail',
         emptyMessage: AppLocalizations.of(context).actorMoviesEmpty,
         onMovieTap: widget.onMovieTap,
-        bodyBuilder: widget.bodyBuilder,
-        enableRefresh: widget.enableRefresh,
+        bodyBuilder: (context, scrollController, child, onRefresh) =>
+            ActorDetailPageBody(
+              mobile: mobile,
+              scrollController: scrollController,
+              onRefresh: onRefresh,
+              child: child,
+            ),
+        enableRefresh: mobile,
         onRefreshOverride: _handleRefresh,
         usePinnedMobileHeader: true,
-        useMobileSelectionLayout: widget.useMobileSelectionLayout,
+        useMobileSelectionLayout: mobile,
         showHeaderLeadingInSelection: true,
         headerLeading: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            widget.headerBuilder(
-              context,
-              actor,
-              isActorSubscribed,
-              _isActorSubscriptionUpdating,
-              _isActorSubscriptionUpdating
+            ActorDetailHeader(
+              mobile: mobile,
+              actor: actor,
+              isSubscribed: isActorSubscribed,
+              isSubscriptionUpdating: _isActorSubscriptionUpdating,
+              onSubscriptionTap: _isActorSubscriptionUpdating
                   ? null
                   : () => _toggleActorSubscription(
                       isSubscribed: isActorSubscribed,
                     ),
-              () => unawaited(_openActorEditor(actor)),
-              () => unawaited(_openActorMerger(actor)),
+              onEditTap: () => unawaited(_openActorEditor(actor)),
+              onMergeTap: () => unawaited(_openActorMerger(actor)),
             ),
-            SizedBox(height: widget.sectionSpacing),
+            SizedBox(height: sectionSpacing),
           ],
         ),
         headerBuilder: _buildFilterHeader,

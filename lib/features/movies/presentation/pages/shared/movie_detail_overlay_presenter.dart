@@ -255,8 +255,8 @@ class MovieDetailOverlayPresenter {
       movieNumber: movie.movieNumber,
       initialPlaylists: movie.playlists,
       presentation: mobile
-          ? MoviePlaylistPickerPresentation.bottomDrawer
-          : MoviePlaylistPickerPresentation.dialog,
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
     );
   }
 

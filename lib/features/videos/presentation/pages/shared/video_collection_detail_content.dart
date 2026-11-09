@@ -13,8 +13,7 @@ import 'package:sakuramedia/features/shared/presentation/providers/collection_pl
 import 'package:sakuramedia/features/videos/data/dto/video_collection_dto.dart';
 import 'package:sakuramedia/features/videos/presentation/actions/video_playback_launcher.dart';
 import 'package:sakuramedia/features/videos/presentation/controllers/listing/video_filter_state.dart';
-import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_actions_dialog.dart';
-import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_actions_sheet.dart';
+import 'package:sakuramedia/features/videos/presentation/pages/shared/video_actions_modal.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_collection_detail_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_collection_detail_state.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_mutation_events_provider.dart';
@@ -28,6 +27,8 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_selection_header.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_filter_result_loading_overlay.dart';
@@ -622,24 +623,15 @@ class _VideoCollectionDetailContentState
       BatchOperationType.videoCollectionRemove,
       BatchOperationType.videoDelete,
     ]);
-    if (_isMobile) {
-      return AppMobileSelectionHeader(
-        selectionLabel: l10n.videoSelectedCount(selectedCount),
-        countKey: Key('${widget.keyPrefix}-selection-count-text'),
-        exitKey: Key('${widget.keyPrefix}-exit-selection-button'),
-        onExitSelection: exitSelection,
-        selectAllKey: Key('${widget.keyPrefix}-select-all-button'),
-        selectAllTooltip: allSelected
-            ? l10n.videoDeselectAll
-            : l10n.videoSelectAll,
-        onToggleAll: () => toggleSelectAll(videoIds),
-      );
-    }
-    return AppGlassSelectionHeader(
+    return CollectionSelectionHeader(
+      mobile: _isMobile,
+      keyPrefix: widget.keyPrefix,
+      selectedCount: selectedCount,
+      allSelected: allSelected,
       selectionLabel: l10n.videoSelectedCount(selectedCount),
+      selectAllLabel: l10n.videoSelectAll,
+      deselectAllLabel: l10n.videoDeselectAll,
       countKey: Key('${widget.keyPrefix}-selection-count-text'),
-      selectAllLabel: allSelected ? l10n.videoDeselectAll : l10n.videoSelectAll,
-      selectAllKey: Key('${widget.keyPrefix}-select-all-button'),
       onToggleAll: () => toggleSelectAll(videoIds),
       actions: <AppGlassSelectionAction>[
         AppGlassSelectionAction(
@@ -667,7 +659,6 @@ class _VideoCollectionDetailContentState
           onTap: hasSelection && !submitting ? () => _batchDelete(state) : null,
         ),
       ],
-      exitKey: Key('${widget.keyPrefix}-exit-selection-button'),
       onExitSelection: exitSelection,
     );
   }
@@ -859,27 +850,7 @@ class _VideoCollectionDetailContentState
     final otherCollections = video.collections
         .where((ref) => ref.id != widget.collectionId)
         .toList(growable: false);
-    if (_isMobile) {
-      showMobileVideoActionsSheet(
-        context,
-        video: video,
-        onPlay: () => _playSingle(
-          context,
-          video.id,
-          video.displayTitle(AppLocalizations.of(context)),
-        ),
-        onThumbnails: () =>
-            MobileRoutes.videoThumbnail(videoId: video.id).push<void>(context),
-        onRemoveFromCollection: () => _removeVideo(video.id),
-        onDelete: () => _deleteVideo(video.id),
-        collections: otherCollections,
-        onCollectionTap: (ref) => MobileRoutes.videoCollectionDetail(
-          collectionId: ref.id,
-        ).push(context),
-      );
-      return;
-    }
-    showDesktopVideoActionsDialog(
+    showVideoActions(
       context,
       video: video,
       onPlay: () => _playSingle(
@@ -887,13 +858,24 @@ class _VideoCollectionDetailContentState
         video.id,
         video.displayTitle(AppLocalizations.of(context)),
       ),
-      onThumbnails: () => _openThumbnails(item),
+      onThumbnails: _isMobile
+          ? () => MobileRoutes.videoThumbnail(
+              videoId: video.id,
+            ).push<void>(context)
+          : () => _openThumbnails(item),
       onRemoveFromCollection: () => _removeVideo(video.id),
       onDelete: () => _deleteVideo(video.id),
       collections: otherCollections,
-      onCollectionTap: (ref) => DesktopRoutes.videoCollectionDetail(
-        collectionId: ref.id,
-      ).push(context),
+      onCollectionTap: (ref) => _isMobile
+          ? MobileRoutes.videoCollectionDetail(
+              collectionId: ref.id,
+            ).push(context)
+          : DesktopRoutes.videoCollectionDetail(
+              collectionId: ref.id,
+            ).push(context),
+      variant: _isMobile
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
     );
   }
 
@@ -982,8 +964,8 @@ class _VideoCollectionDetailContentState
     final target = await showPickVideoCollectionDialog(
       context,
       presentation: _isMobile
-          ? PickVideoCollectionPresentation.bottomDrawer
-          : PickVideoCollectionPresentation.dialog,
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
       excludedCollectionId: widget.collectionId,
     );
     if (!mounted || target == null) {
@@ -1069,8 +1051,8 @@ class _VideoCollectionDetailContentState
     final target = await showPickVideoCollectionDialog(
       context,
       presentation: _isMobile
-          ? PickVideoCollectionPresentation.bottomDrawer
-          : PickVideoCollectionPresentation.dialog,
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
       excludedCollectionId: widget.collectionId,
     );
     if (!mounted || target == null) {

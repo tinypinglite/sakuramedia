@@ -2,10 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
-import 'package:sakuramedia/widgets/domain/media/media_center_play_button.dart';
-import 'package:sakuramedia/widgets/domain/media/media_duration_badge.dart';
+import 'package:sakuramedia/widgets/domain/media/media_action_preview_header.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_action_grid.dart';
 
 /// 媒体列表 JAV 行点击后的弹层动作；由调用方在弹层关闭后执行
@@ -14,7 +12,7 @@ enum MediaMovieAction { play, openMovieDetail }
 
 /// JAV 媒体行的「影片操作」弹层：桌面居中对话弹窗、移动端底部抽屉。
 ///
-/// 版式对齐视频操作弹窗（`video_actions_dialog.dart`）：封面预览 + 标题 +
+/// 版式对齐视频操作弹窗（`video_actions_panel.dart`）：封面预览 + 标题 +
 /// 横排操作格；JAV 媒体只承载「播放（这条媒体）/ 影片详情」两个入口，
 /// 迁移 / 删除等媒体级动作仍留在行卡图标上。
 Future<MediaMovieAction?> showMediaMovieActionsOverlay({
@@ -68,78 +66,6 @@ class _MediaMovieActionsContent extends StatelessWidget {
     Navigator.of(context).pop(action);
   }
 
-  Widget _buildCover(BuildContext context) {
-    final spacing = context.appSpacing;
-    final colors = context.appColors;
-    final coverUrl = _coverUrl;
-    return ClipRRect(
-      borderRadius: context.appRadius.mdBorder,
-      child: AspectRatio(
-        aspectRatio: 16 / 9,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            ColoredBox(
-              key: const Key('media-row-movie-actions-cover'),
-              color: colors.surfaceMuted,
-              child: coverUrl != null && coverUrl.isNotEmpty
-                  ? MaskedImage(url: coverUrl, fit: _coverFit)
-                  : null,
-            ),
-            if (item.durationSeconds > 0)
-              Positioned(
-                right: spacing.xs,
-                bottom: spacing.xs,
-                child: MediaDurationBadge(seconds: item.durationSeconds),
-              ),
-            if (_canPlay)
-              MediaCenterPlayButton(
-                buttonKey: const Key('media-row-movie-actions-center-play'),
-                onTap: () => _run(context, MediaMovieAction.play),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTitle(BuildContext context) {
-    final spacing = context.appSpacing;
-    final subtitle = item.displaySubtitle;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          item.displayHeading(AppLocalizations.of(context)),
-          key: const Key('media-row-movie-actions-title'),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s16,
-            weight: AppTextWeight.semibold,
-            tone: AppTextTone.primary,
-          ),
-        ),
-        if (subtitle != null) ...[
-          SizedBox(height: spacing.xs),
-          Text(
-            subtitle,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: AppTextWeight.regular,
-              tone: AppTextTone.secondary,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
   Widget _buildActions(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return MediaPreviewActionGrid(
@@ -172,9 +98,18 @@ class _MediaMovieActionsContent extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _buildCover(context),
-        SizedBox(height: spacing.md),
-        _buildTitle(context),
+        MediaActionPreviewHeader(
+          coverUrl: _coverUrl,
+          coverFit: _coverFit,
+          coverKey: const Key('media-row-movie-actions-cover'),
+          durationSeconds: item.durationSeconds,
+          onPlay: _canPlay ? () => _run(context, MediaMovieAction.play) : null,
+          playButtonKey: const Key('media-row-movie-actions-center-play'),
+          title: item.displayHeading(AppLocalizations.of(context)),
+          titleKey: const Key('media-row-movie-actions-title'),
+          titleMaxLines: 1,
+          subtitle: item.displaySubtitle,
+        ),
         SizedBox(height: spacing.lg),
         _buildActions(context),
       ],

@@ -4,10 +4,8 @@ import 'package:sakuramedia/features/clip_collections/presentation/providers/cli
 import 'package:sakuramedia/features/clip_collections/presentation/widgets/create_clip_collection_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_target_picker.dart';
-
-/// 目标合集选择器的呈现形态：桌面弹窗 / 移动端底部抽屉。
-enum PickClipCollectionPresentation { dialog, bottomDrawer }
 
 /// 选择一个目标切片合集（批量加入合集用）。返回选中的合集；取消返回 `null`。
 ///
@@ -16,14 +14,13 @@ enum PickClipCollectionPresentation { dialog, bottomDrawer }
 /// [showCollectionTargetPicker]，本函数只适配本域的数据源、行文案和新建入口。
 Future<ClipCollectionDto?> showPickClipCollectionDialog(
   BuildContext context, {
-  PickClipCollectionPresentation presentation =
-      PickClipCollectionPresentation.dialog,
+  AppAdaptiveModalVariant presentation = AppAdaptiveModalVariant.dialog,
   int? excludedCollectionId,
 }) {
   final l10n = AppLocalizations.of(context);
   return showCollectionTargetPicker<ClipCollectionDto>(
     context: context,
-    variant: _variantOf(presentation),
+    variant: presentation,
     drawerKey: const Key('pick-clip-collection-bottom-sheet'),
     optionKeyPrefix: 'pick-clip-collection-',
     watchCollections: (ref) => ref.watch(clipCollectionsOverviewProvider),
@@ -35,18 +32,8 @@ Future<ClipCollectionDto?> showPickClipCollectionDialog(
     onCreate: (context, isDrawer) => showCreateClipCollectionDialog(
       context,
       presentation: isDrawer
-          ? ClipCollectionEditPresentation.bottomDrawer
-          : ClipCollectionEditPresentation.dialog,
+          ? CollectionEditorPresentation.drawer
+          : CollectionEditorPresentation.dialog,
     ),
   );
-}
-
-AppAdaptiveModalVariant _variantOf(
-  PickClipCollectionPresentation presentation,
-) {
-  return switch (presentation) {
-    PickClipCollectionPresentation.dialog => AppAdaptiveModalVariant.dialog,
-    PickClipCollectionPresentation.bottomDrawer =>
-      AppAdaptiveModalVariant.drawer,
-  };
 }

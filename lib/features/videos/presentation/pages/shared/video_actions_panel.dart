@@ -5,16 +5,13 @@ import 'package:sakuramedia/features/videos/presentation/widgets/listing/video_c
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
-import 'package:sakuramedia/widgets/domain/media/media_center_play_button.dart';
-import 'package:sakuramedia/widgets/domain/media/media_duration_badge.dart';
+import 'package:sakuramedia/widgets/domain/media/media_action_preview_header.dart';
 import 'package:sakuramedia/widgets/domain/media/preview/media_preview_action_grid.dart';
 
 /// 视频操作面板共享主体：封面、标题、所属合集和动作区。
 ///
 /// 桌面用居中 dialog，移动用底部 drawer；平台差异只保留在动作排列、
-/// 标题字号和封面播放键上。入口壳（`showDesktopVideoActionsDialog` /
-/// `showMobileVideoActionsSheet`）保持稳定，由它们传入 `mobile`。
+/// 标题字号和封面播放键上。入口壳 `showVideoActions` 传入 `mobile`。
 class VideoActionsPanel extends StatelessWidget {
   const VideoActionsPanel({
     super.key,
@@ -84,7 +81,6 @@ class VideoActionsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final colors = context.appColors;
     final tokens = context.appComponentTokens;
     final l10n = AppLocalizations.of(context);
     final coverUrl = video.coverImage?.origin;
@@ -93,46 +89,15 @@ class VideoActionsPanel extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        ClipRRect(
-          borderRadius: context.appRadius.mdBorder,
-          child: AspectRatio(
-            aspectRatio: 16 / 9,
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                ColoredBox(
-                  color: colors.surfaceMuted,
-                  child: coverUrl != null && coverUrl.isNotEmpty
-                      ? MaskedImage(url: coverUrl, fit: BoxFit.contain)
-                      : null,
-                ),
-                if (video.durationSeconds > 0)
-                  Positioned(
-                    right: spacing.xs,
-                    bottom: spacing.xs,
-                    child: MediaDurationBadge(seconds: video.durationSeconds),
-                  ),
-                if (!mobile && video.canPlay)
-                  MediaCenterPlayButton(onTap: () => _run(context, onPlay)),
-              ],
-            ),
-          ),
-        ),
-        SizedBox(height: spacing.md),
-        Padding(
-          padding: EdgeInsets.only(right: closeGutter),
-          child: Text(
-            video.displayTitle(l10n),
-            key: Key('$_keyPrefix-actions-title'),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: resolveAppTextStyle(
-              context,
-              size: mobile ? AppTextSize.s18 : AppTextSize.s16,
-              weight: AppTextWeight.semibold,
-              tone: AppTextTone.primary,
-            ),
-          ),
+        MediaActionPreviewHeader(
+          coverUrl: coverUrl,
+          coverFit: BoxFit.contain,
+          durationSeconds: video.durationSeconds,
+          onPlay: !mobile && video.canPlay ? () => _run(context, onPlay) : null,
+          title: video.displayTitle(l10n),
+          titleKey: Key('$_keyPrefix-actions-title'),
+          titleSize: mobile ? AppTextSize.s18 : AppTextSize.s16,
+          rightPadding: closeGutter,
         ),
         if (video.mediaCount > 1) ...[
           SizedBox(height: spacing.xs),

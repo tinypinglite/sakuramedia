@@ -2,7 +2,7 @@
 
 ## 应用壳层
 
-- `AppDesktopShell`：`lib/widgets/shell/desktop/app_desktop_shell.dart`，桌面工作台容器。`AppShellLayout.immersive` 变体用于播放页等全出血场景：内容区去掉圆角与外边距，顶栏隐藏。macOS / Windows 下由 `DesktopAmbientBackdrop` 在侧栏和内容后面提供主题色对角光与环境底；桌面和移动环境底共享 `AppAmbientGlow` 光斑实现，各自保留位置、尺寸和测试 Key。玻璃桌面页内容区透明，由卡片和分区承载层级，不再由壳层或页面铺整块全高底色。玻璃侧栏展开时，页面和标准顶栏左内边距收到 `lg`，与侧栏面板自身的外侧 margin 合成 24px gutter；收起时恢复桌面页面边距。非玻璃桌面由壳层提供 `surfaceElevated` 底色，页面不再重复铺根背景。
+- `AppDesktopShell`：`lib/widgets/shell/desktop/app_desktop_shell.dart`，桌面工作台容器。`AppShellLayout.immersive` 变体用于播放页等全出血场景：内容区去掉圆角与外边距，顶栏隐藏。macOS / Windows 下由 `DesktopAmbientBackdrop` 在侧栏和内容后面提供主题色对角光与环境底；桌面 `DesktopAmbientBackdrop` 与移动 `AppMobileAmbientBackdrop` 共用 `AppAmbientBackdrop`，由 `mobile` 布尔选择光斑位置、尺寸、透明度和测试 Key。玻璃桌面页内容区透明，由卡片和分区承载层级，不再由壳层或页面铺整块全高底色。玻璃侧栏展开时，页面和标准顶栏左内边距收到 `lg`，与侧栏面板自身的外侧 margin 合成 24px gutter；收起时恢复桌面页面边距。非玻璃桌面由壳层提供 `surfaceElevated` 底色，页面不再重复铺根背景。
 - `AppSidebar`：`app_sidebar.dart`，桌面侧栏骨架，直接渲染扁平的 `AppNavItem` 列表并按 `sectionLabel` 插入分区标题；`AppSidebarItem` 在 `app_sidebar_item.dart`，`SidebarNavScrollArea` 在 `app_sidebar_nav_scroll_area.dart`。macOS / Windows 展开态是一块从窗口边缘内收 `outerInset`、使用 `panelRadius` 圆角的 `AppSurface` 浮板；红绿灯和收起按钮仍固定在窗口坐标系，自然落在玻璃内。侧栏收起时面板、边距和内容一起归零，导航区用 `Offstage` 隐藏并保留状态（不是卸载）。导航项 hover 显示比选中态更浅的 120ms 背景胶囊，由 `AppInteractiveSurface.onHoverChanged` 驱动，不打开 InkWell 自带 hover 色；展开/收起由 `AppShellSidebarCollapsed` 驱动。
 - `AppSidebarAccountCard`：`app_sidebar_account_card.dart`，桌面侧栏和移动概览抽屉共用的底部账户卡，承载产品名、登录状态、固定产品首字母 `S`、明暗/主题色入口、版本行和退出按钮。
 - `SidebarAppearanceMenu`：`sidebar_appearance_menu.dart`，账户卡内的明暗模式三态切换图标与主题色菜单；读写 `appearanceProvider`，沿用设置页持久化。
@@ -22,7 +22,7 @@
 ## 页面和卡片容器
 
 - `AppContentCard`：承载一组内容或表单的卡片。
-- `AppSettingsGroup`、`AppSettingCell`、`AppSettingIconBox`、`AppSettingCellChevron`、`AppSettingsRail`：设置页分组、条目和桌面设置导航。
+- `AppSettingsGroup`、`AppSettingCell`、`AppSettingIconBox`、`AppSettingCellChevron`、`AppSettingCreateCell`、`AppSettingInlineActions`、`AppSettingsRail`：设置页分组、条目、新建行、行尾编辑/删除动作和桌面设置导航。
 - `AppNoticeCard` / `AppNoticeStat`：页面顶部说明和统计摘要。
 - `AppStatTile`：突出数字统计；`AppInfoBlock`：标签和值的普通信息块。
 - `AppBadge`：小型徽标或状态标记。

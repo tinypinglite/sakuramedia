@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_selection_header.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/clip_collections/data/dto/clip_collection_dto.dart';
@@ -388,24 +390,14 @@ class _ClipCollectionDetailContentState
       BatchOperationType.clipDelete,
     ]);
     final l10n = AppLocalizations.of(context);
-    if (_isMobile) {
-      return AppMobileSelectionHeader(
-        selectionLabel: l10n.clipCollectionSelectedCount(selectedCount),
-        exitKey: Key('${widget.keyPrefix}-exit-selection-button'),
-        onExitSelection: exitSelection,
-        selectAllKey: Key('${widget.keyPrefix}-select-all-button'),
-        selectAllTooltip: allSelected
-            ? l10n.clipCollectionDeselectAll
-            : l10n.clipCollectionSelectAll,
-        onToggleAll: () => toggleSelectAll(clipIds),
-      );
-    }
-    return AppGlassSelectionHeader(
+    return CollectionSelectionHeader(
+      mobile: _isMobile,
+      keyPrefix: widget.keyPrefix,
+      selectedCount: selectedCount,
+      allSelected: allSelected,
       selectionLabel: l10n.clipCollectionSelectedCount(selectedCount),
-      selectAllLabel: allSelected
-          ? l10n.clipCollectionDeselectAll
-          : l10n.clipCollectionSelectAll,
-      selectAllKey: Key('${widget.keyPrefix}-select-all-button'),
+      selectAllLabel: l10n.clipCollectionSelectAll,
+      deselectAllLabel: l10n.clipCollectionDeselectAll,
       onToggleAll: () => toggleSelectAll(clipIds),
       actions: <AppGlassSelectionAction>[
         AppGlassSelectionAction(
@@ -424,7 +416,6 @@ class _ClipCollectionDetailContentState
           onTap: hasSelection && !submitting ? () => _batchDelete(state) : null,
         ),
       ],
-      exitKey: Key('${widget.keyPrefix}-exit-selection-button'),
       onExitSelection: exitSelection,
     );
   }
@@ -704,8 +695,8 @@ class _ClipCollectionDetailContentState
     final target = await showPickClipCollectionDialog(
       context,
       presentation: _isMobile
-          ? PickClipCollectionPresentation.bottomDrawer
-          : PickClipCollectionPresentation.dialog,
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
       excludedCollectionId: widget.collectionId,
     );
     if (!mounted || target == null) {
@@ -801,7 +792,7 @@ class _ClipCollectionDetailContentState
     }
     final ClipCollectionDto? target = await showPickClipCollectionDialog(
       context,
-      presentation: PickClipCollectionPresentation.bottomDrawer,
+      presentation: AppAdaptiveModalVariant.drawer,
       excludedCollectionId: widget.collectionId,
     );
     if (!mounted || target == null) {

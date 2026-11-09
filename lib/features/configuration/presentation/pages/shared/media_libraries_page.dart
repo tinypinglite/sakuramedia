@@ -9,7 +9,7 @@ import 'package:sakuramedia/features/configuration/data/dto/provider_catalog_dto
 import 'package:sakuramedia/features/configuration/presentation/configuration_placeholders.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/media_libraries_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/media_provider_catalog_provider.dart';
-import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_config_empty_card.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_config_list_body.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_entity_list_card.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/config_delete_helpers.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/media_library_editor.dart';
@@ -18,7 +18,6 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_mobile_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
@@ -250,14 +249,9 @@ class _MediaLibrariesPageState extends ConsumerState<MediaLibrariesPage> {
         SizedBox(height: spacing.lg),
         AppSettingsGroup(
           children: [
-            AppSettingCell(
+            AppSettingCreateCell(
               key: const Key('configuration-media-library-create-button'),
-              icon: Icons.add_rounded,
-              iconColor: Theme.of(context).colorScheme.primary,
               title: l10n.mediaLibraryAdd,
-              titleTone: AppTextTone.accent,
-              titleWeight: AppTextWeight.medium,
-              trailing: const AppSettingCellChevron(),
               onTap: _createLibrary,
             ),
           ],
@@ -306,22 +300,11 @@ class _MediaLibrariesPageState extends ConsumerState<MediaLibrariesPage> {
             ),
           ),
           SizedBox(width: context.appSpacing.sm),
-          AppIconButton(
-            key: Key('media-library-edit-${library.id}'),
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: l10n.commonEdit,
-            size: AppIconButtonSize.inline,
-            iconColor: context.appTextPalette.secondary,
-            onPressed: () => _editLibrary(library),
-          ),
-          SizedBox(width: context.appSpacing.xs),
-          AppIconButton(
-            key: Key('media-library-delete-${library.id}'),
-            icon: const Icon(Icons.delete_outline),
-            tooltip: l10n.commonDelete,
-            size: AppIconButtonSize.inline,
-            iconColor: context.appTextPalette.secondary,
-            onPressed: () => _deleteLibrary(library),
+          AppSettingInlineActions(
+            editKey: Key('media-library-edit-${library.id}'),
+            deleteKey: Key('media-library-delete-${library.id}'),
+            onEdit: () => _editLibrary(library),
+            onDelete: () => _deleteLibrary(library),
           ),
         ],
       ),
@@ -423,46 +406,32 @@ class _MediaLibrariesPageState extends ConsumerState<MediaLibrariesPage> {
     AsyncValue<List<MediaProviderDto>> catalog,
   ) {
     final l10n = AppLocalizations.of(context);
-    if (async.isLoading && async.value == null) {
-      return _buildMobileLoading(context);
-    }
-    if (async.hasError) {
-      return AppMobileSectionError(
-        key: const Key('mobile-media-libraries-error-state'),
-        title: l10n.mediaLibraryLoadFailedTitle,
-        message: apiErrorMessage(
-          async.error!,
-          fallback: l10n.mediaLibraryLoadFailedFallback,
-          l10n: l10n,
-        ),
-        onRetry: () => ref.read(mediaLibrariesProvider.notifier).reload(),
-        retryButtonKey: const Key('mobile-media-libraries-retry-button'),
-      );
-    }
     final libraries = async.value ?? const <MediaLibraryDto>[];
-    if (libraries.isEmpty) {
-      return MobileConfigEmptyCard(
-        key: const Key('mobile-media-libraries-empty-state'),
-        message: l10n.mediaLibraryEmpty,
-      );
-    }
     final providers = catalog.value ?? const <MediaProviderDto>[];
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: libraries
-          .expand(
-            (library) => <Widget>[
-              _buildMobileLibraryCard(
-                context,
-                library,
-                providers,
-                catalogReady: catalog.hasValue,
-              ),
-              if (library != libraries.last)
-                SizedBox(height: context.appSpacing.sm),
-            ],
-          )
-          .toList(growable: false),
+    return MobileConfigListBody<MediaLibraryDto>(
+      loading: async.isLoading && async.value == null,
+      error: async.error,
+      items: libraries,
+      loadingBuilder: _buildMobileLoading,
+      errorTitle: l10n.mediaLibraryLoadFailedTitle,
+      errorMessage: async.hasError
+          ? apiErrorMessage(
+              async.error!,
+              fallback: l10n.mediaLibraryLoadFailedFallback,
+              l10n: l10n,
+            )
+          : '',
+      emptyMessage: l10n.mediaLibraryEmpty,
+      onRetry: () => ref.read(mediaLibrariesProvider.notifier).reload(),
+      emptyKey: const Key('mobile-media-libraries-empty-state'),
+      errorKey: const Key('mobile-media-libraries-error-state'),
+      retryKey: const Key('mobile-media-libraries-retry-button'),
+      cardBuilder: (context, library) => _buildMobileLibraryCard(
+        context,
+        library,
+        providers,
+        catalogReady: catalog.hasValue,
+      ),
     );
   }
 

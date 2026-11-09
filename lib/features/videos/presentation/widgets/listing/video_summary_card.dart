@@ -19,9 +19,8 @@ import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 /// 由 [AppCoverHoverInfo] 提供——与 JAV 影片卡同为 180ms ease-out，系统开启
 /// 「减弱动态效果」时退化为瞬时切换。
 ///
-/// 加入合集 / 跳到合集 / 删除等动作走桌面动作弹窗（`showDesktopVideoActionsDialog`）
-/// 或移动端 sheet（`showMobileVideoActionsSheet`）——由 onTap 回调统一承载，卡片
-/// 本身不再挂右键 / 长按上下文菜单。
+/// 加入合集 / 跳到合集 / 删除等动作走 `showVideoActions`——由 onTap 回调统一承载，
+/// 卡片本身不再挂右键 / 长按上下文菜单。
 ///
 /// 与 [MovieListItemDto] 平行，但去掉订阅/热度/番号等 JAV 概念，主键为
 /// [VideoItemListItemDto.id]。

@@ -48,11 +48,13 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_sc
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_glass_popover.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_actions_panel.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_cover_card.dart';
 import 'package:sakuramedia/widgets/domain/clips/clip_grid_card.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_hint_box.dart';
 
 /// 切片首页共享内容：合集横滑区 + 全部切片网格 + 单条/批量动作。
@@ -680,19 +682,7 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
     final onOpenMovie = movieNumber != null && movieNumber.isNotEmpty
         ? () => _openMovie(movieNumber)
         : null;
-    if (_mobile) {
-      showClipActionsSheet(
-        context,
-        clip: clip,
-        onPlay: () => _playClip(clip),
-        onAddToCollection: () => _addToCollection(clip),
-        onRename: () => _renameClip(clip),
-        onDelete: () => _deleteClip(clip),
-        onOpenMovie: onOpenMovie,
-      );
-      return;
-    }
-    showClipActionsDialog(
+    showClipActions(
       context,
       clip: clip,
       onPlay: () => _playClip(clip),
@@ -700,6 +690,9 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
       onRename: () => _renameClip(clip),
       onDelete: () => _deleteClip(clip),
       onOpenMovie: onOpenMovie,
+      variant: _mobile
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
     );
   }
 
@@ -726,8 +719,8 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
       context,
       initialTitle: clip.title,
       presentation: _mobile
-          ? RenameClipDialogPresentation.bottomDrawer
-          : RenameClipDialogPresentation.dialog,
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
     );
     if (!mounted || newTitle == null) {
       return;
@@ -781,8 +774,8 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
       context,
       clipId: clip.clipId,
       presentation: _mobile
-          ? AddToClipCollectionPresentation.bottomDrawer
-          : AddToClipCollectionPresentation.dialog,
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
     );
     if (!mounted) {
       return;
@@ -797,8 +790,8 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
     final created = await showCreateClipCollectionDialog(
       context,
       presentation: _mobile
-          ? ClipCollectionEditPresentation.bottomDrawer
-          : ClipCollectionEditPresentation.dialog,
+          ? CollectionEditorPresentation.drawer
+          : CollectionEditorPresentation.dialog,
     );
     if (!mounted || created == null) {
       return;
@@ -856,8 +849,8 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
     final target = await showPickClipCollectionDialog(
       context,
       presentation: _mobile
-          ? PickClipCollectionPresentation.bottomDrawer
-          : PickClipCollectionPresentation.dialog,
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
     );
     if (!mounted || target == null) {
       return;

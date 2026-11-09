@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/videos/presentation/widgets/collections/pic
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/video_collection_picker_field.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 import 'package:sakuramedia/widgets/domain/media_import/media_import_dialog_shell.dart';
 
 const _videoImportBrowserHeight = 220.0;
@@ -87,8 +88,8 @@ class _VideoImportDialogState extends ConsumerState<VideoImportDialog> {
     final created = await showVideoCollectionDialog(
       context,
       presentation: AppPlatformScope.maybeOf(context) == AppPlatform.mobile
-          ? VideoCollectionEditPresentation.bottomDrawer
-          : VideoCollectionEditPresentation.dialog,
+          ? CollectionEditorPresentation.bottomFormSheet
+          : CollectionEditorPresentation.dialog,
     );
     if (created == null || !mounted) {
       return;

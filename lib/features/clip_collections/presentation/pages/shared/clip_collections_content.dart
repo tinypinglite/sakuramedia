@@ -14,6 +14,7 @@ import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_list_content.dart';
 
 /// 切片合集列表共享实现：桌面 / 移动只保留入口壳差异。
@@ -65,8 +66,8 @@ class _ClipCollectionsContentState
     final created = await showCreateClipCollectionDialog(
       context,
       presentation: widget.mobile
-          ? ClipCollectionEditPresentation.bottomDrawer
-          : ClipCollectionEditPresentation.dialog,
+          ? CollectionEditorPresentation.drawer
+          : CollectionEditorPresentation.dialog,
     );
     if (!mounted || !context.mounted || created == null) {
       return;
@@ -85,8 +86,8 @@ class _ClipCollectionsContentState
       context,
       collection: collection,
       presentation: widget.mobile
-          ? ClipCollectionEditPresentation.bottomDrawer
-          : ClipCollectionEditPresentation.dialog,
+          ? CollectionEditorPresentation.drawer
+          : CollectionEditorPresentation.dialog,
     );
     if (!mounted || !context.mounted || updated == null) {
       return;

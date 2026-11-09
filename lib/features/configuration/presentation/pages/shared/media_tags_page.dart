@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
-import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_config_empty_card.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_config_list_body.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/mobile/mobile_entity_list_card.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/config_delete_helpers.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/media_tag_retag_card.dart';
@@ -16,7 +16,6 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
-import 'package:sakuramedia/widgets/base/feedback/app_mobile_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
@@ -118,28 +117,17 @@ class MediaTagsPage extends ConsumerWidget {
                         ),
                       ),
                       SizedBox(width: spacing.sm),
-                      AppIconButton(
-                        key: Key('media-tag-edit-${tag.id}'),
-                        icon: const Icon(Icons.edit_outlined),
-                        tooltip: l10n.commonEdit,
-                        size: AppIconButtonSize.inline,
-                        iconColor: context.appTextPalette.secondary,
-                        onPressed: () => unawaited(
+                      AppSettingInlineActions(
+                        editKey: Key('media-tag-edit-${tag.id}'),
+                        deleteKey: Key('media-tag-delete-${tag.id}'),
+                        onEdit: () => unawaited(
                           showMediaTagRuleEditor(
                             context,
                             mobile: false,
                             initialTag: tag,
                           ),
                         ),
-                      ),
-                      SizedBox(width: spacing.xs),
-                      AppIconButton(
-                        key: Key('media-tag-delete-${tag.id}'),
-                        icon: const Icon(Icons.delete_outline_rounded),
-                        tooltip: l10n.commonDelete,
-                        size: AppIconButtonSize.inline,
-                        iconColor: context.appTextPalette.secondary,
-                        onPressed: () => _deleteTag(context, ref, tag),
+                        onDelete: () => _deleteTag(context, ref, tag),
                       ),
                     ],
                   ),
@@ -149,14 +137,9 @@ class MediaTagsPage extends ConsumerWidget {
         SizedBox(height: spacing.lg),
         AppSettingsGroup(
           children: [
-            AppSettingCell(
+            AppSettingCreateCell(
               key: const Key('media-tag-create-button'),
-              icon: Icons.add_rounded,
-              iconColor: Theme.of(context).colorScheme.primary,
               title: l10n.mediaTagsAdd,
-              titleTone: AppTextTone.accent,
-              titleWeight: AppTextWeight.medium,
-              trailing: const AppSettingCellChevron(),
               onTap: () =>
                   unawaited(showMediaTagRuleEditor(context, mobile: false)),
             ),
@@ -243,8 +226,12 @@ class MediaTagsPage extends ConsumerWidget {
     AsyncValue<List<MediaTagDto>> async,
   ) {
     final l10n = AppLocalizations.of(context);
-    if (async.isLoading && async.value == null) {
-      return AppSkeletonizer(
+    final tags = async.value ?? const <MediaTagDto>[];
+    return MobileConfigListBody<MediaTagDto>(
+      loading: async.isLoading && async.value == null,
+      error: async.error,
+      items: tags,
+      loadingBuilder: (context) => AppSkeletonizer(
         enabled: true,
         child: Column(
           children: [
@@ -258,43 +245,26 @@ class MediaTagsPage extends ConsumerWidget {
             ],
           ],
         ),
-      );
-    }
-    if (async.hasError) {
-      return AppMobileSectionError(
-        key: const Key('mobile-media-tags-error'),
-        title: l10n.mediaTagsLoadFailedTitle,
-        message: apiErrorMessage(
-          async.error!,
-          fallback: l10n.mediaTagsLoadFailedFallback,
-          l10n: l10n,
-        ),
-        onRetry: () => ref.read(mediaTagsProvider.notifier).reload(),
-        retryButtonKey: const Key('mobile-media-tags-retry'),
-      );
-    }
-    final tags = async.value ?? const <MediaTagDto>[];
-    if (tags.isEmpty) {
-      return MobileConfigEmptyCard(
-        key: const Key('mobile-media-tags-empty'),
-        message: l10n.mediaTagsEmpty,
-      );
-    }
-    return Column(
-      children: [
-        for (var index = 0; index < tags.length; index++) ...[
-          _MobileMediaTagCard(
-            tag: tags[index],
-            onTap: () => showMediaTagRuleEditor(
-              context,
-              mobile: true,
-              initialTag: tags[index],
-            ),
-            onMore: () => _openMobileActions(context, ref, tags[index]),
-          ),
-          if (index < tags.length - 1) SizedBox(height: context.appSpacing.sm),
-        ],
-      ],
+      ),
+      errorTitle: l10n.mediaTagsLoadFailedTitle,
+      errorMessage: async.hasError
+          ? apiErrorMessage(
+              async.error!,
+              fallback: l10n.mediaTagsLoadFailedFallback,
+              l10n: l10n,
+            )
+          : '',
+      emptyMessage: l10n.mediaTagsEmpty,
+      onRetry: () => ref.read(mediaTagsProvider.notifier).reload(),
+      emptyKey: const Key('mobile-media-tags-empty'),
+      errorKey: const Key('mobile-media-tags-error'),
+      retryKey: const Key('mobile-media-tags-retry'),
+      cardBuilder: (context, tag) => _MobileMediaTagCard(
+        tag: tag,
+        onTap: () =>
+            showMediaTagRuleEditor(context, mobile: true, initialTag: tag),
+        onMore: () => _openMobileActions(context, ref, tag),
+      ),
     );
   }
 

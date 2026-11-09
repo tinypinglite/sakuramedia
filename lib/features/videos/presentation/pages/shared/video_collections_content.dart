@@ -14,6 +14,7 @@ import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_card.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_list_content.dart';
 
 /// 视频合集列表共享内容：搜索、新建/编辑/删除、mutation 刷新和合集网格。
@@ -68,8 +69,8 @@ class _VideoCollectionsContentState
     final created = await showVideoCollectionDialog(
       context,
       presentation: widget.mobile
-          ? VideoCollectionEditPresentation.bottomDrawer
-          : VideoCollectionEditPresentation.dialog,
+          ? CollectionEditorPresentation.bottomFormSheet
+          : CollectionEditorPresentation.dialog,
     );
     if (!mounted || !context.mounted || created == null) {
       return;
@@ -94,8 +95,8 @@ class _VideoCollectionsContentState
       context,
       existing: collection,
       presentation: widget.mobile
-          ? VideoCollectionEditPresentation.bottomDrawer
-          : VideoCollectionEditPresentation.dialog,
+          ? CollectionEditorPresentation.bottomFormSheet
+          : CollectionEditorPresentation.dialog,
     );
     if (!mounted || !context.mounted || updated == null) {
       return;

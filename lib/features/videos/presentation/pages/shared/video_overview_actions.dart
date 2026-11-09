@@ -9,9 +9,8 @@ import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.
 import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
 import 'package:sakuramedia/features/videos/presentation/actions/video_playback_launcher.dart';
 import 'package:sakuramedia/features/videos/presentation/controllers/listing/video_filter_state.dart';
-import 'package:sakuramedia/features/videos/presentation/pages/desktop/video_actions_dialog.dart';
-import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_actions_sheet.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/mobile/video_filter_drawer.dart';
+import 'package:sakuramedia/features/videos/presentation/pages/shared/video_actions_modal.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_collections_overview_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_mutation_events_provider.dart';
 import 'package:sakuramedia/features/videos/presentation/providers/video_summary_provider.dart';
@@ -28,6 +27,8 @@ import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pinned_list_header.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 
 /// PornBox 首页双端共享的状态与动作。
 ///
@@ -143,35 +144,30 @@ mixin VideoOverviewActionsMixin<W extends ConsumerStatefulWidget>
   }
 
   void openActions(VideoItemListItemDto video) {
-    if (isMobile) {
-      showMobileVideoActionsSheet(
-        context,
-        video: video,
-        onPlay: () => playVideo(video),
-        onThumbnails: () => MobileRoutes.videoThumbnail(
-          videoId: video.id,
-        ).push<void>(context),
-        onAddToCollection: () => addToCollection(video),
-        onDelete: () => deleteVideo(video),
-        collections: video.collections,
-        onCollectionTap: (ref) => MobileRoutes.videoCollectionDetail(
-          collectionId: ref.id,
-        ).push(context),
-      );
-      return;
-    }
-    showDesktopVideoActionsDialog(
+    showVideoActions(
       context,
       video: video,
-      onPlay: () => unawaited(playVideo(video)),
-      onThumbnails: () =>
-          DesktopRoutes.videoThumbnail(videoId: video.id).push(context),
+      onPlay: isMobile
+          ? () => playVideo(video)
+          : () => unawaited(playVideo(video)),
+      onThumbnails: isMobile
+          ? () => MobileRoutes.videoThumbnail(
+              videoId: video.id,
+            ).push<void>(context)
+          : () => DesktopRoutes.videoThumbnail(videoId: video.id).push(context),
       onAddToCollection: () => addToCollection(video),
       onDelete: () => deleteVideo(video),
       collections: video.collections,
-      onCollectionTap: (ref) => DesktopRoutes.videoCollectionDetail(
-        collectionId: ref.id,
-      ).push(context),
+      onCollectionTap: (ref) => isMobile
+          ? MobileRoutes.videoCollectionDetail(
+              collectionId: ref.id,
+            ).push(context)
+          : DesktopRoutes.videoCollectionDetail(
+              collectionId: ref.id,
+            ).push(context),
+      variant: isMobile
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
     );
   }
 
@@ -199,8 +195,8 @@ mixin VideoOverviewActionsMixin<W extends ConsumerStatefulWidget>
       videoItemId: video.id,
       collectedRefs: video.collections,
       presentation: isMobile
-          ? AddToVideoCollectionPresentation.bottomDrawer
-          : AddToVideoCollectionPresentation.dialog,
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
     );
     if (!mounted) {
       return;
@@ -244,8 +240,8 @@ mixin VideoOverviewActionsMixin<W extends ConsumerStatefulWidget>
     final target = await showPickVideoCollectionDialog(
       context,
       presentation: isMobile
-          ? PickVideoCollectionPresentation.bottomDrawer
-          : PickVideoCollectionPresentation.dialog,
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
     );
     if (!mounted || target == null) {
       return;
@@ -303,8 +299,8 @@ mixin VideoOverviewActionsMixin<W extends ConsumerStatefulWidget>
     final created = await showVideoCollectionDialog(
       context,
       presentation: isMobile
-          ? VideoCollectionEditPresentation.bottomDrawer
-          : VideoCollectionEditPresentation.dialog,
+          ? CollectionEditorPresentation.bottomFormSheet
+          : CollectionEditorPresentation.dialog,
     );
     if (!mounted || created == null) {
       return;

@@ -23,6 +23,7 @@ import 'package:sakuramedia/features/videos/presentation/widgets/collections/cre
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/pick_video_collection_single_dialog.dart';
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/video_collection_picker_field.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_route.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
@@ -702,8 +703,8 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
     final created = await showVideoCollectionDialog(
       context,
       presentation: AppPlatformScope.maybeOf(context) == AppPlatform.mobile
-          ? VideoCollectionEditPresentation.bottomDrawer
-          : VideoCollectionEditPresentation.dialog,
+          ? CollectionEditorPresentation.bottomFormSheet
+          : CollectionEditorPresentation.dialog,
     );
     if (created == null || !mounted) return;
     // 先选中，避免随后 refresh 失败时丢掉选择。

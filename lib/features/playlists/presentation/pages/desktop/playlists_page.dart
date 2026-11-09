@@ -9,7 +9,7 @@ import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_provider.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_scope.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_state.dart';
-import 'package:sakuramedia/features/playlists/presentation/widgets/create_playlist_dialog.dart';
+import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_editor_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
@@ -266,7 +266,7 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
   }
 
   Future<void> _openCreateDialog() async {
-    final playlist = await showCreatePlaylistDialog(context);
+    final playlist = await showPlaylistEditor(context);
     if (!mounted || playlist == null) {
       return;
     }

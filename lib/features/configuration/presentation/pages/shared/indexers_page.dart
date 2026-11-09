@@ -24,7 +24,6 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
@@ -726,22 +725,11 @@ class _IndexerEntryCard extends StatelessWidget {
             ),
           ),
           SizedBox(width: spacing.md),
-          AppIconButton(
-            key: Key('indexer-entry-edit-$index'),
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: l10n.commonEdit,
-            size: AppIconButtonSize.inline,
-            iconColor: context.appTextPalette.secondary,
-            onPressed: onEdit,
-          ),
-          SizedBox(width: spacing.xs),
-          AppIconButton(
-            key: Key('indexer-entry-delete-$index'),
-            icon: const Icon(Icons.delete_outline),
-            tooltip: l10n.commonDelete,
-            size: AppIconButtonSize.inline,
-            iconColor: context.appTextPalette.secondary,
-            onPressed: onDelete,
+          AppSettingInlineActions(
+            editKey: Key('indexer-entry-edit-$index'),
+            deleteKey: Key('indexer-entry-delete-$index'),
+            onEdit: onEdit,
+            onDelete: onDelete,
           ),
         ],
       ),

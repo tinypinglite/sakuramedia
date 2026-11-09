@@ -4,14 +4,11 @@ import 'package:sakuramedia/features/clip_collections/presentation/providers/cli
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 
-/// 合集新建/编辑的呈现形态：桌面弹窗 / 移动端底部抽屉。
-enum ClipCollectionEditPresentation { dialog, bottomDrawer }
-
 /// 新建切片合集，成功返回新建的合集。
 Future<ClipCollectionDto?> showCreateClipCollectionDialog(
   BuildContext context, {
-  ClipCollectionEditPresentation presentation =
-      ClipCollectionEditPresentation.dialog,
+  CollectionEditorPresentation presentation =
+      CollectionEditorPresentation.dialog,
 }) {
   return _showClipCollectionEditDialog(context, presentation: presentation);
 }
@@ -20,8 +17,8 @@ Future<ClipCollectionDto?> showCreateClipCollectionDialog(
 Future<ClipCollectionDto?> showEditClipCollectionDialog(
   BuildContext context, {
   required ClipCollectionDto collection,
-  ClipCollectionEditPresentation presentation =
-      ClipCollectionEditPresentation.dialog,
+  CollectionEditorPresentation presentation =
+      CollectionEditorPresentation.dialog,
 }) {
   return _showClipCollectionEditDialog(
     context,
@@ -33,19 +30,14 @@ Future<ClipCollectionDto?> showEditClipCollectionDialog(
 Future<ClipCollectionDto?> _showClipCollectionEditDialog(
   BuildContext context, {
   ClipCollectionDto? collection,
-  required ClipCollectionEditPresentation presentation,
+  required CollectionEditorPresentation presentation,
 }) {
   final l10n = AppLocalizations.of(context);
   final isEditing = collection != null;
   return showCollectionEditor<ClipCollectionDto>(
     context,
     config: CollectionEditorConfig<ClipCollectionDto>(
-      presentation: switch (presentation) {
-        ClipCollectionEditPresentation.dialog =>
-          CollectionEditorPresentation.dialog,
-        ClipCollectionEditPresentation.bottomDrawer =>
-          CollectionEditorPresentation.drawer,
-      },
+      presentation: presentation,
       keyPrefix: 'clip-collection',
       copy: CollectionEditorCopy(
         title: isEditing ? l10n.clipCollectionEdit : l10n.clipCollectionCreate,

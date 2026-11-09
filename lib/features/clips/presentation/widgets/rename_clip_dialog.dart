@@ -5,21 +5,15 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
-/// 切片重命名的呈现形态：桌面弹窗 / 移动端底部抽屉。
-enum RenameClipDialogPresentation { dialog, bottomDrawer }
-
 /// 弹出切片重命名对话框，返回新标题；取消返回 `null`。
 Future<String?> showRenameClipDialog(
   BuildContext context, {
   required String initialTitle,
-  RenameClipDialogPresentation presentation =
-      RenameClipDialogPresentation.dialog,
+  AppAdaptiveModalVariant presentation = AppAdaptiveModalVariant.dialog,
 }) {
   return showAppAdaptiveModal<String>(
     context: context,
-    variant: presentation == RenameClipDialogPresentation.bottomDrawer
-        ? AppAdaptiveModalVariant.drawer
-        : AppAdaptiveModalVariant.dialog,
+    variant: presentation,
     drawerKey: const Key('rename-clip-bottom-sheet'),
     desktopWidth: context.appComponentTokens.playlistDialogWidth,
     mobileMaxHeightFactor: 0.5,

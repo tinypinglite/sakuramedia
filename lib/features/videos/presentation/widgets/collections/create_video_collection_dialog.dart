@@ -4,27 +4,19 @@ import 'package:sakuramedia/features/videos/presentation/providers/videos_api_pr
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 
-/// 视频合集创建/编辑的呈现形态：桌面弹窗 / 移动端底部抽屉。
-enum VideoCollectionEditPresentation { dialog, bottomDrawer }
-
 /// 打开视频合集创建/编辑对话框。[existing] 为空表示创建。返回最新 [VideoCollectionDto]。
 Future<VideoCollectionDto?> showVideoCollectionDialog(
   BuildContext context, {
   VideoCollectionDto? existing,
-  VideoCollectionEditPresentation presentation =
-      VideoCollectionEditPresentation.dialog,
+  CollectionEditorPresentation presentation =
+      CollectionEditorPresentation.dialog,
 }) {
   final l10n = AppLocalizations.of(context);
   final isEditing = existing != null;
   return showCollectionEditor<VideoCollectionDto>(
     context,
     config: CollectionEditorConfig<VideoCollectionDto>(
-      presentation: switch (presentation) {
-        VideoCollectionEditPresentation.dialog =>
-          CollectionEditorPresentation.dialog,
-        VideoCollectionEditPresentation.bottomDrawer =>
-          CollectionEditorPresentation.bottomFormSheet,
-      },
+      presentation: presentation,
       keyPrefix: 'video-collection',
       copy: CollectionEditorCopy(
         title: isEditing ? l10n.videoEditCollection : l10n.videoNewCollection,

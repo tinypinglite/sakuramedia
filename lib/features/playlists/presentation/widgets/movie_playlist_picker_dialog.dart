@@ -2,28 +2,22 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_api_provider.dart';
-import 'package:sakuramedia/features/playlists/presentation/widgets/create_playlist_dialog.dart';
+import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_editor_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_membership_dialog.dart';
-
-enum MoviePlaylistPickerPresentation { dialog, bottomDrawer }
 
 Future<void> showMoviePlaylistPickerDialog(
   BuildContext context, {
   required String movieNumber,
   required List<MoviePlaylistSummaryDto> initialPlaylists,
-  MoviePlaylistPickerPresentation presentation =
-      MoviePlaylistPickerPresentation.dialog,
+  AppAdaptiveModalVariant presentation = AppAdaptiveModalVariant.dialog,
 }) {
   final l10n = AppLocalizations.of(context);
   return showCollectionMembershipDialog<PlaylistDto>(
     context: context,
-    variant: switch (presentation) {
-      MoviePlaylistPickerPresentation.dialog => AppAdaptiveModalVariant.dialog,
-      MoviePlaylistPickerPresentation.bottomDrawer =>
-        AppAdaptiveModalVariant.drawer,
-    },
+    variant: presentation,
     config: CollectionMembershipConfig<PlaylistDto>(
       keyPrefix: 'movie-playlist',
       title: l10n.playlistAddToPlaylist,
@@ -54,11 +48,11 @@ Future<void> showMoviePlaylistPickerDialog(
             playlistId: playlistId,
             movieNumber: movieNumber,
           ),
-      createCollection: (context, ref) => showCreatePlaylistDialog(
+      createCollection: (context, ref) => showPlaylistEditor(
         context,
         presentation: AppAdaptiveModalShellScope.maybeIsDrawer(context)
-            ? CreatePlaylistDialogPresentation.bottomDrawer
-            : CreatePlaylistDialogPresentation.dialog,
+            ? CollectionEditorPresentation.drawer
+            : CollectionEditorPresentation.dialog,
       ),
       idOf: (playlist) => playlist.id,
       nameOf: (playlist) => playlist.name,

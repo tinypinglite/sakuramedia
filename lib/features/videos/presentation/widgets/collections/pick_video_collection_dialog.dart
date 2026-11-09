@@ -4,10 +4,8 @@ import 'package:sakuramedia/features/videos/presentation/providers/video_collect
 import 'package:sakuramedia/features/videos/presentation/widgets/collections/create_video_collection_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_target_picker.dart';
-
-/// 目标合集选择器的呈现形态：桌面弹窗 / 移动端底部抽屉。
-enum PickVideoCollectionPresentation { dialog, bottomDrawer }
 
 /// 选择一个目标视频合集（批量加入合集用）。返回选中的合集；取消返回 `null`。
 ///
@@ -16,36 +14,26 @@ enum PickVideoCollectionPresentation { dialog, bottomDrawer }
 /// [showCollectionTargetPicker]，本函数只适配本域的数据源、行文案和新建入口。
 Future<VideoCollectionDto?> showPickVideoCollectionDialog(
   BuildContext context, {
-  PickVideoCollectionPresentation presentation =
-      PickVideoCollectionPresentation.dialog,
+  AppAdaptiveModalVariant presentation = AppAdaptiveModalVariant.dialog,
   int? excludedCollectionId,
 }) {
   final l10n = AppLocalizations.of(context);
   return showCollectionTargetPicker<VideoCollectionDto>(
     context: context,
-    variant: _variantOf(presentation),
+    variant: presentation,
     drawerKey: const Key('pick-video-collection-bottom-sheet'),
     optionKeyPrefix: 'pick-collection-',
     watchCollections: (ref) => ref.watch(videoCollectionsOverviewProvider),
     idOf: (collection) => collection.id,
     nameOf: (collection) => collection.name,
-    countTextOf: (collection) => l10n.videoCollectionVideoCount(collection.itemCount),
+    countTextOf: (collection) =>
+        l10n.videoCollectionVideoCount(collection.itemCount),
     excludedCollectionId: excludedCollectionId,
     onCreate: (context, isDrawer) => showVideoCollectionDialog(
       context,
       presentation: isDrawer
-          ? VideoCollectionEditPresentation.bottomDrawer
-          : VideoCollectionEditPresentation.dialog,
+          ? CollectionEditorPresentation.bottomFormSheet
+          : CollectionEditorPresentation.dialog,
     ),
   );
-}
-
-AppAdaptiveModalVariant _variantOf(
-  PickVideoCollectionPresentation presentation,
-) {
-  return switch (presentation) {
-    PickVideoCollectionPresentation.dialog => AppAdaptiveModalVariant.dialog,
-    PickVideoCollectionPresentation.bottomDrawer =>
-      AppAdaptiveModalVariant.drawer,
-  };
 }

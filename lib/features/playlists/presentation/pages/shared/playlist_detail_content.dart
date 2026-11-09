@@ -23,7 +23,8 @@ import 'package:sakuramedia/features/playlists/presentation/controllers/playlist
 import 'package:sakuramedia/features/playlists/presentation/providers/playlist_detail_provider.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlist_mutation_events_provider.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_api_provider.dart';
-import 'package:sakuramedia/features/playlists/presentation/widgets/edit_playlist_dialog.dart';
+import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_editor_dialog.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_detail_action_menu.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_filter_drawer.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
@@ -366,12 +367,12 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
   }
 
   Future<void> _editPlaylist(PlaylistDto playlist) async {
-    final updated = await showEditPlaylistDialog(
+    final updated = await showPlaylistEditor(
       context,
       playlist: playlist,
       presentation: _isMobile
-          ? EditPlaylistDialogPresentation.bottomDrawer
-          : EditPlaylistDialogPresentation.dialog,
+          ? CollectionEditorPresentation.drawer
+          : CollectionEditorPresentation.dialog,
     );
     if (!mounted || updated == null) {
       return;

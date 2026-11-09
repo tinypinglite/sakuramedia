@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
 /// 分组卡片：浅灰底上浮起的白色圆角卡片，承载一组语义相关的设置行/内容。
@@ -225,6 +227,79 @@ class AppSettingCellChevron extends StatelessWidget {
       Icons.chevron_right_rounded,
       size: context.appComponentTokens.iconSizeMd,
       color: context.appTextPalette.muted,
+    );
+  }
+}
+
+/// 设置行右侧的编辑 / 删除图标对。
+class AppSettingInlineActions extends StatelessWidget {
+  const AppSettingInlineActions({
+    super.key,
+    required this.editKey,
+    required this.deleteKey,
+    required this.onEdit,
+    required this.onDelete,
+    this.deleteIcon = Icons.delete_outline_rounded,
+  });
+
+  final Key editKey;
+  final Key deleteKey;
+  final VoidCallback onEdit;
+  final VoidCallback onDelete;
+  final IconData deleteIcon;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    final iconColor = context.appTextPalette.secondary;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AppIconButton(
+          key: editKey,
+          icon: const Icon(Icons.edit_outlined),
+          tooltip: AppLocalizations.of(context).commonEdit,
+          size: AppIconButtonSize.inline,
+          iconColor: iconColor,
+          onPressed: onEdit,
+        ),
+        SizedBox(width: spacing.xs),
+        AppIconButton(
+          key: deleteKey,
+          icon: Icon(deleteIcon),
+          tooltip: AppLocalizations.of(context).commonDelete,
+          size: AppIconButtonSize.inline,
+          iconColor: iconColor,
+          onPressed: onDelete,
+        ),
+      ],
+    );
+  }
+}
+
+/// 设置分组末尾的「新建 / 添加」行。
+class AppSettingCreateCell extends StatelessWidget {
+  const AppSettingCreateCell({
+    super.key,
+    required this.title,
+    required this.onTap,
+    this.enabled = true,
+  });
+
+  final String title;
+  final VoidCallback? onTap;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppSettingCell(
+      icon: Icons.add_rounded,
+      iconColor: Theme.of(context).colorScheme.primary,
+      title: title,
+      titleTone: AppTextTone.accent,
+      titleWeight: AppTextWeight.medium,
+      trailing: const AppSettingCellChevron(),
+      onTap: enabled ? onTap : null,
     );
   }
 }

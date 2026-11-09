@@ -32,6 +32,7 @@ import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bot
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_selection_header.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_member_views.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
 
@@ -280,24 +281,14 @@ class _MomentCollectionDetailContentState
       BatchOperationType.mediaPointDelete,
     ]);
     final l10n = AppLocalizations.of(context);
-    if (_isMobile) {
-      return AppMobileSelectionHeader(
-        selectionLabel: l10n.momentSelectedCount(selectedCount),
-        exitKey: Key('$_keyPrefix-exit-selection-button'),
-        onExitSelection: exitSelection,
-        selectAllKey: Key('$_keyPrefix-select-all-button'),
-        selectAllTooltip: allSelected
-            ? l10n.momentDeselectAll
-            : l10n.momentSelectAll,
-        onToggleAll: () => toggleSelectAll(pointIds),
-      );
-    }
-    return AppGlassSelectionHeader(
+    return CollectionSelectionHeader(
+      mobile: _isMobile,
+      keyPrefix: _keyPrefix,
+      selectedCount: selectedCount,
+      allSelected: allSelected,
       selectionLabel: l10n.momentSelectedCount(selectedCount),
-      selectAllLabel: allSelected
-          ? l10n.momentDeselectAll
-          : l10n.momentSelectAll,
-      selectAllKey: Key('$_keyPrefix-select-all-button'),
+      selectAllLabel: l10n.momentSelectAll,
+      deselectAllLabel: l10n.momentDeselectAll,
       onToggleAll: () => toggleSelectAll(pointIds),
       actions: <AppGlassSelectionAction>[
         AppGlassSelectionAction(
@@ -314,7 +305,6 @@ class _MomentCollectionDetailContentState
           onTap: hasSelection && !submitting ? () => _batchDelete(state) : null,
         ),
       ],
-      exitKey: Key('$_keyPrefix-exit-selection-button'),
       onExitSelection: exitSelection,
     );
   }
