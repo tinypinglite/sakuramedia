@@ -28,6 +28,7 @@ jobs:
     env:
       DMG_NAME: sakuramedia-macos-${{ github.ref_name }}.dmg
       MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
 
     steps:
       - name: Checkout repository
@@ -38,8 +39,8 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [ -z "${MACOS_CERTIFICATE_P12_BASE64:-}" ]; then
-            echo "::error::Missing MACOS_CERTIFICATE_P12_BASE64 repository secret"
+          if [ -z "${MACOS_CERTIFICATE_P12_BASE64:-}" ] || [ -z "${MACOS_CERTIFICATE_PASSWORD:-}" ]; then
+            echo "::error::Missing MACOS_CERTIFICATE_P12_BASE64 or MACOS_CERTIFICATE_PASSWORD repository secret"
             exit 1
           fi
 
@@ -55,7 +56,7 @@ jobs:
           printf '%s' "$MACOS_CERTIFICATE_P12_BASE64" | base64 -D > "$cert_path"
           security import "$cert_path" \
             -k "$keychain_path" \
-            -P "" \
+            -P "$MACOS_CERTIFICATE_PASSWORD" \
             -A -t cert -f pkcs12
           security set-key-partition-list \
             -S apple-tool:,apple:,codesign: \
