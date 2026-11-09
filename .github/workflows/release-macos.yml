@@ -68,8 +68,12 @@ jobs:
             $(security list-keychains -d user | tr -d '"')
           security default-keychain -s "$keychain_path"
 
+          echo "Imported code-signing identities:"
+          security find-identity -p codesigning "$keychain_path"
+
           identity="$(security find-identity -p codesigning "$keychain_path" \
             | sed -n 's/.*"\(.*\)"/\1/p' \
+            | sed -E 's/ \(CSSMERR_TP_NOT_TRUSTED\)$//' \
             | sed -n '1p')"
           if [ -z "$identity" ]; then
             echo "::error::No code-signing identity found in imported certificate"
