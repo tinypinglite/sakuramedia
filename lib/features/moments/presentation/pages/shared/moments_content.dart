@@ -319,7 +319,6 @@ class MomentsContent extends HookConsumerWidget {
   ) {
     final isMobile = useMobileFilterDrawer;
     final spacing = context.appSpacing;
-    final height = isMobile ? 148.0 : 172.0;
     final itemWidth = isMobile ? 168.0 : 210.0;
     final itemSpacing = isMobile ? spacing.sm : spacing.md;
     if (collectionsAsync.hasError && collections.isEmpty) {
@@ -345,7 +344,7 @@ class MomentsContent extends HookConsumerWidget {
     return AppSkeletonizer(
       enabled: isLoading,
       child: SizedBox(
-        height: height,
+        height: itemWidth * 9 / 16,
         child: ListView.separated(
           key: Key('$keyPrefix-collections-row'),
           scrollDirection: Axis.horizontal,
@@ -355,13 +354,9 @@ class MomentsContent extends HookConsumerWidget {
             final collection = display[index];
             return SizedBox(
               width: itemWidth,
-              // 卡片按内容自然高度渲染，避免被固定行高拉伸后在标题下方留白。
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: CollectionCard.moment(
-                  collection: collection,
-                  onTap: () => onOpenCollectionDetail?.call(collection.id),
-                ),
+              child: CollectionCard.moment(
+                collection: collection,
+                onTap: () => onOpenCollectionDetail?.call(collection.id),
               ),
             );
           },

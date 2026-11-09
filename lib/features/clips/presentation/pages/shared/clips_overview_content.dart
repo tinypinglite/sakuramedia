@@ -342,10 +342,11 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
       return CollectionHintBox(message: l10n.clipCollectionsEmptyHint);
     }
     final spacing = context.appSpacing;
+    final itemWidth = _mobile ? 168.0 : 210.0;
     return AppSkeletonizer(
       enabled: isLoading,
       child: SizedBox(
-        height: _mobile ? 148 : 172,
+        height: itemWidth * 9 / 16,
         child: ListView.separated(
           key: Key('$_pageKeyPrefix-collections-row'),
           scrollDirection: Axis.horizontal,
@@ -355,15 +356,11 @@ class _ClipsOverviewContentState extends ConsumerState<ClipsOverviewContent>
           itemBuilder: (context, index) {
             final collection = display[index];
             return SizedBox(
-              width: _mobile ? 168 : 210,
-              // 卡片按内容自然高度渲染，避免被固定行高拉伸后在标题下方留白。
-              child: Align(
-                alignment: Alignment.topCenter,
-                child: CollectionCard.clip(
-                  key: Key('$_collectionCardKeyPrefix-${collection.id}'),
-                  collection: collection,
-                  onTap: () => _openCollection(context, collection.id),
-                ),
+              width: itemWidth,
+              child: CollectionCard.clip(
+                key: Key('$_collectionCardKeyPrefix-${collection.id}'),
+                collection: collection,
+                onTap: () => _openCollection(context, collection.id),
               ),
             );
           },

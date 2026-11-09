@@ -12,7 +12,8 @@ import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 
-/// 合集封面卡：16:9 封面 + 名称 + 计数角标，「编辑 / 删除」走右键 / 长按菜单。
+/// 合集封面卡：16:9 封面 + 封面内信息条（名称 + 计数），「编辑 / 删除」走右键 /
+/// 长按菜单。
 ///
 /// 切片 / 视频 / 时刻合集结构完全一致，仅在 DTO、计数字段、占位与计数角标图标、
 /// 封面 `fit` 与 key 前缀上有差异，统一为 [CollectionCard.clip] /
@@ -34,7 +35,6 @@ class CollectionCard extends StatelessWidget {
     required this.onTap,
     this.onEdit,
     this.onDelete,
-    this.glassChrome = false,
     this.coverBackdrop = false,
   });
 
@@ -60,7 +60,6 @@ class CollectionCard extends StatelessWidget {
       onTap: onTap,
       onEdit: onEdit,
       onDelete: onDelete,
-      glassChrome: true,
       coverBackdrop: coverBackdrop,
     );
   }
@@ -122,10 +121,10 @@ class CollectionCard extends StatelessWidget {
   /// 合集名称。
   final String title;
 
-  /// 封面右下角的计数（切片数 / 视频数 / 时刻数）。
+  /// 封面信息条右侧的计数（切片数 / 视频数 / 时刻数）。
   final int count;
 
-  /// 计数角标图标，按合集类型区分。
+  /// 信息条内的计数图标，按合集类型区分。
   final IconData countIcon;
 
   /// 封面图地址；为空时显示占位图标。
@@ -145,9 +144,6 @@ class CollectionCard extends StatelessWidget {
 
   /// 右键 / 长按菜单的「删除」动作。
   final VoidCallback? onDelete;
-
-  /// 封面内浮玻璃信息条；为 `true` 时不再渲染封面下方的实色标题栏。
-  final bool glassChrome;
 
   /// contain 封面两侧是否铺一层同图暗底，避免竖图在 16:9 框里露出两块空色。
   final bool coverBackdrop;
@@ -189,42 +185,18 @@ class CollectionCard extends StatelessWidget {
               ),
           ],
         ),
-        overlays: glassChrome
-            ? <Widget>[
-                Positioned(
-                  left: spacing.xs,
-                  right: spacing.xs,
-                  bottom: spacing.xs,
-                  child: _GlassCollectionInfoBar(
-                    title: title,
-                    count: count,
-                    countIcon: countIcon,
-                  ),
-                ),
-              ]
-            : <Widget>[
-                Positioned(
-                  right: spacing.xs,
-                  bottom: spacing.xs,
-                  child: _CountBadge(count: count, icon: countIcon),
-                ),
-              ],
-        footer: glassChrome
-            ? null
-            : Padding(
-                padding: EdgeInsets.all(spacing.sm),
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s14,
-                    weight: AppTextWeight.semibold,
-                    tone: AppTextTone.primary,
-                  ),
-                ),
-              ),
+        overlays: <Widget>[
+          Positioned(
+            left: spacing.xs,
+            right: spacing.xs,
+            bottom: spacing.xs,
+            child: _GlassCollectionInfoBar(
+              title: title,
+              count: count,
+              countIcon: countIcon,
+            ),
+          ),
+        ],
       ),
     );
 
@@ -339,45 +311,6 @@ class _GlassCollectionInfoBar extends StatelessWidget {
       padding: padding,
       role: AppSurfaceRole.mediaOverlay,
       child: content,
-    );
-  }
-}
-
-class _CountBadge extends StatelessWidget {
-  const _CountBadge({required this.count, required this.icon});
-
-  final int count;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.55),
-        borderRadius: context.appRadius.xsBorder,
-      ),
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: context.appSpacing.xs,
-          vertical: context.appSpacing.xs,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.white, size: 12),
-            SizedBox(width: context.appSpacing.xs),
-            Text(
-              formatAppCount(count),
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                weight: AppTextWeight.medium,
-                tone: AppTextTone.primary,
-              ).copyWith(color: Colors.white),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
