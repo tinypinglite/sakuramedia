@@ -118,48 +118,50 @@ class AppSidebar extends ConsumerWidget {
     required bool isCompact,
     required bool usesGlassSidebar,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SizedBox(
-          key: const Key('sidebar-header'),
-          height: context.appComponentTokens.desktopTitleBarHeight,
-          // macOS / Windows 下这是窗口拖拽区；红绿灯垂直居中于 header，
-          // 收起/展开按钮由壳层固定渲染在红绿灯右侧，不在侧栏内部。
-          // Linux 保留原生标题栏，不在这里叠加拖拽区。
-          child: usesGlassSidebar
-              ? const AppWindowDragArea(
-                  child: ColoredBox(color: Colors.transparent),
-                )
-              : const SizedBox.shrink(),
-        ),
-        Expanded(
-          child: SidebarNavScrollArea(
-            horizontalPadding: context.appSpacing.sm,
-            fadeColor: fadeColor,
-            isCompact: isCompact,
-            children: _buildNavChildren(context),
+    return RepaintBoundary(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            key: const Key('sidebar-header'),
+            height: context.appComponentTokens.desktopTitleBarHeight,
+            // macOS / Windows 下这是窗口拖拽区；红绿灯垂直居中于 header，
+            // 收起/展开按钮由壳层固定渲染在红绿灯右侧，不在侧栏内部。
+            // Linux 保留原生标题栏，不在这里叠加拖拽区。
+            child: usesGlassSidebar
+                ? const AppWindowDragArea(
+                    child: ColoredBox(color: Colors.transparent),
+                  )
+                : const SizedBox.shrink(),
           ),
-        ),
-        // 收起态不构建账户卡：它订阅插件、版本更新等全局 Provider，
-        // 隐藏侧栏时没有必要继续监听。导航滚动区仍保留在 Offstage 内，
-        // 以便展开时恢复滚动位置。
-        if (!isCompact)
-          Padding(
-            padding: EdgeInsets.all(context.appSpacing.sm),
-            child: AppSidebarAccountCard(
-              onLogout: () {
-                context.logOut();
-              },
-              onOpenPluginUpdates: () {
-                ref
-                    .read(configurationTabRequestProvider.notifier)
-                    .request('configuration-tab-plugins');
-                context.goPrimary(AppRouteId.desktopConfiguration);
-              },
+          Expanded(
+            child: SidebarNavScrollArea(
+              horizontalPadding: context.appSpacing.sm,
+              fadeColor: fadeColor,
+              isCompact: isCompact,
+              children: _buildNavChildren(context),
             ),
           ),
-      ],
+          // 收起态不构建账户卡：它订阅插件、版本更新等全局 Provider，
+          // 隐藏侧栏时没有必要继续监听。导航滚动区仍保留在 Offstage 内，
+          // 以便展开时恢复滚动位置。
+          if (!isCompact)
+            Padding(
+              padding: EdgeInsets.all(context.appSpacing.sm),
+              child: AppSidebarAccountCard(
+                onLogout: () {
+                  context.logOut();
+                },
+                onOpenPluginUpdates: () {
+                  ref
+                      .read(configurationTabRequestProvider.notifier)
+                      .request('configuration-tab-plugins');
+                  context.goPrimary(AppRouteId.desktopConfiguration);
+                },
+              ),
+            ),
+        ],
+      ),
     );
   }
 

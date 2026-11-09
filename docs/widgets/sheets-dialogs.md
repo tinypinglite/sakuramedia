@@ -13,11 +13,11 @@
 - `showMobileVideoActionsSheet`：PornBox 视频动作抽屉。封面、标题与元信息之后是整行主色「播放」按钮；缩略图、加入/移出合集和删除走三列动作格，所属合集 chips 保持可跳转。
 - `AppBottomFormSheet`：`app_bottom_form_sheet.dart`，带表单布局和提交区域的底部 sheet。
 - `AppMobileConfirmActions`：`app_mobile_confirm_actions.dart`，移动确认操作区。
-- 所有移动筛选抽屉统一使用 `AppMobileFilterDrawerScaffold`（特殊滚动 / 锚点场景）或 `AppMobileFilterDrawer<T>`（标准筛选）承载玻璃分段内容和可选的 `AppGlassFilterFooter`；抽屉内不另铺一层实色卡片，正文直接落在 `AppModalGlassSurface` 上。
+- 所有移动筛选抽屉统一使用 `AppMobileFilterDrawerScaffold`（特殊滚动 / 锚点场景）或 `AppMobileFilterDrawer<T>`（标准筛选）承载平面分段控件和可选的 `AppGlassFilterFooter`；抽屉内不另铺一层实色卡片，正文直接落在 `AppModalGlassSurface` 上。
 
-模态玻璃统一走 `AppModalGlassSurface`（内部是 `AppSurface`）：材质和边缘光使用与全站相同的玻璃，正文直接使用玻璃表面。高对比度或模糊不可用时，`AppSurface` 会切换到更实的 fallback；业务弹层不要再自绘另一套半透明底或高光。
+模态玻璃统一走 `AppModalGlassSurface`（内部是 `AppSurface` 的 `popover` role）：材质和边缘光使用与全站相同的玻璃，正文直接使用玻璃表面。高对比度或模糊不可用时，`AppSurface` 会切换到更实的 fallback；业务弹层不要再自绘另一套半透明底或高光。
 
-模态玻璃不再提供强度变体；`AppDesktopDialog`、`showAppBottomDrawer` 和 `showAppAdaptiveModal` 都直接使用统一材质。
+模态玻璃不再提供强度变体；`AppDesktopDialog`、`showAppBottomDrawer` 和 `showAppAdaptiveModal` 都直接使用统一的 `popover` 材质。Toast 走 `overlay` role，不再维护独立的 glassHighlight/glassBorder 配方。
 
 玻璃弹窗内的正文不要整块铺 `surfaceCard`：选择器使用 `AppPickerIosSection` 的不透明 inset grouped list，外层玻璃只承担 modal chrome；输入框和按钮各自提供局部可读表面。`AppPickerHeader` 按 iOS sheet 导航栏接管关闭/完成、搜索和筛选，调用外壳时关闭 `showCloseButton` / `showDesktopCloseButton`。选中计数放在 grouped section header，新建/清空动作优先做成列表行。
 
@@ -27,6 +27,8 @@
   - `AppMenuPresentation` 由**触发方式**决定，不按平台：长按 / 右键用 `popup`（默认，锚定按压点），「更多」按钮的动作列表用 `bottomDrawer`。
   - 锚定弹层使用 `AppSurface` 的自绘玻璃 platter，宽度按内容测量：桌面 160–240、移动 180–260；桌面行高 30（副标题 44）、图标 16、圆角 18、外层留白 4、行内左右 10；移动行高 38（副标题 50）、图标 18、圆角 24、外层留白 6、行内左右 12。标题 `s14`，副标题 `s12`。操作表仍为行高 52、图标 18、正文 `s12`。
   - 锚定弹层只显示玻璃动作 platter，保留图标、hover、危险色和禁用态；透明 barrier、无背景压暗和源内容预览，点击外部或返回键得到 `null`。不要退回 `showMenu` 或 `PopupMenuItem`。
+- `AppGlassAnchoredMenu`：`app_glass_anchored_menu.dart`，紧凑下拉/选择菜单的统一锚定壳。支持动态宽度、上下翻转、限高滚动、点击外部/Esc 关闭和 `AppGlassAnchoredMenuController`；面板使用 `AppSurface`，行使用 `AppGlassMenuRow`。侧栏主题色/版本、登录协议/语言和 `AppSelectField` 都走它，不要再使用 `PopupMenuButton`。
+- `AppGlassMenuRow`：锚定菜单里的标准行，支持 leading/title/subtitle/trailing、选中勾选和禁用态；点击反馈由 `AppInteractiveSurface` 负责，不写 hover 底色。
 - `AppGlassFilterPopover`：`app_glass_filter_popover.dart`，桌面筛选的唯一高层入口。标准入口负责触发器、计数信息、滚动区和 `AppGlassFilterFooter`；图片搜索、演员标签等特殊入口通过 `triggerBuilder` / `footerBuilder` 复用同一弹层与关闭语义。
 - `AppGlassPopover` / `AppGlassSortSection` / `AppGlassFilterFooter`：`app_glass_popover.dart`，玻璃弹层低层壳与共享分节。`AppGlassPopover` 固定 468 宽、圆角 24，内容按固有高度布局并自动避让屏幕边缘；复杂面板传 `scrollable: true`，内容区限高并独立滚动，footer 固定。`AppGlassSortSection` 只负责字段 + 方向分节；`AppGlassFilterFooter` 统一「即时生效 + 重置」底栏。筛选正文使用 `AppFilterChoiceSection`，不再有第二套玻璃选择分节。
 - `AppFilterChoiceSection` / `AppFilterChip` / `AppFilterRangeSection`：筛选面板正文统一使用这三个组件。单选分节用分段控件（2–6 项等宽、更多项滚动）；多选胶囊用轻量中性 `AppFilterChip`；双滑块用原生 `RangeSlider` 换 Apple 皮肤。不要再在业务页面拼 `AppTextButton` chip、`RangeSlider` 主题或分节标题。

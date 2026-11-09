@@ -9,9 +9,9 @@
 | 状态 | 表现 | 说明 |
 |---|---|---|
 | 常驻 | 无底色 | 不用浅灰胶囊表达「可点」，只有内容本身 |
-| 桌面 hover | 无视觉变化 | 与移动端一致；可点性提示只有鼠标手型和 tooltip |
+| 桌面 hover | 默认无视觉变化；侧栏导航项显示背景胶囊 | 默认只用手型和 tooltip 提示；侧栏项通过 `AppInteractiveSurface.onHoverChanged` 自绘 120ms 背景，不用 InkWell 自带高亮 |
 | 按下 | 整体变淡 `opacity 0.7` | 不叠灰色底；数值同微信小程序按钮默认按压态 |
-| 键盘焦点 | 无额外视觉 | 已知取舍，后续做无障碍时再补 |
+| 键盘焦点 | 2px 主题色焦点环 | `AppInteractiveSurface` 默认开启；不需要时显式关闭 |
 | 禁用 | 由调用方降透明度（项目惯例 `0.56`） | 表面组件只负责不响应 |
 | 动效 | 无水波纹、无按压缩放 | `NoSplash` + 全透明 ink 颜色 |
 
@@ -32,15 +32,14 @@
 1. **Material 内置控件（约 199 处直接使用）**：`lib/theme.dart` 目前仍为其保留
    hover 8% / 按下 12% 的灰色 overlay。本应用不需要 Material Design 的交互样式，
    待逐步替换为自研组件或在主题层清零。
-2. **自绘 hover 的组件**：`login_page`、`app_select_field`、
-   `movie_player_speed_button`、`movie_player_subtitle_button` 仍使用
-   `AppOverlayTokens.hoverAlpha`。播放器浮层在深色视频画面上是否保留 hover
-   需要单独评估。
-3. **键盘焦点**：无焦点视觉提示（见上表）。
+2. **自绘 hover 的组件**：已清理登录页、`AppSelectField` 和播放器倍速/字幕
+   菜单项的 hover 底色；这些区域现在统一走 `AppInteractiveSurface` 的按下
+   反馈。
 
 ## 验证方式
 
 - Widget 测试：`test/widgets/base/interaction/app_interactive_surface_test.dart`
   覆盖无 ink 叠色、hover 零变化、按下 `0.7`。
-- 预览改动后渲染桌面 / 移动页面 PNG：桌面 hover 图必须与默认图逐像素一致，
-  按下图整体变淡；预览脚本按仓库根 `AGENTS.md` 的预览规则临时使用、用完删除。
+- 预览改动后渲染桌面 / 移动页面 PNG：默认区域桌面 hover 图必须与默认图逐像素一致；
+  侧栏导航项 hover 应出现背景胶囊；按下图整体变淡。预览脚本按仓库根 `AGENTS.md`
+  的预览规则临时使用、用完删除。

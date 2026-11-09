@@ -13,11 +13,6 @@ class AppToastTokens extends ThemeExtension<AppToastTokens> {
     required this.horizontalPadding,
     required this.verticalPadding,
     required this.textSize,
-    required this.glassBackground,
-    required this.glassHighlight,
-    required this.glassShade,
-    required this.glassBorder,
-    required this.glassShadow,
   });
 
   const AppToastTokens.defaults()
@@ -28,12 +23,7 @@ class AppToastTokens extends ThemeExtension<AppToastTokens> {
       borderRadius = 22,
       horizontalPadding = 22,
       verticalPadding = 14,
-      textSize = 15,
-      glassBackground = const Color(0x9AFBFAF8),
-      glassHighlight = const Color(0x6BFFFFFF),
-      glassShade = const Color.fromRGBO(0x2B, 0x18, 0x16, 0.045),
-      glassBorder = const Color(0x80FFFFFF),
-      glassShadow = const Color(0x1A1F1A18);
+      textSize = 15;
 
   const AppToastTokens.dark()
     : maxWidth = 420,
@@ -43,12 +33,7 @@ class AppToastTokens extends ThemeExtension<AppToastTokens> {
       borderRadius = 22,
       horizontalPadding = 22,
       verticalPadding = 14,
-      textSize = 15,
-      glassBackground = const Color(0xAA181618),
-      glassHighlight = const Color(0x26FFFFFF),
-      glassShade = const Color(0x24000000),
-      glassBorder = const Color(0x2EFFFFFF),
-      glassShadow = const Color(0x59000000);
+      textSize = 15;
 
   final double maxWidth;
   final double horizontalScreenInset;
@@ -58,11 +43,6 @@ class AppToastTokens extends ThemeExtension<AppToastTokens> {
   final double horizontalPadding;
   final double verticalPadding;
   final double textSize;
-  final Color glassBackground;
-  final Color glassHighlight;
-  final Color glassShade;
-  final Color glassBorder;
-  final Color glassShadow;
 
   BorderRadius get borderRadiusValue => BorderRadius.circular(borderRadius);
 
@@ -76,11 +56,6 @@ class AppToastTokens extends ThemeExtension<AppToastTokens> {
     double? horizontalPadding,
     double? verticalPadding,
     double? textSize,
-    Color? glassBackground,
-    Color? glassHighlight,
-    Color? glassShade,
-    Color? glassBorder,
-    Color? glassShadow,
   }) {
     return AppToastTokens(
       maxWidth: maxWidth ?? this.maxWidth,
@@ -92,11 +67,6 @@ class AppToastTokens extends ThemeExtension<AppToastTokens> {
       horizontalPadding: horizontalPadding ?? this.horizontalPadding,
       verticalPadding: verticalPadding ?? this.verticalPadding,
       textSize: textSize ?? this.textSize,
-      glassBackground: glassBackground ?? this.glassBackground,
-      glassHighlight: glassHighlight ?? this.glassHighlight,
-      glassShade: glassShade ?? this.glassShade,
-      glassBorder: glassBorder ?? this.glassBorder,
-      glassShadow: glassShadow ?? this.glassShadow,
     );
   }
 
@@ -122,11 +92,6 @@ class AppToastTokens extends ThemeExtension<AppToastTokens> {
       )!,
       verticalPadding: lerpDouble(verticalPadding, other.verticalPadding, t)!,
       textSize: lerpDouble(textSize, other.textSize, t)!,
-      glassBackground: Color.lerp(glassBackground, other.glassBackground, t)!,
-      glassHighlight: Color.lerp(glassHighlight, other.glassHighlight, t)!,
-      glassShade: Color.lerp(glassShade, other.glassShade, t)!,
-      glassBorder: Color.lerp(glassBorder, other.glassBorder, t)!,
-      glassShadow: Color.lerp(glassShadow, other.glassShadow, t)!,
     );
   }
 }

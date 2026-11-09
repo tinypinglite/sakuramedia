@@ -12,6 +12,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_route.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_focus_ring.dart';
 import 'package:sakuramedia/widgets/shell/desktop/app_sidebar.dart';
 import 'package:sakuramedia/widgets/shell/window/app_window_drag_area.dart';
 
@@ -196,22 +197,16 @@ void main() {
         platform: TargetPlatform.linux,
       );
       final itemFinder = find.byKey(const Key('nav-group-movies'));
-      final containerFinder = find.descendant(
+      final focusRingFinder = find.descendant(
         of: itemFinder,
-        matching: find.byType(AnimatedContainer),
+        matching: find.byType(AppFocusRing),
       );
-      expect(
-        tester.widget<AnimatedContainer>(containerFinder).foregroundDecoration,
-        isNull,
-      );
+      expect(tester.widget<AppFocusRing>(focusRingFinder).focused, isFalse);
 
       await tester.sendKeyEvent(LogicalKeyboardKey.tab);
       await tester.pump();
 
-      expect(
-        tester.widget<AnimatedContainer>(containerFinder).foregroundDecoration,
-        isNotNull,
-      );
+      expect(tester.widget<AppFocusRing>(focusRingFinder).focused, isTrue);
     } finally {
       debugDefaultTargetPlatformOverride = null;
     }

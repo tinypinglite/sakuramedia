@@ -46,6 +46,37 @@ void _reportDeletedPornboxVideos(
   );
 }
 
+/// 只让分页加载的启用状态跟随当前 tab，避免 tab 切换时重建整页内容。
+class _TabLoadMoreScope extends StatelessWidget {
+  const _TabLoadMoreScope({
+    required this.controller,
+    required this.tabIndex,
+    required this.canLoadMore,
+    required this.onLoadMore,
+    required this.child,
+  });
+
+  final TabController controller;
+  final int tabIndex;
+  final bool Function() canLoadMore;
+  final Future<void> Function() onLoadMore;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      child: child,
+      builder: (context, child) => AppPagedLoadMoreScope(
+        enabled: controller.index == tabIndex,
+        canLoadMore: canLoadMore,
+        onLoadMore: onLoadMore,
+        child: child!,
+      ),
+    );
+  }
+}
+
 /// 「媒体管理」双端共享内容（桌面 / 移动壳收敛的 content 层）。
 ///
 /// 提供媒体列表、重复媒体、多版本影片和失效媒体管理。
@@ -79,8 +110,6 @@ class MediaManagementContent extends HookConsumerWidget {
       [tabTickerProvider],
     );
     useEffect(() => tabController.dispose, [tabController]);
-    useListenable(tabController);
-    final currentTab = tabController.index;
     final duplicateKind = useState(MediaListItemKind.jav);
     final includeVr = useState(false);
     final includeFc2 = useState(false);
@@ -90,10 +119,6 @@ class MediaManagementContent extends HookConsumerWidget {
       includeFc2: includeFc2.value,
       includeProcessed: includeProcessed.value,
     );
-    final versionsVisited = useRef(false);
-    if (currentTab == _versionsTabIndex) versionsVisited.value = true;
-    // 首次访问后由管理页持有订阅，切换 Tab 时保留当前筛选的数据和分页。
-    if (versionsVisited.value) ref.watch(versionsProvider);
     // 四个 tab 各持一个滚动控制器：TabBarView 的页面会被保活，共用一个控制器
     // 会同时挂到多个滚动视图上。
     final listScrollController = useScrollController();
@@ -113,7 +138,7 @@ class MediaManagementContent extends HookConsumerWidget {
     ) {
       if (previous != null && next != null && previous != next) {
         selection.exitSelection();
-        if (currentTab == 0 && listScrollController.hasClients) {
+        if (tabController.index == 0 && listScrollController.hasClients) {
           unawaited(
             listScrollController.animateTo(
               0,
@@ -136,7 +161,7 @@ class MediaManagementContent extends HookConsumerWidget {
       onRefresh: () => _refreshAll(
         context,
         ref,
-        currentTab: currentTab,
+        currentTab: tabController.index,
         duplicateKind: duplicateKind.value,
         versionsProvider: versionsProvider,
         refreshError: refreshError,
@@ -171,8 +196,9 @@ class MediaManagementContent extends HookConsumerWidget {
               key: Key('$keyPrefix-tab-view'),
               controller: tabController,
               children: [
-                AppPagedLoadMoreScope(
-                  enabled: currentTab == 0,
+                _TabLoadMoreScope(
+                  controller: tabController,
+                  tabIndex: 0,
                   canLoadMore: () =>
                       ref
                           .read(mediaBrowseProvider)
@@ -210,7 +236,7 @@ class MediaManagementContent extends HookConsumerWidget {
                       onRefresh: () => _refreshAll(
                         context,
                         ref,
-                        currentTab: currentTab,
+                        currentTab: tabController.index,
                         duplicateKind: duplicateKind.value,
                         versionsProvider: versionsProvider,
                         refreshError: refreshError,
@@ -257,8 +283,9 @@ class MediaManagementContent extends HookConsumerWidget {
                     ),
                   ),
                 ),
-                AppPagedLoadMoreScope(
-                  enabled: currentTab == _duplicateTabIndex,
+                _TabLoadMoreScope(
+                  controller: tabController,
+                  tabIndex: _duplicateTabIndex,
                   canLoadMore: () =>
                       ref
                           .read(duplicateMediaProvider(duplicateKind.value))
@@ -293,7 +320,7 @@ class MediaManagementContent extends HookConsumerWidget {
                       onRefresh: () => _refreshAll(
                         context,
                         ref,
-                        currentTab: currentTab,
+                        currentTab: tabController.index,
                         duplicateKind: duplicateKind.value,
                         versionsProvider: versionsProvider,
                         refreshError: refreshError,
@@ -304,8 +331,9 @@ class MediaManagementContent extends HookConsumerWidget {
                     ),
                   ),
                 ),
-                AppPagedLoadMoreScope(
-                  enabled: currentTab == _versionsTabIndex,
+                _TabLoadMoreScope(
+                  controller: tabController,
+                  tabIndex: _versionsTabIndex,
                   canLoadMore: () =>
                       ref.read(versionsProvider).value?.canAutoLoadMore ??
                       false,
@@ -324,7 +352,7 @@ class MediaManagementContent extends HookConsumerWidget {
                       onRefresh: () => _refreshAll(
                         context,
                         ref,
-                        currentTab: currentTab,
+                        currentTab: tabController.index,
                         duplicateKind: duplicateKind.value,
                         versionsProvider: versionsProvider,
                         refreshError: refreshError,
@@ -332,8 +360,9 @@ class MediaManagementContent extends HookConsumerWidget {
                     ),
                   ),
                 ),
-                AppPagedLoadMoreScope(
-                  enabled: currentTab == 3,
+                _TabLoadMoreScope(
+                  controller: tabController,
+                  tabIndex: 3,
                   canLoadMore: () =>
                       ref
                           .read(invalidMediaProvider)
@@ -353,7 +382,7 @@ class MediaManagementContent extends HookConsumerWidget {
                       onRefresh: () => _refreshAll(
                         context,
                         ref,
-                        currentTab: currentTab,
+                        currentTab: tabController.index,
                         duplicateKind: duplicateKind.value,
                         versionsProvider: versionsProvider,
                         refreshError: refreshError,

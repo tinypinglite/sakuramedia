@@ -4,13 +4,13 @@
 
 路径：`lib/widgets/base/forms/app_text_field.dart`
 
-统一文本输入样式、标签、错误和辅助文案，内部使用玻璃层文本输入后端 + `FormField`。正常态使用全站统一的玻璃质量，高对比度回退为实色输入面；`fillColor` 作为玻璃 tint / 实色回退色，`borderRadius` 映射到玻璃形状。页面负责 controller、校验和提交时机；固定高度用 `height`，多行用 `minLines` / `maxLines`，不再提供 `expands`。label、helper 和 error 位于玻璃面外侧，错误文案继续参与表单校验并由 live region 播报。
+统一文本输入样式、标签、错误和辅助文案，内部使用玻璃层文本输入后端 + `FormField`。正常态使用 `input` role：浅色明亮乳白玻璃井 + 上亮下暗的 1px rim，不再叠均匀 `borderSubtle` 外框；深色模式保持深玻璃。placeholder 使用 `secondary`，保证透光时仍可读。顶栏等已有玻璃容器上的输入传 `AppGlassTone.toolbar`，使用更轻的 `toolbarInput`；高对比度回退为实色输入面并用 `borderStrong` 描边。`fillColor` 覆盖输入面填充色，`borderRadius` 映射到玻璃形状。页面负责 controller、校验和提交时机；固定高度用 `height`，多行用 `minLines` / `maxLines`，不再提供 `expands`。label、helper 和 error 位于玻璃面外侧，错误文案继续参与表单校验并由 live region 播报。
 
 ## `AppGlassSearchField`
 
 路径：`lib/widgets/base/forms/app_glass_search_field.dart`
 
-页面级液态玻璃搜索框，使用玻璃层文本输入后端和全站统一 glass settings。固定 40 高、20 圆角，不开放尺寸参数；提供前置搜索图标、有内容时的清空按钮和 `onChanged` 透传，筛选策略仍由页面负责。与桌面顶栏搜索框共用 `app_glass_search_field_chrome.dart` 的玻璃/字体配置，但保留各自的外壳和布局语义。适合玻璃桌面页的页内搜索，不要把顶栏全局搜索替换成它。
+页面级液态玻璃搜索框，使用玻璃层文本输入后端的 `input` role。固定 40 高、20 圆角，不开放尺寸参数；提供前置搜索图标、有内容时的清空按钮和 `onChanged` 透传，筛选策略仍由页面负责。与桌面顶栏搜索框共用 `app_glass_search_field_chrome.dart` 的输入面/字体配置；顶栏搜索传 `AppGlassTone.toolbar` 走更轻的 `toolbarInput`，但保留其“只有后缀图搜动作”的产品结构。适合玻璃桌面页的页内搜索，不要把顶栏全局搜索替换成它。
 
 ## `AppPasswordField`
 
@@ -22,7 +22,10 @@
 
 路径：`lib/widgets/base/forms/app_select_field.dart`
 
-统一选择字段和下拉菜单，支持 regular、compact、mini 尺寸。选项数据由页面提供，组件不负责请求远端选项。
+统一选择字段和下拉菜单，支持 regular、compact、mini 尺寸。触发器使用
+`AppSurface` + `AppInteractiveSurface`，下拉菜单走 `AppGlassAnchoredMenu`，
+与筛选/排序弹层共享玻璃与 flat 材质；菜单行不再使用 Material hover 底色。
+选项数据由页面提供，组件不负责请求远端选项。
 
 ## `AppInfoPill`
 
@@ -34,7 +37,7 @@
 
 路径：`lib/widgets/base/forms/app_filter_choice_section.dart`、`lib/widgets/base/forms/app_filter_chip.dart`
 
-筛选面板正文的统一选择组件。`AppFilterChoiceSection<T>` 负责 `s12/medium/secondary` 分节标题、加载骨架和分段控件，固定使用半透明轨道 + 中性选中胶囊，不再提供表面切换参数。`AppFilterOptionSection<T>` 是“选项 + 标签映射”的薄封装，供业务域复用同一分节；`AppFilterChip` 是轻量中性多选胶囊，不做背景模糊，选中态使用中性高亮面 + 边框 + 半粗体文字，适合年份、标签、杯数这类长列表。`optionKeyBuilder` 现在映射为 `GlassSegment.id`，不再产生可查找的 Widget Key。
+筛选面板正文的统一选择组件。`AppFilterChoiceSection<T>` 负责 `s12/medium/secondary` 分节标题、加载骨架和分段控件；分段控件自带中性平面轨道与选中胶囊，分节不再额外包一层轨道。`AppFilterOptionSection<T>` 是“选项 + 标签映射”的薄封装，供业务域复用同一分节；`AppFilterChip` 是轻量中性多选胶囊，不做背景模糊，选中态使用中性高亮面 + 边框 + 半粗体文字，适合年份、标签、杯数这类长列表。`optionKeyBuilder` 映射为分段节点的 Widget key。
 
 ## `AppFilterRangeSection`
 

@@ -104,14 +104,47 @@ class MainFlutterWindow: NSWindow {
         )
         return
       }
-      // 毛玻璃跟随应用内主题，而不是系统外观；否则浅色应用 + 深色系统时
-      // 侧栏玻璃会与 Flutter 内容脱节。
-      self?.visualEffectView?.appearance = NSAppearance(
-        named: dark ? .darkAqua : .aqua
+      self?.applyWindowAppearance(
+        dark: dark,
+        windowVibrancy: arguments["windowVibrancy"] as? Bool ?? true,
+        backgroundColor: (arguments["backgroundColor"] as? NSNumber)?.intValue
       )
       result(nil)
     }
     windowAppearanceChannel = channel
+  }
+
+  /// 窗口毛玻璃是独立于 Flutter 表面风格的偏好；关闭时窗口改为不透明，
+  /// 由 Dart 侧传入当前主题的页面底色兜底。
+  private func applyWindowAppearance(
+    dark: Bool,
+    windowVibrancy: Bool,
+    backgroundColor: Int?
+  ) {
+    // 毛玻璃跟随应用内主题，而不是系统外观；否则浅色应用 + 深色系统时
+    // 侧栏玻璃会与 Flutter 内容脱节。
+    visualEffectView?.appearance = NSAppearance(
+      named: dark ? .darkAqua : .aqua
+    )
+    visualEffectView?.state = windowVibrancy ? .active : .inactive
+    visualEffectView?.isHidden = !windowVibrancy
+
+    if windowVibrancy {
+      isOpaque = false
+      self.backgroundColor = .clear
+    } else {
+      self.backgroundColor = Self.color(fromARGB: backgroundColor ?? 0xFF1E1E1E)
+      isOpaque = true
+    }
+    invalidateShadow()
+  }
+
+  private static func color(fromARGB argb: Int) -> NSColor {
+    let alpha = CGFloat((argb >> 24) & 0xFF) / 255
+    let red = CGFloat((argb >> 16) & 0xFF) / 255
+    let green = CGFloat((argb >> 8) & 0xFF) / 255
+    let blue = CGFloat(argb & 0xFF) / 255
+    return NSColor(srgbRed: red, green: green, blue: blue, alpha: alpha)
   }
 
   private func configureExternalPlayerChannel() {

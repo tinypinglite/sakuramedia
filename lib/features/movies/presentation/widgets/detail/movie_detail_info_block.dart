@@ -544,6 +544,7 @@ class _InfoActionsColumn extends StatelessWidget {
         SizedBox(height: spacing.xs),
         AppSurface(
           borderRadius: context.appRadius.mdBorder,
+          role: AppSurfaceRole.control,
           child: Row(
             children: <Widget>[
               for (var index = 0; index < keys.length; index++) ...<Widget>[
@@ -756,13 +757,11 @@ class _InfoMoreKey extends StatelessWidget {
 
     return Tooltip(
       message: AppLocalizations.of(context).movieWidgetMoreActions,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onTapDown: (details) => onTap!(details.globalPosition),
-          child: button,
-        ),
+      child: AppInteractiveSurface(
+        onTap: () {},
+        onTapDown: (details) => onTap!(details.globalPosition),
+        focusRingRadius: context.appRadius.smBorder,
+        child: button,
       ),
     );
   }

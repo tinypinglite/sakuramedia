@@ -3,7 +3,7 @@
 ## 应用壳层
 
 - `AppDesktopShell`：`lib/widgets/shell/desktop/app_desktop_shell.dart`，桌面工作台容器。`AppShellLayout.immersive` 变体用于播放页等全出血场景：内容区去掉圆角与外边距，顶栏隐藏。macOS / Windows 下由 `DesktopAmbientBackdrop` 在侧栏和内容后面提供主题色对角光与环境底；桌面和移动环境底共享 `AppAmbientGlow` 光斑实现，各自保留位置、尺寸和测试 Key。玻璃桌面页内容区透明，由卡片和分区承载层级，不再由壳层或页面铺整块全高底色。玻璃侧栏展开时，页面和标准顶栏左内边距收到 `lg`，与侧栏面板自身的外侧 margin 合成 24px gutter；收起时恢复桌面页面边距。非玻璃桌面由壳层提供 `surfaceElevated` 底色，页面不再重复铺根背景。
-- `AppSidebar`：`app_sidebar.dart`，桌面侧栏骨架，直接渲染扁平的 `AppNavItem` 列表并按 `sectionLabel` 插入分区标题；`AppSidebarItem` 在 `app_sidebar_item.dart`，`SidebarNavScrollArea` 在 `app_sidebar_nav_scroll_area.dart`。macOS / Windows 展开态是一块从窗口边缘内收 `outerInset`、使用 `panelRadius` 圆角的 `AppSurface` 浮板；红绿灯和收起按钮仍固定在窗口坐标系，自然落在玻璃内。侧栏收起时面板、边距和内容一起归零，导航区用 `Offstage` 隐藏并保留状态（不是卸载），展开/悬停态由 `AppShellSidebarCollapsed` 驱动。
+- `AppSidebar`：`app_sidebar.dart`，桌面侧栏骨架，直接渲染扁平的 `AppNavItem` 列表并按 `sectionLabel` 插入分区标题；`AppSidebarItem` 在 `app_sidebar_item.dart`，`SidebarNavScrollArea` 在 `app_sidebar_nav_scroll_area.dart`。macOS / Windows 展开态是一块从窗口边缘内收 `outerInset`、使用 `panelRadius` 圆角的 `AppSurface` 浮板；红绿灯和收起按钮仍固定在窗口坐标系，自然落在玻璃内。侧栏收起时面板、边距和内容一起归零，导航区用 `Offstage` 隐藏并保留状态（不是卸载）。导航项 hover 显示比选中态更浅的 120ms 背景胶囊，由 `AppInteractiveSurface.onHoverChanged` 驱动，不打开 InkWell 自带 hover 色；展开/收起由 `AppShellSidebarCollapsed` 驱动。
 - `AppSidebarAccountCard`：`app_sidebar_account_card.dart`，桌面侧栏和移动概览抽屉共用的底部账户卡，承载产品名、登录状态、固定产品首字母 `S`、明暗/主题色入口、版本行和退出按钮。
 - `SidebarAppearanceMenu`：`sidebar_appearance_menu.dart`，账户卡内的明暗模式三态切换图标与主题色菜单；读写 `appearanceProvider`，沿用设置页持久化。
 - `AppSidebarToggleButton`：`app_sidebar_toggle_button.dart`，收起/展开按钮。窗口坐标位置由 `sidebarToggleButtonLeft` 计算：macOS 排在自绘红绿灯右侧，其它平台贴左缘。
@@ -31,17 +31,20 @@
 
 ## 玻璃材质
 
-- `AppSurface`：`lib/widgets/base/layout/surface/app_surface.dart`。页面和域组件使用的材质无关通用面，只接收 child、圆角、padding、宽高；不暴露 blur、quality、settings。`AppSurfaceGroup` 用于需要共享背景读取的一组表面。
+- `AppSurface`：`lib/widgets/base/layout/surface/app_surface.dart`。页面和域组件使用的材质无关通用面，接收 child、圆角、padding、宽高和语义角色 `AppSurfaceRole`；不暴露 blur、quality、settings。`AppSurfaceGroup` 用于需要共享背景读取的一组表面。角色只表达用途，具体材质统一由玻璃层映射。
 - `AppSurfaceStyle`：外观设置里的 `liquid` / `flat` 二选一，经 `AppSurfaceStyleScope` 向下传递；没有 scope 时默认液态玻璃。
 - `AppSurfaceRuntime`：统一处理玻璃初始化、brightness resolver 和全局 wrap；`main.dart`、`app.dart`、测试和预览 helper 只通过它接入。
-- 正常路径不覆盖 `LiquidGlassSettings` / `GlassQuality`：材质跟随 `liquid_glass_widgets` 内置的 light/dark 默认值，普通控件用包默认 `standard`，`AppGlassTabBar` 的底栏仍由包解析为 `premium`；亮色阴影也使用包默认 elevation。
-- 真正的玻璃实现只允许在 `lib/widgets/base/layout/glass/` 内：材质配置、fallback、内部按钮/输入/分段/弹层/TabBar 后端都在这里。`features`、`widgets/domain`、`widgets/shell` 和 app 启动层不得 import 这个目录或直接依赖 `liquid_glass_widgets`。
-- `AppGlassIconButton`、`AppTextField`、`AppSegmentedControl`、`AppGlassPopover`、`AppGlassToast`、`AppGlassListHeader`、`AppGlassTabBar` 是基础语义组件；它们的公开 API 不出现包类型，内部通过玻璃层后端绘制。
-- 扁平风格是纯 Flutter 实现：不实例化 `liquid_glass_widgets` 组件，不使用 `BackdropFilter`、shader、玻璃阴影；表面使用近实色半透明底、1px 边框和极轻顶部高光，适合低性能设备。高对比度下改为不透明底 + 强边框。
+- 正常路径只通过 `AppGlassStyle.settingsFor/qualityFor` 取材质：iOS 27 regular 基底 + 角色化 tint/厚度/模糊/边缘光/内阴影；不再让各业务组件直接吃包默认材质。`surface/control/input/mediaOverlay` 用 standard，`popover/toolbarControl/toolbarInput/bar/overlay` 用 premium；大面和滚动内容不堆 premium。
+- 浅色模式使用 `surfaceElevated` 白色 tint + `whitenStrength` 做明亮乳白玻璃，浅色 `bodyShade` 为 0；深色模式保留深色 tint/bodyShade 和深玻璃观感。`mediaOverlay` 在两种模式下都保持深色烟熏，只配 onMedia 白字。
+- 液态玻璃角色：`surface` 用于侧栏、登录主卡和页面大面板；`popover` 用于筛选/排序弹层、锚定菜单、右键菜单、弹窗、抽屉和播放器菜单；`control` 用于玻璃图标钮、列表头按钮组和返回钮；`toolbarControl` 用于顶栏刷新/返回（静止无底，hover/focus/press 才浮出胶囊）；`input` 用于表单输入、页面搜索和非玻璃顶栏搜索；`toolbarInput` 用于顶栏搜索；`bar` 用于移动 TabBar、底部多选条和标签操作条；`overlay` 用于 Toast 和播放恢复提示；`mediaOverlay` 用于封面上的白字信息条，是唯一允许 clear + 深色压暗的 role。
+- `mediaOverlay` 只能配 `onMedia` 白字；其它自适应玻璃不允许把白字压在浅色 tint 上。品牌色只用于选中胶囊、prominent 按钮和 active 图标，不进入整块玻璃 tint。
+- 真正的玻璃实现只允许在 `lib/widgets/base/layout/glass/` 内：材质配置、fallback、内部按钮/输入/弹层/TabBar 后端都在这里。`features`、`widgets/domain`、`widgets/shell` 和 app 启动层不得 import 这个目录或直接依赖 `liquid_glass_widgets`。
+- `AppGlassIconButton`、`AppTextField`、`AppGlassPopover`、`AppGlassToast`、`AppGlassListHeader`、`AppGlassTabBar` 是基础语义组件；它们的公开 API 不出现包类型，内部通过玻璃层后端绘制。`AppSegmentedControl` 固定使用平面分段后端，不随全局液态玻璃设置切换。
+- 扁平风格是纯 Flutter 实现：不实例化 `liquid_glass_widgets` 组件，不使用 `BackdropFilter`、shader、玻璃阴影；表面使用近实色半透明底、1px 边框和极轻顶部高光，适合低性能设备。高对比度下改为不透明底 + 强边框。macOS 原生 `NSVisualEffectView` 是窗口 chrome，不属于 Flutter surface，由外观设置里的独立「透明毛玻璃」开关控制；关闭后窗口改为不透明，与液态玻璃/扁平风格的选择无关。
 - 只有左侧圆角的移动播放器抽屉在 `AppSurface` 内部走加宽玻璃层裁切路径：可见宽度和内容布局不变，右侧保持直角。
 - fallback 配方只在高对比、无 shader 或无法映射圆角时使用：光源固定在顶部中央，1px sweep 描边从顶部主光向两侧对称衰减，底部保留一圈微反射；内侧顶部叠 specular wash，底部压暗边模拟玻璃厚度；背景先模糊再提高饱和度，让玻璃聚色而不是发灰。正常路径的玻璃参数由玻璃层管理，业务页面只选尺寸 / 圆角 / 内边距，不要自己拼渐变和描边。
 - 玻璃只用于可点击的次级控件和必要浮层；普通内容/状态标签（番号、上次看到、评分文字、设置页徽章）保持普通文本或标准材质，不套玻璃。内容卡和正文也不透明，主操作仍用实色品牌色。
-- 背景模糊统一由 `AppSurface` 或基础语义组件管理；播放器菜单/抽屉继续走 `AppSurface`，分段控件由玻璃层后端管理。业务页面不要再拼半透明色 + `BackdropFilter` + 边框。封面上的 4K/8K、热度、排名角标使用 `AppMediaBadge` 的无模糊烟熏渐变，不参与背景滤镜。
+- 背景模糊统一由 `AppSurface` 或基础语义组件管理；播放器菜单/抽屉继续走 `AppSurface`，分段控件固定使用无模糊的平面轨道。业务页面不要再拼半透明色 + `BackdropFilter` + 边框。封面上的 4K/8K、热度、排名角标使用 `AppMediaBadge` 的无模糊烟熏渐变，不参与背景滤镜。
 - 页面级搜索使用 `AppGlassSearchField`，顶栏搜索使用 `AppTopBarGlassSearchField`，两者共享 `app_glass_search_field_chrome.dart` 的文本输入玻璃后端和字体配置，但保留各自的尺寸、焦点和前后缀语义；其它文本/搜索输入统一走 `AppTextField` 的液态玻璃基座。合集网格的多卡信息条统一走玻璃层表面。桌面视频合集详情的合集名、排序、成员数和「播放全部 / 选择」收在同一条 `AppGlassListHeader` 里；移动端把封面 Hero、播放按钮和排序栏放进同一个 `CustomScrollView`，成员网格滚动时整块头部随之上移。其它页面的主操作仍默认实色品牌色。
 
 

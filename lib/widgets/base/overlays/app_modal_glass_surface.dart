@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_types.dart';
 
 /// 对话框和底部抽屉共用的模态玻璃。
 ///
@@ -19,6 +20,10 @@ class AppModalGlassSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final radius = borderRadius ?? context.appRadius.xlBorder;
 
-    return AppGlassSurface(borderRadius: radius, child: child);
+    return AppGlassSurface(
+      borderRadius: radius,
+      role: AppGlassRole.popover,
+      child: child,
+    );
   }
 }

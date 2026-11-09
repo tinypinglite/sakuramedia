@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 
 /// 「加入合集」只读选择条：外观对齐 `AppSelectField`，点击打开可搜索单选弹层。
 ///
@@ -36,7 +38,6 @@ class VideoCollectionPickerField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
     final formTokens = context.appFormTokens;
     final l10n = AppLocalizations.of(context);
     final label = valueLabel?.trim() ?? '';
@@ -65,46 +66,42 @@ class VideoCollectionPickerField extends StatelessWidget {
           ],
         ),
         SizedBox(height: formTokens.labelGap),
-        MouseRegion(
-          cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
-          child: GestureDetector(
-            key: fieldKey,
-            onTap: enabled ? onTap : null,
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(
-                horizontal: formTokens.fieldHorizontalPadding,
-                vertical: formTokens.fieldVerticalPadding,
-              ),
-              decoration: BoxDecoration(
-                color: colors.surfaceMuted,
-                borderRadius: context.appRadius.smBorder,
-                border: Border.all(color: colors.borderSubtle),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      label.isEmpty ? l10n.videoNoCollection : label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s14,
-                        tone: label.isEmpty
-                            ? AppTextTone.muted
-                            : AppTextTone.primary,
-                      ),
+        AppInteractiveSurface(
+          key: fieldKey,
+          enabled: enabled,
+          onTap: enabled ? onTap : null,
+          focusRingRadius: context.appRadius.smBorder,
+          child: AppSurface(
+            width: double.infinity,
+            borderRadius: context.appRadius.smBorder,
+            role: AppSurfaceRole.control,
+            padding: EdgeInsets.symmetric(
+              horizontal: formTokens.fieldHorizontalPadding,
+              vertical: formTokens.fieldVerticalPadding,
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    label.isEmpty ? l10n.videoNoCollection : label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s14,
+                      tone: label.isEmpty
+                          ? AppTextTone.muted
+                          : AppTextTone.primary,
                     ),
                   ),
-                  SizedBox(width: context.appSpacing.sm),
-                  Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    size: context.appComponentTokens.iconSizeSm,
-                    color: context.appTextPalette.secondary,
-                  ),
-                ],
-              ),
+                ),
+                SizedBox(width: context.appSpacing.sm),
+                Icon(
+                  Icons.keyboard_arrow_down_rounded,
+                  size: context.appComponentTokens.iconSizeSm,
+                  color: context.appTextPalette.secondary,
+                ),
+              ],
             ),
           ),
         ),

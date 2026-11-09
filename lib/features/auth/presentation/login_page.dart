@@ -14,6 +14,7 @@ import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/core/session/providers/credential_store_provider.dart';
 import 'package:sakuramedia/features/auth/presentation/providers/auth_api_provider.dart';
 import 'package:sakuramedia/app/app_platform.dart';
+import 'package:sakuramedia/app/providers/appearance_providers.dart';
 import 'package:sakuramedia/app/providers/external_url_provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/api_exception.dart';
@@ -25,9 +26,11 @@ import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_error_banner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/badges/app_media_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_anchored_menu.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 const double _wideViewportMinHeight = 700;
@@ -503,17 +506,25 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     BuildContext context, {
     required AppLanguage currentLanguage,
   }) {
+    final spacing = context.appSpacing;
     return Wrap(
       alignment: WrapAlignment.spaceBetween,
       crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: context.appSpacing.lg,
-      runSpacing: context.appSpacing.sm,
+      spacing: spacing.lg,
+      runSpacing: spacing.sm,
       children: <Widget>[
         const _AuthBrandLockup(),
-        _LoginLanguageSwitcher(
-          current: currentLanguage,
-          enabled: !_isSubmitting,
-          onSelected: _handleLanguageSelected,
+        Wrap(
+          spacing: spacing.sm,
+          runSpacing: spacing.xs,
+          children: <Widget>[
+            _LoginSurfaceStyleSwitcher(enabled: !_isSubmitting),
+            _LoginLanguageSwitcher(
+              current: currentLanguage,
+              enabled: !_isSubmitting,
+              onSelected: _handleLanguageSelected,
+            ),
+          ],
         ),
       ],
     );
@@ -1457,259 +1468,216 @@ class _SakuraMarkPainter extends CustomPainter {
 }
 
 /// 地址输入框左侧内嵌的协议（http/https）选择器，点击弹出下拉切换。
-class _ProtocolPrefix extends StatefulWidget {
+class _ProtocolPrefix extends StatelessWidget {
   const _ProtocolPrefix({
     required this.protocol,
     required this.enabled,
     required this.onChanged,
   });
 
+  static const List<String> _protocols = <String>['http', 'https'];
+
   final String protocol;
   final bool enabled;
   final ValueChanged<String> onChanged;
 
   @override
-  State<_ProtocolPrefix> createState() => _ProtocolPrefixState();
-}
-
-class _ProtocolPrefixState extends State<_ProtocolPrefix> {
-  static const List<String> _protocols = <String>['http', 'https'];
-
-  final LayerLink _layerLink = LayerLink();
-  final GlobalKey _triggerKey = GlobalKey();
-
-  OverlayEntry? _overlayEntry;
-  bool _isMenuOpen = false;
-
-  @override
-  void dispose() {
-    _removeOverlay(notify: false);
-    super.dispose();
-  }
-
-  void _toggleMenu() {
-    if (!widget.enabled) {
-      return;
-    }
-    if (_overlayEntry != null) {
-      _removeOverlay();
-      return;
-    }
-    _showOverlay();
-  }
-
-  void _showOverlay() {
-    final overlay = Overlay.of(context);
-    final triggerBox =
-        _triggerKey.currentContext?.findRenderObject() as RenderBox?;
-    if (triggerBox == null) {
-      return;
-    }
-    final triggerHeight = triggerBox.size.height;
-    // 触发器较窄，菜单需要足够宽度容纳 “https://”，故取触发器宽度与最小宽度的较大值。
-    final menuWidth = math.max(triggerBox.size.width, 132.0);
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    final colors = context.appColors;
     final formTokens = context.appFormTokens;
 
-    setState(() {
-      _isMenuOpen = true;
-    });
-
-    _overlayEntry = OverlayEntry(
-      builder: (context) {
-        return Stack(
+    return AppGlassAnchoredMenu(
+      minWidth: 132,
+      maxWidth: 200,
+      estimatedHeight: _protocols.length * formTokens.menuItemHeight,
+      maxHeight: formTokens.menuMaxHeight,
+      borderRadius: context.appRadius.smBorder,
+      triggerBuilder: (context, isOpen, toggle) => AppInteractiveSurface(
+        key: const Key('login-protocol-selector'),
+        enabled: enabled,
+        onTap: enabled ? toggle : null,
+        focusRingRadius: context.appRadius.smBorder,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: <Widget>[
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: _removeOverlay,
-                child: const SizedBox.expand(),
+            Text(
+              '$protocol://',
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                tone: AppTextTone.secondary,
               ),
             ),
-            CompositedTransformFollower(
-              link: _layerLink,
-              showWhenUnlinked: false,
-              offset: Offset(0, triggerHeight + formTokens.menuGap),
-              child: Material(
-                color: Colors.transparent,
-                child: _ProtocolMenu(
-                  width: menuWidth,
-                  protocols: _protocols,
-                  selected: widget.protocol,
-                  onSelected: (protocol) {
-                    widget.onChanged(protocol);
-                    _removeOverlay();
-                  },
-                ),
-              ),
+            Icon(
+              isOpen
+                  ? Icons.keyboard_arrow_up_rounded
+                  : Icons.keyboard_arrow_down_rounded,
+              size: context.appComponentTokens.iconSizeSm,
+              color: context.appTextPalette.secondary,
             ),
+            SizedBox(width: spacing.sm),
+            Container(width: 1, height: 20, color: colors.borderSubtle),
           ],
-        );
-      },
+        ),
+      ),
+      contentBuilder: (context, close) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          for (final item in _protocols)
+            AppGlassMenuRow(
+              key: Key('login-protocol-$item'),
+              title: Text('$item://'),
+              selected: item == protocol,
+              showCheckmark: true,
+              minHeight: formTokens.menuItemHeight,
+              padding: EdgeInsets.symmetric(
+                horizontal: formTokens.fieldHorizontalPadding,
+              ),
+              onTap: () {
+                onChanged(item);
+                close();
+              },
+            ),
+        ],
+      ),
     );
-
-    overlay.insert(_overlayEntry!);
   }
+}
 
-  void _removeOverlay({bool notify = true}) {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    if (!notify || !mounted) {
-      return;
-    }
-    setState(() {
-      _isMenuOpen = false;
-    });
-  }
+/// 登录页顶部的控件胶囊，语言与界面风格共用同一外观。
+class _LoginTopBarPill extends StatelessWidget {
+  const _LoginTopBarPill({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    final colors = context.appColors;
-
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: MouseRegion(
-        cursor: widget.enabled
-            ? SystemMouseCursors.click
-            : SystemMouseCursors.basic,
-        child: GestureDetector(
-          key: const Key('login-protocol-selector'),
-          onTap: _toggleMenu,
-          behavior: HitTestBehavior.opaque,
-          child: Row(
-            key: _triggerKey,
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Text(
-                '${widget.protocol}://',
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s14,
-                  tone: AppTextTone.secondary,
-                ),
-              ),
-              Icon(
-                _isMenuOpen
-                    ? Icons.keyboard_arrow_up_rounded
-                    : Icons.keyboard_arrow_down_rounded,
-                size: context.appComponentTokens.iconSizeSm,
-                color: context.appTextPalette.secondary,
-              ),
-              SizedBox(width: spacing.sm),
-              Container(width: 1, height: 20, color: colors.borderSubtle),
-            ],
-          ),
-        ),
+    return AppSurface(
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing.sm + spacing.xs,
+        vertical: spacing.xs + 2,
       ),
-    );
-  }
-}
-
-class _ProtocolMenu extends StatelessWidget {
-  const _ProtocolMenu({
-    required this.width,
-    required this.protocols,
-    required this.selected,
-    required this.onSelected,
-  });
-
-  final double width;
-  final List<String> protocols;
-  final String selected;
-  final ValueChanged<String> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final overlayTokens = context.appOverlayTokens;
-
-    return Container(
-      width: width,
-      decoration: BoxDecoration(
-        color: colors.surfaceCard,
-        borderRadius: context.appRadius.smBorder,
-        border: Border.all(color: colors.borderSubtle),
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: context.appTextPalette.primary.withValues(
-              alpha: overlayTokens.hoverAlpha,
+      borderRadius: context.appRadius.pillBorder,
+      role: AppSurfaceRole.control,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: <Widget>[
+          Icon(
+            icon,
+            size: context.appComponentTokens.iconSizeSm,
+            color: context.appTextPalette.muted,
+          ),
+          SizedBox(width: spacing.xs),
+          Text(
+            label,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              tone: AppTextTone.secondary,
             ),
-            blurRadius: overlayTokens.surfaceShadowBlur,
-            offset: Offset(0, overlayTokens.surfaceShadowOffsetY),
+          ),
+          Icon(
+            Icons.arrow_drop_down_rounded,
+            size: context.appComponentTokens.iconSizeSm,
+            color: context.appTextPalette.muted,
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: context.appRadius.smBorder,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: protocols
-              .map(
-                (protocol) => _ProtocolMenuItem(
-                  protocol: protocol,
-                  selected: protocol == selected,
-                  onTap: () => onSelected(protocol),
-                ),
-              )
-              .toList(growable: false),
-        ),
-      ),
     );
   }
 }
 
-class _ProtocolMenuItem extends StatefulWidget {
-  const _ProtocolMenuItem({
-    required this.protocol,
-    required this.selected,
-    required this.onTap,
-  });
+/// 登录页界面风格切换：登录前即可在液态玻璃与扁平风格之间选择。
+class _LoginSurfaceStyleSwitcher extends ConsumerWidget {
+  const _LoginSurfaceStyleSwitcher({required this.enabled});
 
-  final String protocol;
-  final bool selected;
-  final VoidCallback onTap;
+  final bool enabled;
 
   @override
-  State<_ProtocolMenuItem> createState() => _ProtocolMenuItemState();
-}
-
-class _ProtocolMenuItemState extends State<_ProtocolMenuItem> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final formTokens = context.appFormTokens;
-    final backgroundColor = widget.selected
-        ? colors.surfaceMuted
-        : _isHovered
-        ? colors.sidebarHoverBackground
-        : Colors.transparent;
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        key: Key('login-protocol-${widget.protocol}'),
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        child: Container(
-          height: formTokens.menuItemHeight,
-          padding: EdgeInsets.symmetric(
-            horizontal: formTokens.fieldHorizontalPadding,
-          ),
-          alignment: Alignment.centerLeft,
-          decoration: BoxDecoration(color: backgroundColor),
-          child: Text(
-            '${widget.protocol}://',
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s14,
-              tone: widget.selected ? AppTextTone.accent : AppTextTone.primary,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final l10n = AppLocalizations.of(context);
+    final current = ref.watch(appearanceProvider).surfaceStyle;
+    return AppGlassAnchoredMenu(
+      width: 180,
+      minWidth: 180,
+      maxWidth: 180,
+      estimatedHeight: 88,
+      maxHeight: 220,
+      borderRadius: context.appRadius.mdBorder,
+      triggerBuilder: (context, isOpen, toggle) => Semantics(
+        label: l10n.appearanceSurfaceStyle,
+        child: Tooltip(
+          message: l10n.appearanceSurfaceStyle,
+          child: AppInteractiveSurface(
+            key: const Key('login-surface-style-switcher'),
+            enabled: enabled,
+            onTap: enabled ? toggle : null,
+            focusRingRadius: context.appRadius.pillBorder,
+            child: SizedBox(
+              height: kMinInteractiveDimension,
+              child: Center(
+                widthFactor: 1,
+                heightFactor: 1,
+                child: _LoginTopBarPill(
+                  icon: current == AppSurfaceStyle.flat
+                      ? Icons.layers_outlined
+                      : Icons.auto_awesome_rounded,
+                  label: current == AppSurfaceStyle.flat
+                      ? l10n.appearanceSurfaceFlat
+                      : l10n.appearanceSurfaceLiquid,
+                ),
+              ),
             ),
           ),
         ),
+      ),
+      contentBuilder: (context, close) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          AppGlassMenuRow(
+            leading: Icon(
+              Icons.auto_awesome_rounded,
+              size: context.appComponentTokens.iconSizeSm,
+              color: context.appTextPalette.secondary,
+            ),
+            title: Text(l10n.appearanceSurfaceLiquid),
+            selected: current == AppSurfaceStyle.liquid,
+            showCheckmark: true,
+            minHeight: 44,
+            onTap: () {
+              close();
+              unawaited(
+                ref
+                    .read(appearanceProvider.notifier)
+                    .setSurfaceStyle(AppSurfaceStyle.liquid),
+              );
+            },
+          ),
+          AppGlassMenuRow(
+            leading: Icon(
+              Icons.layers_outlined,
+              size: context.appComponentTokens.iconSizeSm,
+              color: context.appTextPalette.secondary,
+            ),
+            title: Text(l10n.appearanceSurfaceFlat),
+            selected: current == AppSurfaceStyle.flat,
+            showCheckmark: true,
+            minHeight: 44,
+            onTap: () {
+              close();
+              unawaited(
+                ref
+                    .read(appearanceProvider.notifier)
+                    .setSurfaceStyle(AppSurfaceStyle.flat),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -1730,84 +1698,63 @@ class _LoginLanguageSwitcher extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final spacing = context.appSpacing;
-    return PopupMenuTheme(
-      data: PopupMenuThemeData(
-        color: context.appColors.surfaceCard,
-        shape: RoundedRectangleBorder(
-          borderRadius: context.appRadius.mdBorder,
-          side: BorderSide(color: context.appColors.divider),
-        ),
-        menuPadding: EdgeInsets.symmetric(
-          horizontal: spacing.xs,
-          vertical: spacing.xs,
-        ),
-      ),
-      child: PopupMenuButton<AppLanguage>(
-        key: const Key('login-language-switcher'),
-        enabled: enabled,
-        tooltip: l10n.settingsLanguageTitle,
-        borderRadius: context.appRadius.smBorder,
-        clipBehavior: Clip.antiAlias,
-        onSelected: onSelected,
-        itemBuilder: (context) => <PopupMenuEntry<AppLanguage>>[
-          PopupMenuItem<AppLanguage>(
-            value: AppLanguage.zhCN,
-            child: Text(l10n.settingsLanguageSimplifiedChinese),
-          ),
-          PopupMenuItem<AppLanguage>(
-            value: AppLanguage.en,
-            child: Text(l10n.settingsLanguageEnglish),
-          ),
-        ],
-        child: SizedBox(
-          height: kMinInteractiveDimension,
-          child: Center(
-            widthFactor: 1,
-            heightFactor: 1,
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: spacing.sm + spacing.xs,
-                vertical: spacing.xs + 2,
-              ),
-              decoration: BoxDecoration(
-                color: context.appColors.surfaceElevated.withValues(
-                  alpha: Theme.of(context).brightness == Brightness.dark
-                      ? 0.16
-                      : 0.68,
+    return AppGlassAnchoredMenu(
+      width: 180,
+      minWidth: 180,
+      maxWidth: 180,
+      estimatedHeight: 88,
+      maxHeight: 220,
+      borderRadius: context.appRadius.mdBorder,
+      triggerBuilder: (context, isOpen, toggle) => Semantics(
+        label: l10n.settingsLanguageTitle,
+        child: Tooltip(
+          message: l10n.settingsLanguageTitle,
+          child: AppInteractiveSurface(
+            key: const Key('login-language-switcher'),
+            enabled: enabled,
+            onTap: enabled ? toggle : null,
+            focusRingRadius: context.appRadius.pillBorder,
+            child: SizedBox(
+              height: kMinInteractiveDimension,
+              child: Center(
+                widthFactor: 1,
+                heightFactor: 1,
+                child: _LoginTopBarPill(
+                  icon: Icons.language_rounded,
+                  label: current == AppLanguage.en
+                      ? l10n.settingsLanguageEnglish
+                      : l10n.settingsLanguageSimplifiedChinese,
                 ),
-                borderRadius: context.appRadius.pillBorder,
-                border: Border.all(color: context.appColors.borderSubtle),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Icon(
-                    Icons.language_rounded,
-                    size: context.appComponentTokens.iconSizeSm,
-                    color: context.appTextPalette.muted,
-                  ),
-                  SizedBox(width: spacing.xs),
-                  Text(
-                    current == AppLanguage.en
-                        ? l10n.settingsLanguageEnglish
-                        : l10n.settingsLanguageSimplifiedChinese,
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s12,
-                      tone: AppTextTone.secondary,
-                    ),
-                  ),
-                  Icon(
-                    Icons.arrow_drop_down_rounded,
-                    size: context.appComponentTokens.iconSizeSm,
-                    color: context.appTextPalette.muted,
-                  ),
-                ],
               ),
             ),
           ),
         ),
+      ),
+      contentBuilder: (context, close) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          AppGlassMenuRow(
+            title: Text(l10n.settingsLanguageSimplifiedChinese),
+            selected: current == AppLanguage.zhCN,
+            showCheckmark: true,
+            minHeight: 44,
+            onTap: () {
+              close();
+              onSelected(AppLanguage.zhCN);
+            },
+          ),
+          AppGlassMenuRow(
+            title: Text(l10n.settingsLanguageEnglish),
+            selected: current == AppLanguage.en,
+            showCheckmark: true,
+            minHeight: 44,
+            onTap: () {
+              close();
+              onSelected(AppLanguage.en);
+            },
+          ),
+        ],
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 
 const Duration defaultPlaybackResumePromptTimeout = Duration(seconds: 8);
 
@@ -85,78 +86,73 @@ class _PlaybackResumePromptState extends State<PlaybackResumePrompt> {
         constraints: BoxConstraints(
           maxWidth: context.appLayoutTokens.dialogWidthSm,
         ),
-        child: DecoratedBox(
+        child: AppSurface(
           key: const Key('playback-resume-prompt'),
-          decoration: BoxDecoration(
-            color: context.appColors.surfaceCard,
-            borderRadius: context.appRadius.lgBorder,
-            boxShadow: context.appShadows.panel,
+          borderRadius: context.appRadius.lgBorder,
+          role: AppSurfaceRole.overlay,
+          padding: EdgeInsets.symmetric(
+            horizontal: spacing.lg,
+            vertical: spacing.md,
           ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: spacing.lg,
-              vertical: spacing.md,
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: componentTokens.buttonHeightSm,
-                  height: componentTokens.buttonHeightSm,
-                  decoration: BoxDecoration(
-                    color: context.appColors.surfaceMuted,
-                    borderRadius: context.appRadius.mdBorder,
-                  ),
-                  alignment: Alignment.center,
-                  child: Icon(
-                    Icons.history_rounded,
-                    size: componentTokens.iconSizeSm,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: componentTokens.buttonHeightSm,
+                height: componentTokens.buttonHeightSm,
+                decoration: BoxDecoration(
+                  color: context.appColors.surfaceMuted,
+                  borderRadius: context.appRadius.mdBorder,
                 ),
-                SizedBox(width: spacing.md),
-                Flexible(
-                  child: Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(text: '${l10n.baseResumeLastWatched} '),
-                        TextSpan(
-                          text: formatMediaTimecode(widget.position.inSeconds),
-                          style: resolveAppTextStyle(
-                            context,
-                            size: AppTextSize.s14,
-                            weight: AppTextWeight.semibold,
-                            tone: AppTextTone.accent,
-                          ),
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.history_rounded,
+                  size: componentTokens.iconSizeSm,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+              SizedBox(width: spacing.md),
+              Flexible(
+                child: Text.rich(
+                  TextSpan(
+                    children: [
+                      TextSpan(text: '${l10n.baseResumeLastWatched} '),
+                      TextSpan(
+                        text: formatMediaTimecode(widget.position.inSeconds),
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s14,
+                          weight: AppTextWeight.semibold,
+                          tone: AppTextTone.accent,
                         ),
-                      ],
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s14,
-                      tone: AppTextTone.primary,
-                    ),
+                      ),
+                    ],
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s14,
+                    tone: AppTextTone.primary,
                   ),
                 ),
-                SizedBox(width: spacing.md),
-                AppButton(
-                  label: l10n.baseResumeContinue,
-                  labelKey: const Key('playback-resume-continue-label'),
-                  size: AppButtonSize.xSmall,
-                  variant: AppButtonVariant.primary,
-                  onPressed: () => _resolve(widget.onResume),
-                ),
-                SizedBox(width: spacing.xs),
-                AppTextButton(
-                  label: l10n.baseResumeStartOver,
-                  labelKey: const Key('playback-resume-start-over-label'),
-                  size: AppTextButtonSize.xSmall,
-                  onPressed: () => _resolve(widget.onStartOver),
-                ),
-              ],
-            ),
+              ),
+              SizedBox(width: spacing.md),
+              AppButton(
+                label: l10n.baseResumeContinue,
+                labelKey: const Key('playback-resume-continue-label'),
+                size: AppButtonSize.xSmall,
+                variant: AppButtonVariant.primary,
+                onPressed: () => _resolve(widget.onResume),
+              ),
+              SizedBox(width: spacing.xs),
+              AppTextButton(
+                label: l10n.baseResumeStartOver,
+                labelKey: const Key('playback-resume-start-over-label'),
+                size: AppTextButtonSize.xSmall,
+                onPressed: () => _resolve(widget.onStartOver),
+              ),
+            ],
           ),
         ),
       ),

@@ -11,9 +11,11 @@ import 'package:sakuramedia/widgets/base/interaction/app_focus_ring.dart';
 /// 1. **不用 Material 涟漪。** 国内主流按下反馈不是水波纹；`material_ui` 在
 ///    `useMaterial3` 下默认会画 InkRipple / InkSparkle，这里统一用
 ///    [NoSplash.splashFactory] 关掉。
-/// 2. **没有 hover / 按下底色。** 桌面 hover 不做任何视觉变化——移动端没有
-///    hover，两端保持一致，可点性提示只有鼠标手型和 tooltip；按下也不叠
-///    "底下一块灰"，叠底色在浅色背景上会像"选中态"而不是"按下"。
+/// 2. **默认没有 hover / 按下底色。** 桌面 hover 默认不做任何视觉变化——
+///    移动端没有 hover，两端保持一致，可点性提示默认只有鼠标手型和 tooltip；
+///    需要可见 hover 的调用方通过 [onHoverChanged] 自行绘制背景，不要打开
+///    InkWell 自带的高亮。按下也不叠 "底下一块灰"，叠底色在浅色背景上会像
+///    "选中态"而不是"按下"。
 /// 3. **按下 = 整体变淡。** 走 [pressedOpacity] 的整体透明度（默认 0.7，
 ///    同国内移动端主流与微信默认按压值）。调用方画在 child 上的选中态底色
 ///    会跟着一起变淡，不会被盖掉。
@@ -25,6 +27,9 @@ class AppInteractiveSurface extends StatefulWidget {
     this.onTapDown,
     this.onLongPress,
     this.onSecondaryTap,
+    this.onHoverChanged,
+    this.onFocusChanged,
+    this.onPressedChanged,
     this.enabled = true,
     this.pressedOpacity = 0.7,
     this.semanticLabel,
@@ -40,6 +45,16 @@ class AppInteractiveSurface extends StatefulWidget {
   final GestureTapDownCallback? onTapDown;
   final VoidCallback? onLongPress;
   final VoidCallback? onSecondaryTap;
+
+  /// 鼠标进入/离开时回调；默认不绘制 hover 底色，需要可见 hover 的调用方
+  /// 自行根据状态绘制背景。
+  final ValueChanged<bool>? onHoverChanged;
+
+  /// 键盘焦点变化；需要 hover/focus 同款浮层的调用方使用。
+  final ValueChanged<bool>? onFocusChanged;
+
+  /// 按下态变化；需要自行绘制按下动画的调用方使用。
+  final ValueChanged<bool>? onPressedChanged;
 
   /// false 时不可点、无反馈；"视觉禁用"（降透明度、换前景色）由调用方决定。
   final bool enabled;
@@ -74,6 +89,7 @@ class _AppInteractiveSurfaceState extends State<AppInteractiveSurface> {
       return;
     }
     setState(() => _focused = focused);
+    widget.onFocusChanged?.call(focused);
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
@@ -118,10 +134,12 @@ class _AppInteractiveSurfaceState extends State<AppInteractiveSurface> {
                 }
               : null,
           onSecondaryTap: interactive ? widget.onSecondaryTap : null,
+          onHover: interactive ? widget.onHoverChanged : null,
           onHighlightChanged: interactive
               ? (highlighted) {
                   if (_pressed != highlighted) {
                     setState(() => _pressed = highlighted);
+                    widget.onPressedChanged?.call(highlighted);
                   }
                 }
               : null,
@@ -133,6 +151,7 @@ class _AppInteractiveSurfaceState extends State<AppInteractiveSurface> {
           splashColor: Colors.transparent,
           highlightColor: Colors.transparent,
           hoverColor: Colors.transparent,
+          hoverDuration: Duration.zero,
           focusColor: Colors.transparent,
           canRequestFocus: interactive && widget.onTap != null,
           focusNode: widget.focusNode,

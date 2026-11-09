@@ -22,13 +22,13 @@
 
 路径：`lib/widgets/base/actions/app_glass_icon_button.dart`
 
-导航栏、吸顶控制条、移动列表头和浮层使用的液态玻璃圆钮，默认 44×44；桌面顶栏传 `size: 32` 与更小的图标。移动列表头用它承载筛选、排序、搜索、刷新、选择和新建等可图标化操作。可用 `iconWidget` 承载加载指示器等非 `IconData` 内容。高对比度模式回退为带描边的实色圆钮。只用于功能层，内容卡和正文不要使用。
+导航栏、吸顶控制条、移动列表头和浮层使用的液态玻璃圆钮，默认 44×44；桌面顶栏传 `size: 32` 与更小的图标。移动列表头用它承载筛选、排序、搜索、刷新、选择和新建等可图标化操作。`tone: AppGlassTone.standard` 使用常驻 `control` 玻璃胶囊；`tone: AppGlassTone.toolbar` 用于顶栏，静止态只显示图标，hover/focus/press 才浮出 `toolbarControl` 轻玻璃胶囊。可用 `iconWidget` 承载加载指示器等非 `IconData` 内容。高对比度模式回退为带描边的实色圆钮。只用于功能层，内容卡和正文不要使用。
 
 ## `AppInteractiveSurface`
 
 路径：`lib/widgets/base/interaction/app_interactive_surface.dart`
 
-全项目统一的可点表面，所有可点元素都应经过它，不要再手写 `InkWell`。默认无水波纹、无 hover / 按下底色，按下整块透明度降到 `0.7`（整体变淡）；`onTap` / `onTapDown` / `onLongPress` / `onSecondaryTap` 都走这一层手势，可同时配合 `semanticLabel`。`focusRing` 默认开启，键盘聚焦时绘制 2px 主题色焦点环；需要自定义焦点顺序时传 `focusNode`。`onLongPress` 触发时统一播放一次选择触感（`core/platform/haptic_feedback.dart`，桌面端无副作用），调用方不要重复触发。禁用时只负责不响应，视觉禁用（降透明度、换前景色）由调用方决定。完整交互基线见 `docs/interaction-design.md`。
+全项目统一的可点表面，所有可点元素都应经过它，不要再手写 `InkWell`。默认无水波纹、无 hover / 按下底色，按下整块透明度降到 `0.7`（整体变淡）；`onTap` / `onTapDown` / `onLongPress` / `onSecondaryTap` 都走这一层手势，可同时配合 `semanticLabel`。需要可见 hover 的入口通过 `onHoverChanged` 由调用方自绘背景（侧栏导航项），不要打开 InkWell 自带 hover 色。`focusRing` 默认开启，键盘聚焦时绘制 2px 主题色焦点环；需要自定义焦点顺序时传 `focusNode`。`onLongPress` 触发时统一播放一次选择触感（`core/platform/haptic_feedback.dart`，桌面端无副作用），调用方不要重复触发。禁用时只负责不响应，视觉禁用（降透明度、换前景色）由调用方决定。完整交互基线见 `docs/interaction-design.md`。
 
 ## `AppClickable`
 

@@ -50,7 +50,6 @@ class AppGlassToast extends StatelessWidget {
                 child: content,
               )
             : _buildGlassSurface(
-                context,
                 padding: padding,
                 borderRadius: tokens.borderRadius,
                 child: content,
@@ -112,56 +111,15 @@ class AppGlassToast extends StatelessWidget {
     );
   }
 
-  Widget _buildGlassSurface(
-    BuildContext context, {
+  Widget _buildGlassSurface({
     required EdgeInsets padding,
     required double borderRadius,
     required Widget child,
   }) {
-    final tokens = context.appToastTokens;
-    final shape = BorderRadius.circular(borderRadius);
-    final highlight = tokens.glassHighlight;
-    final shade = tokens.glassShade;
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        borderRadius: shape,
-        boxShadow: <BoxShadow>[
-          BoxShadow(
-            color: tokens.glassShadow,
-            blurRadius: 30,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: AppGlassContainerBackend(
-        borderRadius: borderRadius,
-        child: Stack(
-          children: <Widget>[
-            Positioned.fill(
-              child: IgnorePointer(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: shape,
-                    border: Border.all(color: tokens.glassBorder),
-                    gradient: LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: <Color>[
-                        highlight,
-                        highlight.withValues(alpha: 0),
-                        shade,
-                      ],
-                      stops: const <double>[0, 0.42, 1],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            Padding(padding: padding, child: child),
-          ],
-        ),
-      ),
+    return AppGlassContainerBackend(
+      borderRadius: borderRadius,
+      role: AppGlassRole.overlay,
+      child: Padding(padding: padding, child: child),
     );
   }
 

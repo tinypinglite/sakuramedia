@@ -14,8 +14,8 @@ import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_sc
 import 'package:sakuramedia/widgets/base/layout/grids/app_adaptive_card_wrap.dart';
 import 'package:sakuramedia/widgets/base/layout/grids/grid_column_resolver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 
 typedef CollectionListCardBuilder<T> =
     Widget Function(
@@ -155,28 +155,24 @@ class _CollectionListContentState<T>
           ),
         ),
         SizedBox(height: spacing.sm),
-        AppSurfaceGroup(
-          child: Row(
+        AppGlassListHeader(
+          leading: SizedBox(
+            width: 320,
+            child: AppGlassSearchField(
+              controller: _searchController,
+              hintText: widget.searchHint,
+              fieldKey: Key('${widget.keyPrefix}-search-field'),
+              clearKey: Key('${widget.keyPrefix}-search-clear'),
+              onChanged: _onSearchChanged,
+            ),
+          ),
+          trailing: AppGlassHeaderGroup(
             children: [
-              Expanded(
-                child: AppGlassSearchField(
-                  controller: _searchController,
-                  hintText: widget.searchHint,
-                  fieldKey: Key('${widget.keyPrefix}-search-field'),
-                  clearKey: Key('${widget.keyPrefix}-search-clear'),
-                  onChanged: _onSearchChanged,
-                ),
-              ),
-              SizedBox(width: spacing.md),
-              AppGlassHeaderGroup(
-                children: [
-                  AppGlassHeaderButton(
-                    key: Key('${widget.keyPrefix}-create-button'),
-                    icon: Icons.add_rounded,
-                    label: widget.createLabel,
-                    onTap: () => unawaited(widget.onCreate(context)),
-                  ),
-                ],
+              AppGlassHeaderButton(
+                key: Key('${widget.keyPrefix}-create-button'),
+                icon: Icons.add_rounded,
+                label: widget.createLabel,
+                onTap: () => unawaited(widget.onCreate(context)),
               ),
             ],
           ),
@@ -190,18 +186,15 @@ class _CollectionListContentState<T>
     final spacing = context.appSpacing;
     return Padding(
       padding: EdgeInsets.only(top: spacing.sm),
-      child: Row(
-        children: [
-          Expanded(
-            child: AppGlassSearchField(
-              controller: _searchController,
-              hintText: widget.searchHint,
-              fieldKey: Key('${widget.keyPrefix}-search-field'),
-              clearKey: Key('${widget.keyPrefix}-search-clear'),
-              onChanged: _onSearchChanged,
-            ),
-          ),
-          SizedBox(width: spacing.sm),
+      child: AppMobileListHeader(
+        leading: AppGlassSearchField(
+          controller: _searchController,
+          hintText: widget.searchHint,
+          fieldKey: Key('${widget.keyPrefix}-search-field'),
+          clearKey: Key('${widget.keyPrefix}-search-clear'),
+          onChanged: _onSearchChanged,
+        ),
+        actions: [
           AppGlassIconButton(
             key: Key('${widget.keyPrefix}-create-button'),
             tooltip: widget.createLabel,

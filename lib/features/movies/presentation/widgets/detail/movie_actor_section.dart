@@ -9,6 +9,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
 /// 影片详情页的演员区块：浏览态只读，进入管理态后可就地移除，并通过弹层添加。
 class MovieActorSection extends StatefulWidget {
@@ -305,13 +306,10 @@ class _AddActorTile extends StatelessWidget {
     }
     return Tooltip(
       message: l10n.movieWidgetAddActorTitle,
-      child: MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: content,
-        ),
+      child: AppInteractiveSurface(
+        onTap: onTap,
+        focusRingRadius: context.appRadius.mdBorder,
+        child: content,
       ),
     );
   }

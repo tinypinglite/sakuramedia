@@ -6,13 +6,13 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_flat_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_style.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_types.dart';
 import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 
 /// 统一玻璃表面。
 ///
-/// 正常路径完全使用 `liquid_glass_widgets` 的内置 light/dark 默认材质与
-/// 控件默认质量档位，不在这里覆盖 settings / quality；业务页面只选尺寸 /
-/// 圆角 / 内边距。
+/// 正常路径按 [AppGlassRole] 从 [AppGlassStyle] 取统一的 iOS 27 regular
+/// 配方和 quality；业务页面只选角色、尺寸、圆角与内边距。
 ///
 /// 高对比、关闭模糊或无法映射圆角时走本地 fallback：
 /// - 光源固定在顶部中央：顶部最亮，向两侧对称衰减，底部保留一圈很淡的
@@ -29,6 +29,7 @@ class AppGlassSurface extends StatelessWidget {
     this.blur = true,
     this.width,
     this.height,
+    this.role = AppGlassRole.surface,
   });
 
   final Widget child;
@@ -41,6 +42,7 @@ class AppGlassSurface extends StatelessWidget {
   /// 整体尺寸；为空时由子级决定。
   final double? width;
   final double? height;
+  final AppGlassRole role;
 
   static const double _borderWidth = 1;
 
@@ -55,8 +57,13 @@ class AppGlassSurface extends StatelessWidget {
         padding: padding,
         width: width,
         height: height,
+        role: AppGlassStyle.flatRoleFor(role),
         child: child,
       );
+    }
+
+    if (highContrast) {
+      return _buildSolid(context, radius);
     }
 
     if (blur && !highContrast) {
@@ -80,7 +87,8 @@ class AppGlassSurface extends StatelessWidget {
       return null;
     }
 
-    final settings = AppGlassStyle.surfaceSettings(context);
+    final settings = AppGlassStyle.settingsFor(context, role);
+    final quality = AppGlassStyle.qualityFor(role);
 
     if (!shape.isLeftOnly) {
       return GlassContainer(
@@ -89,6 +97,7 @@ class AppGlassSurface extends StatelessWidget {
         padding: padding,
         shape: shape.shape,
         settings: settings,
+        quality: quality,
         useOwnLayer: true,
         clipBehavior: Clip.antiAlias,
         child: child,
@@ -112,6 +121,7 @@ class AppGlassSurface extends StatelessWidget {
       alignment: Alignment.centerLeft,
       shape: shape.shape,
       settings: settings,
+      quality: quality,
       useOwnLayer: true,
       clipBehavior: Clip.antiAlias,
       child: SizedBox(width: contentWidth, child: child),
@@ -185,7 +195,7 @@ class AppGlassSurface extends StatelessWidget {
     required bool highContrast,
     required bool useFilter,
   }) {
-    final recipe = AppGlassStyle.fallbackRecipe(context);
+    final recipe = AppGlassStyle.fallbackRecipe(context, role);
     final highlight = context.appTextPalette.onMedia;
     final tintAlpha = highContrast
         ? math.min(1.0, recipe.tintAlpha + 0.40)
@@ -236,11 +246,11 @@ class AppGlassSurface extends StatelessWidget {
                     begin: Alignment.centerLeft,
                     end: Alignment.centerRight,
                     colors: <Color>[
-                      Colors.transparent,
+                      highlight.withValues(alpha: 0),
                       context.appShadows.color.withValues(
                         alpha: recipe.innerBottomShadowAlpha,
                       ),
-                      Colors.transparent,
+                      highlight.withValues(alpha: 0),
                     ],
                     stops: const <double>[0.0, 0.5, 1.0],
                   ),
@@ -284,6 +294,32 @@ class AppGlassSurface extends StatelessWidget {
       return fallback;
     }
     return SizedBox(width: width, height: height, child: fallback);
+  }
+
+  Widget _buildSolid(BuildContext context, BorderRadius radius) {
+    final media = role == AppGlassRole.mediaOverlay;
+    final surface = DecoratedBox(
+      decoration: BoxDecoration(
+        color: media
+            ? context.appColors.mediaOverlayStrong
+            : context.appColors.surfaceElevated,
+        borderRadius: radius,
+        border: Border.all(
+          color: media
+              ? context.appColors.highlight.withValues(alpha: 0.38)
+              : context.appColors.borderStrong,
+        ),
+      ),
+      child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
+    );
+    final solid = KeyedSubtree(
+      key: const Key('app-glass-solid-surface'),
+      child: surface,
+    );
+    if (width == null && height == null) {
+      return solid;
+    }
+    return SizedBox(width: width, height: height, child: solid);
   }
 }
 

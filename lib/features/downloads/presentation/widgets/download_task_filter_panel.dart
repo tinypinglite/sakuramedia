@@ -10,7 +10,7 @@ import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_filter_drawer_scaffold.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 
-/// 下载任务筛选内容：番号搜索（回车提交）+ 状态/客户端玻璃分段。
+/// 下载任务筛选内容：番号搜索（回车提交）+ 状态/客户端分段。
 ///
 /// 桌面筛选浮层与移动筛选抽屉共用这一份内容，避免两端文案和选项漂移。
 /// 搜索输入沿用项目其它筛选栏习惯——**不做打字 debounce**，仅回车提交。

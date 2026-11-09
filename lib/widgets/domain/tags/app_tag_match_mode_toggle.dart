@@ -40,7 +40,6 @@ class AppTagMatchModeToggle extends StatelessWidget {
       onChanged: onChanged,
       size: AppSegmentedSize.compact,
       layout: AppSegmentedLayout.scrollable,
-      tone: AppSegmentedTone.neutral,
     );
   }
 }

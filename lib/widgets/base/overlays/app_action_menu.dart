@@ -5,8 +5,10 @@ import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_types.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 
@@ -383,6 +385,7 @@ class _AppContextMenuPanel<T> extends StatelessWidget {
         width: width,
         borderRadius: BorderRadius.circular(metrics.radius),
         padding: EdgeInsets.zero,
+        role: AppGlassRole.popover,
         child: DecoratedBox(
           position: DecorationPosition.foreground,
           decoration: ShapeDecoration(
@@ -809,9 +812,11 @@ class _AppDrawerRow<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
 
-    return InkWell(
+    return AppInteractiveSurface(
       key: item.key,
+      enabled: item.enabled,
       onTap: item.enabled ? () => onSelected(item.value) : null,
+      focusRing: false,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: _drawerItemMinHeight),
         child: Padding(
@@ -838,8 +843,9 @@ class _AppDrawerCancelRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = appL10n(context);
-    return InkWell(
+    return AppInteractiveSurface(
       onTap: onTap,
+      focusRing: false,
       child: ConstrainedBox(
         constraints: const BoxConstraints(minHeight: _drawerItemMinHeight),
         child: Center(

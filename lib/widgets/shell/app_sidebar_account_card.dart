@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 import 'package:sakuramedia/widgets/domain/updates/sidebar_version_info.dart';
 import 'package:sakuramedia/widgets/shell/sidebar_appearance_menu.dart';
 
@@ -26,13 +27,19 @@ class AppSidebarAccountCard extends StatelessWidget {
     final colors = context.appColors;
     final spacing = context.appSpacing;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final buttonFill = colors.surfaceCard.withValues(
-      alpha: isDark ? 0.06 : 0.34,
-    );
-    final buttonBorder = colors.borderSubtle.fadedBy(isDark ? 0.75 : 0.55);
-    final cardFill = colors.surfaceCard.withValues(
-      alpha: isDark ? 0.055 : 0.34,
-    );
+    final flat = AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat;
+    final buttonFill = flat
+        ? colors.surfaceMuted
+        : colors.surfaceCard.withValues(alpha: isDark ? 0.06 : 0.34);
+    final buttonBorder = flat
+        ? colors.borderSubtle
+        : colors.borderSubtle.fadedBy(isDark ? 0.75 : 0.55);
+    final cardFill = flat
+        ? colors.surfaceElevated
+        : colors.surfaceCard.withValues(alpha: isDark ? 0.055 : 0.34);
+    final cardBorder = flat
+        ? colors.borderSubtle
+        : colors.borderSubtle.fadedBy(isDark ? 0.72 : 0.50);
 
     return Container(
       width: double.infinity,
@@ -41,9 +48,7 @@ class AppSidebarAccountCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: cardFill,
         borderRadius: context.appRadius.lgBorder,
-        border: Border.all(
-          color: colors.borderSubtle.fadedBy(isDark ? 0.72 : 0.50),
-        ),
+        border: Border.all(color: cardBorder),
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,

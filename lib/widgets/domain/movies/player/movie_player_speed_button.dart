@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_hover_menu.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_menu_widgets.dart';
@@ -34,7 +35,6 @@ class MoviePlayerSpeedButton extends StatefulWidget {
 class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton>
     with MoviePlayerHoverMenuStateMixin<MoviePlayerSpeedButton> {
   bool _isSelectingRate = false;
-  double? _hoveredRate;
   late double _displayRate;
   late bool _displayHasExplicitSelection;
 
@@ -49,9 +49,6 @@ class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton>
 
   @override
   bool get canOpenHoverMenu => !_isSelectingRate;
-
-  @override
-  void onHoverMenuClosed() => _hoveredRate = null;
 
   @override
   void initState() {
@@ -98,14 +95,6 @@ class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton>
   Widget buildHoverMenu(BuildContext context) {
     return _MoviePlayerSpeedMenu(
       currentRate: _displayRate,
-      hoveredRate: _hoveredRate,
-      onHoveredRateChanged: (rate) {
-        if (_hoveredRate == rate) {
-          return;
-        }
-        _hoveredRate = rate;
-        rebuildHoverMenuOverlay();
-      },
       onRateSelected: _handleRateSelected,
     );
   }
@@ -133,14 +122,10 @@ class _MoviePlayerSpeedButtonState extends State<MoviePlayerSpeedButton>
 class _MoviePlayerSpeedMenu extends StatelessWidget {
   const _MoviePlayerSpeedMenu({
     required this.currentRate,
-    required this.hoveredRate,
-    required this.onHoveredRateChanged,
     required this.onRateSelected,
   });
 
   final double currentRate;
-  final double? hoveredRate;
-  final ValueChanged<double?> onHoveredRateChanged;
   final ValueChanged<double> onRateSelected;
 
   @override
@@ -150,6 +135,7 @@ class _MoviePlayerSpeedMenu extends StatelessWidget {
     return AppSurface(
       key: const Key('movie-player-speed-menu'),
       width: overlayTokens.menuWidthSm,
+      role: AppSurfaceRole.popover,
       padding: EdgeInsets.symmetric(
         vertical: overlayTokens.menuVerticalPadding,
       ),
@@ -160,11 +146,6 @@ class _MoviePlayerSpeedMenu extends StatelessWidget {
               (rate) => _MoviePlayerSpeedMenuItem(
                 rate: rate,
                 selected: _matchesRate(currentRate, rate),
-                hovered:
-                    hoveredRate != null && _matchesRate(hoveredRate!, rate),
-                onHoverChanged: (hovered) {
-                  onHoveredRateChanged(hovered ? rate : null);
-                },
                 onTap: () => onRateSelected(rate),
               ),
             )
@@ -180,49 +161,29 @@ class _MoviePlayerSpeedMenuItem extends StatelessWidget {
   const _MoviePlayerSpeedMenuItem({
     required this.rate,
     required this.selected,
-    required this.hovered,
-    required this.onHoverChanged,
     required this.onTap,
   });
 
   final double rate;
   final bool selected;
-  final bool hovered;
-  final ValueChanged<bool> onHoverChanged;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final overlayTokens = context.appOverlayTokens;
     final label = formatMoviePlayerPlaybackRateLabel(rate);
-    final backgroundColor = hovered
-        ? context.appTextPalette.onMedia.withValues(
-            alpha: overlayTokens.hoverAlpha,
-          )
-        : null;
     final rateKey = _rateKey(rate);
 
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => onHoverChanged(true),
-      onExit: (_) => onHoverChanged(false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: KeyedSubtree(
-          key: Key('movie-player-speed-menu-item-$rateKey'),
-          child: MoviePlayerMenuItemRow(
-            label: label,
-            selected: selected,
-            checkColor: resolveAppTextToneColor(context, AppTextTone.accent),
-            labelKey: Key('movie-player-speed-menu-item-label-$rateKey'),
-            checkKey: Key('movie-player-speed-menu-item-check-$rateKey'),
-            checkSlotKey: Key(
-              'movie-player-speed-menu-item-check-slot-$rateKey',
-            ),
-            background: backgroundColor,
-          ),
-        ),
+    return AppInteractiveSurface(
+      key: Key('movie-player-speed-menu-item-$rateKey'),
+      onTap: onTap,
+      focusRingRadius: context.appRadius.smBorder,
+      child: MoviePlayerMenuItemRow(
+        label: label,
+        selected: selected,
+        checkColor: resolveAppTextToneColor(context, AppTextTone.accent),
+        labelKey: Key('movie-player-speed-menu-item-label-$rateKey'),
+        checkKey: Key('movie-player-speed-menu-item-check-$rateKey'),
+        checkSlotKey: Key('movie-player-speed-menu-item-check-slot-$rateKey'),
       ),
     );
   }

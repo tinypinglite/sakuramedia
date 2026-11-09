@@ -60,22 +60,6 @@ class TastePanel extends StatelessWidget {
           child: Stack(
             children: <Widget>[
               Positioned(
-                top: -spacing.xxl,
-                right: -spacing.xl,
-                child: _TasteGlow(
-                  color: colors.primary,
-                  size: spacing.xxxl * 4,
-                ),
-              ),
-              Positioned(
-                bottom: -spacing.xxl,
-                left: -spacing.xl,
-                child: _TasteGlow(
-                  color: colors.secondary,
-                  size: spacing.xxxl * 3,
-                ),
-              ),
-              Positioned(
                 top: spacing.sm,
                 right: spacing.lg,
                 child: Icon(
@@ -96,7 +80,14 @@ class TastePanel extends StatelessWidget {
                       sampleMovieCount: sampleMovieCount,
                     ),
                     SizedBox(height: compact ? spacing.md : spacing.lg),
-                    child,
+                    DefaultTextStyle.merge(
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s14,
+                        tone: AppTextTone.primary,
+                      ),
+                      child: child,
+                    ),
                   ],
                 ),
               ),
@@ -216,32 +207,6 @@ class _TastePanelHeader extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _TasteGlow extends StatelessWidget {
-  const _TasteGlow({required this.color, required this.size});
-
-  final Color color;
-  final double size;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: size,
-      height: size,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: <Color>[
-              color.withValues(alpha: 0.24),
-              color.withValues(alpha: 0),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

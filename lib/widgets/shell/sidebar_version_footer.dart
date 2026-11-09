@@ -3,10 +3,10 @@ import 'package:sakuramedia/app/app_version_info_state.dart';
 import 'package:sakuramedia/app/providers/app_update_check_provider.dart'
     show AppUpdateCheckState;
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
-
-enum _VersionAction { frontendRelease, backendRelease, plugins }
+import 'package:sakuramedia/widgets/base/overlays/app_glass_anchored_menu.dart';
 
 /// 账户卡里的版本入口：常态一行，点开后显示版本和可用更新。
 ///
@@ -44,181 +44,183 @@ class SidebarVersionFooter extends StatelessWidget {
         ? l10n.shellVersionTooltipUpdate(version.tooltipLabelFor(l10n))
         : version.tooltipLabelFor(l10n);
 
-    return PopupMenuButton<_VersionAction>(
-      tooltip: tooltip,
-      color: context.appColors.surfaceCard,
-      surfaceTintColor: Colors.transparent,
-      elevation: 12,
-      constraints: const BoxConstraints.tightFor(width: 300),
-      shape: RoundedRectangleBorder(
-        borderRadius: context.appRadius.lgBorder,
-        side: BorderSide(color: context.appColors.borderSubtle),
+    return AppGlassAnchoredMenu(
+      width: 300,
+      minWidth: 300,
+      maxWidth: 300,
+      estimatedHeight: 360,
+      maxHeight: 420,
+      borderRadius: context.appRadius.lgBorder,
+      panelKey: const Key('sidebar-version-popover'),
+      onOpen: onMenuOpened,
+      onClose: onMenuClosed,
+      triggerBuilder: (context, isOpen, toggle) => Tooltip(
+        message: tooltip,
+        child: Semantics(
+          label: tooltip,
+          child: AppInteractiveSurface(
+            onTap: toggle,
+            focusRingRadius: context.appRadius.smBorder,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: context.appSpacing.sm,
+                vertical: context.appSpacing.xs * 1.5,
+              ),
+              child: Row(
+                children: <Widget>[
+                  _VersionInfoIcon(hasUpdates: hasUpdates),
+                  SizedBox(width: context.appSpacing.sm),
+                  Expanded(
+                    child: Text(
+                      '${version.frontendVersionLabel} · '
+                      '${version.backendVersionLabel}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s10,
+                        tone: AppTextTone.muted,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
-      onOpened: onMenuOpened,
-      onCanceled: onMenuClosed,
-      onSelected: (action) {
-        onMenuClosed?.call();
-        switch (action) {
-          case _VersionAction.frontendRelease:
-            onOpenFrontendRelease();
-          case _VersionAction.backendRelease:
-            onOpenBackendRelease();
-          case _VersionAction.plugins:
-            onOpenPluginUpdates();
-        }
-      },
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          key: const Key('sidebar-version-popover'),
-          enabled: false,
-          height: 44,
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  l10n.shellSystemVersion,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s14,
-                    weight: AppTextWeight.semibold,
+      contentBuilder: (context, close) => Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              context.appSpacing.md,
+              context.appSpacing.sm,
+              context.appSpacing.md,
+              context.appSpacing.xs,
+            ),
+            child: Row(
+              children: <Widget>[
+                Expanded(
+                  child: Text(
+                    l10n.shellSystemVersion,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s14,
+                      weight: AppTextWeight.semibold,
+                    ),
                   ),
                 ),
-              ),
-              if (hasUpdates)
-                AppBadge(
-                  label: l10n.shellUpdateBadge,
-                  tone: AppBadgeTone.primary,
-                  size: AppBadgeSize.compact,
-                ),
-            ],
-          ),
-        ),
-        _versionRow(
-          context,
-          l10n.shellClientLabel,
-          version.frontendVersionLabel,
-        ),
-        _versionRow(
-          context,
-          l10n.shellServerLabel,
-          version.backendVersionLabel,
-        ),
-        if (hasUpdates)
-          PopupMenuItem(
-            key: const Key('sidebar-update-notice'),
-            enabled: false,
-            height: 76,
-            child: _UpdateSummary(
-              frontendUpdateVersion: updates.frontendUpdateVersion,
-              backendUpdateVersion: updates.backendUpdateVersion,
-              pluginUpdates: pluginUpdates,
+                if (hasUpdates)
+                  AppBadge(
+                    label: l10n.shellUpdateBadge,
+                    tone: AppBadgeTone.primary,
+                    size: AppBadgeSize.compact,
+                  ),
+              ],
             ),
           ),
-        if (updates.hasFrontendUpdate)
-          _action(
+          _versionRow(
             context,
-            key: const Key('version-release-link-frontend'),
-            label: l10n.shellClientReleasePage,
-            value: _VersionAction.frontendRelease,
+            l10n.shellClientLabel,
+            version.frontendVersionLabel,
           ),
-        if (updates.hasBackendUpdate)
-          _action(
+          _versionRow(
             context,
-            key: const Key('version-release-link-backend'),
-            label: l10n.shellServerReleasePage,
-            value: _VersionAction.backendRelease,
+            l10n.shellServerLabel,
+            version.backendVersionLabel,
           ),
-        if (pluginUpdates > 0)
-          _action(
-            context,
-            key: const Key('sidebar-version-popover-go-plugins'),
-            label: l10n.shellViewPluginUpdates,
-            value: _VersionAction.plugins,
-            primary: true,
-          ),
-      ],
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: context.appSpacing.sm,
-          vertical: context.appSpacing.xs * 1.5,
-        ),
-        child: Row(
-          children: [
-            _VersionInfoIcon(hasUpdates: hasUpdates),
-            SizedBox(width: context.appSpacing.sm),
-            Expanded(
-              child: Text(
-                '${version.frontendVersionLabel} · '
-                '${version.backendVersionLabel}',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s10,
-                  tone: AppTextTone.muted,
-                ),
+          if (hasUpdates)
+            Padding(
+              key: const Key('sidebar-update-notice'),
+              padding: EdgeInsets.symmetric(
+                horizontal: context.appSpacing.md,
+                vertical: context.appSpacing.sm,
+              ),
+              child: _UpdateSummary(
+                frontendUpdateVersion: updates.frontendUpdateVersion,
+                backendUpdateVersion: updates.backendUpdateVersion,
+                pluginUpdates: pluginUpdates,
               ),
             ),
-          ],
-        ),
+          if (updates.hasFrontendUpdate)
+            _action(
+              context,
+              key: const Key('version-release-link-frontend'),
+              label: l10n.shellClientReleasePage,
+              onTap: () {
+                close();
+                onOpenFrontendRelease();
+              },
+            ),
+          if (updates.hasBackendUpdate)
+            _action(
+              context,
+              key: const Key('version-release-link-backend'),
+              label: l10n.shellServerReleasePage,
+              onTap: () {
+                close();
+                onOpenBackendRelease();
+              },
+            ),
+          if (pluginUpdates > 0)
+            _action(
+              context,
+              key: const Key('sidebar-version-popover-go-plugins'),
+              label: l10n.shellViewPluginUpdates,
+              onTap: () {
+                close();
+                onOpenPluginUpdates();
+              },
+              primary: true,
+            ),
+        ],
       ),
     );
   }
 }
 
-PopupMenuItem<_VersionAction> _versionRow(
-  BuildContext context,
-  String label,
-  String value,
-) {
-  return PopupMenuItem<_VersionAction>(
-    enabled: false,
-    height: 32,
-    child: Row(
-      children: [
-        Text(
-          label,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            tone: AppTextTone.muted,
-          ),
-        ),
-        const Spacer(),
-        Text(
-          value,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s12,
-            weight: AppTextWeight.medium,
-            tone: AppTextTone.tertiary,
-          ),
-        ),
-      ],
+Widget _versionRow(BuildContext context, String label, String value) {
+  return AppGlassMenuRow(
+    title: Text(label),
+    titleStyle: resolveAppTextStyle(
+      context,
+      size: AppTextSize.s12,
+      tone: AppTextTone.muted,
     ),
-  );
-}
-
-PopupMenuItem<_VersionAction> _action(
-  BuildContext context, {
-  required Key key,
-  required String label,
-  required _VersionAction value,
-  bool primary = false,
-}) {
-  return PopupMenuItem<_VersionAction>(
-    key: key,
-    value: value,
-    height: 36,
-    child: Text(
-      label,
+    trailing: Text(
+      value,
       style: resolveAppTextStyle(
         context,
         size: AppTextSize.s12,
-        weight: primary ? AppTextWeight.medium : AppTextWeight.regular,
-        tone: primary ? AppTextTone.accent : AppTextTone.primary,
+        weight: AppTextWeight.medium,
+        tone: AppTextTone.tertiary,
       ),
     ),
+    enabled: false,
+    minHeight: 32,
+  );
+}
+
+Widget _action(
+  BuildContext context, {
+  required Key key,
+  required String label,
+  required VoidCallback onTap,
+  bool primary = false,
+}) {
+  return AppGlassMenuRow(
+    key: key,
+    title: Text(label),
+    titleStyle: resolveAppTextStyle(
+      context,
+      size: AppTextSize.s12,
+      weight: primary ? AppTextWeight.medium : AppTextWeight.regular,
+      tone: primary ? AppTextTone.accent : AppTextTone.primary,
+    ),
+    minHeight: 36,
+    onTap: onTap,
   );
 }
 

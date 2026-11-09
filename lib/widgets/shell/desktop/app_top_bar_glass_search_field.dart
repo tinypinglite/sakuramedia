@@ -3,12 +3,12 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/forms/app_glass_search_field_chrome.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 
 /// 概览页透明顶栏使用的液态玻璃搜索框。
 ///
-/// 使用库的 [GlassTextField.search] 而不是 [GlassSearchBar]，因为当前顶栏
-/// 搜索框还承载「文字图搜 / 图片图搜」两个后缀动作，[GlassSearchBar] 没有
-/// 任意 suffix 槽位。后缀按钮保持透明，避免在玻璃内部再叠一层玻璃。
+/// 使用 `toolbarInput` role：比页面搜索更轻，但仍保留清晰的玻璃井和边缘光。
+/// 后缀「文字图搜 / 图片图搜」保持透明，避免在玻璃内部再叠一层玻璃。
 class AppTopBarGlassSearchField extends StatelessWidget {
   const AppTopBarGlassSearchField({
     super.key,
@@ -77,6 +77,7 @@ class AppTopBarGlassSearchField extends StatelessWidget {
       height: height,
       suffixIcon: suffix,
       onSubmitted: onSubmitted,
+      glassTone: AppGlassTone.toolbar,
     );
   }
 }

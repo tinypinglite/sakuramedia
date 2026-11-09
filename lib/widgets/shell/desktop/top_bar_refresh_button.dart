@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 
 /// 桌面顶栏刷新按钮。
@@ -51,7 +52,44 @@ class TopBarRefreshButton extends StatelessWidget {
             : null,
         iconSize: 18,
         size: 32,
+        tone: AppGlassTone.toolbar,
         onPressed: isRefreshing ? null : onPressed,
+      );
+    }
+    if (glass && highContrast) {
+      final l10n = appL10n(context);
+      final key = Key(
+        isRefreshing
+            ? 'topbar-refresh-button-loading'
+            : 'topbar-refresh-button',
+      );
+      return SizedBox(
+        width: 32,
+        height: 32,
+        child: AppIconButton(
+          key: key,
+          tooltip: l10n.commonRefresh,
+          semanticLabel: l10n.commonRefresh,
+          padding: EdgeInsets.zero,
+          size: AppIconButtonSize.inline,
+          iconColor: context.appTextPalette.primary,
+          backgroundColor: context.appColors.surfaceElevated,
+          borderColor: context.appColors.borderStrong,
+          borderRadius: context.appRadius.pillBorder,
+          icon: isRefreshing
+              ? SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator.adaptive(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color?>(
+                      context.appTextPalette.primary,
+                    ),
+                  ),
+                )
+              : Icon(Icons.refresh_rounded, size: 18),
+          onPressed: isRefreshing ? null : onPressed,
+        ),
       );
     }
     return _TopBarSolidRefreshButton(

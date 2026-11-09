@@ -6,7 +6,9 @@ import 'package:sakuramedia/app/providers/app_shell_providers.dart';
 import 'package:sakuramedia/app/providers/appearance_providers.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_anchored_menu.dart';
 
 /// 账户卡里的明暗模式三态切换和主题色菜单。
 class SidebarAppearanceMenu extends ConsumerStatefulWidget {
@@ -18,14 +20,14 @@ class SidebarAppearanceMenu extends ConsumerStatefulWidget {
 }
 
 class _SidebarAppearanceMenuState extends ConsumerState<SidebarAppearanceMenu> {
-  bool _menuOpen = false;
+  final AppGlassAnchoredMenuController _menuController =
+      AppGlassAnchoredMenuController();
 
   @override
   Widget build(BuildContext context) {
     ref.listen<bool>(appShellSidebarCollapsedProvider, (_, next) {
-      if (next && _menuOpen) {
-        _menuOpen = false;
-        Navigator.of(context, rootNavigator: true).maybePop();
+      if (next) {
+        _menuController.close();
       }
     });
 
@@ -58,132 +60,119 @@ class _SidebarAppearanceMenuState extends ConsumerState<SidebarAppearanceMenu> {
           onPressed: () => unawaited(controller.setThemeMode(_nextMode(mode))),
         ),
         SizedBox(width: context.appSpacing.sm),
-        PopupMenuButton<AppThemeColor>(
+        AppGlassAnchoredMenu(
           key: const Key('sidebar-theme-color-button'),
-          tooltip: l10n.shellThemeColor,
-          color: context.appColors.surfaceCard,
-          surfaceTintColor: Colors.transparent,
-          elevation: 12,
-          constraints: const BoxConstraints.tightFor(width: 220),
-          shape: RoundedRectangleBorder(
-            borderRadius: context.appRadius.lgBorder,
-            side: BorderSide(color: context.appColors.borderSubtle),
-          ),
-          onOpened: () => _menuOpen = true,
-          onCanceled: () => _menuOpen = false,
-          onSelected: (color) {
-            _menuOpen = false;
-            unawaited(controller.setThemeColor(color));
-          },
-          itemBuilder: (context) => [
-            PopupMenuItem<AppThemeColor>(
-              key: const Key('sidebar-theme-color-popover'),
-              enabled: false,
-              height: 40,
-              child: Text(
-                l10n.shellThemeColor,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  weight: AppTextWeight.medium,
-                  tone: AppTextTone.secondary,
-                ),
-              ),
-            ),
-            for (final themeColor in AppThemeColor.values)
-              PopupMenuItem<AppThemeColor>(
-                key: Key('sidebar-theme-color-${themeColor.id}'),
-                value: themeColor,
-                child: _ThemeColorRow(
-                  color: themeColor,
-                  selected: appearance.themeColor.id == themeColor.id,
-                ),
-              ),
-          ],
-          child: Semantics(
+          controller: _menuController,
+          width: 220,
+          minWidth: 220,
+          maxWidth: 220,
+          estimatedHeight: 40 + AppThemeColor.values.length * 40.0,
+          maxHeight: 360,
+          borderRadius: context.appRadius.lgBorder,
+          triggerBuilder: (context, isOpen, toggle) => Semantics(
             label: l10n.shellThemeColor,
-            child: Container(
-              width: buttonSize,
-              height: buttonSize,
-              decoration: BoxDecoration(
-                color: fill,
-                borderRadius: context.appRadius.smBorder,
-                border: Border.all(color: border),
-              ),
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Center(
-                    child: Icon(
-                      Icons.palette_outlined,
-                      size: context.appComponentTokens.iconSizeMd,
-                      color: context.appTextPalette.primary,
-                    ),
+            child: Tooltip(
+              message: l10n.shellThemeColor,
+              child: AppInteractiveSurface(
+                onTap: toggle,
+                focusRingRadius: context.appRadius.smBorder,
+                child: Container(
+                  width: buttonSize,
+                  height: buttonSize,
+                  decoration: BoxDecoration(
+                    color: fill,
+                    borderRadius: context.appRadius.smBorder,
+                    border: Border.all(color: border),
                   ),
-                  Positioned(
-                    right: 3,
-                    bottom: 3,
-                    child: Container(
-                      width: 6,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: themeColor,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: context.appColors.borderSubtle,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Center(
+                        child: Icon(
+                          Icons.palette_outlined,
+                          size: context.appComponentTokens.iconSizeMd,
+                          color: context.appTextPalette.primary,
                         ),
                       ),
-                    ),
+                      Positioned(
+                        right: 3,
+                        bottom: 3,
+                        child: Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: themeColor,
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: context.appColors.borderSubtle,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ThemeColorRow extends StatelessWidget {
-  const _ThemeColorRow({required this.color, required this.selected});
-
-  final AppThemeColor color;
-  final bool selected;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final swatch = color.forBrightness(Theme.of(context).brightness).primary;
-    return Row(
-      children: [
-        Container(
-          width: context.appComponentTokens.iconSizeLg,
-          height: context.appComponentTokens.iconSizeLg,
-          decoration: BoxDecoration(
-            color: swatch,
-            shape: BoxShape.circle,
-            border: Border.all(color: context.appColors.borderSubtle),
+          panelKey: const Key('sidebar-theme-color-popover'),
+          contentBuilder: (context, close) => Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: <Widget>[
+              Padding(
+                padding: EdgeInsets.fromLTRB(
+                  context.appSpacing.md,
+                  context.appSpacing.sm,
+                  context.appSpacing.md,
+                  context.appSpacing.xs,
+                ),
+                child: Text(
+                  l10n.shellThemeColor,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    weight: AppTextWeight.medium,
+                    tone: AppTextTone.secondary,
+                  ),
+                ),
+              ),
+              for (final themeColor in AppThemeColor.values)
+                AppGlassMenuRow(
+                  key: Key('sidebar-theme-color-${themeColor.id}'),
+                  leading: Container(
+                    width: context.appComponentTokens.iconSizeLg,
+                    height: context.appComponentTokens.iconSizeLg,
+                    decoration: BoxDecoration(
+                      color: themeColor
+                          .forBrightness(Theme.of(context).brightness)
+                          .primary,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: context.appColors.borderSubtle),
+                    ),
+                  ),
+                  title: Text(themeColor.labelFor(l10n)),
+                  titleStyle: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    weight: appearance.themeColor.id == themeColor.id
+                        ? AppTextWeight.medium
+                        : AppTextWeight.regular,
+                    tone: appearance.themeColor.id == themeColor.id
+                        ? AppTextTone.accent
+                        : AppTextTone.secondary,
+                  ),
+                  selected: appearance.themeColor.id == themeColor.id,
+                  showCheckmark: true,
+                  minHeight: 40,
+                  onTap: () {
+                    close();
+                    unawaited(controller.setThemeColor(themeColor));
+                  },
+                ),
+            ],
           ),
         ),
-        SizedBox(width: context.appSpacing.sm),
-        Expanded(
-          child: Text(
-            color.labelFor(l10n),
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              weight: selected ? AppTextWeight.medium : AppTextWeight.regular,
-              tone: selected ? AppTextTone.accent : AppTextTone.secondary,
-            ),
-          ),
-        ),
-        if (selected)
-          Icon(
-            Icons.check_rounded,
-            size: context.appComponentTokens.iconSizeSm,
-            color: Theme.of(context).colorScheme.primary,
-          ),
       ],
     );
   }

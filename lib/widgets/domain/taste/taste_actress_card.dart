@@ -62,9 +62,9 @@ class TasteActressCard extends StatelessWidget {
         vertical: spacing.sm,
       ),
       decoration: BoxDecoration(
-        color: appColors.surfaceCard.withValues(alpha: 0.72),
+        color: appColors.surfaceCard,
         borderRadius: context.appRadius.lgBorder,
-        border: Border.all(color: colors.primary.withValues(alpha: 0.14)),
+        border: Border.all(color: appColors.borderSubtle),
       ),
       child: Row(
         children: <Widget>[

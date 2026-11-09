@@ -4,7 +4,9 @@ import 'package:sakuramedia/features/activity/presentation/providers/notificatio
 import 'package:sakuramedia/routes/app_route.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/widgets/shell/app_sidebar_account_card.dart';
 
 /// 概览分支的侧滑抽屉：菜单分组 + 未读消息徽标 + 桌面同款账户卡。
@@ -70,35 +72,43 @@ class MobileOverviewDrawer extends ConsumerWidget {
 
     return Drawer(
       key: const Key('mobile-overview-drawer'),
-      backgroundColor: hostContext.appColors.surfacePage,
-      child: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.fromLTRB(
-            spacing.lg,
-            spacing.lg,
-            spacing.lg,
-            spacing.md,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: sectionWidgets,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Padding(
+        padding: EdgeInsets.all(spacing.sm),
+        child: AppSurface(
+          borderRadius: context.appRadius.lgBorder,
+          role: AppSurfaceRole.popover,
+          child: SafeArea(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(
+                spacing.lg,
+                spacing.lg,
+                spacing.lg,
+                spacing.md,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: sectionWidgets,
+                      ),
+                    ),
                   ),
-                ),
+                  SizedBox(height: spacing.md),
+                  AppSidebarAccountCard(
+                    key: const Key('mobile-overview-drawer-account-card'),
+                    logoutKey: const Key('mobile-overview-drawer-logout'),
+                    onLogout: () => _selectAction(context, onLogout),
+                    onOpenPluginUpdates: () =>
+                        _selectAction(context, onOpenPluginUpdates),
+                  ),
+                ],
               ),
-              SizedBox(height: spacing.md),
-              AppSidebarAccountCard(
-                key: const Key('mobile-overview-drawer-account-card'),
-                logoutKey: const Key('mobile-overview-drawer-logout'),
-                onLogout: () => _selectAction(context, onLogout),
-                onOpenPluginUpdates: () =>
-                    _selectAction(context, onOpenPluginUpdates),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -240,47 +250,43 @@ class _MobileOverviewDrawerItem extends StatelessWidget {
     final colors = context.appColors;
     final componentTokens = context.appComponentTokens;
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        mouseCursor: SystemMouseCursors.click,
-        onTap: onTap,
-        borderRadius: context.appRadius.lgBorder,
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: spacing.md,
-            vertical: spacing.sm,
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: componentTokens.iconSizeXl + spacing.sm,
-                height: componentTokens.iconSizeXl + spacing.sm,
-                decoration: BoxDecoration(
-                  color: colors.surfaceMuted,
-                  borderRadius: context.appRadius.smBorder,
-                ),
-                child: Icon(
-                  icon,
-                  size: componentTokens.iconSizeMd,
-                  color: context.appTextPalette.primary,
+    return AppInteractiveSurface(
+      onTap: onTap,
+      focusRingRadius: context.appRadius.lgBorder,
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: spacing.md,
+          vertical: spacing.sm,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: componentTokens.iconSizeXl + spacing.sm,
+              height: componentTokens.iconSizeXl + spacing.sm,
+              decoration: BoxDecoration(
+                color: colors.surfaceMuted,
+                borderRadius: context.appRadius.smBorder,
+              ),
+              child: Icon(
+                icon,
+                size: componentTokens.iconSizeMd,
+                color: context.appTextPalette.primary,
+              ),
+            ),
+            SizedBox(width: spacing.md),
+            Expanded(
+              child: Text(
+                label,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s14,
+                  weight: AppTextWeight.medium,
+                  tone: AppTextTone.primary,
                 ),
               ),
-              SizedBox(width: spacing.md),
-              Expanded(
-                child: Text(
-                  label,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s14,
-                    weight: AppTextWeight.medium,
-                    tone: AppTextTone.primary,
-                  ),
-                ),
-              ),
-              if (trailing != null) ...[SizedBox(width: spacing.sm), trailing!],
-            ],
-          ),
+            ),
+            if (trailing != null) ...[SizedBox(width: spacing.sm), trailing!],
+          ],
         ),
       ),
     );

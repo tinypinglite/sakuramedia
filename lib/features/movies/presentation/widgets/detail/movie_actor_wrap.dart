@@ -3,6 +3,7 @@ import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dar
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
 
 class MovieActorWrap extends StatelessWidget {
@@ -117,14 +118,11 @@ class MovieActorWrap extends StatelessWidget {
                 if (!canTap) {
                   return child;
                 }
-                return MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: () =>
-                        editing ? onRemoveTap!(actor) : onActorTap!(actor),
-                    child: child,
-                  ),
+                return AppInteractiveSurface(
+                  onTap: () =>
+                      editing ? onRemoveTap!(actor) : onActorTap!(actor),
+                  focusRingRadius: context.appRadius.mdBorder,
+                  child: child,
                 );
               },
             ),

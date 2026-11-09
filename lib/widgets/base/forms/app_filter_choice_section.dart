@@ -52,19 +52,9 @@ class AppFilterChoiceSection<T> extends StatelessWidget {
             items: resolvedItems,
             selected: resolvedSelected as T,
             onChanged: canInteract ? onChanged : (_) {},
-            tone: AppSegmentedTone.neutral,
             layout: AppSegmentedLayout.auto,
             enabled: canInteract,
           );
-    final trackedControl = Container(
-      padding: const EdgeInsets.all(2),
-      decoration: BoxDecoration(
-        color: context.appColors.mediaOverlaySoft,
-        borderRadius: context.appRadius.pillBorder,
-        border: Border.all(color: context.appColors.borderSubtle),
-      ),
-      child: control,
-    );
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -85,8 +75,8 @@ class AppFilterChoiceSection<T> extends StatelessWidget {
           curve: Curves.easeOutCubic,
           alignment: Alignment.topLeft,
           child: isLoading
-              ? AppSkeletonizer(enabled: true, child: trackedControl)
-              : trackedControl,
+              ? AppSkeletonizer(enabled: true, child: control)
+              : control,
         ),
         if (resolvedItems.isEmpty && (emptyLabel?.isNotEmpty ?? false)) ...[
           SizedBox(height: spacing.xs),
@@ -105,10 +95,11 @@ class AppFilterChoiceSection<T> extends StatelessWidget {
 
   Widget _buildEmptyControl(BuildContext context) {
     return Container(
-      height: 34,
+      height: context.appComponentTokens.buttonHeightXs + context.appSpacing.xs,
       decoration: BoxDecoration(
         color: context.appColors.surfaceMuted,
         borderRadius: context.appRadius.pillBorder,
+        border: Border.all(color: context.appColors.borderSubtle),
       ),
     );
   }

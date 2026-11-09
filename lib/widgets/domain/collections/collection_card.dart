@@ -337,6 +337,7 @@ class _GlassCollectionInfoBar extends StatelessWidget {
     return AppSurface(
       borderRadius: context.appRadius.mdBorder,
       padding: padding,
+      role: AppSurfaceRole.mediaOverlay,
       child: content,
     );
   }

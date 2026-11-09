@@ -2,6 +2,7 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_flat_style.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_flat_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_types.dart';
@@ -40,18 +41,14 @@ class AppGlassFlatIconButtonBackend extends StatelessWidget {
       role: prominent
           ? AppFlatSurfaceRole.buttonProminent
           : AppFlatSurfaceRole.buttonFilled,
-      child: Material(
-        color: Colors.transparent,
-        shape: const CircleBorder(),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          customBorder: const CircleBorder(),
-          onTap: enabled ? onTap : null,
-          child: Center(
-            child: IconTheme(
-              data: IconThemeData(size: iconSize, color: color),
-              child: icon,
-            ),
+      child: AppInteractiveSurface(
+        enabled: enabled,
+        onTap: enabled ? onTap : null,
+        focusRing: false,
+        child: Center(
+          child: IconTheme(
+            data: IconThemeData(size: iconSize, color: color),
+            child: icon,
           ),
         ),
       ),
@@ -77,6 +74,7 @@ class AppGlassFlatCustomButtonBackend extends StatelessWidget {
     this.height,
     this.borderRadius = 16,
     this.style = AppGlassButtonStyle.filled,
+    this.role,
   });
 
   final Widget child;
@@ -87,22 +85,19 @@ class AppGlassFlatCustomButtonBackend extends StatelessWidget {
   final double? height;
   final double borderRadius;
   final AppGlassButtonStyle style;
+  final AppFlatSurfaceRole? role;
 
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(borderRadius);
-    Widget body = Material(
-      color: Colors.transparent,
-      borderRadius: radius,
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        borderRadius: radius,
-        onTap: enabled ? onTap : null,
-        child: SizedBox(
-          width: width,
-          height: height,
-          child: Center(child: child),
-        ),
+    Widget body = AppInteractiveSurface(
+      enabled: enabled,
+      onTap: enabled ? onTap : null,
+      focusRing: false,
+      child: SizedBox(
+        width: width,
+        height: height,
+        child: Center(child: child),
       ),
     );
 
@@ -111,9 +106,11 @@ class AppGlassFlatCustomButtonBackend extends StatelessWidget {
         width: width,
         height: height,
         borderRadius: radius,
-        role: style == AppGlassButtonStyle.prominent
-            ? AppFlatSurfaceRole.buttonProminent
-            : AppFlatSurfaceRole.buttonFilled,
+        role:
+            role ??
+            (style == AppGlassButtonStyle.prominent
+                ? AppFlatSurfaceRole.buttonProminent
+                : AppFlatSurfaceRole.buttonFilled),
         child: body,
       );
     }
@@ -132,11 +129,13 @@ class AppGlassFlatButtonGroupBackend extends StatelessWidget {
     required this.children,
     required this.borderRadius,
     this.showDividers = false,
+    this.role = AppFlatSurfaceRole.buttonFilled,
   });
 
   final List<Widget> children;
   final double borderRadius;
   final bool showDividers;
+  final AppFlatSurfaceRole role;
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +157,7 @@ class AppGlassFlatButtonGroupBackend extends StatelessWidget {
     }
     return AppGlassFlatSurface(
       borderRadius: BorderRadius.circular(borderRadius),
-      role: AppFlatSurfaceRole.surface,
+      role: role,
       child: Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -173,16 +172,18 @@ class AppGlassFlatContainerBackend extends StatelessWidget {
     super.key,
     required this.child,
     required this.borderRadius,
+    this.role = AppFlatSurfaceRole.overlay,
   });
 
   final Widget child;
   final double borderRadius;
+  final AppFlatSurfaceRole role;
 
   @override
   Widget build(BuildContext context) {
     return AppGlassFlatSurface(
       borderRadius: BorderRadius.circular(borderRadius),
-      role: AppFlatSurfaceRole.surface,
+      role: role,
       child: child,
     );
   }
@@ -213,6 +214,7 @@ class AppGlassFlatTextFieldBackend extends StatelessWidget {
     this.borderRadius = 12,
     this.fillColor,
     this.enabled = true,
+    this.role = AppFlatSurfaceRole.input,
   });
 
   final TextEditingController controller;
@@ -237,6 +239,7 @@ class AppGlassFlatTextFieldBackend extends StatelessWidget {
   final double borderRadius;
   final Color? fillColor;
   final bool enabled;
+  final AppFlatSurfaceRole role;
 
   @override
   Widget build(BuildContext context) {
@@ -297,7 +300,7 @@ class AppGlassFlatTextFieldBackend extends StatelessWidget {
     return AppGlassFlatSurface(
       height: height,
       borderRadius: BorderRadius.circular(borderRadius),
-      role: AppFlatSurfaceRole.input,
+      role: role,
       child: colored,
     );
   }
@@ -319,7 +322,6 @@ class AppGlassFlatSegmentedControlBackend extends StatelessWidget {
     required this.labelPadding,
     required this.iconSize,
     this.backgroundColor,
-    this.neutral = false,
     this.scrollable = false,
   });
 
@@ -336,7 +338,6 @@ class AppGlassFlatSegmentedControlBackend extends StatelessWidget {
   final EdgeInsetsGeometry labelPadding;
   final double iconSize;
   final Color? backgroundColor;
-  final bool neutral;
   final bool scrollable;
 
   @override
@@ -366,29 +367,19 @@ class AppGlassFlatSegmentedControlBackend extends StatelessWidget {
           );
 
     final content = SizedBox(height: height, child: row);
-    if (neutral) {
-      return DecoratedBox(
-        decoration: BoxDecoration(
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: highContrast
+            ? context.appColors.surfaceElevated
+            : backgroundColor ?? context.appColors.surfaceMuted,
+        borderRadius: BorderRadius.circular(borderRadius),
+        border: Border.all(
           color: highContrast
-              ? context.appColors.surfaceElevated
-              : backgroundColor ?? context.appColors.surfaceMuted,
-          borderRadius: BorderRadius.circular(borderRadius),
-          border: Border.all(
-            color: highContrast
-                ? context.appColors.borderStrong
-                : context.appColors.borderSubtle,
-          ),
+              ? context.appColors.borderStrong
+              : context.appColors.borderSubtle,
         ),
-        child: Padding(padding: resolvedPadding, child: content),
-      );
-    }
-
-    return AppGlassFlatSurface(
-      height: height + resolvedPadding.vertical,
-      padding: resolvedPadding,
-      borderRadius: BorderRadius.circular(borderRadius),
-      role: AppFlatSurfaceRole.surface,
-      child: content,
+      ),
+      child: Padding(padding: resolvedPadding, child: content),
     );
   }
 
@@ -398,62 +389,54 @@ class AppGlassFlatSegmentedControlBackend extends StatelessWidget {
     final style = selected ? selectedTextStyle : unselectedTextStyle;
     final indicator = BorderRadius.circular(indicatorBorderRadius);
     final disabled = !segment.enabled;
-    final selectionFill = neutral
-        ? indicatorColor
-        : Theme.of(context).colorScheme.primary.withValues(alpha: 0.14);
+    final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
+    final selectionFill = highContrast
+        ? context.appColors.selectionSurface
+        : indicatorColor;
+    final selectionBorderColor = highContrast
+        ? context.appColors.borderStrong
+        : context.appColors.borderSubtle;
 
     Widget segmentChild = Semantics(
       button: true,
       selected: selected,
       enabled: segment.enabled,
       label: segment.label,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: indicator,
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          borderRadius: indicator,
-          onTap: segment.enabled ? () => onSegmentSelected(index) : null,
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            height: height,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: selected ? selectionFill : Colors.transparent,
-              borderRadius: indicator,
-              border: selected
-                  ? Border.all(
-                      color: neutral
-                          ? context.appColors.borderSubtle
-                          : Theme.of(
-                              context,
-                            ).colorScheme.primary.withValues(alpha: 0.28),
-                    )
-                  : null,
-            ),
-            child: Padding(
-              padding: labelPadding,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  if (segment.icon != null) ...<Widget>[
-                    IconTheme(
-                      data: IconThemeData(size: iconSize, color: style.color),
-                      child: segment.icon!,
-                    ),
-                    SizedBox(width: iconSize * 0.3),
-                  ],
-                  Flexible(
-                    child: Text(
-                      segment.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: style,
-                    ),
+      child: AppInteractiveSurface(
+        enabled: segment.enabled,
+        onTap: segment.enabled ? () => onSegmentSelected(index) : null,
+        focusRingRadius: indicator,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          height: height,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? selectionFill : Colors.transparent,
+            borderRadius: indicator,
+            border: selected ? Border.all(color: selectionBorderColor) : null,
+          ),
+          child: Padding(
+            padding: labelPadding,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                if (segment.icon != null) ...<Widget>[
+                  IconTheme(
+                    data: IconThemeData(size: iconSize, color: style.color),
+                    child: segment.icon!,
                   ),
+                  SizedBox(width: iconSize * 0.3),
                 ],
-              ),
+                Flexible(
+                  child: Text(
+                    segment.label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: style,
+                  ),
+                ),
+              ],
             ),
           ),
         ),
@@ -462,7 +445,10 @@ class AppGlassFlatSegmentedControlBackend extends StatelessWidget {
     if (disabled) {
       segmentChild = Opacity(opacity: 0.5, child: segmentChild);
     }
-    return segmentChild;
+    final segmentKey = segment.id is Key
+        ? segment.id as Key
+        : ValueKey<Object>(segment.id);
+    return KeyedSubtree(key: segmentKey, child: segmentChild);
   }
 }
 
@@ -476,6 +462,7 @@ class AppGlassFlatPopoverBackend extends StatefulWidget {
     this.autoAdjustToScreen = true,
     this.screenPadding = EdgeInsets.zero,
     this.onOpen,
+    this.role = AppFlatSurfaceRole.popover,
   });
 
   final Widget Function(BuildContext context, VoidCallback toggle)
@@ -487,6 +474,7 @@ class AppGlassFlatPopoverBackend extends StatefulWidget {
   final bool autoAdjustToScreen;
   final EdgeInsets screenPadding;
   final VoidCallback? onOpen;
+  final AppFlatSurfaceRole role;
 
   @override
   State<AppGlassFlatPopoverBackend> createState() =>
@@ -522,7 +510,7 @@ class _AppGlassFlatPopoverBackendState
             width: widget.popoverWidth,
             child: AppGlassFlatSurface(
               borderRadius: BorderRadius.circular(widget.popoverBorderRadius),
-              role: AppFlatSurfaceRole.overlay,
+              role: widget.role,
               child: widget.contentBuilder(context, _controller.close),
             ),
           ),
@@ -613,6 +601,7 @@ class AppGlassFlatTabBarBackend extends StatelessWidget {
     required this.unselectedLabelColor,
     required this.selectedLabelStyle,
     required this.unselectedLabelStyle,
+    this.role = AppFlatSurfaceRole.bar,
   });
 
   final List<AppGlassTabData> tabs;
@@ -630,6 +619,7 @@ class AppGlassFlatTabBarBackend extends StatelessWidget {
   final Color unselectedLabelColor;
   final TextStyle selectedLabelStyle;
   final TextStyle unselectedLabelStyle;
+  final AppFlatSurfaceRole role;
 
   @override
   Widget build(BuildContext context) {
@@ -643,7 +633,7 @@ class AppGlassFlatTabBarBackend extends StatelessWidget {
         vertical: verticalPadding,
       ),
       borderRadius: BorderRadius.circular(barBorderRadius),
-      role: AppFlatSurfaceRole.surface,
+      role: role,
       child: Row(
         children: <Widget>[
           for (var index = 0; index < tabs.length; index++)
@@ -664,38 +654,33 @@ class AppGlassFlatTabBarBackend extends StatelessWidget {
       button: true,
       selected: selected,
       label: tab.label,
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(barBorderRadius - 4),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(barBorderRadius - 4),
-          onTap: () => onTabSelected(index),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 180),
-            decoration: BoxDecoration(
-              color: selected
-                  ? selectedLabelColor.withValues(alpha: 0.10)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(barBorderRadius - 4),
-            ),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  IconTheme(
-                    data: IconThemeData(size: iconSize, color: iconColor),
-                    child: selected ? (tab.activeIcon ?? tab.icon) : tab.icon,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    tab.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: labelStyle,
-                  ),
-                ],
-              ),
+      child: AppInteractiveSurface(
+        onTap: () => onTabSelected(index),
+        focusRing: false,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          decoration: BoxDecoration(
+            color: selected
+                ? selectedLabelColor.withValues(alpha: 0.10)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(barBorderRadius - 4),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                IconTheme(
+                  data: IconThemeData(size: iconSize, color: iconColor),
+                  child: selected ? (tab.activeIcon ?? tab.icon) : tab.icon,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  tab.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: labelStyle,
+                ),
+              ],
             ),
           ),
         ),
@@ -748,18 +733,57 @@ class AppGlassFlatListTileBackend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: ListTile(
-        leading: leading,
-        title: title,
-        subtitle: subtitle,
-        trailing: trailing,
-        onTap: onTap,
-        titleTextStyle: titleStyle,
-        subtitleTextStyle: subtitleStyle,
-        contentPadding: EdgeInsets.symmetric(horizontal: context.appSpacing.lg),
-        minVerticalPadding: 10,
+    final spacing = context.appSpacing;
+    return AppInteractiveSurface(
+      enabled: onTap != null,
+      onTap: onTap,
+      focusRing: false,
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: spacing.lg,
+          vertical: spacing.sm + spacing.xs / 2,
+        ),
+        child: Row(
+          children: <Widget>[
+            if (leading != null) ...[leading!, SizedBox(width: spacing.md)],
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  DefaultTextStyle.merge(
+                    style:
+                        titleStyle ??
+                        resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s16,
+                          tone: AppTextTone.primary,
+                        ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    child: title,
+                  ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    DefaultTextStyle.merge(
+                      style:
+                          subtitleStyle ??
+                          resolveAppTextStyle(
+                            context,
+                            size: AppTextSize.s12,
+                            tone: AppTextTone.muted,
+                          ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      child: subtitle!,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (trailing != null) ...[SizedBox(width: spacing.md), trailing!],
+          ],
+        ),
       ),
     );
   }

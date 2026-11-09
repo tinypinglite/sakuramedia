@@ -564,6 +564,7 @@ class _TagBrowseSurfaceState extends ConsumerState<TagBrowseSurface> {
     return AppSurface(
       key: const Key('tags-browse-action-bar'),
       borderRadius: context.appRadius.lgBorder,
+      role: AppSurfaceRole.bar,
       padding: EdgeInsets.fromLTRB(
         spacing.lg,
         spacing.sm,

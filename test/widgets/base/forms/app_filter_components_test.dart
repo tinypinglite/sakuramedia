@@ -9,6 +9,37 @@ import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
 import '../../../support/pump_with_providers.dart';
 
 void main() {
+  group('AppSegmentedControl', () {
+    testWidgets('重复点击当前项不重复回调', (tester) async {
+      final changes = <int>[];
+
+      await _pump(
+        tester,
+        child: AppSegmentedControl<int>(
+          items: const [
+            AppSegmentedItem(value: 0, label: '全部'),
+            AppSegmentedItem(value: 1, label: '可播放'),
+          ],
+          selected: 0,
+          layout: AppSegmentedLayout.fixed,
+          onChanged: changes.add,
+        ),
+      );
+
+      await tester.tap(find.text('全部'));
+      await tester.pumpAndSettle();
+      expect(changes, isEmpty);
+
+      await tester.tap(find.text('可播放'));
+      await tester.pumpAndSettle();
+      expect(changes, <int>[1]);
+
+      await tester.tap(find.text('可播放'));
+      await tester.pumpAndSettle();
+      expect(changes, <int>[1]);
+    });
+  });
+
   group('AppFilterChoiceSection', () {
     testWidgets('单选分段透传选中值，禁用后不再回调', (tester) async {
       final changes = <int>[];

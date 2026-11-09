@@ -2,10 +2,13 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_backend.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 
 /// 导航栏和浮层里的圆形液态玻璃图标按钮。
 ///
 /// 只用于导航栏、吸顶控制条和模态浮层等**功能层**；内容卡和正文不要套这层。
+/// `tone` 为标准时使用常驻 `control` 胶囊；`toolbar` 用于顶栏，静止只显示
+/// 图标，hover/focus/press 才浮出 `toolbarControl` 轻胶囊。
 /// 高对比度模式回退为带描边的实色圆钮，命中区保持 44×44。
 class AppGlassIconButton extends StatelessWidget {
   const AppGlassIconButton({
@@ -19,6 +22,7 @@ class AppGlassIconButton extends StatelessWidget {
     this.size = 44,
     this.iconSize = 20,
     this.prominent = false,
+    this.tone = AppGlassTone.standard,
   });
 
   final IconData icon;
@@ -32,6 +36,7 @@ class AppGlassIconButton extends StatelessWidget {
   final double size;
   final double iconSize;
   final bool prominent;
+  final AppGlassTone tone;
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +72,7 @@ class AppGlassIconButton extends StatelessWidget {
               iconSize: iconSize,
               iconColor: resolvedForeground,
               prominent: prominent,
+              tone: tone,
               glowColor: Theme.of(
                 context,
               ).colorScheme.primary.withValues(alpha: 0.2),

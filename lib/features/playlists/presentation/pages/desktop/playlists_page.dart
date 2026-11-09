@@ -21,6 +21,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_mobile_skeleton.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_scope.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_section_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/domain/playlists/playlist_banner_card.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
@@ -82,17 +83,19 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Align(
-                alignment: Alignment.centerRight,
-                child: AppIconButton(
-                  key: const Key('playlists-create-button'),
-                  icon: const Icon(Icons.add_rounded),
-                  tooltip: AppLocalizations.of(context).playlistCreateTooltip,
-                  semanticLabel: AppLocalizations.of(
-                    context,
-                  ).playlistCreateTooltip,
-                  onPressed: _openCreateDialog,
-                  iconColor: context.appTextPalette.primary,
+              AppGlassListHeader(
+                leading: AppGlassHeaderText(
+                  label: l10n.playlistCountBadge(overview.playlists.length),
+                ),
+                trailing: AppGlassHeaderGroup(
+                  children: [
+                    AppGlassHeaderButton(
+                      key: const Key('playlists-create-button'),
+                      icon: Icons.add_rounded,
+                      label: l10n.playlistCreateTooltip,
+                      onTap: _openCreateDialog,
+                    ),
+                  ],
                 ),
               ),
               SizedBox(height: context.appSpacing.sm),

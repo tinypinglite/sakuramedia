@@ -37,6 +37,13 @@ class Appearance extends _$Appearance {
     await _save(state.copyWith(surfaceStyle: surfaceStyle));
   }
 
+  Future<void> setWindowVibrancy(bool windowVibrancy) async {
+    if (state.windowVibrancy == windowVibrancy) {
+      return;
+    }
+    await _save(state.copyWith(windowVibrancy: windowVibrancy));
+  }
+
   Future<void> _save(AppearanceSettings settings) async {
     state = settings;
     await ref.read(appearanceStoreProvider).save(settings);

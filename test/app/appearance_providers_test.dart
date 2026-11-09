@@ -19,6 +19,7 @@ void main() {
     expect(appearance.themeMode, ThemeMode.system);
     expect(appearance.themeColor.id, AppThemeColor.crimsonId);
     expect(appearance.surfaceStyle, AppSurfaceStyle.liquid);
+    expect(appearance.windowVibrancy, isTrue);
   });
 
   test('effectiveBrightness 按模式解析平台亮度', () {
@@ -74,6 +75,15 @@ void main() {
       AppSurfaceStyle.flat,
     );
     expect(store.read().surfaceStyle, AppSurfaceStyle.flat);
+    expect(container.read(appearanceProvider).windowVibrancy, isTrue);
+
+    await container.read(appearanceProvider.notifier).setWindowVibrancy(false);
+    expect(container.read(appearanceProvider).windowVibrancy, isFalse);
+    expect(store.read().windowVibrancy, isFalse);
+    expect(
+      container.read(appearanceProvider).surfaceStyle,
+      AppSurfaceStyle.flat,
+    );
   });
 
   test('SharedPreferences 实现落盘并回读主题模式', () async {
@@ -96,14 +106,19 @@ void main() {
     expect(reloaded.read().themeMode, ThemeMode.dark);
     expect(reloaded.read().themeColor.id, AppThemeColor.silhouetteId);
     expect(reloaded.read().surfaceStyle, AppSurfaceStyle.liquid);
+    expect(reloaded.read().windowVibrancy, isTrue);
 
     await reloaded.save(
-      reloaded.read().copyWith(surfaceStyle: AppSurfaceStyle.flat),
+      reloaded.read().copyWith(
+        surfaceStyle: AppSurfaceStyle.flat,
+        windowVibrancy: false,
+      ),
     );
     final flatReloaded = SharedPreferencesAppearanceStore(
       await SharedPreferences.getInstance(),
     );
     expect(flatReloaded.read().surfaceStyle, AppSurfaceStyle.flat);
+    expect(flatReloaded.read().windowVibrancy, isFalse);
   });
 
   test('旧值 light/dark 兼容，未知主题模式回退跟随系统', () async {
@@ -137,12 +152,13 @@ void main() {
     expect(store.read().themeMode, ThemeMode.dark);
   });
 
-  test('缺失或未知表面风格回退液态玻璃', () async {
+  test('缺失或未知表面风格回退液态玻璃，窗口毛玻璃默认开启', () async {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     var store = SharedPreferencesAppearanceStore(
       await SharedPreferences.getInstance(),
     );
     expect(store.read().surfaceStyle, AppSurfaceStyle.liquid);
+    expect(store.read().windowVibrancy, isTrue);
 
     SharedPreferences.setMockInitialValues(<String, Object>{
       SharedPreferencesAppearanceStore.surfaceStyleKey: 'not-a-style',
@@ -151,5 +167,13 @@ void main() {
       await SharedPreferences.getInstance(),
     );
     expect(store.read().surfaceStyle, AppSurfaceStyle.liquid);
+
+    SharedPreferences.setMockInitialValues(<String, Object>{
+      SharedPreferencesAppearanceStore.windowVibrancyKey: false,
+    });
+    store = SharedPreferencesAppearanceStore(
+      await SharedPreferences.getInstance(),
+    );
+    expect(store.read().windowVibrancy, isFalse);
   });
 }

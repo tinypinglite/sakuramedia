@@ -3,6 +3,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 
 enum AppBackButtonVariant { solid, glass, mediaOverlay }
 
@@ -16,6 +17,8 @@ enum AppBackButtonSize { compact, toolbar, touch }
 /// - [AppBackButtonSize.touch]：44 / 20；
 /// - [AppBackButtonVariant.mediaOverlay]：44 / 18，并使用媒体前景色。
 ///
+/// 玻璃变体默认使用 `control` 常驻胶囊；顶栏传 `AppGlassTone.toolbar` 走
+/// 静止无底、hover/focus 才浮出胶囊的 `toolbarControl` 语气。
 /// 高对比度模式下玻璃变体回退为实色按钮。
 class AppBackButton extends StatelessWidget {
   const AppBackButton({
@@ -26,6 +29,7 @@ class AppBackButton extends StatelessWidget {
     this.overlay = false,
     this.tooltip,
     this.semanticLabel,
+    this.glassTone = AppGlassTone.standard,
   });
 
   static const IconData icon = Icons.arrow_back_ios_new_rounded;
@@ -38,6 +42,7 @@ class AppBackButton extends StatelessWidget {
   final bool overlay;
   final String? tooltip;
   final String? semanticLabel;
+  final AppGlassTone glassTone;
 
   @override
   Widget build(BuildContext context) {
@@ -46,12 +51,34 @@ class AppBackButton extends StatelessWidget {
     final resolvedSemanticLabel = semanticLabel ?? tooltip ?? l10n.shellBack;
     final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
 
-    if (variant == AppBackButtonVariant.glass && !highContrast) {
+    if (variant == AppBackButtonVariant.glass) {
       final (buttonSize, iconSize) = switch (size) {
         AppBackButtonSize.compact => (28.0, 20.0),
         AppBackButtonSize.toolbar => (32.0, 16.0),
         AppBackButtonSize.touch => (44.0, 20.0),
       };
+      if (highContrast) {
+        return AppIconButton(
+          tooltip: resolvedTooltip,
+          semanticLabel: resolvedSemanticLabel,
+          onPressed: onPressed,
+          padding: EdgeInsets.zero,
+          size: buttonSize >= 40
+              ? AppIconButtonSize.regular
+              : AppIconButtonSize.compact,
+          iconColor: overlay
+              ? context.appTextPalette.onMedia
+              : context.appTextPalette.primary,
+          backgroundColor: overlay
+              ? context.appColors.mediaOverlayStrong
+              : context.appColors.surfaceElevated,
+          borderColor: overlay
+              ? context.appColors.mediaOverlayBorder
+              : context.appColors.borderStrong,
+          borderRadius: context.appRadius.pillBorder,
+          icon: Icon(icon, size: iconSize),
+        );
+      }
       return AppGlassIconButton(
         tooltip: resolvedTooltip,
         semanticLabel: resolvedSemanticLabel,
@@ -59,6 +86,7 @@ class AppBackButton extends StatelessWidget {
         iconSize: iconSize,
         size: buttonSize,
         foregroundColor: overlay ? context.appTextPalette.onMedia : null,
+        tone: glassTone,
         onPressed: onPressed,
       );
     }

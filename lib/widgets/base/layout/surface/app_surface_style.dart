@@ -1,5 +1,11 @@
 import 'package:flutter/widgets.dart';
 
+/// 公开的玻璃表面语义；业务层只选角色，不接触底层玻璃参数。
+enum AppSurfaceRole { surface, popover, control, bar, overlay, mediaOverlay }
+
+/// 玻璃控件的语气：普通内容面，或顶栏等已有玻璃容器上的轻量控件。
+enum AppGlassTone { standard, toolbar }
+
 /// 应用级表面风格。
 enum AppSurfaceStyle {
   /// 保留折射、高光与厚度感的液态玻璃。

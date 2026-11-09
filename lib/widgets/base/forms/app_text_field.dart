@@ -3,12 +3,15 @@ import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_backend.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 
 /// 统一的液态玻璃文本输入基座。
 ///
 /// 用 [FormField] 保留 Material 表单的校验和 autovalidate 语义，输入面本身
 /// 交给 `liquid_glass_widgets` 的 [GlassTextField] 绘制。label / helper / error
 /// 留在玻璃面外侧，避免错误和长说明把玻璃输入撑成内容卡片。
+/// 正常输入走 `input` role；顶栏等已有玻璃容器上的输入传
+/// [AppGlassTone.toolbar] 走 `toolbarInput`。
 class AppTextField extends StatefulWidget {
   const AppTextField({
     super.key,
@@ -39,6 +42,7 @@ class AppTextField extends StatefulWidget {
     this.borderRadius,
     this.style,
     this.height,
+    this.glassTone = AppGlassTone.standard,
   });
 
   final Key? fieldKey;
@@ -68,7 +72,7 @@ class AppTextField extends StatefulWidget {
   /// 覆盖默认内容内边距；用于塞进固定高度顶栏等紧凑场景。
   final EdgeInsetsGeometry? contentPadding;
 
-  /// 覆盖玻璃 tint；高对比度/实色回退时作为输入面填充色。
+  /// 覆盖输入面填充色；为空时使用语义输入面的默认材质。
   final Color? fillColor;
 
   /// 覆盖默认圆角；映射到液态玻璃形状。
@@ -80,6 +84,9 @@ class AppTextField extends StatefulWidget {
 
   /// 固定输入面的高度；为空时沿用多行内容自适应高度。
   final double? height;
+
+  /// 顶栏等已有玻璃容器上的输入使用 [AppGlassTone.toolbar]。
+  final AppGlassTone glassTone;
 
   @override
   State<AppTextField> createState() => _AppTextFieldState();
@@ -178,7 +185,7 @@ class _AppTextFieldState extends State<AppTextField> {
       context,
       size: AppTextSize.s14,
       weight: AppTextWeight.regular,
-      tone: AppTextTone.muted,
+      tone: AppTextTone.secondary,
     ).copyWith(fontFamily: inheritedFontFamily);
     final padding =
         widget.contentPadding ??
@@ -230,6 +237,7 @@ class _AppTextFieldState extends State<AppTextField> {
           highContrast: highContrast,
           reduceMotion: reduceMotion,
           enabled: widget.enabled,
+          tone: widget.glassTone,
         );
         if (!widget.enabled) {
           glassField = Semantics(

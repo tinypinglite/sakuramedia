@@ -3,34 +3,41 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sakuramedia/theme/app_theme_color.dart';
 import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 
-/// 外观偏好：主题模式（跟随系统/浅色/深色） + 主题色 + 表面风格。
+/// 外观偏好：主题模式（跟随系统/浅色/深色） + 主题色 + 表面风格 + 窗口效果。
 @immutable
 class AppearanceSettings {
   const AppearanceSettings({
     required this.themeMode,
     required this.themeColor,
     this.surfaceStyle = AppSurfaceStyle.liquid,
+    this.windowVibrancy = true,
   });
 
   static const AppearanceSettings defaults = AppearanceSettings(
     themeMode: ThemeMode.system,
     themeColor: AppThemeColor.crimson,
     surfaceStyle: AppSurfaceStyle.liquid,
+    windowVibrancy: true,
   );
 
   final ThemeMode themeMode;
   final AppThemeColor themeColor;
   final AppSurfaceStyle surfaceStyle;
 
+  /// macOS 窗口是否使用系统毛玻璃；独立于界面表面风格。
+  final bool windowVibrancy;
+
   AppearanceSettings copyWith({
     ThemeMode? themeMode,
     AppThemeColor? themeColor,
     AppSurfaceStyle? surfaceStyle,
+    bool? windowVibrancy,
   }) {
     return AppearanceSettings(
       themeMode: themeMode ?? this.themeMode,
       themeColor: themeColor ?? this.themeColor,
       surfaceStyle: surfaceStyle ?? this.surfaceStyle,
+      windowVibrancy: windowVibrancy ?? this.windowVibrancy,
     );
   }
 }
@@ -59,6 +66,7 @@ class SharedPreferencesAppearanceStore implements AppearanceStore {
   static const String themeModeKey = 'appearance.brightness';
   static const String themeColorKey = 'appearance.theme_color';
   static const String surfaceStyleKey = 'appearance.surface_style';
+  static const String windowVibrancyKey = 'appearance.window_vibrancy';
 
   final SharedPreferences _preferences;
 
@@ -75,6 +83,7 @@ class SharedPreferencesAppearanceStore implements AppearanceStore {
       surfaceStyle: _surfaceStyleFromId(
         _preferences.getString(surfaceStyleKey),
       ),
+      windowVibrancy: _preferences.getBool(windowVibrancyKey) ?? true,
     );
   }
 
@@ -84,6 +93,7 @@ class SharedPreferencesAppearanceStore implements AppearanceStore {
       await _preferences.setString(themeModeKey, settings.themeMode.name);
       await _preferences.setString(themeColorKey, settings.themeColor.id);
       await _preferences.setString(surfaceStyleKey, settings.surfaceStyle.name);
+      await _preferences.setBool(windowVibrancyKey, settings.windowVibrancy);
     } catch (_) {
       // 持久化失败不阻塞切换。
     }

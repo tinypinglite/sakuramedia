@@ -2,7 +2,10 @@ import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_anchored_menu.dart';
 
 enum AppSelectFieldSize { regular, compact, mini }
 
@@ -31,23 +34,67 @@ class AppSelectField<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = appL10n(context);
-    return FormField<T>(
-      key: ValueKey<Object?>(value),
-      initialValue: value,
-      validator: validator,
-      builder: (field) {
-        return _AppSelectTrigger<T>(
-          label: label,
-          value: field.value,
-          items: items,
-          placeholder: placeholder ?? l10n.baseSelectPlaceholder,
-          errorText: field.errorText,
-          size: size,
-          textStyle: textStyle,
-          enabled: onChanged != null,
-          onSelected: (nextValue) {
-            field.didChange(nextValue);
-            onChanged?.call(nextValue);
+    final formTokens = context.appFormTokens;
+    final menuItemHeight = switch (size) {
+      AppSelectFieldSize.mini => formTokens.miniMenuItemHeight,
+      AppSelectFieldSize.regular ||
+      AppSelectFieldSize.compact => formTokens.menuItemHeight,
+    };
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final menuWidth = constraints.hasBoundedWidth
+            ? math.max(constraints.maxWidth, 160.0)
+            : 240.0;
+        return FormField<T>(
+          key: ValueKey<Object?>(value),
+          initialValue: value,
+          validator: validator,
+          builder: (field) {
+            final selectedValue = field.value;
+            return AppGlassAnchoredMenu(
+              width: menuWidth,
+              minWidth: 160,
+              maxWidth: menuWidth,
+              estimatedHeight: items.length * menuItemHeight,
+              maxHeight: formTokens.menuMaxHeight,
+              borderRadius: context.appRadius.smBorder,
+              triggerBuilder: (context, isOpen, toggle) => _AppSelectTrigger<T>(
+                label: label,
+                value: selectedValue,
+                items: items,
+                placeholder: placeholder ?? l10n.baseSelectPlaceholder,
+                errorText: field.errorText,
+                size: size,
+                textStyle: textStyle,
+                enabled: onChanged != null,
+                isOpen: isOpen,
+                onTap: toggle,
+              ),
+              contentBuilder: (context, close) => Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: <Widget>[
+                  for (final item in items)
+                    AppGlassMenuRow(
+                      key: item.key,
+                      title: item.child,
+                      selected: item.value == selectedValue,
+                      showCheckmark: true,
+                      enabled: item.enabled && onChanged != null,
+                      onTap: () {
+                        field.didChange(item.value);
+                        onChanged?.call(item.value);
+                        close();
+                      },
+                      minHeight: menuItemHeight,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: formTokens.fieldHorizontalPadding,
+                      ),
+                    ),
+                ],
+              ),
+            );
           },
         );
       },
@@ -55,14 +102,15 @@ class AppSelectField<T> extends StatelessWidget {
   }
 }
 
-class _AppSelectTrigger<T> extends StatefulWidget {
+class _AppSelectTrigger<T> extends StatelessWidget {
   const _AppSelectTrigger({
     required this.items,
     required this.placeholder,
-    required this.onSelected,
     required this.enabled,
     required this.size,
     required this.textStyle,
+    required this.isOpen,
+    required this.onTap,
     this.label,
     this.value,
     this.errorText,
@@ -70,152 +118,18 @@ class _AppSelectTrigger<T> extends StatefulWidget {
 
   final List<DropdownMenuItem<T>> items;
   final String placeholder;
-  final ValueChanged<T?> onSelected;
   final bool enabled;
   final AppSelectFieldSize size;
   final TextStyle? textStyle;
+  final bool isOpen;
+  final VoidCallback onTap;
   final String? label;
   final T? value;
   final String? errorText;
 
-  @override
-  State<_AppSelectTrigger<T>> createState() => _AppSelectTriggerState<T>();
-}
-
-class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
-  final LayerLink _layerLink = LayerLink();
-  final GlobalKey _triggerKey = GlobalKey();
-
-  OverlayEntry? _overlayEntry;
-  bool _isMenuOpen = false;
-  double _triggerWidth = 0;
-  double _triggerHeight = 0;
-  double _menuHeight = 0;
-  _AppSelectMenuPlacement _placement = _AppSelectMenuPlacement.down;
-
-  @override
-  void dispose() {
-    _removeOverlay(notify: false);
-    super.dispose();
-  }
-
-  void _toggleMenu() {
-    if (!widget.enabled) {
-      return;
-    }
-    if (_overlayEntry != null) {
-      _removeOverlay();
-      return;
-    }
-
-    _showOverlay();
-  }
-
-  void _showOverlay() {
-    final overlay = Overlay.of(context);
-    final triggerBox =
-        _triggerKey.currentContext?.findRenderObject() as RenderBox?;
-    if (triggerBox == null) {
-      return;
-    }
-
-    _triggerWidth = triggerBox.size.width;
-    _triggerHeight = triggerBox.size.height;
-
-    final triggerOffset = triggerBox.localToGlobal(Offset.zero);
-    final triggerBottom = triggerOffset.dy + _triggerHeight;
-    final spaceAbove = triggerOffset.dy;
-    // 用 MediaQuery 拿逻辑视口高度，避免物理尺寸与逻辑尺寸不一致时
-    // 压得下拉菜单只剩一行。
-    final viewportHeight = MediaQuery.sizeOf(context).height;
-    final formTokens = context.appFormTokens;
-    final spaceBelow = viewportHeight - triggerBottom;
-    final menuItemHeight = switch (widget.size) {
-      AppSelectFieldSize.mini => formTokens.miniMenuItemHeight,
-      AppSelectFieldSize.regular ||
-      AppSelectFieldSize.compact => formTokens.menuItemHeight,
-    };
-    final idealMenuHeight = math.min(
-      widget.items.length * menuItemHeight,
-      formTokens.menuMaxHeight,
-    );
-    final opensUpward =
-        triggerBottom + idealMenuHeight + formTokens.menuGap > viewportHeight &&
-        spaceAbove > menuItemHeight;
-    final availableSpace =
-        (opensUpward ? spaceAbove : spaceBelow) - formTokens.menuGap;
-    final constrainedHeight = math.max(
-      menuItemHeight,
-      math.min(idealMenuHeight, availableSpace),
-    );
-
-    _placement = opensUpward
-        ? _AppSelectMenuPlacement.up
-        : _AppSelectMenuPlacement.down;
-    _menuHeight = constrainedHeight.toDouble();
-
-    setState(() {
-      _isMenuOpen = true;
-    });
-
-    _overlayEntry = OverlayEntry(
-      builder: (context) {
-        return Stack(
-          children: [
-            Positioned.fill(
-              child: GestureDetector(
-                behavior: HitTestBehavior.translucent,
-                onTap: _removeOverlay,
-                child: const SizedBox.expand(),
-              ),
-            ),
-            CompositedTransformFollower(
-              link: _layerLink,
-              showWhenUnlinked: false,
-              offset: Offset(
-                0,
-                _placement == _AppSelectMenuPlacement.down
-                    ? _triggerHeight + formTokens.menuGap
-                    : -(_menuHeight + formTokens.menuGap),
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: _AppSelectMenu<T>(
-                  width: _triggerWidth,
-                  height: _menuHeight,
-                  items: widget.items,
-                  selectedValue: widget.value,
-                  textStyle: widget.textStyle,
-                  size: widget.size,
-                  onSelected: (value) {
-                    widget.onSelected(value);
-                    _removeOverlay();
-                  },
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-
-    overlay.insert(_overlayEntry!);
-  }
-
-  void _removeOverlay({bool notify = true}) {
-    _overlayEntry?.remove();
-    _overlayEntry = null;
-    if (!notify || !mounted) {
-      return;
-    }
-    setState(() {
-      _isMenuOpen = false;
-    });
-  }
-
   DropdownMenuItem<T>? _selectedItem() {
-    for (final item in widget.items) {
-      if (item.value == widget.value) {
+    for (final item in items) {
+      if (item.value == value) {
         return item;
       }
     }
@@ -224,18 +138,14 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.appColors;
     final theme = Theme.of(context);
-    final hasError = widget.errorText != null && widget.errorText!.isNotEmpty;
-    final borderColor = hasError
-        ? theme.colorScheme.error
-        : colors.borderSubtle;
+    final hasError = errorText != null && errorText!.isNotEmpty;
     final selectedItem = _selectedItem();
     final displayChild = selectedItem == null
-        ? Text(widget.placeholder, overflow: TextOverflow.ellipsis)
+        ? Text(placeholder, overflow: TextOverflow.ellipsis)
         : _buildTriggerDisplayChild(selectedItem);
     final baseTextStyle =
-        widget.textStyle ??
+        textStyle ??
         resolveAppTextStyle(
           context,
           size: AppTextSize.s14,
@@ -243,27 +153,28 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
           tone: AppTextTone.primary,
         );
     final formTokens = context.appFormTokens;
-    final triggerHeight = switch (widget.size) {
+    final triggerHeight = switch (size) {
       AppSelectFieldSize.regular => null,
       AppSelectFieldSize.compact => formTokens.compactFieldHeight,
       AppSelectFieldSize.mini => formTokens.miniFieldHeight,
     };
-    final horizontalPadding = switch (widget.size) {
+    final horizontalPadding = switch (size) {
       AppSelectFieldSize.mini => formTokens.miniFieldHorizontalPadding,
       AppSelectFieldSize.regular ||
       AppSelectFieldSize.compact => formTokens.fieldHorizontalPadding,
     };
-    final verticalPadding = switch (widget.size) {
+    final verticalPadding = switch (size) {
       AppSelectFieldSize.regular => formTokens.fieldVerticalPadding,
       AppSelectFieldSize.compact || AppSelectFieldSize.mini => 0.0,
     };
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (widget.label != null && widget.label!.isNotEmpty) ...[
+      children: <Widget>[
+        if (label != null && label!.isNotEmpty) ...[
           Text(
-            widget.label!,
+            label!,
             softWrap: true,
             style: resolveAppTextStyle(
               context,
@@ -273,30 +184,23 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
           ),
           SizedBox(height: formTokens.labelGap),
         ],
-        MouseRegion(
-          cursor: widget.enabled
-              ? SystemMouseCursors.click
-              : SystemMouseCursors.basic,
-          child: CompositedTransformTarget(
-            link: _layerLink,
-            child: GestureDetector(
-              onTap: _toggleMenu,
-              child: AnimatedContainer(
-                key: _triggerKey,
-                duration: const Duration(milliseconds: 120),
+        AppInteractiveSurface(
+          enabled: enabled,
+          onTap: enabled ? onTap : null,
+          focusRingRadius: context.appRadius.smBorder,
+          child: Builder(
+            builder: (context) {
+              Widget surface = AppSurface(
                 width: double.infinity,
                 height: triggerHeight,
+                borderRadius: context.appRadius.smBorder,
+                role: AppSurfaceRole.control,
                 padding: EdgeInsets.symmetric(
                   horizontal: horizontalPadding,
                   vertical: verticalPadding,
                 ),
-                decoration: BoxDecoration(
-                  color: colors.surfaceMuted,
-                  borderRadius: context.appRadius.smBorder,
-                  border: Border.all(color: borderColor),
-                ),
                 child: Row(
-                  children: [
+                  children: <Widget>[
                     Expanded(
                       child: _AppSelectText(
                         style: _resolveSelectTextStyle(
@@ -312,7 +216,7 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
                     ),
                     SizedBox(width: context.appSpacing.sm),
                     Icon(
-                      _isMenuOpen
+                      isOpen
                           ? Icons.keyboard_arrow_up_rounded
                           : Icons.keyboard_arrow_down_rounded,
                       size: context.appComponentTokens.iconSizeSm,
@@ -320,14 +224,25 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
                     ),
                   ],
                 ),
-              ),
-            ),
+              );
+              if (hasError) {
+                surface = DecoratedBox(
+                  position: DecorationPosition.foreground,
+                  decoration: BoxDecoration(
+                    borderRadius: context.appRadius.smBorder,
+                    border: Border.all(color: theme.colorScheme.error),
+                  ),
+                  child: surface,
+                );
+              }
+              return surface;
+            },
           ),
         ),
         if (hasError) ...[
           SizedBox(height: context.appSpacing.xs),
           Text(
-            widget.errorText!,
+            errorText!,
             style: resolveAppTextStyle(
               context,
               size: AppTextSize.s12,
@@ -339,8 +254,6 @@ class _AppSelectTriggerState<T> extends State<_AppSelectTrigger<T>> {
     );
   }
 }
-
-enum _AppSelectMenuPlacement { up, down }
 
 Widget _buildTriggerDisplayChild<T>(DropdownMenuItem<T> item) {
   final label = _textLabelOf(item.child);
@@ -358,146 +271,6 @@ String? _textLabelOf(Widget child) {
     return child.data;
   }
   return child.textSpan?.toPlainText();
-}
-
-class _AppSelectMenu<T> extends StatelessWidget {
-  const _AppSelectMenu({
-    required this.width,
-    required this.height,
-    required this.items,
-    required this.onSelected,
-    required this.textStyle,
-    required this.size,
-    this.selectedValue,
-  });
-
-  final double width;
-  final double height;
-  final List<DropdownMenuItem<T>> items;
-  final T? selectedValue;
-  final ValueChanged<T?> onSelected;
-  final TextStyle? textStyle;
-  final AppSelectFieldSize size;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final overlayTokens = context.appOverlayTokens;
-    final formTokens = context.appFormTokens;
-    final menuItemHeight = switch (size) {
-      AppSelectFieldSize.mini => formTokens.miniMenuItemHeight,
-      AppSelectFieldSize.regular ||
-      AppSelectFieldSize.compact => formTokens.menuItemHeight,
-    };
-
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(
-        color: colors.surfaceCard,
-        borderRadius: context.appRadius.smBorder,
-        border: Border.all(color: colors.borderSubtle),
-        boxShadow: [
-          BoxShadow(
-            color: context.appTextPalette.primary.withValues(
-              alpha: overlayTokens.hoverAlpha,
-            ),
-            blurRadius: overlayTokens.surfaceShadowBlur,
-            offset: Offset(0, overlayTokens.surfaceShadowOffsetY),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: context.appRadius.smBorder,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: items
-                .map(
-                  (item) => _AppSelectMenuItem<T>(
-                    selected: item.value == selectedValue,
-                    textStyle: textStyle,
-                    itemHeight: menuItemHeight,
-                    child: item.child,
-                    onTap: () {
-                      onSelected(item.value);
-                    },
-                  ),
-                )
-                .toList(growable: false),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AppSelectMenuItem<T> extends StatefulWidget {
-  const _AppSelectMenuItem({
-    required this.child,
-    required this.onTap,
-    required this.selected,
-    required this.textStyle,
-    required this.itemHeight,
-  });
-
-  final Widget child;
-  final VoidCallback onTap;
-  final bool selected;
-  final TextStyle? textStyle;
-  final double itemHeight;
-
-  @override
-  State<_AppSelectMenuItem<T>> createState() => _AppSelectMenuItemState<T>();
-}
-
-class _AppSelectMenuItemState<T> extends State<_AppSelectMenuItem<T>> {
-  bool _isHovered = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    final baseTextStyle =
-        widget.textStyle ??
-        resolveAppTextStyle(
-          context,
-          size: AppTextSize.s14,
-          weight: AppTextWeight.regular,
-          tone: AppTextTone.primary,
-        );
-    final backgroundColor = widget.selected
-        ? colors.surfaceMuted
-        : _isHovered
-        ? colors.sidebarHoverBackground
-        : Colors.transparent;
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        child: Container(
-          height: widget.itemHeight,
-          padding: EdgeInsets.symmetric(
-            horizontal: context.appFormTokens.fieldHorizontalPadding,
-          ),
-          alignment: Alignment.centerLeft,
-          decoration: BoxDecoration(color: backgroundColor),
-          child: _AppSelectText(
-            style: _resolveSelectTextStyle(
-              context,
-              baseStyle: baseTextStyle,
-              fallbackSize: AppTextSize.s14,
-              tone: widget.selected ? AppTextTone.accent : AppTextTone.primary,
-            ),
-            child: widget.child,
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 class _AppSelectText extends StatelessWidget {

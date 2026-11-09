@@ -3,6 +3,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_hover_menu.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_menu_widgets.dart';
@@ -29,7 +30,6 @@ class MoviePlayerSubtitleButton extends StatefulWidget {
 class _MoviePlayerSubtitleButtonState extends State<MoviePlayerSubtitleButton>
     with MoviePlayerHoverMenuStateMixin<MoviePlayerSubtitleButton> {
   bool _isSelectingSubtitle = false;
-  int? _hoveredSubtitleId;
   late MoviePlayerSubtitleState _subtitleState;
   late bool _isApplying;
 
@@ -49,9 +49,6 @@ class _MoviePlayerSubtitleButtonState extends State<MoviePlayerSubtitleButton>
 
   @override
   Key? get hoverMenuButtonTapKey => const Key('movie-player-subtitle-button');
-
-  @override
-  void onHoverMenuClosed() => _hoveredSubtitleId = null;
 
   @override
   Rect resolveHoverMenuHitRect(Rect menuRect, Rect buttonRect) {
@@ -147,14 +144,6 @@ class _MoviePlayerSubtitleButtonState extends State<MoviePlayerSubtitleButton>
     return _MoviePlayerSubtitleMenu(
       options: _subtitleState.options,
       selectedSubtitleId: _subtitleState.selectedSubtitleId,
-      hoveredSubtitleId: _hoveredSubtitleId,
-      onHoveredSubtitleChanged: (subtitleId) {
-        if (_hoveredSubtitleId == subtitleId) {
-          return;
-        }
-        _hoveredSubtitleId = subtitleId;
-        rebuildHoverMenuOverlay();
-      },
       onSubtitleSelected: _handleSubtitleSelected,
     );
   }
@@ -179,15 +168,11 @@ class _MoviePlayerSubtitleMenu extends StatelessWidget {
   const _MoviePlayerSubtitleMenu({
     required this.options,
     required this.selectedSubtitleId,
-    required this.hoveredSubtitleId,
-    required this.onHoveredSubtitleChanged,
     required this.onSubtitleSelected,
   });
 
   final List<MoviePlayerSubtitleOption> options;
   final int? selectedSubtitleId;
-  final int? hoveredSubtitleId;
-  final ValueChanged<int?> onHoveredSubtitleChanged;
   final ValueChanged<int> onSubtitleSelected;
 
   @override
@@ -198,6 +183,7 @@ class _MoviePlayerSubtitleMenu extends StatelessWidget {
     return AppSurface(
       key: const Key('movie-player-subtitle-menu'),
       width: overlayTokens.menuWidthMd,
+      role: AppSurfaceRole.popover,
       padding: EdgeInsets.symmetric(
         vertical: overlayTokens.menuVerticalPadding,
       ),
@@ -210,12 +196,6 @@ class _MoviePlayerSubtitleMenu extends StatelessWidget {
                       subtitleId: option.subtitleId,
                       label: option.label,
                       selected: selectedSubtitleId == option.subtitleId,
-                      hovered: hoveredSubtitleId == option.subtitleId,
-                      onHoverChanged: (hovered) {
-                        onHoveredSubtitleChanged(
-                          hovered ? option.subtitleId : null,
-                        );
-                      },
                       onTap: () => onSubtitleSelected(option.subtitleId),
                     ),
                   )
@@ -257,50 +237,31 @@ class _MoviePlayerSubtitleMenuItem extends StatelessWidget {
     required this.subtitleId,
     required this.label,
     required this.selected,
-    required this.hovered,
-    required this.onHoverChanged,
     required this.onTap,
   });
 
   final int subtitleId;
   final String label;
   final bool selected;
-  final bool hovered;
-  final ValueChanged<bool> onHoverChanged;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final overlayTokens = context.appOverlayTokens;
-    final backgroundColor = hovered
-        ? context.appTextPalette.onMedia.withValues(
-            alpha: overlayTokens.hoverAlpha,
-          )
-        : null;
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => onHoverChanged(true),
-      onExit: (_) => onHoverChanged(false),
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: onTap,
-        child: KeyedSubtree(
-          key: Key('movie-player-subtitle-menu-item-$subtitleId'),
-          child: MoviePlayerMenuItemRow(
-            label: label,
-            selected: selected,
-            checkColor: resolveAppTextToneColor(context, AppTextTone.accent),
-            labelKey: Key('movie-player-subtitle-menu-item-label-$subtitleId'),
-            checkKey: Key('movie-player-subtitle-menu-item-check-$subtitleId'),
-            checkSlotKey: Key(
-              'movie-player-subtitle-menu-item-check-slot-$subtitleId',
-            ),
-            overflow: TextOverflow.ellipsis,
-            maxLines: 1,
-            background: backgroundColor,
-          ),
+    return AppInteractiveSurface(
+      key: Key('movie-player-subtitle-menu-item-$subtitleId'),
+      onTap: onTap,
+      focusRingRadius: context.appRadius.smBorder,
+      child: MoviePlayerMenuItemRow(
+        label: label,
+        selected: selected,
+        checkColor: resolveAppTextToneColor(context, AppTextTone.accent),
+        labelKey: Key('movie-player-subtitle-menu-item-label-$subtitleId'),
+        checkKey: Key('movie-player-subtitle-menu-item-check-$subtitleId'),
+        checkSlotKey: Key(
+          'movie-player-subtitle-menu-item-check-slot-$subtitleId',
         ),
+        overflow: TextOverflow.ellipsis,
+        maxLines: 1,
       ),
     );
   }

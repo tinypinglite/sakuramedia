@@ -6,7 +6,7 @@ import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 
 /// 页面内使用的液态玻璃搜索框。
 ///
-/// 与顶栏搜索框共用 iOS 27 glass settings，但保持页面级尺寸和清空交互；
+/// 与顶栏搜索框共用输入面玻璃配方，但保持页面级尺寸和清空交互；
 /// 业务页面只负责筛选策略，输入框本身不持有筛选状态。
 class AppGlassSearchField extends StatelessWidget {
   const AppGlassSearchField({
@@ -40,7 +40,7 @@ class AppGlassSearchField extends StatelessWidget {
           prefixIcon: Icon(
             Icons.search_rounded,
             size: context.appComponentTokens.iconSizeSm,
-            color: context.appTextPalette.muted,
+            color: context.appTextPalette.secondary,
           ),
           suffixIcon: value.text.isEmpty
               ? null

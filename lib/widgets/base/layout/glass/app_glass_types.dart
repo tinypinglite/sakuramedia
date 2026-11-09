@@ -2,6 +2,20 @@ import 'package:flutter/widgets.dart';
 
 const double appGlassCapsuleRadius = 9999.0;
 
+/// 液态玻璃的内部角色。业务层只使用公开的 [AppSurfaceRole]/[AppGlassTone]，
+/// 不直接依赖这里的细分语气。
+enum AppGlassRole {
+  surface,
+  popover,
+  control,
+  toolbarControl,
+  input,
+  toolbarInput,
+  bar,
+  overlay,
+  mediaOverlay,
+}
+
 enum AppGlassButtonStyle { filled, prominent, transparent }
 
 class AppGlassSegmentData {

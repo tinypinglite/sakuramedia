@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_mask.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
 
@@ -33,6 +34,7 @@ class PlaylistBannerCard extends StatelessWidget {
     final colors = context.appColors;
     final spacing = context.appSpacing;
     final radius = context.appRadius.lgBorder;
+    final flat = AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat;
     final Widget background;
     if (coverImageUrl != null && coverImageUrl!.trim().isNotEmpty) {
       final image = MaskedImage(
@@ -42,7 +44,7 @@ class PlaylistBannerCard extends StatelessWidget {
         filterQuality: FilterQuality.high,
         animateReveal: false,
       );
-      background = AppImageMask.enabled
+      background = AppImageMask.enabled || flat
           ? image
           : ImageFiltered(
               imageFilter: _playlistBannerBackgroundBlur,

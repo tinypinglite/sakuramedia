@@ -25,6 +25,7 @@ class MovieMediaPointGallery extends StatelessWidget {
     Offset globalPosition,
   )?
   onRequestPointMenu;
+
   /// 空态文案；为 null 时用当前语言的默认文案。
   final String? emptyMessage;
 
@@ -89,14 +90,12 @@ class MovieMediaPointGallery extends StatelessWidget {
 
           final gestureChild = onRequestPointMenu == null
               ? AppClickable(
+                  key: Key('movie-media-point-thumb-$index'),
                   enabled: onOpenPreview != null,
-                  child: GestureDetector(
-                    key: Key('movie-media-point-thumb-$index'),
-                    onTap: onOpenPreview == null
-                        ? null
-                        : () => onOpenPreview!(point),
-                    child: thumbnail,
-                  ),
+                  onTap: onOpenPreview == null
+                      ? null
+                      : () => onOpenPreview!(point),
+                  child: thumbnail,
                 )
               : AppImageActionTrigger(
                   key: Key('movie-media-point-thumb-$index'),

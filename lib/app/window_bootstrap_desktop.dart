@@ -37,8 +37,8 @@ Future<void> bootstrapDesktopWindow() async {
     size: restored.size,
     minimumSize: _minimumWindowSize,
     center: true,
-    // macOS 走系统毛玻璃（透明窗口）；其它桌面是不透明窗口：内容铺满整窗，
-    // 窗口底色只在重绘间隙露出来，取内容面色。
+    // macOS 默认走系统毛玻璃（透明窗口），可在外观设置关闭；其它桌面是
+    // 不透明窗口：内容铺满整窗，窗口底色只在重绘间隙露出来，取内容面色。
     backgroundColor: isMacOS
         ? Colors.transparent
         : initialColors.surfaceElevated,
@@ -56,7 +56,12 @@ Future<void> bootstrapDesktopWindow() async {
     // Windows 无边框由 runner 原生实现（见 win32_window.cpp），这里不调
     // setAsFrameless，也不补 Dart 边缘热区。
     if (isMacOS) {
-      await _applyMacAppearance(effective);
+      // window_manager 会先按透明窗口应用标题栏选项；这里在 show 前覆盖成
+      // 用户保存的窗口毛玻璃偏好，避免启动时先闪一帧透明窗口。
+      await _applyMacWindowAppearance(
+        brightness: effective,
+        windowVibrancy: appearance.windowVibrancy,
+      );
     }
     if (restored.maximized) {
       await windowManager.maximize();
@@ -68,15 +73,21 @@ Future<void> bootstrapDesktopWindow() async {
   windowManager.addListener(_DesktopWindowStatePersistor());
 }
 
-/// 切换明暗时同步桌面窗口外观（macOS 毛玻璃外观 / 其它平台窗口底色）。
-Future<void> applyDesktopWindowBrightness(Brightness brightness) async {
+/// 切换明暗或窗口毛玻璃时同步桌面窗口外观。
+Future<void> applyDesktopWindowAppearance({
+  required Brightness brightness,
+  required bool windowVibrancy,
+}) async {
   if (resolveAppPlatform() != AppPlatform.desktop) {
     return;
   }
   try {
     switch (defaultTargetPlatform) {
       case TargetPlatform.macOS:
-        await _applyMacAppearance(brightness);
+        await _applyMacWindowAppearance(
+          brightness: brightness,
+          windowVibrancy: windowVibrancy,
+        );
       case _:
         await windowManager.setBackgroundColor(
           AppColors.of(
@@ -90,12 +101,21 @@ Future<void> applyDesktopWindowBrightness(Brightness brightness) async {
   }
 }
 
-Future<void> _applyMacAppearance(Brightness brightness) async {
+Future<void> _applyMacWindowAppearance({
+  required Brightness brightness,
+  required bool windowVibrancy,
+}) async {
   try {
-    await _windowAppearanceChannel.invokeMethod<void>(
-      'setAppearance',
-      <String, Object?>{'dark': brightness == Brightness.dark},
-    );
+    final backgroundColor = AppColors.of(
+      themeColor: AppThemeColor.burgundy,
+      brightness: brightness,
+    ).surfacePage;
+    await _windowAppearanceChannel
+        .invokeMethod<void>('setAppearance', <String, Object?>{
+          'dark': brightness == Brightness.dark,
+          'windowVibrancy': windowVibrancy,
+          'backgroundColor': backgroundColor.toARGB32(),
+        });
   } catch (_) {
     // 旧版本原生侧没有该通道时保持系统外观。
   }

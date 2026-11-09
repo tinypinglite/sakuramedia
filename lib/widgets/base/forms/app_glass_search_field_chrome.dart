@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 
 /// 页面内和顶栏玻璃搜索框共用的 [AppTextField] 外壳。
 ///
@@ -17,6 +18,7 @@ Widget buildAppGlassSearchField({
   Widget? suffixIcon,
   ValueChanged<String>? onChanged,
   ValueChanged<String>? onSubmitted,
+  AppGlassTone glassTone = AppGlassTone.standard,
 }) {
   return AppTextField(
     fieldKey: key,
@@ -31,5 +33,6 @@ Widget buildAppGlassSearchField({
     height: height,
     contentPadding: EdgeInsets.symmetric(horizontal: context.appSpacing.md),
     borderRadius: BorderRadius.circular(height / 2),
+    glassTone: glassTone,
   );
 }

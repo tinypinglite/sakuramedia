@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_backend.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_runtime.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 
 export 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 
@@ -13,6 +14,7 @@ class AppSurface extends StatelessWidget {
     this.padding,
     this.width,
     this.height,
+    this.role = AppSurfaceRole.surface,
   });
 
   final Widget child;
@@ -20,6 +22,7 @@ class AppSurface extends StatelessWidget {
   final EdgeInsetsGeometry? padding;
   final double? width;
   final double? height;
+  final AppSurfaceRole role;
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +31,14 @@ class AppSurface extends StatelessWidget {
       padding: padding,
       width: width,
       height: height,
+      role: switch (role) {
+        AppSurfaceRole.surface => AppGlassRole.surface,
+        AppSurfaceRole.popover => AppGlassRole.popover,
+        AppSurfaceRole.control => AppGlassRole.control,
+        AppSurfaceRole.bar => AppGlassRole.bar,
+        AppSurfaceRole.overlay => AppGlassRole.overlay,
+        AppSurfaceRole.mediaOverlay => AppGlassRole.mediaOverlay,
+      },
       child: child,
     );
   }
@@ -45,7 +56,18 @@ class AppSurfaceGroup extends StatelessWidget {
 }
 
 abstract final class AppSurfaceRuntime {
-  static Future<void> initialize() => AppGlassRuntime.initialize();
+  static Future<void>? _initialization;
+
+  static Future<void> initialize() =>
+      ensureInitialized(style: AppSurfaceStyle.liquid);
+
+  /// 液体玻璃才需要 shader 预热；flat 启动直接跳过。
+  static Future<void> ensureInitialized({required AppSurfaceStyle style}) {
+    if (style == AppSurfaceStyle.flat) {
+      return Future<void>.value();
+    }
+    return _initialization ??= AppGlassRuntime.initialize();
+  }
 
   static Widget wrap({
     required Widget child,

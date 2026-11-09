@@ -4,7 +4,7 @@
 
 路径：`lib/widgets/base/navigation/app_back_button.dart`
 
-全项目统一的返回按钮。`variant` 区分实色、玻璃和播放器 `mediaOverlay`，`size` 区分 `compact`（28/20）、`toolbar`（实色 28/20、玻璃 32/16）和 `touch`（44/20）。播放器返回固定 44/18、使用 `onMedia` 前景色。tooltip 和语义标签默认取 `shellBack`，调用方只在语义确实不同（如“返回失败列表”）时覆盖。步骤内“文字 + 返回”继续用 `AppTextButton`，图标取 `AppBackButton.icon`。
+全项目统一的返回按钮。`variant` 区分实色、玻璃和播放器 `mediaOverlay`，`size` 区分 `compact`（28/20）、`toolbar`（实色 28/20、玻璃 32/16）和 `touch`（44/20）。玻璃返回钮默认 `AppGlassTone.standard`（`control` 常驻胶囊）；桌面顶栏传 `AppGlassTone.toolbar`，静止只显示图标，hover/focus/press 才浮出轻胶囊。播放器返回固定 44/18、使用 `onMedia` 前景色。tooltip 和语义标签默认取 `shellBack`，调用方只在语义确实不同（如“返回失败列表”）时覆盖。步骤内“文字 + 返回”继续用 `AppTextButton`，图标取 `AppBackButton.icon`。
 
 `AppBackGuardController` / `AppBackGuardScope`（`app_back_guard.dart`）负责离开前确认：桌面顶栏和移动子页返回都先 `await canLeave()`。页面在 `initState` 注册、`dispose` 注销；未保存修改的页面必须注册 guard，不能只拦截 Tab 切换。
 
@@ -18,7 +18,7 @@
 
 路径：`lib/widgets/base/forms/app_segmented_control.dart`
 
-单选分段控件，内部由玻璃层的分段后端实现。`layout: auto` 在 2–6 项时使用等宽分段，7 项以上横向滚动；默认 `scrollable` 保持自然宽度。`enabled: false` 会把所有分段标记为不可选并屏蔽回调。`AppSegmentedControl` 只负责泛型值、主题色和尺寸适配，不再外包玻璃表面。`tone: neutral` 用于玻璃弹层：轨道透明，选中项只浮起中性胶囊；默认 `standard` 保留页面内的玻璃轨道。`AppSegmentedItem.key` 作为分段身份传给玻璃后端，不再作为可查找的 Widget key。它是页面内的筛选/切换控件，不要拿它替代页面级 `AppTabBar`。
+单选分段控件，固定使用中性平面样式，不参与全局液态玻璃外观。轨道为 `surfaceMuted` + `borderSubtle` 细边，选中项使用 `surfaceCard` 胶囊，无模糊、反光或阴影。`layout: auto` 在 2–6 项时使用等宽分段，7 项以上横向滚动；默认 `scrollable` 保持自然宽度。`enabled: false` 会把所有分段标记为不可选并屏蔽回调。`AppSegmentedItem.key` 是分段节点的 Widget key；未提供时按 value/label 生成稳定身份。它是页面内的筛选/切换控件，不要拿它替代页面级 `AppTabBar`。
 
 ## `AppMobileListHeader`
 
@@ -40,6 +40,8 @@
 `AppGlassFilterGroup`（筛选入口 + 总数），右侧通常是排序入口和选择入口；
 筛选入口用 `AppGlassFilterPopover`，排序入口用 `AppSortMenuButton`，列表结果
 更新反馈仍由 `AppFilterUpdateBar` 承担。
+
+列表头按钮组和其中的文字/图标 action 统一走 `control` role；移动 TabBar 和底部多选操作条统一走 `bar` role。不要再给单个按钮另叠一套半透明底或自绘边框。
 
 控制条在可用宽度内左右分组；内容超过宽度时整条横向滚动，尾部操作不会被裁切。
 视频合集详情等以排序为主的桌面页把排序入口放在左侧、总数紧随其后，右侧只留选择；

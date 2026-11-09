@@ -5,6 +5,11 @@ enum AppFlatSurfaceRole {
   surface,
   overlay,
   input,
+  popover,
+  toolbarControl,
+  toolbarInput,
+  bar,
+  mediaOverlay,
   buttonFilled,
   buttonProminent,
 }
@@ -32,10 +37,18 @@ abstract final class AppGlassFlatStyle {
     final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
     final colors = context.appColors;
     if (highContrast) {
+      if (role == AppFlatSurfaceRole.mediaOverlay) {
+        return AppFlatGlassRecipe(
+          fill: colors.mediaOverlayStrong,
+          border: colors.highlight.withValues(alpha: 0.38),
+          highlight: colors.highlight.withValues(alpha: 0),
+          highContrast: true,
+        );
+      }
       return AppFlatGlassRecipe(
         fill: colors.surfaceElevated,
         border: colors.borderStrong,
-        highlight: Colors.transparent,
+        highlight: colors.highlight.withValues(alpha: 0),
         highContrast: true,
       );
     }
@@ -55,16 +68,46 @@ abstract final class AppGlassFlatStyle {
         highlight: highlight.withValues(alpha: 0.04),
         highContrast: false,
       ),
+      AppFlatSurfaceRole.popover => AppFlatGlassRecipe(
+        fill: colors.surfaceElevated.withValues(alpha: 0.96),
+        border: colors.borderSubtle,
+        highlight: highlight.withValues(alpha: 0.05),
+        highContrast: false,
+      ),
       AppFlatSurfaceRole.input => AppFlatGlassRecipe(
-        fill: colors.surfaceMuted.withValues(alpha: 0.92),
+        fill: colors.surfaceElevated.withValues(alpha: 0.94),
         border: colors.borderSubtle,
         highlight: highlight.withValues(alpha: 0.03),
+        highContrast: false,
+      ),
+      AppFlatSurfaceRole.toolbarInput => AppFlatGlassRecipe(
+        fill: colors.surfaceMuted.withValues(alpha: 0.88),
+        border: colors.borderSubtle,
+        highlight: highlight.withValues(alpha: 0.03),
+        highContrast: false,
+      ),
+      AppFlatSurfaceRole.bar => AppFlatGlassRecipe(
+        fill: colors.surfaceElevated.withValues(alpha: 0.94),
+        border: colors.borderSubtle,
+        highlight: highlight.withValues(alpha: 0.05),
+        highContrast: false,
+      ),
+      AppFlatSurfaceRole.mediaOverlay => AppFlatGlassRecipe(
+        fill: colors.mediaOverlayStrong.withValues(alpha: 0.82),
+        border: colors.highlight.withValues(alpha: 0.18),
+        highlight: colors.highlight.withValues(alpha: 0.06),
         highContrast: false,
       ),
       AppFlatSurfaceRole.buttonFilled => AppFlatGlassRecipe(
         fill: colors.surfaceElevated.withValues(alpha: 0.90),
         border: colors.borderSubtle,
         highlight: highlight.withValues(alpha: 0.03),
+        highContrast: false,
+      ),
+      AppFlatSurfaceRole.toolbarControl => AppFlatGlassRecipe(
+        fill: colors.surfaceElevated.withValues(alpha: 0.86),
+        border: colors.borderSubtle,
+        highlight: highlight.withValues(alpha: 0.04),
         highContrast: false,
       ),
       AppFlatSurfaceRole.buttonProminent => AppFlatGlassRecipe(

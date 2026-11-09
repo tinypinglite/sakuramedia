@@ -7,9 +7,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/app/app_platform.dart';
+import 'package:sakuramedia/app/appearance_store.dart';
+import 'package:sakuramedia/app/providers/appearance_providers.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/auth/presentation/login_page.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 
 import '../../../support/pump_with_providers.dart';
 import '../../../support/test_api_bundle.dart';
@@ -106,6 +109,39 @@ void main() {
     await tester.tap(find.byKey(const Key('login-password-toggle')));
     await tester.pump();
     expect(passwordText().obscureText, isFalse);
+  });
+
+  testWidgets('login surface style switch persists flat style', (tester) async {
+    final appearanceStore = InMemoryAppearanceStore();
+    await _pumpLogin(
+      tester,
+      platform: AppPlatform.desktop,
+      size: const Size(1200, 800),
+      theme: buildSakuraDesktopThemeData(),
+      appearanceStore: appearanceStore,
+    );
+
+    expect(
+      find.byKey(const Key('login-surface-style-switcher')),
+      findsOneWidget,
+    );
+    expect(find.text('液态玻璃'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('login-surface-style-switcher')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('扁平风格').last);
+    await tester.pumpAndSettle();
+
+    expect(appearanceStore.read().surfaceStyle, AppSurfaceStyle.flat);
+    expect(find.text('扁平风格'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('login-surface-style-switcher')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('液态玻璃').last);
+    await tester.pumpAndSettle();
+
+    expect(appearanceStore.read().surfaceStyle, AppSurfaceStyle.liquid);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('first-run notice can be dismissed', (tester) async {
@@ -312,6 +348,7 @@ Future<void> _pumpLogin(
   required AppPlatform platform,
   required Size size,
   required ThemeData theme,
+  InMemoryAppearanceStore? appearanceStore,
 }) async {
   final sessionStore = SessionStore.inMemory();
   final bundle = await createTestApiBundle(sessionStore);
@@ -324,6 +361,10 @@ Future<void> _pumpLogin(
     bundle: bundle,
     theme: theme,
     physicalSize: size,
+    overrides: [
+      if (appearanceStore != null)
+        appearanceStoreProvider.overrideWithValue(appearanceStore),
+    ],
   );
   await tester.pumpAndSettle();
 }

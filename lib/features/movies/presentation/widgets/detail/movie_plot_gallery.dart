@@ -51,14 +51,12 @@ class MoviePlotGallery extends StatelessWidget {
 
           final gestureChild = onRequestImageMenu == null
               ? AppClickable(
+                  key: Key('movie-plot-thumb-$index'),
                   enabled: onOpenPreview != null,
-                  child: GestureDetector(
-                    key: Key('movie-plot-thumb-$index'),
-                    onTap: onOpenPreview == null
-                        ? null
-                        : () => onOpenPreview!(index),
-                    child: thumbnail,
-                  ),
+                  onTap: onOpenPreview == null
+                      ? null
+                      : () => onOpenPreview!(index),
+                  child: thumbnail,
                 )
               : AppImageActionTrigger(
                   key: Key('movie-plot-thumb-$index'),

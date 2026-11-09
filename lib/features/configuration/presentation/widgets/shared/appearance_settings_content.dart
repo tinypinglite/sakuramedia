@@ -1,11 +1,13 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/app/providers/appearance_providers.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/language_settings_content.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_switch.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
 import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 
@@ -20,6 +22,7 @@ class AppearanceSettingsContent extends ConsumerWidget {
     final appearance = ref.watch(appearanceProvider);
     final controller = ref.read(appearanceProvider.notifier);
     final themeMode = appearance.themeMode;
+    final isMacOS = !kIsWeb && defaultTargetPlatform == TargetPlatform.macOS;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -145,6 +148,38 @@ class AppearanceSettingsContent extends ConsumerWidget {
             ),
           ],
         ),
+        if (isMacOS) ...[
+          SizedBox(height: spacing.xl),
+          Text(
+            l10n.appearanceMacosWindow,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.medium,
+            ),
+          ),
+          SizedBox(height: spacing.sm),
+          AppSettingsGroup(
+            footer: l10n.appearanceWindowVibrancyFooter,
+            children: [
+              AppSettingCell(
+                key: const Key('appearance-window-vibrancy'),
+                icon: Icons.blur_on_rounded,
+                title: l10n.appearanceWindowVibrancy,
+                subtitle: l10n.appearanceWindowVibrancyDescription,
+                trailing: AppSwitch(
+                  key: const Key('appearance-window-vibrancy-switch'),
+                  value: appearance.windowVibrancy,
+                  onChanged: (value) =>
+                      unawaited(controller.setWindowVibrancy(value)),
+                ),
+                onTap: () => unawaited(
+                  controller.setWindowVibrancy(!appearance.windowVibrancy),
+                ),
+              ),
+            ],
+          ),
+        ],
         SizedBox(height: spacing.xl),
         const LanguageSettingsContent(),
       ],

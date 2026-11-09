@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 
 /// 合集连播页的「选集」浮层：从播放器右侧滑出一个剧集列表面板，盖在画面上，
 /// 点击空白处或某一集后关闭。供切片合集 / 视频合集连播页复用（两端统一）。
@@ -82,8 +83,9 @@ class _EpisodeSelectorOverlayState extends State<EpisodeSelectorOverlay> {
     if (!_scrollController.hasClients || widget.currentIndex < 0) {
       return;
     }
-    final extent =
-        _effectiveItemExtent > 0 ? _effectiveItemExtent : widget.itemExtent;
+    final extent = _effectiveItemExtent > 0
+        ? _effectiveItemExtent
+        : widget.itemExtent;
     final target =
         widget.currentIndex * extent - (_viewportHeight - extent) / 2;
     final maxOffset = _scrollController.position.maxScrollExtent;
@@ -134,59 +136,72 @@ class _EpisodeSelectorOverlayState extends State<EpisodeSelectorOverlay> {
       onTap: () {},
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final panelWidth =
-              math
-                  .min(360.0, constraints.maxWidth * 0.5)
-                  .clamp(280.0, 360.0)
-                  .toDouble();
+          final panelWidth = math
+              .min(360.0, constraints.maxWidth * 0.5)
+              .clamp(280.0, 360.0)
+              .toDouble();
           return SizedBox(
             width: panelWidth,
             height: double.infinity,
             child: Material(
-              color: context.appColors.surfaceElevated,
-              child: SafeArea(
-                left: false,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.all(spacing.md),
-                      child: Text(
-                        widget.title,
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s14,
-                          weight: AppTextWeight.semibold,
-                          tone: AppTextTone.primary,
+              type: MaterialType.transparency,
+              child: AppSurface(
+                borderRadius: BorderRadius.horizontal(
+                  left: Radius.circular(context.appOverlayTokens.surfaceRadius),
+                ),
+                role: AppSurfaceRole.popover,
+                child: SafeArea(
+                  left: false,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.all(spacing.md),
+                        child: Text(
+                          widget.title,
+                          style: resolveAppTextStyle(
+                            context,
+                            size: AppTextSize.s14,
+                            weight: AppTextWeight.semibold,
+                            tone: AppTextTone.primary,
+                          ),
                         ),
                       ),
-                    ),
-                    Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, listConstraints) {
-                          _viewportHeight = listConstraints.maxHeight;
-                          // 行高随字体缩放放大：基准 itemExtent 是 textScale=1 下
-                          // 的留白行高，放大时按比例抬高，保证双行标题不溢出。
-                          final textScale = MediaQuery.textScalerOf(
-                            context,
-                          ).scale(1);
-                          _effectiveItemExtent =
-                              widget.itemExtent *
-                              (textScale < 1 ? 1 : textScale);
-                          return ListView.builder(
-                            key: const Key('episode-selector-list'),
-                            controller: _scrollController,
-                            padding: EdgeInsets.symmetric(
-                              horizontal: spacing.sm,
-                            ),
-                            itemCount: widget.itemCount,
-                            itemExtent: _effectiveItemExtent,
-                            itemBuilder: widget.itemBuilder,
-                          );
-                        },
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, listConstraints) {
+                            _viewportHeight = listConstraints.maxHeight;
+                            // 行高随字体缩放放大：基准 itemExtent 是 textScale=1 下
+                            // 的留白行高，放大时按比例抬高，保证双行标题不溢出。
+                            final textScale = MediaQuery.textScalerOf(
+                              context,
+                            ).scale(1);
+                            _effectiveItemExtent =
+                                widget.itemExtent *
+                                (textScale < 1 ? 1 : textScale);
+                            return ListView.builder(
+                              key: const Key('episode-selector-list'),
+                              controller: _scrollController,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: spacing.sm,
+                              ),
+                              itemCount: widget.itemCount,
+                              itemExtent: _effectiveItemExtent,
+                              itemBuilder: (context, index) =>
+                                  DefaultTextStyle.merge(
+                                    style: resolveAppTextStyle(
+                                      context,
+                                      size: AppTextSize.s14,
+                                      tone: AppTextTone.primary,
+                                    ),
+                                    child: widget.itemBuilder(context, index),
+                                  ),
+                            );
+                          },
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

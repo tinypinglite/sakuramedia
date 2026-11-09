@@ -68,7 +68,8 @@
 
 - `showToast` / `AppGlassToast`：路径 `lib/widgets/base/feedback/app_toast.dart` 和
   `app_glass_toast.dart`，全站轻量操作反馈的统一入口。保持页面中心展示，默认
-  3000ms，短消息为玻璃胶囊，长消息自动换行；高对比度时回退为同尺寸实色表面。
+  3000ms，短消息为 `overlay` role 的玻璃胶囊，长消息自动换行；不再使用 Toast
+  独立的玻璃高光/描边 token。高对比度时回退为同尺寸实色表面。
 - 语义明确时传 `tone: AppToastTone.success / warning / error / info`，分别显示
   对勾、警告、错误和信息图标；动态来源或无法判断语义的提示保持默认 `neutral`，
   不要根据文案字符串猜语义。

@@ -276,6 +276,7 @@ class _MoviePlayerMobileDrawerSurface extends StatelessWidget {
       width: overlayTokens.playerDrawerWidth,
       height: double.infinity,
       borderRadius: _moviePlayerDrawerBorderRadius(overlayTokens),
+      role: AppSurfaceRole.popover,
       // 抽屉高度取播放器可视高度，选项多/播放器矮时列表必须可滚动，
       // 否则 Column 溢出、末几行会画到面板外。
       child: SingleChildScrollView(child: child),
@@ -315,10 +316,10 @@ class _MoviePlayerMobileSpeedDrawer extends StatelessWidget {
               .map((rate) {
                 final selected = (currentRate - rate).abs() < 0.001;
                 final rateKey = rate.toString().replaceAll('.', '_');
-                return GestureDetector(
+                return AppInteractiveSurface(
                   key: Key('movie-player-mobile-speed-drawer-item-$rateKey'),
-                  behavior: HitTestBehavior.opaque,
                   onTap: () => unawaited(onRateSelected(rate)),
+                  focusRing: false,
                   child: MoviePlayerMenuItemRow(
                     label: formatMoviePlayerPlaybackRateLabel(rate),
                     selected: selected,
@@ -356,6 +357,7 @@ class _MoviePlayerInfoSideDrawer extends StatelessWidget {
       width: overlayTokens.playerInfoDrawerWidth,
       height: double.infinity,
       borderRadius: _moviePlayerDrawerBorderRadius(overlayTokens),
+      role: AppSurfaceRole.popover,
       padding: EdgeInsets.all(context.appSpacing.md),
       child: MoviePlayerPlaybackInfoPanel(
         infoListenable: infoListenable,
@@ -419,11 +421,11 @@ class _MoviePlayerMobileSubtitleDrawer extends StatelessWidget {
                           final selected =
                               subtitleState.selectedSubtitleId ==
                               option.subtitleId;
-                          return GestureDetector(
+                          return AppInteractiveSurface(
                             key: Key(
                               'movie-player-mobile-subtitle-drawer-item-${option.subtitleId}',
                             ),
-                            behavior: HitTestBehavior.opaque,
+                            focusRing: false,
                             onTap: isApplyingSubtitle
                                 ? null
                                 : () => unawaited(

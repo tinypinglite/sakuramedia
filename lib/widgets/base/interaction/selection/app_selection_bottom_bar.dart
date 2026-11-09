@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_types.dart';
 
 /// 移动端多选态的**底部**批量操作条：贴底常驻，动作按钮等宽平分整行。
 ///
@@ -28,6 +29,7 @@ class AppSelectionBottomBar extends StatelessWidget {
         top: context.appRadius.lgBorder.topLeft,
       ),
       padding: EdgeInsets.all(spacing.md),
+      role: AppGlassRole.bar,
       child: SafeArea(
         top: false,
         child: Row(
