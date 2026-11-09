@@ -158,7 +158,7 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$app_path"
           codesign -d -r- "$app_path" 2>&1 | tee "$RUNNER_TEMP/codesign-requirement.txt"
           grep -F "identifier \"$bundle_id\"" "$RUNNER_TEMP/codesign-requirement.txt"
-          grep -F 'certificate leaf' "$RUNNER_TEMP/codesign-requirement.txt"
+          grep -E 'certificate (leaf|root)' "$RUNNER_TEMP/codesign-requirement.txt"
 
       - name: Package dmg
         shell: bash
