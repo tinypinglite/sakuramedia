@@ -13,7 +13,7 @@
 - `PlayerAppFullscreenScope` / `PlayerAppFullscreenButton` / `PlayerAppFullscreenDoubleTap` / `PlayerAppFullscreenStateMixin`：`lib/widgets/base/media/video/player_app_fullscreen.dart`，桌面端在当前路由内切换布局 + 叠加系统窗口全屏，Esc 退出；移动端不渲染全屏按钮。
 - 播放页 `State` mix `PlayerAppFullscreenStateMixin`，用 scope 暴露状态，并在 `dispose` 首行调 `disposePlayerAppFullscreen()`；`ThemedVideoPlayer` / `MoviePlayerSurface` 传 `disableNativeFullscreen: true` 关掉 media_kit 的双击全屏，避免两套全屏打架。
 - 无 scope 时按钮回退 media_kit 原生全屏（快播弹窗等无面板场景行为不变）。
-- 移动端播放页进入时已锁横屏并隐藏系统栏，底栏不提供应用内全屏按钮；移动影片页始终纯黑全出血，右侧缩略图面板和分栏保留。
+- 移动端播放页进入时默认锁横屏并隐藏系统栏，底栏不提供应用内全屏按钮；移动影片页始终纯黑全出血，右侧缩略图面板默认展开。移动影片播放页和视频单播页右上角提供横竖屏切换按钮，切换后右侧缩略图面板自动收起，仍可用面板开关重新展开。竖屏时控制条自动收窄：番号压缩，底栏隐藏音量与时间文本，避免小屏溢出。
 - 移动端控制层接入 `media_kit` 的左半屏拖动亮度、右半屏拖动媒体音量手势，使用其内置百分比浮层。亮度只改当前 App 并在播放面销毁时恢复，音量保持系统设置。
 - 窗口层那一半在 `lib/app/app_window_fullscreen.dart`：macOS / Windows 都走
   window_manager 的原生 `setFullScreen`（Windows 无边框由 runner 的
@@ -45,7 +45,7 @@
 
 ## 播放器控制
 
-`MoviePlayerBackOverlay`、`MoviePlayerSpeedButton`、`MoviePlayerSubtitleButton` 和 `MoviePlayerMenuItemRow` 位于 `lib/widgets/domain/movies/player/`。移动端控制条需要保留触控唤起行为，桌面端可以使用 hover/鼠标行为；平台参数由页面壳传入。倍速/字幕菜单和移动端右侧抽屉统一使用 `AppSurface` 的全站唯一材质，不再维护独立的播放器玻璃组件。
+`MoviePlayerBackOverlay`、`MoviePlayerScreenRotationButton`、`MoviePlayerSpeedButton`、`MoviePlayerSubtitleButton` 和 `MoviePlayerMenuItemRow` 位于 `lib/widgets/domain/movies/player/`。移动端控制条需要保留触控唤起行为，桌面端可以使用 hover/鼠标行为；平台参数由页面壳传入。倍速/字幕菜单和移动端右侧抽屉统一使用 `AppSurface` 的全站唯一材质，不再维护独立的播放器玻璃组件。
 
 ## 播放信息
 

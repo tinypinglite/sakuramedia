@@ -76,6 +76,7 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
   int _thumbnailRequestVersion = 0;
   Duration? _resumePosition;
   bool _isResumeDecisionPending = false;
+  int _panelCollapseRequest = 0;
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<bool>? _playingSubscription;
 
@@ -459,6 +460,7 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
     return CollectionPlaySplitLayout(
       keyPrefix: 'video-single',
       collapsible: true,
+      collapseRequest: _panelCollapseRequest,
       left: PlayerAppFullscreenDoubleTap(
         enabled: !widget.useTouchOptimizedControls,
         child: _buildPlayerSurface(controller),
@@ -470,11 +472,15 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
   Widget _buildPlayerSurface(VideoController videoController) {
     final l10n = AppLocalizations.of(context);
     final title = _title.trim();
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
+    final compactTopControls =
+        isPortrait || MediaQuery.sizeOf(context).width < 720;
     final bottomControls = <Widget>[
       const MaterialPlayOrPauseButton(),
-      if (!widget.useTouchOptimizedControls)
+      if (!widget.useTouchOptimizedControls && !isPortrait)
         const MaterialDesktopVolumeButton(),
-      const MaterialPositionIndicator(),
+      if (!isPortrait) const MaterialPositionIndicator(),
       const Spacer(),
       // 移动播放页进入即横屏沉浸，不显示桌面式全屏按钮。
       if (!widget.useTouchOptimizedControls) const PlayerAppFullscreenButton(),
@@ -493,12 +499,19 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
         ...buildMoviePlayerTopControls(
           movieNumber: title.isEmpty ? l10n.videoFallbackTitle : title,
           onBackPressed: _handleBack,
+          compact: compactTopControls,
         ),
         const Spacer(),
+        if (widget.useTouchOptimizedControls)
+          MoviePlayerScreenRotationButton(onRotated: _handleScreenRotated),
         MediaPlaybackInfoButton(player: videoController.player),
       ],
       bottomControls: bottomControls,
     );
+  }
+
+  void _handleScreenRotated() {
+    setState(() => _panelCollapseRequest++);
   }
 
   Widget _buildThumbnailPanel() {

@@ -83,6 +83,7 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
   late final MoviePlayer _controller;
   late final MultiSplitViewController _splitController;
   late final MoviePlayerSurfaceController _surfaceController;
+  int _panelCollapseRequest = 0;
 
   MoviePlayerState get _playerState => ref.read(moviePlayerProvider(_scope));
 
@@ -152,6 +153,7 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
             dividerHandleBuffer: widget.dividerHandleBuffer,
             collapsible: true,
             panelAvailable: playerState.selectedMedia != null,
+            panelCollapseRequest: _panelCollapseRequest,
             leftChild: const MoviePlayerEmptyState(),
             rightChild: playerState.selectedMedia == null
                 ? const SizedBox.expand()
@@ -164,6 +166,7 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
           dividerHandleBuffer: widget.dividerHandleBuffer,
           collapsible: true,
           panelAvailable: playerState.selectedMedia != null,
+          panelCollapseRequest: _panelCollapseRequest,
           leftChild: PlayerAppFullscreenDoubleTap(
             enabled: !widget.useTouchOptimizedControls,
             child: _buildPlayerSurface(context, primaryResolvedUrl),
@@ -223,11 +226,18 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
       onSubtitleSelectionChanged: _controller.setSelectedSubtitleId,
       onSubtitleReloadRequested: _controller.loadSubtitles,
       onBackPressed: _handleBack,
+      onScreenRotated: widget.useTouchOptimizedControls
+          ? _handleScreenRotated
+          : null,
       useTouchOptimizedControls: widget.useTouchOptimizedControls,
       disableNativeFullscreen: true,
       mediaInfo: _buildMediaInfo(),
       thumbnails: _playerState.thumbnails,
     );
+  }
+
+  void _handleScreenRotated() {
+    setState(() => _panelCollapseRequest++);
   }
 
   MoviePlayerMediaInfo? _buildMediaInfo() {
@@ -614,6 +624,7 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
     this.onSubtitleSelectionChanged,
     this.onSubtitleReloadRequested,
     this.onBackPressed,
+    this.onScreenRotated,
     this.useTouchOptimizedControls = false,
     this.mediaInfo,
     this.thumbnails = const <MovieMediaThumbnailDto>[],
@@ -640,6 +651,10 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
   final ValueChanged<int?>? onSubtitleSelectionChanged;
   final Future<void> Function()? onSubtitleReloadRequested;
   final VoidCallback? onBackPressed;
+
+  /// 移动端旋转按钮点击后回调；方向切换由按钮自身完成。
+  final VoidCallback? onScreenRotated;
+
   final bool useTouchOptimizedControls;
   final MoviePlayerMediaInfo? mediaInfo;
 
@@ -1142,16 +1157,23 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
+    final compactTopControls =
+        isPortrait || MediaQuery.sizeOf(context).width < 720;
     final topControls = buildMoviePlayerTopControls(
       movieNumber: widget.movieNumber,
       onBackPressed: widget.onBackPressed,
       onInfoPressed: _toggleInfoSideDrawer,
+      onScreenRotated: widget.onScreenRotated,
+      compact: compactTopControls,
     );
     // 全屏路由内拿不到页面级浮层（信息侧栏 / 倍速 / 字幕抽屉都挂在页面 Stack 上），
     // 这些按钮在全屏里点了没反应，全屏态直接去掉。
     final fullscreenTopControls = buildMoviePlayerTopControls(
       movieNumber: widget.movieNumber,
       onBackPressed: widget.onBackPressed,
+      compact: compactTopControls,
     );
     final mobileBottomControls = buildMoviePlayerMobileBottomControls(
       activeDrawer: _activeDrawer,
@@ -1160,6 +1182,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
           _toggleMobileDrawer(MoviePlayerMobileDrawerType.speed),
       onSubtitleButtonPressed: () =>
           _toggleMobileDrawer(MoviePlayerMobileDrawerType.subtitle),
+      compact: isPortrait,
     );
     final mobileFullscreenBottomControls = buildMoviePlayerMobileBottomControls(
       activeDrawer: _activeDrawer,
@@ -1169,6 +1192,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       onSubtitleButtonPressed: () =>
           _toggleMobileDrawer(MoviePlayerMobileDrawerType.subtitle),
       includeDrawerButtons: false,
+      compact: isPortrait,
     );
     final desktopBottomControls = buildMoviePlayerDesktopBottomControls(
       currentRate: _playbackRate.currentRate,

@@ -5191,6 +5191,8 @@
   "widgetTagNoMatch": "No matching tags found",
   "widgetTagEmpty": "No tags yet",
   "widgetMoviePlayerInfoTooltip": "Playback info",
+  "widgetMoviePlayerRotateToPortrait": "Switch to portrait",
+  "widgetMoviePlayerRotateToLandscape": "Switch to landscape",
   "widgetMoviePlayerPlaybackUnavailable": "This media cannot be played right now.",
   "widgetMoviePlayerPlaybackFailed": "Playback failed",
   "widgetMoviePlayerNoSubtitle": "No subtitles available",

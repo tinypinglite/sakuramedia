@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_screen_orientation.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_back_button.dart';
 
 class _MoviePlayerOverlayIconButton extends StatelessWidget {
@@ -70,10 +73,45 @@ class MoviePlayerInfoButton extends StatelessWidget {
   }
 }
 
+/// 移动端播放页的横竖屏切换按钮。
+///
+/// 当前方向由所在页面的 [MediaQuery] 决定；点击后切到另一个方向，并通过
+/// [onRotated] 通知宿主（播放页据此收起右侧缩略图面板）。
+class MoviePlayerScreenRotationButton extends StatelessWidget {
+  const MoviePlayerScreenRotationButton({super.key, this.onRotated});
+
+  final VoidCallback? onRotated;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final isPortrait =
+        MediaQuery.orientationOf(context) == Orientation.portrait;
+    return _MoviePlayerOverlayIconButton(
+      buttonKey: const Key('movie-player-screen-rotation-button'),
+      icon: Icons.screen_rotation_rounded,
+      tooltip: isPortrait
+          ? l10n.widgetMoviePlayerRotateToLandscape
+          : l10n.widgetMoviePlayerRotateToPortrait,
+      onPressed: () {
+        unawaited(
+          isPortrait ? lockPlayerPageLandscape() : lockPlayerPagePortrait(),
+        );
+        onRotated?.call();
+      },
+    );
+  }
+}
+
 class MoviePlayerCurrentNumberBadge extends StatelessWidget {
-  const MoviePlayerCurrentNumberBadge({super.key, required this.movieNumber});
+  const MoviePlayerCurrentNumberBadge({
+    super.key,
+    required this.movieNumber,
+    this.compact = false,
+  });
 
   final String movieNumber;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -87,17 +125,17 @@ class MoviePlayerCurrentNumberBadge extends StatelessWidget {
         key: const Key('movie-player-current-number'),
         constraints: BoxConstraints(
           minHeight: overlayTokens.playerBackBadgeMinHeight,
-          maxWidth: overlayTokens.playerBackBadgeMaxWidth,
+          maxWidth: compact ? 66 : overlayTokens.playerBackBadgeMaxWidth,
         ),
         alignment: Alignment.centerLeft,
         padding: EdgeInsets.symmetric(
-          horizontal: overlayTokens.controlTrailingGap,
+          horizontal: compact ? 6 : overlayTokens.controlTrailingGap,
         ),
         child: Text(
           resolvedMovieNumber,
           style: resolveAppTextStyle(
             context,
-            size: AppTextSize.s14,
+            size: compact ? AppTextSize.s12 : AppTextSize.s14,
             tone: AppTextTone.onMedia,
           ),
           maxLines: 1,
@@ -114,10 +152,12 @@ class MoviePlayerBackWithNumberControl extends StatelessWidget {
     super.key,
     required this.onPressed,
     required this.movieNumber,
+    this.compact = false,
   });
 
   final VoidCallback onPressed;
   final String movieNumber;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +166,10 @@ class MoviePlayerBackWithNumberControl extends StatelessWidget {
       children: [
         MoviePlayerBackButton(onPressed: onPressed),
         SizedBox(width: context.appSpacing.xs / 2),
-        MoviePlayerCurrentNumberBadge(movieNumber: movieNumber),
+        MoviePlayerCurrentNumberBadge(
+          movieNumber: movieNumber,
+          compact: compact,
+        ),
       ],
     );
   }

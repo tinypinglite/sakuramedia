@@ -28,6 +28,7 @@ class CollapsiblePlayerSplitView extends StatefulWidget {
     this.panelAvailable = true,
     this.handleKey,
     this.defaultPanelFlex = 0.28,
+    this.collapseRequest = 0,
   });
 
   final MultiSplitViewController controller;
@@ -44,6 +45,9 @@ class CollapsiblePlayerSplitView extends StatefulWidget {
 
   /// 首次展开时使用的面板 flex，也是记忆宽度的兜底值。
   final double defaultPanelFlex;
+
+  /// 每次值变化时收起右侧面板（用于屏幕旋转后隐藏缩略图）。
+  final int collapseRequest;
 
   @override
   State<CollapsiblePlayerSplitView> createState() =>
@@ -91,6 +95,9 @@ class _CollapsiblePlayerSplitViewState extends State<CollapsiblePlayerSplitView>
   void didUpdateWidget(covariant CollapsiblePlayerSplitView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!widget.panelAvailable && _expanded) {
+      _animatePanelFlexTo(0);
+    }
+    if (widget.collapseRequest != oldWidget.collapseRequest) {
       _animatePanelFlexTo(0);
     }
   }

@@ -14,8 +14,12 @@ List<Widget> buildMoviePlayerTopControls({
   required String movieNumber,
   required VoidCallback? onBackPressed,
   VoidCallback? onInfoPressed,
+  VoidCallback? onScreenRotated,
+  bool compact = false,
 }) {
-  if (onBackPressed == null && onInfoPressed == null) {
+  if (onBackPressed == null &&
+      onInfoPressed == null &&
+      onScreenRotated == null) {
     return const <Widget>[];
   }
   final controls = <Widget>[];
@@ -24,14 +28,20 @@ List<Widget> buildMoviePlayerTopControls({
       MoviePlayerBackWithNumberControl(
         onPressed: onBackPressed,
         movieNumber: movieNumber,
+        compact: compact,
       ),
     );
   }
-  if (onInfoPressed != null) {
+  if (onScreenRotated != null || onInfoPressed != null) {
     if (controls.isNotEmpty) {
       controls.add(const Spacer());
     }
-    controls.add(MoviePlayerInfoButton(onPressed: onInfoPressed));
+    if (onScreenRotated != null) {
+      controls.add(MoviePlayerScreenRotationButton(onRotated: onScreenRotated));
+    }
+    if (onInfoPressed != null) {
+      controls.add(MoviePlayerInfoButton(onPressed: onInfoPressed));
+    }
   }
   return controls;
 }
@@ -43,12 +53,13 @@ List<Widget> buildMoviePlayerMobileBottomControls({
   required VoidCallback onSpeedButtonPressed,
   required VoidCallback onSubtitleButtonPressed,
   bool includeDrawerButtons = true,
+  bool compact = false,
 }) {
   // 移动播放页进入即锁横屏并隐藏系统栏；底栏不再提供全屏入口。
   return <Widget>[
     const MaterialPlayOrPauseButton(),
-    const MaterialDesktopVolumeButton(),
-    const MaterialPositionIndicator(),
+    if (!compact) const MaterialDesktopVolumeButton(),
+    if (!compact) const MaterialPositionIndicator(),
     const Spacer(),
     // 全屏态传 false：倍速 / 字幕抽屉浮层挂在播放页 Stack 上，不在 media_kit
     // push 的全屏路由内，按钮点了没反应，直接隐藏。

@@ -87,20 +87,23 @@ void main() {
           )
           .toList();
       expect(orientationCalls, hasLength(2));
+      expect(orientationCalls[0].arguments, <String>[
+        'DeviceOrientation.portraitUp',
+        'DeviceOrientation.landscapeLeft',
+        'DeviceOrientation.landscapeRight',
+      ]);
+      expect(orientationCalls[1].arguments, <String>[
+        'DeviceOrientation.landscapeLeft',
+        'DeviceOrientation.landscapeRight',
+      ]);
+    });
+
+    test('播放页旋转按钮可锁竖屏', () async {
+      await lockPlayerPagePortrait();
+
       expect(
-        orientationCalls[0].arguments,
-        <String>[
-          'DeviceOrientation.portraitUp',
-          'DeviceOrientation.landscapeLeft',
-          'DeviceOrientation.landscapeRight',
-        ],
-      );
-      expect(
-        orientationCalls[1].arguments,
-        <String>[
-          'DeviceOrientation.landscapeLeft',
-          'DeviceOrientation.landscapeRight',
-        ],
+        systemCallFor('SystemChrome.setPreferredOrientations').arguments,
+        <String>['DeviceOrientation.portraitUp'],
       );
     });
   });
