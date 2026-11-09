@@ -2,21 +2,83 @@ name: Release macOS
 
 on:
   workflow_call:
+    inputs:
+      dry_run:
+        required: false
+        type: boolean
+        default: false
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Build and sign without publishing a GitHub Release
+        required: false
+        type: boolean
+        default: false
+
 permissions:
   contents: write
 
+# 使用固定自签名证书签名。它不经过 Apple 公证，Gatekeeper 仍可能提示来源不明，
+# 但 macOS 会按同一个证书身份识别后续版本，本地网络权限不再随每次构建变化。
 jobs:
   build-and-release:
     name: Build macOS dmg and publish release
     runs-on: macos-15
 
     env:
-      DMG_NAME: sakuramedia-macos-${{ github.ref_name }}-unsigned.dmg
+      DMG_NAME: sakuramedia-macos-${{ github.ref_name }}.dmg
+      MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+
+      - name: Import macOS self-signed certificate
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ -z "${MACOS_CERTIFICATE_P12_BASE64:-}" ]; then
+            echo "::error::Missing MACOS_CERTIFICATE_P12_BASE64 repository secret"
+            exit 1
+          fi
+
+          keychain_path="$RUNNER_TEMP/app-signing.keychain-db"
+          keychain_password="$(openssl rand -hex 24)"
+          cert_path="$RUNNER_TEMP/macos-selfsigned.p12"
+
+          security delete-keychain "$keychain_path" 2>/dev/null || true
+          security create-keychain -p "$keychain_password" "$keychain_path"
+          security set-keychain-settings -lut 21600 "$keychain_path"
+          security unlock-keychain -p "$keychain_password" "$keychain_path"
+
+          printf '%s' "$MACOS_CERTIFICATE_P12_BASE64" | base64 -D > "$cert_path"
+          security import "$cert_path" \
+            -k "$keychain_path" \
+            -P "" \
+            -A -t cert -f pkcs12
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k "$keychain_password" \
+            "$keychain_path"
+
+          security list-keychains -d user -s \
+            "$keychain_path" \
+            $(security list-keychains -d user | tr -d '"')
+          security default-keychain -s "$keychain_path"
+
+          identity="$(security find-identity -p codesigning "$keychain_path" \
+            | sed -n 's/.*"\(.*\)"/\1/p' \
+            | sed -n '1p')"
+          if [ -z "$identity" ]; then
+            echo "::error::No code-signing identity found in imported certificate"
+            security find-identity -p codesigning "$keychain_path"
+            exit 1
+          fi
+
+          echo "KEYCHAIN_PATH=$keychain_path" >> "$GITHUB_ENV"
+          echo "MACOS_SIGNING_IDENTITY=$identity" >> "$GITHUB_ENV"
+          echo "Using signing identity: $identity"
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -44,9 +106,11 @@ jobs:
           BUILD_NAME="${VERSION%%-*}"
           flutter build macos --release --build-name="$BUILD_NAME"
 
-      - name: Package unsigned dmg
+      - name: Sign macOS app with self-signed certificate
+        shell: bash
         run: |
-          mkdir -p dist
+          set -euo pipefail
+
           release_dir="build/macos/Build/Products/Release"
           shopt -s nullglob
           apps=("${release_dir}"/*.app)
@@ -55,21 +119,59 @@ jobs:
           if [ "${#apps[@]}" -ne 1 ]; then
             echo "::error::Expected exactly one .app in ${release_dir}, found ${#apps[@]}"
             ls -la "${release_dir}" || true
-            printf 'Matched .app entries:\n'
-            if [ "${#apps[@]}" -gt 0 ]; then
-              printf '  %s\n' "${apps[@]}"
-            else
-              echo '  (none)'
-            fi
             exit 1
           fi
 
           app_path="${apps[0]}"
+          echo "APP_PATH=$app_path" >> "$GITHUB_ENV"
+          echo "Signing app bundle: ${app_path}"
+
+          xattr -cr "$app_path"
+          bundle_id="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app_path/Contents/Info.plist")"
+          if [ -z "$bundle_id" ]; then
+            echo "::error::Could not read CFBundleIdentifier from ${app_path}/Contents/Info.plist"
+            exit 1
+          fi
+
+          # 由内到外重签 Flutter 产出的 framework/dylib/helper app，最后签主 App。
+          if [ -d "$app_path/Contents/Frameworks" ]; then
+            while IFS= read -r -d '' target; do
+              codesign --force --sign "$MACOS_SIGNING_IDENTITY" --verbose=2 "$target"
+            done < <(
+              find "$app_path/Contents/Frameworks" -depth \
+                \( -name '*.framework' -o -name '*.dylib' -o -name '*.app' -o -name '*.xpc' \) \
+                -print0
+            )
+          fi
+
+          codesign --force \
+            --sign "$MACOS_SIGNING_IDENTITY" \
+            --entitlements macos/Runner/Release.entitlements \
+            --verbose=2 \
+            "$app_path"
+
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          codesign -d -r- "$app_path" 2>&1 | tee "$RUNNER_TEMP/codesign-requirement.txt"
+          grep -F "identifier \"$bundle_id\"" "$RUNNER_TEMP/codesign-requirement.txt"
+          grep -F 'certificate leaf' "$RUNNER_TEMP/codesign-requirement.txt"
+
+      - name: Package dmg
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          mkdir -p dist
+          app_path="$APP_PATH"
+          if [ ! -d "$app_path" ]; then
+            echo "::error::App bundle not found: $app_path"
+            exit 1
+          fi
           echo "Packaging app bundle: ${app_path}"
 
           # hdiutil 是 macOS 自带工具：.app + /Applications 软链，双击 dmg 后可拖拽安装。
           staging="$(mktemp -d)"
-          cp -R "${app_path}" "${staging}/"
+          ditto "${app_path}" "${staging}/$(basename "${app_path}")"
+          codesign --verify --deep --strict --verbose=2 "${staging}/$(basename "${app_path}")"
           ln -s /Applications "${staging}/Applications"
 
           # hdiutil 在 CI 上偶发 Resource busy（create-dmg / electron-builder 均做重试），这里做有界重试。
@@ -98,6 +200,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish GitHub release
+        if: ${{ !inputs.dry_run }}
         uses: softprops/action-gh-release@v2
         with:
           name: sakuramedia ${{ github.ref_name }}
@@ -106,3 +209,11 @@ jobs:
           files: |
             dist/${{ env.DMG_NAME }}
             dist/${{ env.DMG_NAME }}.sha256
+
+      - name: Clean up signing keychain
+        if: always()
+        shell: bash
+        run: |
+          if [ -n "${KEYCHAIN_PATH:-}" ]; then
+            security delete-keychain "$KEYCHAIN_PATH" 2>/dev/null || true
+          fi

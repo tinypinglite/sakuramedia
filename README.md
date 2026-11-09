@@ -172,12 +172,12 @@ A NAS is optional: the backend runs on any machine that can keep Docker running 
 
 ## Download and install
 
-Get the client from [GitHub Releases](https://github.com/tinypinglite/sakuramedia/releases/latest). The Windows and macOS installers are currently unsigned, so the system may warn about an unidentified developer; once you've confirmed where the download came from, follow the system prompt to allow it.
+Get the client from [GitHub Releases](https://github.com/tinypinglite/sakuramedia/releases/latest). The Windows installer is currently unsigned; the macOS installer is signed with a fixed self-signed certificate and is not notarized by Apple, so the system may warn about an unidentified developer. Once you've confirmed where the download came from, follow the system prompt to allow it.
 
 | Platform | Installer | Notes |
 | --- | --- | --- |
 | Windows | `sakuramedia-windows-*-setup-unsigned.exe` | Unsigned; when SmartScreen appears, choose "More info → Run anyway" |
-| macOS | `sakuramedia-macos-*-unsigned.dmg` | Unsigned; on first launch, right-click → Open, or allow it under "Privacy & Security" |
+| macOS | `sakuramedia-macos-<tag>.dmg` | Fixed self-signed certificate; not notarized. If macOS warns, allow it under "Privacy & Security" |
 | Android | `sakuramedia-android-*-release-signed.apk` | Install directly; the system may warn about unknown sources |
 | iOS | `sakuramedia-ios-*-sidestore-ready.ipa` | Requires iOS 15.0+ and installs through SideStore or a self-signing tool; if you haven't sideloaded before, start with the desktop client |
 

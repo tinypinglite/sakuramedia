@@ -172,12 +172,12 @@ NAS 不是必须的：后端可以跑在任何能长期运行 Docker 的机器�
 
 ## 下载与安装
 
-客户端从 [GitHub Releases](https://github.com/tinypinglite/sakuramedia/releases/latest) 下载。Windows 和 macOS 安装包当前未签名，系统可能提示来源不明；请确认下载来源后按系统提示允许运行。
+客户端从 [GitHub Releases](https://github.com/tinypinglite/sakuramedia/releases/latest) 下载。Windows 安装包当前未签名；macOS 安装包使用固定自签名证书签名，未经过 Apple 公证，系统可能提示来源不明。请确认下载来源后按系统提示允许运行。
 
 | 平台 | 安装包 | 说明 |
 | --- | --- | --- |
 | Windows | `sakuramedia-windows-*-setup-unsigned.exe` | 未签名；SmartScreen 提示时选择「更多信息 → 仍要运行」 |
-| macOS | `sakuramedia-macos-*-unsigned.dmg` | 未签名；首次打开需右键 → 打开，或在「隐私与安全性」中允许 |
+| macOS | `sakuramedia-macos-<tag>.dmg` | 固定自签名证书；未公证，如系统提示来源不明，请在「隐私与安全性」中允许 |
 | Android | `sakuramedia-android-*-release-signed.apk` | 直接安装；系统可能提示未知来源 |
 | iOS | `sakuramedia-ios-*-sidestore-ready.ipa` | 需要 iOS 15.0+，通过 SideStore 或自签工具安装；没有侧载经验建议先用桌面端 |
 
