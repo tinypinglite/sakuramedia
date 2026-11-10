@@ -41,18 +41,9 @@ Future<T?> showAppBottomDrawer<T>({
         maxHeightFactor: maxHeightFactor,
         showHandle: showHandle,
         contentPadding: contentPadding,
+        includeBottomSafeArea: ignoreTopSafeArea,
         child: builder(sheetContext),
       );
-
-      if (useSafeArea && ignoreTopSafeArea) {
-        drawer = SafeArea(
-          top: false,
-          left: false,
-          right: false,
-          bottom: true,
-          child: drawer,
-        );
-      }
       if (dismissController != null) {
         drawer = AppModalDismissScope(
           controller: dismissController,
@@ -123,6 +114,7 @@ class AppBottomDrawerSurface extends StatelessWidget {
     this.maxHeightFactor,
     this.showHandle = true,
     this.contentPadding,
+    this.includeBottomSafeArea = false,
   });
 
   static const double _handleWidth = 36;
@@ -134,6 +126,7 @@ class AppBottomDrawerSurface extends StatelessWidget {
   final double? maxHeightFactor;
   final bool showHandle;
   final EdgeInsetsGeometry? contentPadding;
+  final bool includeBottomSafeArea;
 
   @override
   Widget build(BuildContext context) {
@@ -159,6 +152,33 @@ class AppBottomDrawerSurface extends StatelessWidget {
       resolvedContentPadding.bottom + spacing.sm,
     );
 
+    final Widget drawerChild;
+    if (includeBottomSafeArea) {
+      drawerChild = SafeArea(
+        top: false,
+        left: true,
+        right: true,
+        bottom: true,
+        minimum: EdgeInsets.fromLTRB(
+          contentInsets.left,
+          0,
+          contentInsets.right,
+          contentInsets.bottom,
+        ),
+        child: Padding(
+          key: const Key('app-bottom-drawer-content'),
+          padding: EdgeInsets.only(top: contentInsets.top),
+          child: child,
+        ),
+      );
+    } else {
+      drawerChild = Padding(
+        key: const Key('app-bottom-drawer-content'),
+        padding: contentInsets,
+        child: child,
+      );
+    }
+
     final content = AppModalGlassSurface(
       borderRadius: BorderRadius.vertical(
         top: Radius.circular(context.appRadius.xl),
@@ -166,11 +186,7 @@ class AppBottomDrawerSurface extends StatelessWidget {
       child: Stack(
         fit: StackFit.passthrough,
         children: [
-          Padding(
-            key: const Key('app-bottom-drawer-content'),
-            padding: contentInsets,
-            child: child,
-          ),
+          drawerChild,
           if (showHandle)
             Positioned(
               top: _handleTopSpacing,

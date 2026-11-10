@@ -711,7 +711,7 @@ class _AppImageFullscreenHostState extends ConsumerState<AppImageFullscreenHost>
       _bottomDrawerController.value,
     );
 
-    Widget drawer = Align(
+    final Widget drawer = Align(
       alignment: Alignment.bottomCenter,
       child: FractionalTranslation(
         translation: Offset(0, 1 - animationValue),
@@ -720,20 +720,11 @@ class _AppImageFullscreenHostState extends ConsumerState<AppImageFullscreenHost>
           heightFactor: session.heightFactor,
           showHandle: session.showHandle,
           contentPadding: session.contentPadding,
+          includeBottomSafeArea: session.ignoreTopSafeArea,
           child: session.builder(context, _closeBottomDrawer),
         ),
       ),
     );
-
-    if (session.ignoreTopSafeArea) {
-      drawer = SafeArea(
-        top: false,
-        left: false,
-        right: false,
-        bottom: true,
-        child: drawer,
-      );
-    }
 
     return Positioned.fill(
       child: Stack(

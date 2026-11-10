@@ -306,6 +306,7 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
   ) {
     final tabs = AppTabBar(
       controller: _tabController,
+      tabAlignment: widget.mobile ? TabAlignment.start : null,
       onTap: (index) => ref
           .read(catalogSearchProvider(_scope).notifier)
           .setActiveKind(_kindForIndex(index)),

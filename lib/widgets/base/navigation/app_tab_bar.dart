@@ -37,6 +37,7 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
     this.variant = AppTabBarVariant.auto,
     this.tabHeight,
     this.indicatorSize = TabBarIndicatorSize.label,
+    this.tabAlignment,
   });
 
   final List<Widget> tabs;
@@ -45,6 +46,7 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
   final AppTabBarVariant variant;
   final double? tabHeight;
   final TabBarIndicatorSize indicatorSize;
+  final TabAlignment? tabAlignment;
 
   AppTabBarVariant _resolveVariant(BuildContext context) {
     if (variant != AppTabBarVariant.auto) {
@@ -154,7 +156,7 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
       tabs: resolvedTabs,
       onTap: onTap,
       isScrollable: spec.isScrollable,
-      tabAlignment: spec.tabAlignment,
+      tabAlignment: tabAlignment ?? spec.tabAlignment,
       overlayColor: WidgetStateProperty.all(Colors.transparent),
       labelPadding: spec.labelPadding,
       labelStyle: spec.labelStyle,
@@ -169,8 +171,9 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize {
-    final fallbackVariant =
-        variant == AppTabBarVariant.auto ? AppTabBarVariant.desktop : variant;
+    final fallbackVariant = variant == AppTabBarVariant.auto
+        ? AppTabBarVariant.desktop
+        : variant;
     final resolvedHeight = tabHeight ?? _specFallbackHeight(fallbackVariant);
     return Size.fromHeight(resolvedHeight);
   }
@@ -214,12 +217,11 @@ class _ThinTabIndicatorPainter extends BoxPainter {
       return;
     }
 
-    final paint =
-        Paint()
-          ..color = color
-          ..strokeWidth = thickness
-          ..strokeCap = StrokeCap.round
-          ..style = PaintingStyle.stroke;
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = thickness
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
 
     final y = offset.dy + size.height - (thickness / 2);
     final start = Offset(offset.dx + 2, y);

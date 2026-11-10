@@ -96,20 +96,20 @@ abstract final class AppGlassStyle {
       ),
       AppGlassRole.popover => AppGlassRecipe(
         tint: dark
-            ? whiteTint.withValues(alpha: 0.15)
-            : colors.surfaceElevated.withValues(alpha: 0.60),
+            ? whiteTint.withValues(alpha: 0.28)
+            : colors.surfaceElevated.withValues(alpha: 0.88),
         thickness: 24,
-        blur: 0.6,
+        blur: 2.5,
         saturation: 1.55,
         lightIntensity: 0.20,
         frost: 14,
-        frostOpacity: dark ? 0.85 : 0.68,
+        frostOpacity: dark ? 0.92 : 0.88,
         frostClamp: dark ? -0.45 : 0.4,
         frostWeight: dark ? 0.5 : 2.0,
         rimShade: 1,
         rimLight: 1,
-        bodyShade: dark ? 0.14 : 0,
-        whitenStrength: dark ? 0 : 0.03,
+        bodyShade: dark ? 0.22 : 0,
+        whitenStrength: dark ? 0 : 0.10,
         shadow: floatingShadow,
         quality: GlassQuality.premium,
       ),
@@ -270,7 +270,7 @@ abstract final class AppGlassStyle {
       ),
       AppGlassRole.popover => (
         lightTint,
-        dark ? 0.48 : 0.42,
+        dark ? 0.72 : 0.78,
         dark ? 6.0 : 8.0,
         0.45,
         0.16,
