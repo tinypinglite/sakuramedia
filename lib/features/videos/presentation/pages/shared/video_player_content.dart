@@ -25,6 +25,7 @@ import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 import 'package:sakuramedia/widgets/base/media/video/themed_video_player.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_app_fullscreen.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_viewport.dart';
 import 'package:sakuramedia/widgets/base/media/video/throttling_player.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_play_split_layout.dart';
@@ -463,19 +464,30 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
       collapseRequest: _panelCollapseRequest,
       left: PlayerAppFullscreenDoubleTap(
         enabled: !widget.useTouchOptimizedControls,
-        child: _buildPlayerSurface(controller),
+        child: LayoutBuilder(
+          builder: (context, constraints) => _buildPlayerSurface(
+            context,
+            controller,
+            isPortrait: isPortraitPlayerViewport(constraints),
+            compactTopControls: shouldUseCompactPlayerControls(
+              constraints: constraints,
+              windowWidth: MediaQuery.sizeOf(context).width,
+            ),
+          ),
+        ),
       ),
       right: _buildThumbnailPanel(),
     );
   }
 
-  Widget _buildPlayerSurface(VideoController videoController) {
+  Widget _buildPlayerSurface(
+    BuildContext context,
+    VideoController videoController, {
+    required bool isPortrait,
+    required bool compactTopControls,
+  }) {
     final l10n = AppLocalizations.of(context);
     final title = _title.trim();
-    final isPortrait =
-        MediaQuery.orientationOf(context) == Orientation.portrait;
-    final compactTopControls =
-        isPortrait || MediaQuery.sizeOf(context).width < 720;
     final bottomControls = <Widget>[
       const MaterialPlayOrPauseButton(),
       if (!widget.useTouchOptimizedControls && !isPortrait)
@@ -503,7 +515,10 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
         ),
         const Spacer(),
         if (widget.useTouchOptimizedControls)
-          MoviePlayerScreenRotationButton(onRotated: _handleScreenRotated),
+          MoviePlayerScreenRotationButton(
+            isPortrait: isPortrait,
+            onRotated: _handleScreenRotated,
+          ),
         MediaPlaybackInfoButton(player: videoController.player),
       ],
       bottomControls: bottomControls,

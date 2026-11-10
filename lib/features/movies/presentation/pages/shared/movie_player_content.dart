@@ -38,6 +38,7 @@ import 'package:sakuramedia/widgets/base/media/video/initial_seek_guard.dart';
 import 'package:sakuramedia/widgets/base/media/video/playback_resume_prompt.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_screen_orientation.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_system_controls.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_viewport.dart';
 import 'package:sakuramedia/widgets/base/media/video/throttling_player.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_controls_theme.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
@@ -169,7 +170,20 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
           panelCollapseRequest: _panelCollapseRequest,
           leftChild: PlayerAppFullscreenDoubleTap(
             enabled: !widget.useTouchOptimizedControls,
-            child: _buildPlayerSurface(context, primaryResolvedUrl),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isPortrait = isPortraitPlayerViewport(constraints);
+                return _buildPlayerSurface(
+                  context,
+                  primaryResolvedUrl,
+                  isPortrait: isPortrait,
+                  compactTopControls: shouldUseCompactPlayerControls(
+                    constraints: constraints,
+                    windowWidth: MediaQuery.sizeOf(context).width,
+                  ),
+                );
+              },
+            ),
           ),
           rightChild: playerState.selectedMedia == null
               ? const SizedBox.expand()
@@ -212,7 +226,12 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
     );
   }
 
-  Widget _buildPlayerSurface(BuildContext context, String resolvedUrl) {
+  Widget _buildPlayerSurface(
+    BuildContext context,
+    String resolvedUrl, {
+    required bool isPortrait,
+    required bool compactTopControls,
+  }) {
     return MoviePlayerSurface(
       movieNumber: widget.movieNumber,
       resolvedUrl: resolvedUrl,
@@ -229,6 +248,8 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
       onScreenRotated: widget.useTouchOptimizedControls
           ? _handleScreenRotated
           : null,
+      isPortraitOverride: isPortrait,
+      compactTopControlsOverride: compactTopControls,
       useTouchOptimizedControls: widget.useTouchOptimizedControls,
       disableNativeFullscreen: true,
       mediaInfo: _buildMediaInfo(),
@@ -625,6 +646,8 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
     this.onSubtitleReloadRequested,
     this.onBackPressed,
     this.onScreenRotated,
+    this.isPortraitOverride,
+    this.compactTopControlsOverride,
     this.useTouchOptimizedControls = false,
     this.mediaInfo,
     this.thumbnails = const <MovieMediaThumbnailDto>[],
@@ -654,6 +677,13 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
 
   /// 移动端旋转按钮点击后回调；方向切换由按钮自身完成。
   final VoidCallback? onScreenRotated;
+
+  /// 播放区实际布局方向。iOS 旋转后 MediaQuery 可能滞后，由宿主按播放区
+  /// 约束传入；为空时回退到 MediaQuery。
+  final bool? isPortraitOverride;
+
+  /// 顶栏是否使用紧凑布局；为空时回退到 [MediaQuery]。
+  final bool? compactTopControlsOverride;
 
   final bool useTouchOptimizedControls;
   final MoviePlayerMediaInfo? mediaInfo;
@@ -1158,14 +1188,17 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isPortrait =
-        MediaQuery.orientationOf(context) == Orientation.portrait;
+        widget.isPortraitOverride ??
+        (MediaQuery.orientationOf(context) == Orientation.portrait);
     final compactTopControls =
-        isPortrait || MediaQuery.sizeOf(context).width < 720;
+        widget.compactTopControlsOverride ??
+        (isPortrait || MediaQuery.sizeOf(context).width < 720);
     final topControls = buildMoviePlayerTopControls(
       movieNumber: widget.movieNumber,
       onBackPressed: widget.onBackPressed,
       onInfoPressed: _toggleInfoSideDrawer,
       onScreenRotated: widget.onScreenRotated,
+      isPortrait: isPortrait,
       compact: compactTopControls,
     );
     // 全屏路由内拿不到页面级浮层（信息侧栏 / 倍速 / 字幕抽屉都挂在页面 Stack 上），

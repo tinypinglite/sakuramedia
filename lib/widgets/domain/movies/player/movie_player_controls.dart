@@ -16,6 +16,7 @@ List<Widget> buildMoviePlayerTopControls({
   required VoidCallback? onBackPressed,
   VoidCallback? onInfoPressed,
   VoidCallback? onScreenRotated,
+  bool? isPortrait,
   bool compact = false,
 }) {
   if (onBackPressed == null &&
@@ -38,7 +39,12 @@ List<Widget> buildMoviePlayerTopControls({
       controls.add(const Spacer());
     }
     if (onScreenRotated != null) {
-      controls.add(MoviePlayerScreenRotationButton(onRotated: onScreenRotated));
+      controls.add(
+        MoviePlayerScreenRotationButton(
+          isPortrait: isPortrait,
+          onRotated: onScreenRotated,
+        ),
+      );
       if (onInfoPressed != null) {
         controls.add(const _MoviePlayerTopControlGap());
       }

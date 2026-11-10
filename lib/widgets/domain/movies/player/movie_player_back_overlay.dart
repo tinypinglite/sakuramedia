@@ -51,8 +51,7 @@ class MoviePlayerBackButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppBackButton(
       key: const Key('movie-player-back-button'),
-      variant: AppBackButtonVariant.glass,
-      size: AppBackButtonSize.touch,
+      variant: AppBackButtonVariant.mediaOverlay,
       onPressed: onPressed,
     );
   }
@@ -76,27 +75,38 @@ class MoviePlayerInfoButton extends StatelessWidget {
 
 /// 移动端播放页的横竖屏切换按钮。
 ///
-/// 当前方向由所在页面的 [MediaQuery] 决定；点击后切到另一个方向，并通过
-/// [onRotated] 通知宿主（播放页据此收起右侧缩略图面板）。
+/// 当前方向优先使用宿主按播放区实际约束传入的 [isPortrait]；未传时回退到
+/// [MediaQuery]。点击后切到另一个方向，并通过 [onRotated] 通知宿主（播放页
+/// 据此收起右侧缩略图面板）。
 class MoviePlayerScreenRotationButton extends StatelessWidget {
-  const MoviePlayerScreenRotationButton({super.key, this.onRotated});
+  const MoviePlayerScreenRotationButton({
+    super.key,
+    this.isPortrait,
+    this.onRotated,
+  });
 
+  /// 播放区实际是否竖屏。iOS 旋转后 MediaQuery 可能滞后，优先使用宿主按
+  /// 实际布局约束传入的值。
+  final bool? isPortrait;
   final VoidCallback? onRotated;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    final isPortrait =
-        MediaQuery.orientationOf(context) == Orientation.portrait;
+    final resolvedIsPortrait =
+        isPortrait ??
+        (MediaQuery.orientationOf(context) == Orientation.portrait);
     return _MoviePlayerOverlayIconButton(
       buttonKey: const Key('movie-player-screen-rotation-button'),
       icon: Icons.screen_rotation_rounded,
-      tooltip: isPortrait
+      tooltip: resolvedIsPortrait
           ? l10n.widgetMoviePlayerRotateToLandscape
           : l10n.widgetMoviePlayerRotateToPortrait,
       onPressed: () {
         unawaited(
-          isPortrait ? lockPlayerPageLandscape() : lockPlayerPagePortrait(),
+          resolvedIsPortrait
+              ? lockPlayerPageLandscape()
+              : lockPlayerPagePortrait(),
         );
         onRotated?.call();
       },

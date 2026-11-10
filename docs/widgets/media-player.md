@@ -47,6 +47,8 @@
 
 `MoviePlayerBackOverlay`、`MoviePlayerScreenRotationButton`、`MoviePlayerSpeedButton`、`MoviePlayerSubtitleButton` 和 `MoviePlayerMenuItemRow` 位于 `lib/widgets/domain/movies/player/`。移动端控制条需要保留触控唤起行为，桌面端可以使用 hover/鼠标行为；平台参数由页面壳传入。倍速/字幕菜单和移动端右侧抽屉统一使用 `AppSurface` 的全站唯一材质，不再维护独立的播放器玻璃组件。
 
+播放区方向以实际布局约束为准（`player_viewport.dart`），不要直接用 `MediaQuery.orientationOf` 判断：iOS 从横屏切竖屏后 MediaQuery 可能滞后，会把竖屏顶栏误用横屏的非紧凑宽度，导致旋转/信息按钮被面板开关覆盖。紧凑顶栏、底栏和旋转按钮方向共用同一份布局判定。
+
 ## 播放信息
 
 `MoviePlayerPlaybackInfoPanel` 复用播放器实际采样，独立展示播放模式、流类型和原始解复用格式。流类型为 HLS、HTTP 文件流或未确认，不通过 URL 后缀猜测 HLS，也不把 MP4/MKV 当作 HTTP Range 的证据。

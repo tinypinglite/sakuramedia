@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_viewport.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_controls_theme.dart';
 import 'package:sakuramedia/widgets/domain/media/collapsible_player_split_view.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
@@ -82,6 +83,143 @@ void main() {
       'DeviceOrientation.landscapeLeft',
       'DeviceOrientation.landscapeRight',
     ]);
+  });
+
+  test('播放区方向与紧凑模式以局部布局约束为准', () {
+    expect(
+      isPortraitPlayerViewport(
+        const BoxConstraints(maxWidth: 430, maxHeight: 932),
+      ),
+      isTrue,
+    );
+    expect(
+      isPortraitPlayerViewport(
+        const BoxConstraints(maxWidth: 932, maxHeight: 430),
+      ),
+      isFalse,
+    );
+    expect(
+      shouldUseCompactPlayerControls(
+        constraints: const BoxConstraints(maxWidth: 430, maxHeight: 932),
+        windowWidth: 932,
+      ),
+      isTrue,
+    );
+    expect(
+      shouldUseCompactPlayerControls(
+        constraints: const BoxConstraints(maxWidth: 932, maxHeight: 430),
+        windowWidth: 932,
+      ),
+      isFalse,
+    );
+  });
+
+  testWidgets('旋转按钮优先使用宿主传入的竖屏状态', (tester) async {
+    var rotated = 0;
+    await pumpWithProviders(
+      tester,
+      physicalSize: const Size(430, 932),
+      home: Builder(
+        builder: (context) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(size: const Size(932, 430)),
+          child: Center(
+            child: MoviePlayerScreenRotationButton(
+              isPortrait: true,
+              onRotated: () => rotated++,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('movie-player-screen-rotation-button')),
+    );
+    await tester.pump();
+
+    expect(rotated, 1);
+    expect(orientationArguments(), <String>[
+      'DeviceOrientation.landscapeLeft',
+      'DeviceOrientation.landscapeRight',
+    ]);
+  });
+
+  testWidgets('MediaQuery 仍是横屏时竖屏顶栏仍不重叠', (tester) async {
+    final controller = MultiSplitViewController(
+      areas: <Area>[Area(flex: 1), Area(flex: 0)],
+    );
+    addTearDown(controller.dispose);
+
+    await pumpWithProviders(
+      tester,
+      theme: buildSakuraMobileThemeData(),
+      physicalSize: const Size(430, 932),
+      home: Builder(
+        builder: (context) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(size: const Size(932, 430)),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isPortrait = isPortraitPlayerViewport(constraints);
+              final compact = shouldUseCompactPlayerControls(
+                constraints: constraints,
+                windowWidth: MediaQuery.sizeOf(context).width,
+              );
+              final trailingInset = resolveMoviePlayerTopBarTrailingInset(
+                Theme.of(context),
+                reserveTopRightToggle: true,
+              );
+              return CollapsiblePlayerSplitView(
+                controller: controller,
+                collapsible: true,
+                panelAvailable: true,
+                handleKey: const Key('panel-handle'),
+                leftBuilder: (context) => Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    const ColoredBox(color: Colors.black),
+                    Positioned(
+                      top: context.appOverlayTokens.playerControlBarTopInset,
+                      left: context
+                          .appOverlayTokens
+                          .playerControlBarHorizontalInset,
+                      right: trailingInset,
+                      height: 56,
+                      child: Row(
+                        children: buildMoviePlayerTopControls(
+                          movieNumber: 'IPZZ-199',
+                          onBackPressed: () {},
+                          onInfoPressed: () {},
+                          onScreenRotated: () {},
+                          isPortrait: isPortrait,
+                          compact: compact,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                rightBuilder: (context) => const SizedBox.expand(),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(tester.takeException(), isNull);
+
+    final rotationRect = tester.getRect(
+      find.byKey(const Key('movie-player-screen-rotation-button')),
+    );
+    final infoRect = tester.getRect(
+      find.byKey(const Key('movie-player-info-button')),
+    );
+    final panelRect = tester.getRect(find.byKey(const Key('panel-handle')));
+
+    expect(rotationRect.overlaps(infoRect), isFalse);
+    expect(rotationRect.overlaps(panelRect), isFalse);
+    expect(infoRect.overlaps(panelRect), isFalse);
   });
 
   testWidgets('竖屏顶栏的旋转按钮、信息按钮和面板开关不重叠', (tester) async {
