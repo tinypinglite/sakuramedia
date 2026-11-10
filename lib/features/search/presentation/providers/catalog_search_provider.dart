@@ -2,11 +2,14 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
+import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_search_stream_update.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actor_subscription_events_provider.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actors_api_provider.dart';
+import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/series_import/movie_search_stream_update.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/mutation_events_provider.dart';
@@ -185,9 +188,7 @@ class CatalogSearch extends _$CatalogSearch {
     required int requestVersion,
     required String query,
   }) async {
-    final moviePage = await ref
-        .read(moviesApiProvider)
-        .getMovies(query: query, pageSize: _localSearchPageSize);
+    final moviePage = await _fetchLocalMovies(query);
     if (!_isCurrent(requestVersion)) {
       return;
     }
@@ -212,6 +213,84 @@ class CatalogSearch extends _$CatalogSearch {
       movieResults: moviePage.items,
       actorResults: actorPage.items,
     );
+  }
+
+  Future<void> applyMovieFilter(MovieFilterState filter) async {
+    if (state.movieFilter.matches(filter)) {
+      return;
+    }
+    state = state.copyWith(movieFilter: filter);
+    await _refreshLocalMovies();
+  }
+
+  Future<void> setMovieSort({
+    required MovieSortField? field,
+    required SortDirection direction,
+  }) async {
+    if (state.movieSortField == field &&
+        state.movieSortDirection == direction) {
+      return;
+    }
+    state = state.copyWith(
+      movieSortField: field,
+      movieSortDirection: direction,
+    );
+    await _refreshLocalMovies();
+  }
+
+  Future<PaginatedResponseDto<MovieListItemDto>> _fetchLocalMovies(
+    String query,
+  ) {
+    final filter = state.movieFilter;
+    return ref
+        .read(moviesApiProvider)
+        .getMovies(
+          query: query,
+          pageSize: _localSearchPageSize,
+          status: filter.status,
+          collectionType: filter.collectionType,
+          numberSource: filter.numberSource,
+          sort: state.movieSortExpression,
+          years: filter.years.toList(growable: false),
+          interaction: filter.interaction,
+          actorAgeMin: filter.actorAgeMin,
+          actorAgeMax: filter.actorAgeMax,
+          resolution: filter.resolution?.apiValue,
+        );
+  }
+
+  Future<void> _refreshLocalMovies() async {
+    if (state.isOnlineSearchActive || state.useOnlineSearch) {
+      return;
+    }
+    final query = state.query;
+    if (query.isEmpty) {
+      return;
+    }
+    final requestVersion = ++_requestVersion;
+    state = state.copyWith(isLoading: true, errorMessage: null);
+    try {
+      final page = await _fetchLocalMovies(query);
+      if (!_isCurrent(requestVersion)) {
+        return;
+      }
+      state = state.copyWith(
+        isLoading: false,
+        movieResults: page.items,
+        errorMessage: null,
+      );
+    } catch (error) {
+      if (!_isCurrent(requestVersion)) {
+        return;
+      }
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: ref.apiErrorMessage(
+          error,
+          fallback: ref.read(appLocalizationsProvider).errorSearchFailed,
+        ),
+      );
+    }
   }
 
   void setActiveKind(CatalogSearchKind kind) {
@@ -531,12 +610,14 @@ class CatalogSearch extends _$CatalogSearch {
     if (value == null) {
       return null;
     }
-    return ref.read(appLocalizationsProvider).searchStatsLabel(
-      value.total,
-      value.createdCount,
-      value.alreadyExistsCount,
-      value.failedCount,
-    );
+    return ref
+        .read(appLocalizationsProvider)
+        .searchStatsLabel(
+          value.total,
+          value.createdCount,
+          value.alreadyExistsCount,
+          value.failedCount,
+        );
   }
 
   void _patchMovieSubscription(String movieNumber, bool isSubscribed) {

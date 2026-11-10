@@ -1,7 +1,12 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:multi_split_view/multi_split_view.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/media/video/video_controls_theme.dart';
+import 'package:sakuramedia/widgets/domain/media/collapsible_player_split_view.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
+import 'package:sakuramedia/widgets/domain/movies/player/movie_player_controls.dart';
 
 import '../../../../support/pump_with_providers.dart';
 
@@ -77,5 +82,68 @@ void main() {
       'DeviceOrientation.landscapeLeft',
       'DeviceOrientation.landscapeRight',
     ]);
+  });
+
+  testWidgets('竖屏顶栏的旋转按钮、信息按钮和面板开关不重叠', (tester) async {
+    final controller = MultiSplitViewController(
+      areas: <Area>[Area(flex: 1), Area(flex: 0)],
+    );
+    addTearDown(controller.dispose);
+
+    await pumpWithProviders(
+      tester,
+      theme: buildSakuraMobileThemeData(),
+      physicalSize: const Size(390, 844),
+      home: Builder(
+        builder: (context) {
+          final trailingInset = resolveMoviePlayerTopBarTrailingInset(
+            Theme.of(context),
+            reserveTopRightToggle: true,
+          );
+          return CollapsiblePlayerSplitView(
+            controller: controller,
+            collapsible: true,
+            panelAvailable: true,
+            handleKey: const Key('panel-handle'),
+            leftBuilder: (context) => Stack(
+              fit: StackFit.expand,
+              children: [
+                const ColoredBox(color: Colors.black),
+                Positioned(
+                  top: context.appOverlayTokens.playerControlBarTopInset,
+                  left:
+                      context.appOverlayTokens.playerControlBarHorizontalInset,
+                  right: trailingInset,
+                  height: 56,
+                  child: Row(
+                    children: buildMoviePlayerTopControls(
+                      movieNumber: 'ABC-123',
+                      onBackPressed: () {},
+                      onInfoPressed: () {},
+                      onScreenRotated: () {},
+                      compact: true,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            rightBuilder: (context) => const SizedBox.expand(),
+          );
+        },
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final rotationRect = tester.getRect(
+      find.byKey(const Key('movie-player-screen-rotation-button')),
+    );
+    final infoRect = tester.getRect(
+      find.byKey(const Key('movie-player-info-button')),
+    );
+    final panelRect = tester.getRect(find.byKey(const Key('panel-handle')));
+
+    expect(rotationRect.overlaps(infoRect), isFalse);
+    expect(rotationRect.overlaps(panelRect), isFalse);
+    expect(infoRect.overlaps(panelRect), isFalse);
   });
 }

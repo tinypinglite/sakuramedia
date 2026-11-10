@@ -210,7 +210,6 @@ class _InvalidMediaHeader extends ConsumerWidget {
     final state = ref.watch(
       invalidMediaProvider.select(
         (asyncState) => (
-          total: asyncState.value?.paged.total ?? 0,
           ids:
               asyncState.value?.paged.items
                   .map((item) => item.id)
@@ -266,19 +265,6 @@ class _InvalidMediaHeader extends ConsumerWidget {
       );
     }
 
-    final description = Text(
-      l10n.mediaListInvalidDescription,
-      key: const Key('invalid-media-section-description'),
-      maxLines: mobile ? 2 : 1,
-      overflow: TextOverflow.ellipsis,
-      style: resolveAppTextStyle(
-        context,
-        size: AppTextSize.s12,
-        weight: AppTextWeight.regular,
-        tone: AppTextTone.muted,
-      ),
-    );
-    final totalText = l10n.mediaListTotalInvalidItems(state.total);
     final canEnterSelection = loadedIds.isNotEmpty && !state.isInitialLoading;
     if (!mobile) {
       return Column(
@@ -286,18 +272,6 @@ class _InvalidMediaHeader extends ConsumerWidget {
         children: [
           AppGlassListHeader(
             leading: AppGlassHeaderGroup(
-              children: <Widget>[
-                AppGlassHeaderText(
-                  key: const Key('invalid-media-total-text'),
-                  label: totalText,
-                ),
-                AppGlassHeaderText(
-                  key: const Key('invalid-media-section-description'),
-                  label: l10n.mediaListInvalidDescription,
-                ),
-              ],
-            ),
-            trailing: AppGlassHeaderGroup(
               children: <Widget>[
                 AppGlassHeaderButton(
                   key: const Key('invalid-media-enter-selection-button'),
@@ -334,31 +308,29 @@ class _InvalidMediaHeader extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        description,
-        SizedBox(height: context.appSpacing.sm),
         AppMobileListHeader(
-          leading: AppMobileHeaderText(
-            key: const Key('invalid-media-total-text'),
-            countLabel: totalText,
+          leading: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              AppGlassIconButton(
+                key: const Key('invalid-media-enter-selection-button'),
+                tooltip: l10n.mediaListEnterSelection,
+                icon: Icons.check_circle_outline,
+                onPressed: canEnterSelection ? onEnterSelection : null,
+              ),
+              SizedBox(width: context.appSpacing.xs),
+              AppGlassIconButton(
+                key: const Key('invalid-media-refresh-button'),
+                tooltip: state.isInitialLoading
+                    ? l10n.mediaListRefreshing
+                    : l10n.commonRefresh,
+                icon: Icons.refresh_rounded,
+                onPressed: state.isInitialLoading
+                    ? null
+                    : () => unawaited(onRefresh()),
+              ),
+            ],
           ),
-          actions: <Widget>[
-            AppGlassIconButton(
-              key: const Key('invalid-media-enter-selection-button'),
-              tooltip: l10n.mediaListEnterSelection,
-              icon: Icons.check_circle_outline,
-              onPressed: canEnterSelection ? onEnterSelection : null,
-            ),
-            AppGlassIconButton(
-              key: const Key('invalid-media-refresh-button'),
-              tooltip: state.isInitialLoading
-                  ? l10n.mediaListRefreshing
-                  : l10n.commonRefresh,
-              icon: Icons.refresh_rounded,
-              onPressed: state.isInitialLoading
-                  ? null
-                  : () => unawaited(onRefresh()),
-            ),
-          ],
         ),
         if (refreshError != null)
           Padding(

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
+import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_app_fullscreen.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_mobile_drawers.dart';
@@ -38,12 +39,24 @@ List<Widget> buildMoviePlayerTopControls({
     }
     if (onScreenRotated != null) {
       controls.add(MoviePlayerScreenRotationButton(onRotated: onScreenRotated));
+      if (onInfoPressed != null) {
+        controls.add(const _MoviePlayerTopControlGap());
+      }
     }
     if (onInfoPressed != null) {
       controls.add(MoviePlayerInfoButton(onPressed: onInfoPressed));
     }
   }
   return controls;
+}
+
+class _MoviePlayerTopControlGap extends StatelessWidget {
+  const _MoviePlayerTopControlGap();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(width: context.appSpacing.sm);
+  }
 }
 
 List<Widget> buildMoviePlayerMobileBottomControls({

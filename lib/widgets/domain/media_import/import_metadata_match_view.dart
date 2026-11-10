@@ -117,6 +117,7 @@ class _ImportMetadataMatchViewState
             AppBackButton(
               key: const Key('import-metadata-match-back'),
               tooltip: l10n.widgetMediaImportBackToFailedList,
+              size: AppBackButtonSize.touch,
               onPressed: widget.onBack,
             ),
             SizedBox(width: spacing.sm),

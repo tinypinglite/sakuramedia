@@ -41,7 +41,7 @@ void main() {
     expect(controller.areas[1].flex, closeTo(0.28, 0.001));
 
     updateState(() => collapseRequest++);
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     expect(controller.areas[1].flex, closeTo(0, 0.0001));
     expect(find.byKey(const Key('right-panel')), findsNothing);

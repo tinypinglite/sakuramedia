@@ -39,9 +39,7 @@ Widget Function(VideoState state) resolveMoviePlayerVideoControlsBuilder({
 
 @visibleForTesting
 Widget buildMoviePlayerBufferingIndicator(BuildContext context) {
-  return VideoLoadingIndicator(
-    label: appL10n(context).baseVideoBuffering,
-  );
+  return VideoLoadingIndicator(label: appL10n(context).baseVideoBuffering);
 }
 
 MaterialVideoControlsThemeData buildMoviePlayerMobileControlsThemeData({
@@ -57,11 +55,10 @@ MaterialVideoControlsThemeData buildMoviePlayerMobileControlsThemeData({
   final overlayTokens = theme.appOverlayTokens;
   // 右上角界面为常显的缩略图面板开关预留一格（开关贴右上角、与顶栏同宽内缩），
   // 让顶栏最右侧的「视频信息」按钮整体左移，避免与开关重叠。
-  final topBarTrailingInset =
-      overlayTokens.playerControlBarHorizontalInset +
-      (reserveTopRightToggle
-          ? overlayTokens.playerBackBadgeMinHeight + theme.appSpacing.sm
-          : 0);
+  final topBarTrailingInset = resolveMoviePlayerTopBarTrailingInset(
+    theme,
+    reserveTopRightToggle: reserveTopRightToggle,
+  );
   return MaterialVideoControlsThemeData(
     horizontalGestureSensitivity: 3000,
     seekOnDoubleTap: seekEnabled,
@@ -113,11 +110,10 @@ MaterialDesktopVideoControlsThemeData buildMoviePlayerDesktopControlsThemeData({
   bool toggleFullscreenOnDoublePress = true,
 }) {
   final overlayTokens = theme.appOverlayTokens;
-  final topBarTrailingInset =
-      overlayTokens.playerControlBarHorizontalInset +
-      (reserveTopRightToggle
-          ? overlayTokens.playerBackBadgeMinHeight + theme.appSpacing.sm
-          : 0);
+  final topBarTrailingInset = resolveMoviePlayerTopBarTrailingInset(
+    theme,
+    reserveTopRightToggle: reserveTopRightToggle,
+  );
   return MaterialDesktopVideoControlsThemeData(
     toggleFullscreenOnDoublePress: toggleFullscreenOnDoublePress,
     bufferingIndicatorBuilder: showBufferingIndicator
@@ -184,6 +180,22 @@ MaterialDesktopVideoControlsThemeData buildMoviePlayerDesktopControlsThemeData({
 }
 
 const double _moviePlayerDesktopButtonBarHeight = 56;
+
+/// 顶栏右侧需要给缩略图面板开关留出的宽度。
+///
+/// 开关是 `AppIconButton.regular`（44）且自身再向右缩进 `xs + 横向 inset`；
+/// 顶栏末尾额外留 `md`，让「视频信息」和开关之间仍有清晰间隔。
+@visibleForTesting
+double resolveMoviePlayerTopBarTrailingInset(
+  ThemeData theme, {
+  required bool reserveTopRightToggle,
+}) {
+  final overlayTokens = theme.appOverlayTokens;
+  return overlayTokens.playerControlBarHorizontalInset +
+      (reserveTopRightToggle
+          ? overlayTokens.playerBackBadgeMinHeight + theme.appSpacing.md
+          : 0);
+}
 
 /// 自定义底栏 = 进度条容器（36）+ 按钮行（56）。
 const double _moviePlayerDesktopSeekBarClusterHeight =

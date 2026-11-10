@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/notification_center_provider.dart';
@@ -41,6 +43,10 @@ class MobileOverviewDrawer extends ConsumerWidget {
 
   Widget _buildDrawer(BuildContext context, {required int unreadCount}) {
     final spacing = hostContext.appSpacing;
+    final drawerWidth = math.min(
+      MediaQuery.sizeOf(context).width * 0.88,
+      380.0,
+    );
     final sectionWidgets = <Widget>[];
     for (var index = 0; index < sections.length; index += 1) {
       final section = sections[index];
@@ -72,42 +78,43 @@ class MobileOverviewDrawer extends ConsumerWidget {
 
     return Drawer(
       key: const Key('mobile-overview-drawer'),
+      width: drawerWidth,
       backgroundColor: Colors.transparent,
       elevation: 0,
-      child: Padding(
-        padding: EdgeInsets.all(spacing.sm),
-        child: AppSurface(
-          borderRadius: context.appRadius.lgBorder,
-          role: AppSurfaceRole.popover,
-          child: SafeArea(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                spacing.lg,
-                spacing.lg,
-                spacing.lg,
-                spacing.md,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: sectionWidgets,
-                      ),
+      child: AppSurface(
+        width: drawerWidth,
+        borderRadius: BorderRadius.horizontal(
+          right: Radius.circular(context.appRadius.xl),
+        ),
+        role: AppSurfaceRole.popover,
+        child: SafeArea(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(
+              spacing.lg,
+              spacing.lg,
+              spacing.lg,
+              spacing.md,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: sectionWidgets,
                     ),
                   ),
-                  SizedBox(height: spacing.md),
-                  AppSidebarAccountCard(
-                    key: const Key('mobile-overview-drawer-account-card'),
-                    logoutKey: const Key('mobile-overview-drawer-logout'),
-                    onLogout: () => _selectAction(context, onLogout),
-                    onOpenPluginUpdates: () =>
-                        _selectAction(context, onOpenPluginUpdates),
-                  ),
-                ],
-              ),
+                ),
+                SizedBox(height: spacing.md),
+                AppSidebarAccountCard(
+                  key: const Key('mobile-overview-drawer-account-card'),
+                  logoutKey: const Key('mobile-overview-drawer-logout'),
+                  onLogout: () => _selectAction(context, onLogout),
+                  onOpenPluginUpdates: () =>
+                      _selectAction(context, onOpenPluginUpdates),
+                ),
+              ],
             ),
           ),
         ),
@@ -190,40 +197,31 @@ class _MobileOverviewDrawerSection extends StatelessWidget {
             ),
           ),
         ],
-        Container(
-          decoration: BoxDecoration(
-            color: colors.surfaceCard,
-            borderRadius: context.appRadius.lgBorder,
-          ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(vertical: spacing.xs),
-            child: Column(
-              children: items
-                  .expand((item) {
-                    final itemIndex = items.indexOf(item);
-                    return <Widget>[
-                      item,
-                      if (itemIndex < items.length - 1)
-                        Padding(
-                          padding: EdgeInsetsDirectional.only(
-                            start:
-                                spacing.md +
-                                componentTokens.iconSizeXl +
-                                spacing.sm +
-                                spacing.md,
-                            end: spacing.md,
-                          ),
-                          child: Divider(
-                            height: spacing.xs,
-                            thickness: 1,
-                            color: colors.borderSubtle.fadedBy(0.56),
-                          ),
-                        ),
-                    ];
-                  })
-                  .toList(growable: false),
-            ),
-          ),
+        Column(
+          children: items
+              .expand((item) {
+                final itemIndex = items.indexOf(item);
+                return <Widget>[
+                  item,
+                  if (itemIndex < items.length - 1)
+                    Padding(
+                      padding: EdgeInsetsDirectional.only(
+                        start:
+                            spacing.md +
+                            componentTokens.iconSizeXl +
+                            spacing.sm +
+                            spacing.md,
+                        end: spacing.md,
+                      ),
+                      child: Divider(
+                        height: spacing.xs,
+                        thickness: 1,
+                        color: colors.borderSubtle.fadedBy(0.42),
+                      ),
+                    ),
+                ];
+              })
+              .toList(growable: false),
         ),
       ],
     );
@@ -264,8 +262,9 @@ class _MobileOverviewDrawerItem extends StatelessWidget {
               width: componentTokens.iconSizeXl + spacing.sm,
               height: componentTokens.iconSizeXl + spacing.sm,
               decoration: BoxDecoration(
-                color: colors.surfaceMuted,
+                color: colors.surfaceCard.withValues(alpha: 0.28),
                 borderRadius: context.appRadius.smBorder,
+                border: Border.all(color: colors.borderSubtle.fadedBy(0.40)),
               ),
               child: Icon(
                 icon,

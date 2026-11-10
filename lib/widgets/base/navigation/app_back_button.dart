@@ -15,16 +15,15 @@ enum AppBackButtonSize { compact, toolbar, touch }
 /// - [AppBackButtonSize.compact]：28 / 20；
 /// - [AppBackButtonSize.toolbar]：实色 28 / 20，玻璃 32 / 16；
 /// - [AppBackButtonSize.touch]：44 / 20；
-/// - [AppBackButtonVariant.mediaOverlay]：44 / 18，并使用媒体前景色。
+/// - [AppBackButtonVariant.mediaOverlay]：44 / 20，并使用媒体前景色。
 ///
-/// 玻璃变体默认使用 `control` 常驻胶囊；顶栏传 `AppGlassTone.toolbar` 走
-/// 静止无底、hover/focus 才浮出胶囊的 `toolbarControl` 语气。
-/// 高对比度模式下玻璃变体回退为实色按钮。
+/// 生产入口统一使用 [AppBackButtonVariant.glass] 的 `control` 常驻胶囊；
+/// 高对比度模式下回退为实色按钮。
 class AppBackButton extends StatelessWidget {
   const AppBackButton({
     super.key,
     required this.onPressed,
-    this.variant = AppBackButtonVariant.solid,
+    this.variant = AppBackButtonVariant.glass,
     this.size = AppBackButtonSize.toolbar,
     this.overlay = false,
     this.tooltip,
@@ -38,7 +37,7 @@ class AppBackButton extends StatelessWidget {
   final AppBackButtonVariant variant;
   final AppBackButtonSize size;
 
-  /// 实色按钮使用媒体前景色，用于压在封面/播放器等内容上。
+  /// 覆盖在媒体上时使用 `onMedia` 前景色。
   final bool overlay;
   final String? tooltip;
   final String? semanticLabel;
@@ -79,15 +78,22 @@ class AppBackButton extends StatelessWidget {
           icon: Icon(icon, size: iconSize),
         );
       }
-      return AppGlassIconButton(
-        tooltip: resolvedTooltip,
-        semanticLabel: resolvedSemanticLabel,
-        icon: icon,
-        iconSize: iconSize,
-        size: buttonSize,
-        foregroundColor: overlay ? context.appTextPalette.onMedia : null,
-        tone: glassTone,
-        onPressed: onPressed,
+      return DecoratedBox(
+        position: DecorationPosition.foreground,
+        decoration: BoxDecoration(
+          borderRadius: context.appRadius.pillBorder,
+          border: Border.all(color: context.appColors.borderSubtle),
+        ),
+        child: AppGlassIconButton(
+          tooltip: resolvedTooltip,
+          semanticLabel: resolvedSemanticLabel,
+          icon: icon,
+          iconSize: iconSize,
+          size: buttonSize,
+          foregroundColor: overlay ? context.appTextPalette.onMedia : null,
+          tone: glassTone,
+          onPressed: onPressed,
+        ),
       );
     }
 
@@ -100,7 +106,7 @@ class AppBackButton extends StatelessWidget {
             AppBackButtonSize.touch => AppIconButtonSize.regular,
           };
     final resolvedIconSize = isMediaOverlay
-        ? 18.0
+        ? 20.0
         : switch (size) {
             AppBackButtonSize.compact => 20.0,
             AppBackButtonSize.toolbar => 20.0,

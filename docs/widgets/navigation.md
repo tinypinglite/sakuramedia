@@ -4,7 +4,7 @@
 
 路径：`lib/widgets/base/navigation/app_back_button.dart`
 
-全项目统一的返回按钮。`variant` 区分实色、玻璃和播放器 `mediaOverlay`，`size` 区分 `compact`（28/20）、`toolbar`（实色 28/20、玻璃 32/16）和 `touch`（44/20）。玻璃返回钮默认 `AppGlassTone.standard`（`control` 常驻胶囊）；桌面顶栏传 `AppGlassTone.toolbar`，静止只显示图标，hover/focus/press 才浮出轻胶囊。播放器返回固定 44/18、使用 `onMedia` 前景色。tooltip 和语义标签默认取 `shellBack`，调用方只在语义确实不同（如“返回失败列表”）时覆盖。步骤内“文字 + 返回”继续用 `AppTextButton`，图标取 `AppBackButton.icon`。
+全项目统一使用液态玻璃返回按钮。`size` 区分 `compact`（28/20）、`toolbar`（玻璃 32/16）和 `touch`（玻璃 44/20）；移动子页、播放器、沉浸顶栏和独立返回入口统一使用 `touch`，桌面标准顶栏使用 `toolbar`。玻璃返回钮默认 `AppGlassTone.standard`（`control` 常驻胶囊），并用 `borderSubtle` 细描边保证白色顶栏上仍能看见胶囊边界；高对比度模式回退为带描边的实色圆钮。tooltip 和语义标签默认取 `shellBack`，调用方只在语义确实不同（如“返回失败列表”）时覆盖。步骤内“文字 + 返回”继续用 `AppTextButton`，图标取 `AppBackButton.icon`。
 
 `AppBackGuardController` / `AppBackGuardScope`（`app_back_guard.dart`）负责离开前确认：桌面顶栏和移动子页返回都先 `await canLeave()`。页面在 `initState` 注册、`dispose` 注销；未保存修改的页面必须注册 guard，不能只拦截 Tab 切换。
 

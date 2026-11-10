@@ -5,7 +5,6 @@ import 'package:sakuramedia/app/providers/app_shell_providers.dart';
 import 'package:sakuramedia/features/search/presentation/widgets/top_bar_search_actions.dart';
 import 'package:sakuramedia/routes/desktop_top_bar_config.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_back_guard.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_back_button.dart';
 import 'package:sakuramedia/widgets/shell/desktop/desktop_chrome_policy.dart';
@@ -131,10 +130,7 @@ class AppTopBar extends ConsumerWidget {
             child: Center(
               child: AppBackButton(
                 key: const Key('topbar-back-button'),
-                variant: translucent
-                    ? AppBackButtonVariant.glass
-                    : AppBackButtonVariant.solid,
-                glassTone: AppGlassTone.toolbar,
+                variant: AppBackButtonVariant.glass,
                 onPressed: () => _handleBack(context),
               ),
             ),
@@ -184,7 +180,8 @@ class AppTopBar extends ConsumerWidget {
             child: Center(
               child: AppBackButton(
                 key: const Key('topbar-back-button'),
-                variant: AppBackButtonVariant.mediaOverlay,
+                variant: AppBackButtonVariant.glass,
+                size: AppBackButtonSize.touch,
                 onPressed: () => _handleBack(context),
               ),
             ),

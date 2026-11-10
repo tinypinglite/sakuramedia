@@ -3669,14 +3669,6 @@
       }
     }
   },
-  "mediaListTotalInvalidItems": "{count} invalid media items",
-  "@mediaListTotalInvalidItems": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "mediaListEnterSelection": "Select",
   "mediaListRefreshing": "Refreshing",
   "mediaListClearSelection": "Clear",
@@ -3887,7 +3879,6 @@
       }
     }
   },
-  "mediaListInvalidDescription": "Media confirmed missing by the file scan appears here with the missing-file reason. Deleting a JAV movie triggers another download.",
   "mediaListInvalidEmpty": "No invalid media right now",
   "mediaListInvalidDeleteTitle": "Delete invalid media",
   "mediaListInvalidDeleteMessage": "Delete the invalid media record for “{name}” and its existing file? This action cannot be undone; thumbnails are kept so the same file can reuse them.",
@@ -4126,6 +4117,7 @@
   "widgetSearchHint": "e.g. SSNI-888, Yua Mikami",
   "widgetSearchTabMovies": "Movies",
   "widgetSearchTabActors": "Actors",
+  "searchSortRelevance": "Relevance",
   "widgetSearchInputPrompt": "Enter a keyword to start searching",
   "widgetSearchLocalNoMovies": "No matching movies in the local library",
   "widgetSearchOnlineNoMovie": "The online source did not find this movie number or failed to import it",

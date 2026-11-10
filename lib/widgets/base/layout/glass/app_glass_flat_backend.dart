@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
@@ -210,6 +212,7 @@ class AppGlassFlatTextFieldBackend extends StatelessWidget {
     required this.textStyle,
     required this.placeholderStyle,
     this.padding,
+    this.iconSpacing = 8,
     this.height,
     this.borderRadius = 12,
     this.fillColor,
@@ -235,6 +238,7 @@ class AppGlassFlatTextFieldBackend extends StatelessWidget {
   final TextStyle textStyle;
   final TextStyle placeholderStyle;
   final EdgeInsetsGeometry? padding;
+  final double iconSpacing;
   final double? height;
   final double borderRadius;
   final Color? fillColor;
@@ -243,6 +247,19 @@ class AppGlassFlatTextFieldBackend extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final direction = Directionality.of(context);
+    final resolvedPadding = (padding ?? EdgeInsets.zero).resolve(direction);
+    final leadingInset = direction == TextDirection.rtl
+        ? resolvedPadding.right
+        : resolvedPadding.left;
+    final trailingInset = direction == TextDirection.rtl
+        ? resolvedPadding.left
+        : resolvedPadding.right;
+    // InputDecorator 在存在 prefixIcon / suffixIcon 时会忽略 contentPadding
+    // 的水平部分，只在图标和输入区之间留一个固定 gap，所以图标内边距要在
+    // 图标自身补齐。
+    final inputGap = Theme.of(context).useMaterial3 ? 4.0 : 0.0;
+    final iconTextGap = math.max(0.0, iconSpacing - inputGap);
     final field = Material(
       color: Colors.transparent,
       child: TextField(
@@ -253,8 +270,24 @@ class AppGlassFlatTextFieldBackend extends StatelessWidget {
         decoration: InputDecoration(
           hintText: placeholder,
           hintStyle: placeholderStyle,
-          prefixIcon: prefixIcon,
-          suffixIcon: suffixIcon,
+          prefixIcon: prefixIcon == null
+              ? null
+              : Padding(
+                  padding: EdgeInsetsDirectional.only(
+                    start: leadingInset,
+                    end: iconTextGap,
+                  ),
+                  child: prefixIcon,
+                ),
+          suffixIcon: suffixIcon == null
+              ? null
+              : Padding(
+                  padding: EdgeInsetsDirectional.only(
+                    start: iconTextGap,
+                    end: trailingInset,
+                  ),
+                  child: suffixIcon,
+                ),
           prefixIconConstraints: const BoxConstraints(
             minWidth: 0,
             minHeight: 0,

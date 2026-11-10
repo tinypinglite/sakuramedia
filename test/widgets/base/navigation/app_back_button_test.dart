@@ -14,7 +14,6 @@ void main() {
         body: Center(
           child: AppBackButton(
             key: const Key('test-back'),
-            variant: AppBackButtonVariant.mediaOverlay,
             onPressed: () => pressed++,
           ),
         ),

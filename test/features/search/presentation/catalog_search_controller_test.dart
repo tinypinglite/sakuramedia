@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_subscription_toggle_result.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_state.dart';
 
@@ -129,10 +130,7 @@ void main() {
   });
 
   test('submit switches to actors tab when only local actors match', () async {
-    _enqueueLocalSearch(
-      bundle,
-      actors: <Map<String, dynamic>>[_actorItem()],
-    );
+    _enqueueLocalSearch(bundle, actors: <Map<String, dynamic>>[_actorItem()]);
 
     await controller.submit('mikami', useOnlineSearch: false);
 
@@ -144,6 +142,44 @@ void main() {
     expect(controller.actorResults.single.id, 1);
     expect(controller.movieResults, isEmpty);
     expect(controller.errorMessage, isNull);
+  });
+
+  test('local search forwards movie filters and explicit sort', () async {
+    bundle.adapter.setFallbackJson(
+      method: 'GET',
+      path: '/movies',
+      body: _page(<Map<String, dynamic>>[_movieItem()]),
+    );
+    bundle.adapter.setFallbackJson(
+      method: 'GET',
+      path: '/actors',
+      body: _page(const <Map<String, dynamic>>[]),
+    );
+
+    await controller.submit('abp123', useOnlineSearch: false);
+    await controller.applyMovieFilter(
+      const MovieFilterState(
+        status: MovieStatusFilter.playable,
+        collectionType: MovieCollectionTypeFilter.all,
+        years: <int>{2024},
+      ),
+    );
+    await controller.setMovieSort(
+      field: MovieSortField.heat,
+      direction: SortDirection.desc,
+    );
+
+    final movieRequests = bundle.adapter.requests
+        .where((request) => request.path == '/movies')
+        .toList();
+    expect(movieRequests, hasLength(3));
+    expect(movieRequests.first.uri.queryParameters['collection_type'], 'all');
+    final parameters = movieRequests.last.uri.queryParameters;
+    expect(parameters['query'], 'abp123');
+    expect(parameters['status'], 'playable');
+    expect(parameters['collection_type'], 'all');
+    expect(parameters['year'], '2024');
+    expect(parameters['sort'], 'heat:desc');
   });
 
   test('setActiveKind only switches visible tab state', () async {
@@ -181,10 +217,7 @@ void main() {
   });
 
   test('toggleMovieSubscription updates matched movie result state', () async {
-    _enqueueLocalSearch(
-      bundle,
-      movies: <Map<String, dynamic>>[_movieItem()],
-    );
+    _enqueueLocalSearch(bundle, movies: <Map<String, dynamic>>[_movieItem()]);
     bundle.adapter.enqueueJson(
       method: 'PUT',
       path: '/movies/ABP-123/subscription',
@@ -233,10 +266,7 @@ void main() {
   );
 
   test('toggleActorSubscription updates matched actor result state', () async {
-    _enqueueLocalSearch(
-      bundle,
-      actors: <Map<String, dynamic>>[_actorItem()],
-    );
+    _enqueueLocalSearch(bundle, actors: <Map<String, dynamic>>[_actorItem()]);
     bundle.adapter.enqueueJson(
       method: 'PUT',
       path: '/actors/1/subscription',
@@ -255,10 +285,7 @@ void main() {
   test(
     'applyMovieSubscriptionChange updates matched movie result state',
     () async {
-      _enqueueLocalSearch(
-        bundle,
-        movies: <Map<String, dynamic>>[_movieItem()],
-      );
+      _enqueueLocalSearch(bundle, movies: <Map<String, dynamic>>[_movieItem()]);
 
       await controller.submit('abp123', useOnlineSearch: false);
       controller.applyMovieSubscriptionChange(
@@ -475,10 +502,7 @@ void main() {
         ],
         keepOpen: true,
       );
-      _enqueueLocalSearch(
-        bundle,
-        actors: <Map<String, dynamic>>[_actorItem()],
-      );
+      _enqueueLocalSearch(bundle, actors: <Map<String, dynamic>>[_actorItem()]);
 
       unawaited(controller.submit('abp123', useOnlineSearch: true));
       await _waitForRequest(bundle, 'POST', '/movies/metadata-imports');

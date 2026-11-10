@@ -193,6 +193,9 @@ class _MobileRootShellScopeState extends ConsumerState<_MobileRootShellScope> {
             )
           : null,
       drawerEnableOpenDragGesture: enableOverviewDrawerDrag,
+      drawerScrimColor: Colors.black.withValues(
+        alpha: Theme.of(context).brightness == Brightness.dark ? 0.32 : 0.16,
+      ),
       background: const AppMobileAmbientBackdrop(child: SizedBox.expand()),
       onDestinationSelected: (index) {
         navigationShell.goBranch(

@@ -145,6 +145,14 @@ void main() {
                 : desktopSearchPageCacheKey(queryLocation),
           ),
         );
+        expect(
+          find.byKey(const Key('catalog-search-filter-trigger')),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key('catalog-search-sort-trigger')),
+          findsOneWidget,
+        );
 
         await tester.tap(
           find.byKey(const Key('movie-summary-card-$_movieNumber')),

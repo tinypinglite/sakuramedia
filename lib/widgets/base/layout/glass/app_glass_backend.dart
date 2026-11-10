@@ -298,6 +298,7 @@ class AppGlassTextFieldBackend extends StatelessWidget {
         textStyle: textStyle,
         placeholderStyle: placeholderStyle,
         padding: padding,
+        iconSpacing: iconSpacing,
         height: height,
         borderRadius: borderRadius,
         fillColor: fillColor,

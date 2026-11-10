@@ -4,7 +4,7 @@
 
 路径：`lib/widgets/base/forms/app_text_field.dart`
 
-统一文本输入样式、标签、错误和辅助文案，内部使用玻璃层文本输入后端 + `FormField`。正常态使用 `input` role：浅色明亮乳白玻璃井 + 上亮下暗的 1px rim，不再叠均匀 `borderSubtle` 外框；深色模式保持深玻璃。placeholder 使用 `secondary`，保证透光时仍可读。顶栏等已有玻璃容器上的输入传 `AppGlassTone.toolbar`，使用更轻的 `toolbarInput`；高对比度回退为实色输入面并用 `borderStrong` 描边。`fillColor` 覆盖输入面填充色，`borderRadius` 映射到玻璃形状。页面负责 controller、校验和提交时机；固定高度用 `height`，多行用 `minLines` / `maxLines`，不再提供 `expands`。label、helper 和 error 位于玻璃面外侧，错误文案继续参与表单校验并由 live region 播报。
+统一文本输入样式、标签、错误和辅助文案，内部使用玻璃层文本输入后端 + `FormField`。正常态使用 `input` role：浅色为低透明度中性玻璃井 + 上亮下暗的 1px rim，不再叠均匀 `borderSubtle` 外框，也不使用会发白的 `whitenStrength`；深色模式保持深玻璃。placeholder 使用 `secondary`，保证透光时仍可读。顶栏等已有玻璃容器上的输入传 `AppGlassTone.toolbar`，使用更轻的 `toolbarInput`；高对比度回退为实色输入面并用 `borderStrong` 描边。`fillColor` 覆盖输入面填充色，`borderRadius` 映射到玻璃形状。页面负责 controller、校验和提交时机；固定高度用 `height`，多行用 `minLines` / `maxLines`，不再提供 `expands`。label、helper 和 error 位于玻璃面外侧，错误文案继续参与表单校验并由 live region 播报。
 
 ## `AppGlassSearchField`
 

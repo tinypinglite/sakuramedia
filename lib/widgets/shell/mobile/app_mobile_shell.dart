@@ -17,6 +17,7 @@ class AppMobileShell extends StatelessWidget {
     this.onDestinationSelected,
     this.drawer,
     this.drawerEnableOpenDragGesture = false,
+    this.drawerScrimColor,
     this.background,
     required this.child,
   });
@@ -27,6 +28,7 @@ class AppMobileShell extends StatelessWidget {
   final ValueChanged<int>? onDestinationSelected;
   final Widget? drawer;
   final bool drawerEnableOpenDragGesture;
+  final Color? drawerScrimColor;
 
   /// 页面内容安全区之外的整屏底色/环境光；为空时使用卡片底色。
   ///
@@ -63,6 +65,7 @@ class AppMobileShell extends StatelessWidget {
             drawer: drawer,
             drawerEnableOpenDragGesture:
                 drawer != null && drawerEnableOpenDragGesture,
+            drawerScrimColor: drawerScrimColor,
             drawerEdgeDragWidth: _resolveDrawerEdgeDragWidth(context),
             body: SafeArea(
               key: const Key('mobile-shell-body-safe-area'),

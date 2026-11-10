@@ -35,18 +35,13 @@ Future<T?> showAppBottomDrawer<T>({
     shape: const RoundedRectangleBorder(),
     clipBehavior: Clip.none,
     builder: (sheetContext) {
-      final spacing = sheetContext.appSpacing;
-      Widget drawer = Padding(
-        padding: EdgeInsets.all(spacing.sm),
-        child: AppBottomDrawerSurface(
-          key: drawerKey,
-          heightFactor: heightFactor,
-          maxHeightFactor: maxHeightFactor,
-          showHandle: showHandle,
-          contentPadding: contentPadding,
-          verticalMargin: spacing.sm,
-          child: builder(sheetContext),
-        ),
+      Widget drawer = AppBottomDrawerSurface(
+        key: drawerKey,
+        heightFactor: heightFactor,
+        maxHeightFactor: maxHeightFactor,
+        showHandle: showHandle,
+        contentPadding: contentPadding,
+        child: builder(sheetContext),
       );
 
       if (useSafeArea && ignoreTopSafeArea) {
@@ -128,7 +123,6 @@ class AppBottomDrawerSurface extends StatelessWidget {
     this.maxHeightFactor,
     this.showHandle = true,
     this.contentPadding,
-    this.verticalMargin = 0,
   });
 
   static const double _handleWidth = 36;
@@ -141,15 +135,14 @@ class AppBottomDrawerSurface extends StatelessWidget {
   final bool showHandle;
   final EdgeInsetsGeometry? contentPadding;
 
-  /// 外層浮动边距的上下部分，只参与高度预算，不在这里实际绘制。
-  final double verticalMargin;
-
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.sizeOf(context).height;
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final availableHeight = (screenHeight - bottomInset - verticalMargin * 2)
-        .clamp(0.0, screenHeight);
+    final availableHeight = (screenHeight - bottomInset).clamp(
+      0.0,
+      screenHeight,
+    );
     final colors = context.appColors;
     final spacing = context.appSpacing;
     final resolvedContentPadding =
@@ -167,6 +160,9 @@ class AppBottomDrawerSurface extends StatelessWidget {
     );
 
     final content = AppModalGlassSurface(
+      borderRadius: BorderRadius.vertical(
+        top: Radius.circular(context.appRadius.xl),
+      ),
       child: Stack(
         fit: StackFit.passthrough,
         children: [

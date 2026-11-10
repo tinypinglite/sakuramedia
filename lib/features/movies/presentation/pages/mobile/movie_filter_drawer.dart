@@ -28,6 +28,8 @@ Future<void> showMobileMovieFilterDrawer(
   bool isYearOptionsLoading = false,
   String? yearOptionsErrorMessage,
   VoidCallback? onYearOptionsRetry,
+  MovieFilterState Function(MovieFilterState current)? resetBuilder,
+  bool Function(MovieFilterState value)? isDefault,
 }) {
   return showAppBottomDrawer<void>(
     context: context,
@@ -36,9 +38,9 @@ Future<void> showMobileMovieFilterDrawer(
     builder: (sheetContext) => AppMobileFilterDrawer<MovieFilterState>(
       current: current,
       // 重置只清筛选条件，保留排序入口选择的排序。
-      initial: current.resetFilters(),
+      initial: resetBuilder?.call(current) ?? current.resetFilters(),
       onChanged: onChanged,
-      isDefault: (value) => !value.hasActiveFilters,
+      isDefault: isDefault ?? (value) => !value.hasActiveFilters,
       extraActive: extraActive,
       onExtraReset: onResetExtra,
       scrollViewKey: const Key('mobile-movies-filter-scroll-view'),

@@ -85,22 +85,18 @@ class AppMobileSubpageAppBar extends StatelessWidget
                   ],
                 ),
               ),
+              child: const SizedBox.expand(),
             )
           : null,
-      leadingWidth: useGlassChrome
-          ? 60
-          : context.appComponentTokens.mobileSubpageLeadingWidth,
+      leadingWidth: context.appComponentTokens.mobileSubpageLeadingWidth,
       titleSpacing: 0, // 默认 16
       leading: Padding(
         padding: EdgeInsets.only(left: context.appSpacing.sm),
         child: Center(
           child: AppBackButton(
             key: const Key('mobile-subpage-back-button'),
-            variant: useGlassChrome
-                ? AppBackButtonVariant.glass
-                : immersive
-                ? AppBackButtonVariant.mediaOverlay
-                : AppBackButtonVariant.solid,
+            variant: AppBackButtonVariant.glass,
+            size: AppBackButtonSize.touch,
             onPressed: onBack,
           ),
         ),

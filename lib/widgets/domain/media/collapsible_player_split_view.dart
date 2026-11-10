@@ -98,7 +98,7 @@ class _CollapsiblePlayerSplitViewState extends State<CollapsiblePlayerSplitView>
       _animatePanelFlexTo(0);
     }
     if (widget.collapseRequest != oldWidget.collapseRequest) {
-      _animatePanelFlexTo(0);
+      _collapseImmediately();
     }
   }
 
@@ -143,6 +143,17 @@ class _CollapsiblePlayerSplitViewState extends State<CollapsiblePlayerSplitView>
     _animationBeginFlex = from;
     _animationEndFlex = target;
     _animationController.forward(from: 0);
+  }
+
+  /// 屏幕旋转等外部请求不做滑出动画：旋转后顶栏按钮会重新排到屏幕右侧，
+  /// 继续动画会让常显开关从中间滑过去、短暂压住旋转/信息按钮。旋转本身就是
+  /// 一次布局跳变，这里直接收口更稳。
+  void _collapseImmediately() {
+    _animationController.stop();
+    _animationBeginFlex = 0;
+    _animationEndFlex = 0;
+    _expanded = false;
+    _controller.areas[1].flex = 0;
   }
 
   void _togglePanel() {

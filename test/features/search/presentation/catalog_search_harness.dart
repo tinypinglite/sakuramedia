@@ -3,6 +3,7 @@ import 'package:sakuramedia/features/actors/data/api/actors_api.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actors_api_provider.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_provider.dart';
@@ -43,6 +44,9 @@ class CatalogSearchHarness {
   dynamic get streamStatus => _state.streamStatus;
   List get movieResults => _state.movieResults;
   List get actorResults => _state.actorResults;
+  MovieFilterState get movieFilter => _state.movieFilter;
+  MovieSortField? get movieSortField => _state.movieSortField;
+  SortDirection get movieSortDirection => _state.movieSortDirection;
 
   bool isMovieSubscriptionUpdating(String movieNumber) =>
       _state.isMovieSubscriptionUpdating(movieNumber);
@@ -58,6 +62,17 @@ class CatalogSearchHarness {
   void setActiveKind(CatalogSearchKind kind) => _container
       .read(catalogSearchProvider(_scope).notifier)
       .setActiveKind(kind);
+
+  Future<void> applyMovieFilter(MovieFilterState filter) => _container
+      .read(catalogSearchProvider(_scope).notifier)
+      .applyMovieFilter(filter);
+
+  Future<void> setMovieSort({
+    required MovieSortField? field,
+    required SortDirection direction,
+  }) => _container
+      .read(catalogSearchProvider(_scope).notifier)
+      .setMovieSort(field: field, direction: direction);
 
   Future<MovieSubscriptionToggleResult> toggleMovieSubscription({
     required String movieNumber,

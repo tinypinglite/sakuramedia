@@ -7,6 +7,8 @@ import 'package:sakuramedia/app/page_cache_keys.dart';
 import 'package:sakuramedia/app/providers/riverpod_page_cache_provider.dart';
 import 'package:sakuramedia/app/riverpod_page_cache.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
+import 'package:sakuramedia/features/movies/presentation/pages/mobile/movie_filter_drawer.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_placeholders.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_provider.dart';
@@ -21,8 +23,13 @@ import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_sort_menu_button.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_summary_grid.dart';
+import 'package:sakuramedia/widgets/domain/movies/movie_filter_sections.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 import 'package:sakuramedia/widgets/domain/search/catalog_search_field.dart';
 import 'package:sakuramedia/widgets/domain/search/catalog_search_stream_status_card.dart';
@@ -169,16 +176,7 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
               onSearchTap: _submitSearch,
             ),
             SizedBox(height: context.appSpacing.xs),
-            AppTabBar(
-              controller: _tabController,
-              onTap: (index) => ref
-                  .read(catalogSearchProvider(_scope).notifier)
-                  .setActiveKind(_kindForIndex(index)),
-              tabs: [
-                Tab(text: l10n.widgetSearchTabMovies),
-                Tab(text: l10n.widgetSearchTabActors),
-              ],
-            ),
+            _buildSearchToolbar(context, state, l10n),
             SizedBox(height: context.appSpacing.lg),
           ],
         ),
@@ -299,6 +297,150 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
           ),
         );
     }
+  }
+
+  Widget _buildSearchToolbar(
+    BuildContext context,
+    CatalogSearchState state,
+    AppLocalizations l10n,
+  ) {
+    final tabs = AppTabBar(
+      controller: _tabController,
+      onTap: (index) => ref
+          .read(catalogSearchProvider(_scope).notifier)
+          .setActiveKind(_kindForIndex(index)),
+      tabs: [
+        Tab(text: l10n.widgetSearchTabMovies),
+        Tab(text: l10n.widgetSearchTabActors),
+      ],
+    );
+    final showMovieControls =
+        state.activeKind == CatalogSearchKind.movies &&
+        !state.isOnlineSearchActive &&
+        !state.useOnlineSearch &&
+        state.query.isNotEmpty;
+    if (!showMovieControls) {
+      return tabs;
+    }
+
+    final notifier = ref.read(catalogSearchProvider(_scope).notifier);
+    if (widget.mobile) {
+      return Row(
+        children: [
+          Expanded(child: tabs),
+          SizedBox(width: context.appSpacing.xs),
+          AppGlassFilterIconButton(
+            key: const Key('catalog-search-filter-trigger'),
+            summary: _movieFilterSummary(l10n, state),
+            isActive: state.hasActiveMovieFilters,
+            onPressed: () => unawaited(
+              showMobileMovieFilterDrawer(
+                context,
+                current: state.movieFilter,
+                onChanged: (value) =>
+                    unawaited(notifier.applyMovieFilter(value)),
+                resetBuilder: _resetSearchMovieFilter,
+                isDefault: (value) =>
+                    !CatalogSearchState.hasActiveMovieFilterConditions(value),
+              ),
+            ),
+          ),
+          SizedBox(width: context.appSpacing.xs),
+          _buildMovieSortButton(l10n, state),
+        ],
+      );
+    }
+
+    return Row(
+      children: [
+        Expanded(child: tabs),
+        SizedBox(width: context.appSpacing.md),
+        AppGlassFilterPopover(
+          panelKey: const Key('catalog-search-filter-panel'),
+          triggerKey: const Key('catalog-search-filter-trigger'),
+          label: _movieFilterSummary(l10n, state),
+          tooltip: l10n.baseFilterTooltip,
+          isDefault: !state.hasActiveMovieFilters,
+          onReset: () => unawaited(
+            notifier.applyMovieFilter(
+              _resetSearchMovieFilter(state.movieFilter),
+            ),
+          ),
+          scrollable: true,
+          panelBuilder: (context) => MovieFilterSectionGroup(
+            filterState: state.movieFilter,
+            onChanged: (value) => unawaited(notifier.applyMovieFilter(value)),
+          ),
+        ),
+        SizedBox(width: context.appSpacing.xs),
+        AppGlassHeaderGroup(children: [_buildMovieSortButton(l10n, state)]),
+      ],
+    );
+  }
+
+  Widget _buildMovieSortButton(
+    AppLocalizations l10n,
+    CatalogSearchState state,
+  ) {
+    final notifier = ref.read(catalogSearchProvider(_scope).notifier);
+    return AppSortMenuButton<MovieSortField>(
+      fields: MovieSortField.values,
+      selectedField: state.movieSortField,
+      allowDefaultOption: true,
+      defaultOptionLabel: l10n.searchSortRelevance,
+      fieldLabelBuilder: (value) => value.labelWith(l10n),
+      onFieldChanged: (value) => unawaited(
+        notifier.setMovieSort(
+          field: value,
+          direction: state.movieSortDirection,
+        ),
+      ),
+      selectedDirection: state.movieSortDirection,
+      onDirectionChanged: (value) => unawaited(
+        notifier.setMovieSort(field: state.movieSortField, direction: value),
+      ),
+      directionVisibleWhen: (value) => value != null,
+      useDrawer: widget.mobile,
+      iconOnly: widget.mobile,
+      glassGrouped: !widget.mobile,
+      triggerKey: const Key('catalog-search-sort-trigger'),
+      panelKey: const Key('catalog-search-sort-panel'),
+      drawerKey: const Key('catalog-search-sort-drawer'),
+      fieldKeyBuilder: (value) =>
+          Key('catalog-search-sort-field-${value.name}'),
+      directionKeyBuilder: (value) =>
+          Key('catalog-search-sort-direction-${value.name}'),
+      defaultOptionKey: const Key('catalog-search-sort-relevance'),
+    );
+  }
+
+  String _movieFilterSummary(AppLocalizations l10n, CatalogSearchState state) {
+    if (!state.hasActiveMovieFilters) {
+      return l10n.baseFilterTooltip;
+    }
+    final filter = state.movieFilter;
+    final labels = <String>[
+      if (filter.status != MovieStatusFilter.all) filter.status.labelWith(l10n),
+      if (filter.collectionType != MovieCollectionTypeFilter.all)
+        filter.collectionType.labelWith(l10n),
+      if (filter.numberSource != MovieNumberSourceFilter.all)
+        filter.numberSource.labelWith(l10n),
+      if (filter.years.isNotEmpty) movieFilterYearsLabel(filter.years, l10n),
+      if (filter.hasInteractionRange)
+        filter.interaction.localizedSummaryLabel(l10n),
+      if (filter.hasActorAgeRange)
+        movieActorAgeRangeLabel(filter.actorAgeMin, filter.actorAgeMax, l10n),
+      if (filter.resolution != null) filter.resolution!.label,
+    ];
+    return labels.isEmpty ? l10n.baseFilterTooltip : labels.join(' · ');
+  }
+
+  MovieFilterState _resetSearchMovieFilter(MovieFilterState current) {
+    return initialCatalogSearchMovieFilter.copyWith(
+      sortField: current.sortField,
+      sortDirection: current.sortDirection,
+      dimensionSortId: current.dimensionSortId,
+    );
   }
 
   Widget _buildLocalEmptyFallback(BuildContext context, String message) {

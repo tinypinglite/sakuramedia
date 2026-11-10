@@ -90,7 +90,7 @@ class AppGlassSurface extends StatelessWidget {
     final settings = AppGlassStyle.settingsFor(context, role);
     final quality = AppGlassStyle.qualityFor(role);
 
-    if (!shape.isLeftOnly) {
+    if (!shape.isLeftOnly && !shape.isRightOnly) {
       return GlassContainer(
         width: width,
         height: height,
@@ -113,12 +113,15 @@ class AppGlassSurface extends StatelessWidget {
       Directionality.of(context),
     );
     final contentWidth = math.max(0.0, panelWidth - resolvedPadding.horizontal);
-    final expandedWidth = panelWidth + shape.leftRadius;
+    final edgeRadius = shape.isRightOnly ? shape.rightRadius : shape.leftRadius;
+    final expandedWidth = panelWidth + edgeRadius;
     final glass = GlassContainer(
       width: expandedWidth,
       height: height,
       padding: padding,
-      alignment: Alignment.centerLeft,
+      alignment: shape.isRightOnly
+          ? Alignment.centerRight
+          : Alignment.centerLeft,
       shape: shape.shape,
       settings: settings,
       quality: quality,
@@ -133,7 +136,9 @@ class AppGlassSurface extends StatelessWidget {
       child: ClipRect(
         clipBehavior: Clip.hardEdge,
         child: OverflowBox(
-          alignment: Alignment.centerLeft,
+          alignment: shape.isRightOnly
+              ? Alignment.centerRight
+              : Alignment.centerLeft,
           minWidth: expandedWidth,
           maxWidth: expandedWidth,
           child: glass,
@@ -183,6 +188,19 @@ class AppGlassSurface extends StatelessWidget {
         shape: LiquidRoundedRectangle(borderRadius: topLeft.x),
         leftRadius: topLeft.x,
         isLeftOnly: true,
+      );
+    }
+
+    final rightOnly =
+        topRight == bottomRight &&
+        topRight.x == topRight.y &&
+        topLeft == Radius.zero &&
+        bottomLeft == Radius.zero;
+    if (rightOnly) {
+      return _PackageShape(
+        shape: LiquidRoundedRectangle(borderRadius: topRight.x),
+        rightRadius: topRight.x,
+        isRightOnly: true,
       );
     }
 
@@ -327,12 +345,16 @@ class _PackageShape {
   const _PackageShape({
     required this.shape,
     this.leftRadius = 0,
+    this.rightRadius = 0,
     this.isLeftOnly = false,
+    this.isRightOnly = false,
   });
 
   final LiquidShape shape;
   final double leftRadius;
+  final double rightRadius;
   final bool isLeftOnly;
+  final bool isRightOnly;
 }
 
 /// 顶部中央主光 + 左右对称衰减 + 底部微反射。

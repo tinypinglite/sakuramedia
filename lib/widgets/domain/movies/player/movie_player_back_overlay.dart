@@ -51,7 +51,8 @@ class MoviePlayerBackButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppBackButton(
       key: const Key('movie-player-back-button'),
-      variant: AppBackButtonVariant.mediaOverlay,
+      variant: AppBackButtonVariant.glass,
+      size: AppBackButtonSize.touch,
       onPressed: onPressed,
     );
   }

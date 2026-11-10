@@ -441,6 +441,7 @@ class _CastRemoteTopBar extends StatelessWidget {
           AppBackButton(
             key: const Key('cast-remote-back'),
             tooltip: l10n.castBack,
+            size: AppBackButtonSize.touch,
             onPressed: onBack,
           ),
           SizedBox(width: spacing.xs),

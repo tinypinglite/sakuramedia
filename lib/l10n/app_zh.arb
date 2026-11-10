@@ -3669,14 +3669,6 @@
       }
     }
   },
-  "mediaListTotalInvalidItems": "共 {count} 条失效媒体",
-  "@mediaListTotalInvalidItems": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "mediaListEnterSelection": "选择",
   "mediaListRefreshing": "刷新中",
   "mediaListClearSelection": "清空",
@@ -3887,7 +3879,6 @@
       }
     }
   },
-  "mediaListInvalidDescription": "媒体文件巡检确认文件已缺失的媒体会出现在这里，并显示文件丢失原因；删除后 JAV 影片会再次自动补库。",
   "mediaListInvalidEmpty": "当前没有失效媒体",
   "mediaListInvalidDeleteTitle": "删除失效媒体",
   "mediaListInvalidDeleteMessage": "确认删除“{name}”的这条失效媒体记录及实际存在的文件？该操作不可恢复，缩略图会保留用于同文件复用。",
@@ -4258,6 +4249,7 @@
   "widgetSearchHint": "如 SSNI-888、三上悠亚",
   "widgetSearchTabMovies": "影片",
   "widgetSearchTabActors": "女优",
+  "searchSortRelevance": "相关度",
   "widgetSearchInputPrompt": "输入关键词开始搜索",
   "widgetSearchLocalNoMovies": "本地库未找到匹配影片",
   "widgetSearchOnlineNoMovie": "在线源未找到该番号或未成功入库",
