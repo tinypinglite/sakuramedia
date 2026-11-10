@@ -193,7 +193,6 @@ NAS 不是必须的：后端可以跑在任何能长期运行 Docker 的机器�
 
 - 发现 Bug 或有功能建议：[提交 Issue](https://github.com/tinypinglite/sakuramedia/issues)。请附上客户端、后端和插件版本、复现步骤与相关日志；请勿上传不宜公开的影片截图、封面或个人信息。
 - 使用交流或求助：[参与 Discussions](https://github.com/tinypinglite/sakuramedia/discussions)。
-- 敏感问题（涉及 App 截图、影片截图等不宜公开的内容）：[加入 Telegram 群](https://t.me/+ysbUBDExCsw5N2Jh)。
 - 遇到连接或导入问题，先在「概览 → 组件诊断」检查媒体库、索引器、JavDB 和嵌入服务的连通性。
 - 也可以把 `wiki/` 目录的 Markdown 交给 AI，说明你的问题和已尝试的步骤，通常能更快定位。
 - 项目处于快速迭代阶段；升级前请查看 Release 说明，前后端与插件尽量一起升级。
