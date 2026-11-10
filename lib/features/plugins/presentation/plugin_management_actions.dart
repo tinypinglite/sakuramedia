@@ -10,6 +10,7 @@ import 'package:sakuramedia/features/plugins/data/dto/plugin_market_dto.dart';
 import 'package:sakuramedia/features/plugins/presentation/plugin_zip_picker.dart';
 import 'package:sakuramedia/features/plugins/presentation/providers/plugin_market_provider.dart';
 import 'package:sakuramedia/features/plugins/presentation/providers/plugins_provider.dart';
+import 'package:sakuramedia/features/plugins/presentation/widgets/plugin_restart_notice_dialog.dart';
 import 'package:sakuramedia/features/shared/presentation/restart_messages.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
@@ -59,19 +60,11 @@ class PluginManagementActions {
     if (!confirmed || !context.mounted) {
       return;
     }
+    late final bool refreshed;
     try {
-      final refreshed = await ref
+      refreshed = await ref
           .read(pluginsProvider.notifier)
           .install(fileBytes: file.bytes, fileName: file.fileName);
-      if (!context.mounted) {
-        return;
-      }
-      showToast(
-        refreshed
-            ? buildRestartRequiredMessage(_l10n.pluginInstalled, _l10n)
-            : _l10n.pluginInstalledRefreshFailed,
-        tone: AppToastTone.warning,
-      );
     } catch (error) {
       if (context.mounted) {
         showToast(
@@ -83,6 +76,18 @@ class PluginManagementActions {
           tone: AppToastTone.error,
         );
       }
+      return;
+    }
+    if (!context.mounted) {
+      return;
+    }
+    await showPluginRestartNoticeDialog(
+      context,
+      action: PluginRestartNoticeAction.installed,
+      pluginName: file.fileName,
+    );
+    if (!refreshed && context.mounted) {
+      showToast(_l10n.pluginInstalledRefreshFailed, tone: AppToastTone.error);
     }
   }
 
@@ -177,9 +182,10 @@ class PluginManagementActions {
       failureFallback: _l10n.pluginUpgradeFailed,
     );
     if (confirmed && context.mounted) {
-      showToast(
-        buildRestartRequiredMessage(_l10n.pluginUpgraded, _l10n),
-        tone: AppToastTone.warning,
+      await showPluginRestartNoticeDialog(
+        context,
+        action: PluginRestartNoticeAction.upgraded,
+        pluginName: plugin.displayName,
       );
     }
   }
@@ -200,9 +206,10 @@ class PluginManagementActions {
       failureFallback: _l10n.pluginDeleteFailed,
     );
     if (confirmed && context.mounted) {
-      showToast(
-        buildRestartRequiredMessage(_l10n.pluginDeleted, _l10n),
-        tone: AppToastTone.warning,
+      await showPluginRestartNoticeDialog(
+        context,
+        action: PluginRestartNoticeAction.deleted,
+        pluginName: plugin.displayName,
       );
     }
   }
@@ -249,12 +256,6 @@ class PluginManagementActions {
     }
     try {
       await ref.read(pluginMarketProvider.notifier).install(plugin);
-      if (context.mounted) {
-        showToast(
-          buildRestartRequiredMessage(_l10n.pluginInstalled, _l10n),
-          tone: AppToastTone.warning,
-        );
-      }
     } catch (error) {
       if (context.mounted) {
         showToast(
@@ -266,7 +267,16 @@ class PluginManagementActions {
           tone: AppToastTone.error,
         );
       }
+      return;
     }
+    if (!context.mounted) {
+      return;
+    }
+    await showPluginRestartNoticeDialog(
+      context,
+      action: PluginRestartNoticeAction.installed,
+      pluginName: displayName,
+    );
   }
 
   /// 将已安装插件更新到市场索引里的最新版本。
@@ -302,12 +312,6 @@ class PluginManagementActions {
     }
     try {
       await ref.read(pluginMarketProvider.notifier).upgrade(plugin);
-      if (context.mounted) {
-        showToast(
-          buildRestartRequiredMessage(_l10n.pluginUpgraded, _l10n),
-          tone: AppToastTone.warning,
-        );
-      }
     } catch (error) {
       if (context.mounted) {
         showToast(
@@ -319,7 +323,16 @@ class PluginManagementActions {
           tone: AppToastTone.error,
         );
       }
+      return;
     }
+    if (!context.mounted) {
+      return;
+    }
+    await showPluginRestartNoticeDialog(
+      context,
+      action: PluginRestartNoticeAction.upgraded,
+      pluginName: displayName,
+    );
   }
 
   /// 复制市场条目的项目主页地址。

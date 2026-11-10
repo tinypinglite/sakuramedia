@@ -1223,6 +1223,33 @@
   },
   "pluginDeleted": "插件已删除",
   "pluginDeleteFailed": "删除插件失败",
+  "pluginRestartNoticeTitle": "需要重启后端",
+  "pluginRestartNoticeInstalledMessage": "插件包「{name}」已安装。请重启后端容器使变更生效；在重启前继续使用，可能会出现意想不到的错误。",
+  "@pluginRestartNoticeInstalledMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeUpgradedMessage": "插件「{name}」已更新。请重启后端容器使变更生效；在重启前继续使用，可能会出现意想不到的错误。",
+  "@pluginRestartNoticeUpgradedMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeDeletedMessage": "插件「{name}」已删除。请重启后端容器使变更生效；在重启前继续使用，可能会出现意想不到的错误。",
+  "@pluginRestartNoticeDeletedMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeCheckbox": "我已了解，需要重启后端容器后变更才会生效",
+  "pluginRestartNoticeConfirm": "我知道了",
   "pluginMarketInstallMessage": "将从 {repo} 下载 v{version} 安装包并安装「{name}」。",
   "@pluginMarketInstallMessage": {
     "placeholders": {

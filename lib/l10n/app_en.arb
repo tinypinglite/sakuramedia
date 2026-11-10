@@ -1223,6 +1223,33 @@
   },
   "pluginDeleted": "Plugin deleted",
   "pluginDeleteFailed": "Failed to delete plugin",
+  "pluginRestartNoticeTitle": "Restart required",
+  "pluginRestartNoticeInstalledMessage": "The plugin package \"{name}\" has been installed. Restart the backend container for the change to take effect. Using it before restarting may cause unexpected errors.",
+  "@pluginRestartNoticeInstalledMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeUpgradedMessage": "Plugin \"{name}\" has been updated. Restart the backend container for the change to take effect. Using it before restarting may cause unexpected errors.",
+  "@pluginRestartNoticeUpgradedMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeDeletedMessage": "Plugin \"{name}\" has been deleted. Restart the backend container for the change to take effect. Using it before restarting may cause unexpected errors.",
+  "@pluginRestartNoticeDeletedMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeCheckbox": "I understand that the backend container must be restarted for the change to take effect",
+  "pluginRestartNoticeConfirm": "Got it",
   "pluginMarketInstallMessage": "Download v{version} from {repo} and install \"{name}\".",
   "@pluginMarketInstallMessage": {
     "placeholders": {
