@@ -166,7 +166,7 @@ class _AcknowledgementCheckbox extends StatelessWidget {
                 SizedBox(width: spacing.sm),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.only(top: 1),
+                    padding: EdgeInsets.only(top: spacing.xs / 4),
                     child: Text(
                       label,
                       style: resolveAppTextStyle(

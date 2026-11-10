@@ -1211,7 +1211,6 @@
     }
   },
   "pluginUpgradeFailed": "更新插件失败",
-  "pluginUpgraded": "插件已更新",
   "pluginDeleteTitle": "删除插件",
   "pluginDeleteMessage": "确认删除「{name}」的插件代码？运行数据（data/）会保留，可在重新安装同一插件后继续使用；仍被媒体库使用的存储插件无法删除。",
   "@pluginDeleteMessage": {
@@ -1221,7 +1220,6 @@
       }
     }
   },
-  "pluginDeleted": "插件已删除",
   "pluginDeleteFailed": "删除插件失败",
   "pluginRestartNoticeTitle": "需要重启后端",
   "pluginRestartNoticeInstalledMessage": "插件包「{name}」已安装。请重启后端容器使变更生效；在重启前继续使用，可能会出现意想不到的错误。",

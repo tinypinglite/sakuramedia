@@ -1211,7 +1211,6 @@
     }
   },
   "pluginUpgradeFailed": "Failed to update plugin",
-  "pluginUpgraded": "Plugin updated",
   "pluginDeleteTitle": "Delete plugin",
   "pluginDeleteMessage": "Delete the code for \"{name}\"? Its data/ will be kept and can be reused after reinstalling the same plugin. Storage plugins still used by a media library cannot be deleted.",
   "@pluginDeleteMessage": {
@@ -1221,7 +1220,6 @@
       }
     }
   },
-  "pluginDeleted": "Plugin deleted",
   "pluginDeleteFailed": "Failed to delete plugin",
   "pluginRestartNoticeTitle": "Restart required",
   "pluginRestartNoticeInstalledMessage": "The plugin package \"{name}\" has been installed. Restart the backend container for the change to take effect. Using it before restarting may cause unexpected errors.",
