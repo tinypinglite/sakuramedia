@@ -11,6 +11,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_route.dart';
 import 'package:sakuramedia/routes/app_route_registry.dart';
 import 'package:sakuramedia/routes/app_route_target.dart';
+import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_ambient_backdrop.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_shell.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
@@ -193,9 +194,7 @@ class _MobileRootShellScopeState extends ConsumerState<_MobileRootShellScope> {
             )
           : null,
       drawerEnableOpenDragGesture: enableOverviewDrawerDrag,
-      drawerScrimColor: Colors.black.withValues(
-        alpha: Theme.of(context).brightness == Brightness.dark ? 0.32 : 0.16,
-      ),
+      drawerScrimColor: context.appColors.modalBarrier,
       background: const AppMobileAmbientBackdrop(child: SizedBox.expand()),
       onDestinationSelected: (index) {
         navigationShell.goBranch(
