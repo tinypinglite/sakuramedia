@@ -21,7 +21,6 @@ Future<void> showAddToClipCollectionDialog(
     variant: presentation,
     config: CollectionMembershipConfig<ClipCollectionDto>(
       keyPrefix: 'add-to-clip-collection',
-      title: l10n.clipCollectionAddToCollection,
       searchHint: l10n.clipCollectionSearchHint,
       createLabel: l10n.clipCollectionCreate,
       emptyMessage: l10n.clipCollectionEmptyCreateHint,

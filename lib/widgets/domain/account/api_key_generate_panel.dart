@@ -9,6 +9,8 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
 
 /// 生成 API 密钥：先备注名后生成，生成成功后切换为一次性明文展示与复制。
 ///
@@ -105,6 +107,7 @@ class _ApiKeyGeneratePanelState extends ConsumerState<ApiKeyGeneratePanel> {
   Widget _buildForm(BuildContext context) {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
+    final isDrawer = AppAdaptiveModalShellScope.maybeIsDrawer(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -139,27 +142,13 @@ class _ApiKeyGeneratePanelState extends ConsumerState<ApiKeyGeneratePanel> {
           ),
         ],
         SizedBox(height: spacing.lg),
-        Row(
-          children: [
-            Expanded(
-              child: AppButton(
-                label: l10n.commonCancel,
-                onPressed: _isGenerating
-                    ? null
-                    : () => Navigator.of(context).pop(),
-              ),
-            ),
-            SizedBox(width: spacing.md),
-            Expanded(
-              child: AppButton(
-                key: _generateSubmitKey,
-                label: l10n.apiKeyGenerateAction,
-                variant: AppButtonVariant.primary,
-                isLoading: _isGenerating,
-                onPressed: _generate,
-              ),
-            ),
-          ],
+        AppModalActionRow(
+          submitKey: _generateSubmitKey,
+          submitLabel: l10n.apiKeyGenerateAction,
+          showCancel: false,
+          equalWidth: isDrawer,
+          isSubmitting: _isGenerating,
+          onSubmit: _generate,
         ),
       ],
     );

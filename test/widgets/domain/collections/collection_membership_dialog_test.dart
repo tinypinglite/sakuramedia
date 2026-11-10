@@ -41,7 +41,6 @@ void main() {
     final removeCalls = <int>[];
     final config = CollectionMembershipConfig<_FakeCollection>(
       keyPrefix: 'test-membership',
-      title: '加入合集',
       searchHint: '搜索合集',
       createLabel: '新建合集',
       emptyMessage: '暂无合集',

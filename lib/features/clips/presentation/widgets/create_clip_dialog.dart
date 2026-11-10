@@ -7,9 +7,9 @@ import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 
 import 'package:sakuramedia/features/clips/presentation/providers/clips_api_provider.dart';
@@ -158,27 +158,13 @@ class _CreateClipDialogState extends ConsumerState<CreateClipDialog> {
             ),
           ),
           SizedBox(height: spacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: AppButton(
-                  label: l10n.commonCancel,
-                  onPressed: _isSubmitting
-                      ? null
-                      : () => Navigator.of(context).pop(),
-                ),
-              ),
-              SizedBox(width: spacing.md),
-              Expanded(
-                child: AppButton(
-                  key: const Key('create-clip-submit-button'),
-                  label: l10n.clipCreateAction,
-                  variant: AppButtonVariant.primary,
-                  isLoading: _isSubmitting,
-                  onPressed: _submit,
-                ),
-              ),
-            ],
+          AppModalActionRow(
+            submitKey: const Key('create-clip-submit-button'),
+            submitLabel: l10n.clipCreateAction,
+            showCancel: false,
+            equalWidth: false,
+            isSubmitting: _isSubmitting,
+            onSubmit: _submit,
           ),
         ],
       ),

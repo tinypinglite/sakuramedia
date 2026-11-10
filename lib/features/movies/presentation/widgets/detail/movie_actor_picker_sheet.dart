@@ -151,9 +151,7 @@ class _MovieActorPickerSheetState extends State<MovieActorPickerSheet> {
           title: isCreate
               ? l10n.movieWidgetCreateLocalActorTitle
               : l10n.movieWidgetAddActorTitle,
-          subtitle: isCreate
-              ? l10n.movieWidgetCreateLocalActorSubtitle
-              : l10n.movieWidgetActorPickerSubtitle,
+          subtitle: isCreate ? l10n.movieWidgetCreateLocalActorSubtitle : null,
           submitKey: Key(
             isCreate
                 ? 'movie-actor-create-confirm'

@@ -4,7 +4,7 @@
 
 路径：`lib/widgets/base/forms/app_text_field.dart`
 
-统一文本输入样式、标签、错误和辅助文案，内部使用玻璃层文本输入后端 + `FormField`。正常态使用 `input` role：浅色为低透明度中性玻璃井 + 上亮下暗的 1px rim，不再叠均匀 `borderSubtle` 外框，也不使用会发白的 `whitenStrength`；深色模式保持深玻璃。placeholder 使用 `secondary`，保证透光时仍可读。顶栏等已有玻璃容器上的输入传 `AppGlassTone.toolbar`，使用更轻的 `toolbarInput`；高对比度回退为实色输入面并用 `borderStrong` 描边。`fillColor` 覆盖输入面填充色，`borderRadius` 映射到玻璃形状。页面负责 controller、校验和提交时机；固定高度用 `height`，多行用 `minLines` / `maxLines`，不再提供 `expands`。label、helper 和 error 位于玻璃面外侧，错误文案继续参与表单校验并由 live region 播报。
+统一文本输入样式、标签、错误和辅助文案，内部使用 app-owned 玻璃输入体 + `FormField`。正常态使用 `input` role：浅色为低透明度中性玻璃井 + 上亮下暗的 1px rim，不再叠均匀 `borderSubtle` 外框，也不使用会发白的 `whitenStrength`；深色模式保持深玻璃。输入体使用 `CupertinoTextField` 保留项目原有的文本选择与键盘行为，但不绘制键盘焦点环，聚焦时只保留光标和玻璃边光。placeholder 使用 `secondary`，保证透光时仍可读。顶栏等已有玻璃容器上的输入传 `AppGlassTone.toolbar`，使用更轻的 `toolbarInput`；高对比度回退为实色输入面并用 `borderStrong` 描边。`fillColor` 覆盖输入面填充色，`borderRadius` 映射到玻璃形状。页面负责 controller、校验和提交时机；固定高度用 `height`，多行用 `minLines` / `maxLines`，不再提供 `expands`。label、helper 和 error 位于玻璃面外侧，错误文案继续参与表单校验并由 live region 播报。
 
 ## `AppGlassSearchField`
 
@@ -49,7 +49,7 @@
 
 路径：`lib/widgets/base/forms/app_picker_header.dart`
 
-选择器弹层头部按 iOS sheet 导航栏布局：左侧关闭、中间标题、右侧完成。可以同时传 `onClose` 与 `onDone`；不传 `onDone` 时右侧「完成」回退到 `onClose`，因此只关闭弹层的选择器不必重复传同一个回调。桌面弹窗和移动抽屉都把 `showCloseButton` / `showDesktopCloseButton` 关掉。标题下可选说明，再往下是带清空的 `AppGlassSearchField` 和横向筛选 chips。不需要搜索的简单选择器可以不传 `searchController`，防抖仍由调用方处理。
+选择器弹层头部按需渲染 iOS sheet 导航栏：标题和 `onDone` 只在调用方显式传入时显示；两者都为空时导航行不占高度，只保留搜索框和筛选 chips。即时生效的选择器（点选后立即返回或立即写入）不显示标题和完成操作：移动端靠下拉、遮罩或系统返回关闭，桌面端靠弹窗外壳右上角 X 关闭。需要先编辑再确认的草稿式选择器可以保留标题和 `onDone`。标题下可选说明，再往下是带清空的 `AppGlassSearchField` 和横向筛选 chips；防抖由调用方处理。
 
 ## `AppPickerIosSection` / `AppPickerIosRow`
 

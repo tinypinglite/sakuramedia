@@ -17,6 +17,9 @@
 
 桌面与移动使用同一套组件与 token，不做平台差异。
 
+文本输入框是例外：`AppTextField` / `AppGlassSearchField` 不绘制键盘焦点环，
+聚焦时只保留输入光标和玻璃输入面自身的静态边光。
+
 已接入 `AppInteractiveSurface`：`AppButton`、`AppTextButton`、`AppIconButton`、
 `AppSwitch`、`AppLeftCoverCard`、`ActorSummaryCard`、
 封面网格卡（切片 / 时刻 / 视频 / 合集成员 / 合集封面 / 图片搜索）与

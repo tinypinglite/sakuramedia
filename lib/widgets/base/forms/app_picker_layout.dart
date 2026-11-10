@@ -12,10 +12,18 @@ import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 /// 抽屉里占满剩余高度；桌面弹窗按内容收缩，最高 400。
 /// 列表本身仍由调用方构建，保留各自的数据、分页和滚动控制器。
 class AppPickerListFrame extends StatelessWidget {
-  const AppPickerListFrame({super.key, required this.child, this.isDrawer});
+  const AppPickerListFrame({
+    super.key,
+    required this.child,
+    this.isDrawer,
+    this.fillHeight = true,
+  });
 
   final Widget child;
   final bool? isDrawer;
+
+  /// 抽屉内是否占满剩余高度。关闭后按内容收缩，超过上限再滚动。
+  final bool fillHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +36,9 @@ class AppPickerListFrame extends StatelessWidget {
       child: child,
     );
     if (drawer) {
-      return Expanded(child: clippedChild);
+      return fillHeight
+          ? Expanded(child: clippedChild)
+          : Flexible(fit: FlexFit.loose, child: clippedChild);
     }
     return ConstrainedBox(
       constraints: const BoxConstraints(maxHeight: 400),
@@ -69,7 +79,12 @@ class AppPickerIosSection extends StatelessWidget {
           children[index + 1] is AppGlassDividerBackend) {
         continue;
       }
-      final hasLeading = child is AppPickerIosRow && child.leading != null;
+      final nextChild = children[index + 1];
+      final hasLeading =
+          (child is AppPickerIosRow && child.leading != null) ||
+          child is AppPickerIosActionRow ||
+          (nextChild is AppPickerIosRow && nextChild.leading != null) ||
+          nextChild is AppPickerIosActionRow;
       childrenWithDividers.add(
         AppGlassDividerBackend(
           indent: hasLeading ? (dividerIndent ?? 56) : 16,

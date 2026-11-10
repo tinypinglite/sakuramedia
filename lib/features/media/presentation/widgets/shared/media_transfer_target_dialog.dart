@@ -107,11 +107,10 @@ class _MediaTransferTargetDialogBodyState
         ),
         SizedBox(height: spacing.xl),
         AppModalActionRow(
-          cancelKey: const Key('media-management-transfer-cancel-button'),
           submitKey: const Key('media-management-transfer-confirm-button'),
-          cancelLabel: l10n.commonCancel,
           submitLabel: l10n.mediaListTransferConfirm,
-          onCancel: () => Navigator.of(context).pop(),
+          showCancel: false,
+          equalWidth: AppAdaptiveModalShellScope.maybeIsDrawer(context),
           onSubmit: () => Navigator.of(context).pop(_targetLibraryId),
         ),
       ],

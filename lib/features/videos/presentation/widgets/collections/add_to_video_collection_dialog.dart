@@ -22,7 +22,6 @@ Future<void> showAddToVideoCollectionDialog(
     variant: presentation,
     config: CollectionMembershipConfig<VideoCollectionDto>(
       keyPrefix: 'add-to-video-collection',
-      title: l10n.videoAddToCollection,
       searchHint: l10n.videoSearchCollections,
       createLabel: l10n.videoCreateCollectionAndAdd,
       emptyMessage: l10n.videoCollectionsEmptyDialog,

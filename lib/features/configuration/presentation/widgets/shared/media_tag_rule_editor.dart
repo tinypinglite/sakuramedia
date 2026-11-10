@@ -250,11 +250,11 @@ class _MediaTagRuleEditorState extends ConsumerState<_MediaTagRuleEditor> {
           ),
           SizedBox(height: spacing.lg),
           AppModalActionRow(
-            cancelLabel: l10n.commonCancel,
             submitLabel: l10n.commonSave,
             submitKey: const Key('media-tag-rule-save'),
             isSubmitting: _isSubmitting,
-            onCancel: _isSubmitting ? null : () => Navigator.of(context).pop(),
+            showCancel: false,
+            equalWidth: AppAdaptiveModalShellScope.maybeIsDrawer(context),
             onSubmit: _submit,
           ),
         ],

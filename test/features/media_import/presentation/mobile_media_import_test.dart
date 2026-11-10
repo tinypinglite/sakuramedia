@@ -136,7 +136,8 @@ void main() {
         _button(tester, 'media-import-picker-submit-button').onPressed,
         isNull,
       );
-      await _tap(tester, 'media-import-picker-cancel-button');
+      await tester.binding.handlePopRoute();
+      await tester.pumpAndSettle();
       expect(bundle.adapter.hitCount('POST', '/imports'), 0);
       expect(
         _button(tester, 'media-import-create-button').onPressed,

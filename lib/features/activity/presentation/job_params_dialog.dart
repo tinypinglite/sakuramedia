@@ -6,11 +6,11 @@ import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_switch.dart';
 import 'package:sakuramedia/widgets/base/forms/app_select_field.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
 
 const _mobileJobParamsHeightFactor = 0.82;
 
@@ -115,7 +115,7 @@ class _JobParamsDialogState extends State<_JobParamsDialog> {
             ),
           ),
           SizedBox(height: spacing.xl),
-          _buildActions(context, spacing),
+          _buildActions(context),
         ],
       ),
     );
@@ -135,7 +135,7 @@ class _JobParamsDialogState extends State<_JobParamsDialog> {
           child: SingleChildScrollView(child: _buildForm(context)),
         ),
         SizedBox(height: spacing.xl),
-        _buildActions(context, spacing),
+        _buildActions(context),
       ],
     );
   }
@@ -201,26 +201,14 @@ class _JobParamsDialogState extends State<_JobParamsDialog> {
     );
   }
 
-  Widget _buildActions(BuildContext context, AppSpacing spacing) {
+  Widget _buildActions(BuildContext context) {
     final l10n = AppLocalizations.of(context);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        AppButton(
-          key: const Key('activity-job-params-cancel-button'),
-          label: l10n.commonCancel,
-          size: AppButtonSize.small,
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        SizedBox(width: spacing.sm),
-        AppButton(
-          key: const Key('activity-job-params-submit-button'),
-          label: l10n.activityJobParamsSubmit,
-          size: AppButtonSize.small,
-          variant: AppButtonVariant.primary,
-          onPressed: _submit,
-        ),
-      ],
+    return AppModalActionRow(
+      submitKey: const Key('activity-job-params-submit-button'),
+      submitLabel: l10n.activityJobParamsSubmit,
+      showCancel: false,
+      equalWidth: widget.isMobile,
+      onSubmit: _submit,
     );
   }
 
@@ -306,8 +294,9 @@ class _JobParamsDialogState extends State<_JobParamsDialog> {
             ),
           ],
           validator: field.required
-              ? (value) =>
-                    value == null ? l10n.activityJobParamSelectRequired(field.label) : null
+              ? (value) => value == null
+                    ? l10n.activityJobParamSelectRequired(field.label)
+                    : null
               : null,
           onChanged: (value) => _setValue(field.name, value),
         );

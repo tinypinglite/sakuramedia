@@ -153,11 +153,10 @@ class _DownloadSelectionKeywordGroupEditorState
           ),
           SizedBox(height: spacing.lg),
           AppModalActionRow(
-            cancelKey: const Key('download-selection-keyword-group-cancel'),
             submitKey: const Key('download-selection-keyword-group-save'),
-            cancelLabel: l10n.commonCancel,
             submitLabel: l10n.commonSave,
-            onCancel: () => Navigator.of(context).pop(),
+            showCancel: false,
+            equalWidth: AppAdaptiveModalShellScope.maybeIsDrawer(context),
             onSubmit: _submit,
           ),
         ],

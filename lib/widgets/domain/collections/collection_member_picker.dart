@@ -42,7 +42,6 @@ mixin CollectionMemberPickerStateMixin<W extends ConsumerStatefulWidget, T>
   int _pickerRequestSeq = 0;
 
   String get pickerKeyPrefix;
-  String get pickerTitle;
   String get pickerSearchHint;
   String get pickerOnlyUnaddedLabel;
   String get pickerLoadErrorFallback;
@@ -291,17 +290,14 @@ mixin CollectionMemberPickerStateMixin<W extends ConsumerStatefulWidget, T>
       mainAxisSize: _pickerIsDrawer ? MainAxisSize.max : MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (!_pickerIsDrawer) SizedBox(height: spacing.lg),
         AppPickerHeader(
-          title: pickerTitle,
           searchController: pickerSearchController,
           searchFieldKey: pickerKey('search-field'),
           searchHintText: pickerSearchHint,
           clearSearchKey: pickerKey('search-clear'),
           onSearchChanged: _onPickerSearchChanged,
           chips: buildPickerFilterChips(context),
-          onClose: () => Navigator.of(context).pop(),
-          closeKey: pickerKey('close-button'),
-          doneKey: pickerKey('done-button'),
         ),
         SizedBox(height: spacing.lg),
         // 抽屉高度固定，列表占满剩余空间；弹窗按内容收缩。

@@ -7,12 +7,8 @@ import 'package:sakuramedia/widgets/base/forms/app_picker_header.dart';
 import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
-/// 合集选择器的标题、key 前缀和空态文案。
-typedef CollectionPickerChrome = ({
-  String title,
-  String keyPrefix,
-  String emptyMessage,
-});
+/// 合集选择器的 key 前缀和空态文案。
+typedef CollectionPickerChrome = ({String keyPrefix, String emptyMessage});
 
 /// 合集选择器共享的搜索输入与关键字。
 mixin CollectionPickerSearchState<T extends StatefulWidget> on State<T> {
@@ -109,15 +105,13 @@ class _CollectionPickerResultsState<T extends Object>
       mainAxisSize: isDrawer ? MainAxisSize.max : MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (!isDrawer) SizedBox(height: spacing.lg),
         AppPickerHeader(
-          title: widget.chrome.title,
           searchController: searchController,
           searchFieldKey: Key('${widget.chrome.keyPrefix}-search-field'),
           searchHintText: l10n.widgetCollectionPickerSearchHint,
           onSearchChanged: (value) => setState(() => updateSearch(value)),
           clearSearchKey: Key('${widget.chrome.keyPrefix}-search-clear'),
-          onClose: () => Navigator.of(context).pop(),
-          closeKey: Key('${widget.chrome.keyPrefix}-close-button'),
         ),
         SizedBox(height: spacing.lg),
         AppPickerListFrame(isDrawer: isDrawer, child: body),

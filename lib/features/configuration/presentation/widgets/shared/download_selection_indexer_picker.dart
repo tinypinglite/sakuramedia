@@ -18,7 +18,7 @@ Future<List<String>?> showDownloadSelectionIndexerPicker(
     modalKey: const Key('download-selection-indexer-picker'),
     desktopWidth: context.appLayoutTokens.dialogWidthMd,
     mobileHeightFactor: 0.82,
-    showDesktopCloseButton: false,
+    showDesktopCloseButton: true,
     builder: (_) => _DownloadSelectionIndexerPicker(
       title: title,
       description: description,
@@ -150,11 +150,10 @@ class _DownloadSelectionIndexerPickerState
       mainAxisSize: isDrawer ? MainAxisSize.max : MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (!isDrawer) SizedBox(height: spacing.lg),
         AppPickerHeader(
           title: widget.title,
           description: widget.description,
-          onClose: () => Navigator.of(context).pop(),
-          closeKey: const Key('download-selection-indexer-picker-close'),
           onDone: () => Navigator.of(context).pop(List<String>.from(_selected)),
           doneKey: const Key('download-selection-indexer-picker-done'),
         ),

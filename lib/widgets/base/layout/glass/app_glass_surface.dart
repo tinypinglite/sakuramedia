@@ -29,6 +29,7 @@ class AppGlassSurface extends StatelessWidget {
     this.blur = true,
     this.width,
     this.height,
+    this.tintOverride,
     this.role = AppGlassRole.surface,
   });
 
@@ -42,6 +43,9 @@ class AppGlassSurface extends StatelessWidget {
   /// 整体尺寸；为空时由子级决定。
   final double? width;
   final double? height;
+
+  /// 覆盖当前角色的玻璃染色；为空时使用 [AppGlassStyle] 的角色配方。
+  final Color? tintOverride;
   final AppGlassRole role;
 
   static const double _borderWidth = 1;
@@ -87,7 +91,11 @@ class AppGlassSurface extends StatelessWidget {
       return null;
     }
 
-    final settings = AppGlassStyle.settingsFor(context, role);
+    final settings = AppGlassStyle.settingsFor(
+      context,
+      role,
+      tintOverride: tintOverride,
+    );
     final quality = AppGlassStyle.qualityFor(role);
 
     if (!shape.isLeftOnly && !shape.isRightOnly) {
@@ -215,6 +223,7 @@ class AppGlassSurface extends StatelessWidget {
   }) {
     final recipe = AppGlassStyle.fallbackRecipe(context, role);
     final highlight = context.appTextPalette.onMedia;
+    final tint = tintOverride ?? recipe.tint;
     final tintAlpha = highContrast
         ? math.min(1.0, recipe.tintAlpha + 0.40)
         : recipe.tintAlpha;
@@ -225,8 +234,8 @@ class AppGlassSurface extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            recipe.tint.withValues(alpha: math.min(1.0, tintAlpha * 1.04)),
-            recipe.tint.withValues(alpha: tintAlpha * 0.96),
+            tint.withValues(alpha: math.min(1.0, tintAlpha * 1.04)),
+            tint.withValues(alpha: tintAlpha * 0.96),
           ],
         ),
       ),
@@ -318,9 +327,11 @@ class AppGlassSurface extends StatelessWidget {
     final media = role == AppGlassRole.mediaOverlay;
     final surface = DecoratedBox(
       decoration: BoxDecoration(
-        color: media
-            ? context.appColors.mediaOverlayStrong
-            : context.appColors.surfaceElevated,
+        color:
+            tintOverride ??
+            (media
+                ? context.appColors.mediaOverlayStrong
+                : context.appColors.surfaceElevated),
         borderRadius: radius,
         border: Border.all(
           color: media

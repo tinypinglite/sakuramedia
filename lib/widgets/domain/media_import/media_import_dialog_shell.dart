@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/media_libraries_provider.dart';
 import 'package:sakuramedia/features/media_import/data/media_import_source.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
 import 'package:sakuramedia/widgets/domain/media_import/media_import_source_picker.dart';
 import 'package:sakuramedia/widgets/domain/media_import/media_library_selector_field.dart';
 
@@ -33,7 +33,6 @@ class MediaImportDialogShell extends ConsumerStatefulWidget {
     required this.submitLabel,
     required this.onSubmit,
     this.submitKey,
-    this.cancelKey,
     this.extraFieldBuilder,
     this.allowFileSource = false,
     this.browserHeight,
@@ -43,11 +42,10 @@ class MediaImportDialogShell extends ConsumerStatefulWidget {
   final String submitLabel;
   final ValueChanged<MediaImportFormSubmission> onSubmit;
   final Key? submitKey;
-  final Key? cancelKey;
 
   /// 选中媒体库后的扩展字段（如视频合集选择器）；无选中库时不调用。
   final Widget Function(BuildContext context, MediaLibraryDto library)?
-      extraFieldBuilder;
+  extraFieldBuilder;
 
   final bool allowFileSource;
   final double? browserHeight;
@@ -90,11 +88,11 @@ class _MediaImportDialogShellState
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     final spacing = context.appSpacing;
     final librariesAsync = ref.watch(mediaLibrariesProvider);
     final isInitialLoading =
         librariesAsync.isLoading && !librariesAsync.hasValue;
+    final isDrawer = AppAdaptiveModalShellScope.maybeIsDrawer(context);
     final selectedLibrary = _selectedLibrary;
     final extraFieldBuilder = widget.extraFieldBuilder;
     return SafeArea(
@@ -145,9 +143,7 @@ class _MediaImportDialogShellState
                               if (disposition == _sourceDisposition) {
                                 return;
                               }
-                              setState(
-                                () => _sourceDisposition = disposition,
-                              );
+                              setState(() => _sourceDisposition = disposition);
                             },
                           ),
                         ],
@@ -156,25 +152,13 @@ class _MediaImportDialogShellState
                   ),
           ),
           SizedBox(height: spacing.xl),
-          Row(
-            children: [
-              Expanded(
-                child: AppButton(
-                  key: widget.cancelKey,
-                  label: l10n.commonCancel,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-              SizedBox(width: spacing.sm),
-              Expanded(
-                child: AppButton(
-                  key: widget.submitKey,
-                  label: widget.submitLabel,
-                  variant: AppButtonVariant.primary,
-                  onPressed: _canSubmit ? _submit : null,
-                ),
-              ),
-            ],
+          AppModalActionRow(
+            submitKey: widget.submitKey,
+            submitLabel: widget.submitLabel,
+            showCancel: false,
+            equalWidth: isDrawer,
+            submitDisabled: !_canSubmit,
+            onSubmit: _submit,
           ),
         ],
       ),

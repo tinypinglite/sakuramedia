@@ -13,6 +13,7 @@ import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
 
 Future<MediaTagAssignmentDto?> showMediaTagAssignmentEditor(
   BuildContext context, {
@@ -338,27 +339,13 @@ class _MediaTagAssignmentEditorState
             ),
           ],
           SizedBox(height: spacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: AppButton(
-                  label: l10n.commonCancel,
-                  onPressed: _isSubmitting
-                      ? null
-                      : () => Navigator.of(context).pop(),
-                ),
-              ),
-              SizedBox(width: spacing.md),
-              Expanded(
-                child: AppButton(
-                  key: const Key('media-tag-assignment-save'),
-                  label: l10n.mediaTagsAssignmentSave,
-                  variant: AppButtonVariant.primary,
-                  isLoading: _isSubmitting,
-                  onPressed: _isSubmitting ? null : _save,
-                ),
-              ),
-            ],
+          AppModalActionRow(
+            submitKey: const Key('media-tag-assignment-save'),
+            submitLabel: l10n.mediaTagsAssignmentSave,
+            showCancel: false,
+            equalWidth: widget.mobile,
+            isSubmitting: _isSubmitting,
+            onSubmit: _save,
           ),
         ],
       ],

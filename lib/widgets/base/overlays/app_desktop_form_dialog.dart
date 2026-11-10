@@ -8,7 +8,8 @@ import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.d
 /// 桌面表单弹窗的正文。
 ///
 /// 外层由 `showAppAdaptiveModal` 提供 `AppDesktopDialog`，本组件只负责表单、
-/// 标题、可滚动内容与常驻的 Cancel/Save 动作区。
+/// 标题、可滚动内容与右对齐的 Save 动作区。关闭由弹窗右上角 X 承担，
+/// 不再重复提供 Cancel。
 class AppDesktopFormDialog extends StatefulWidget {
   const AppDesktopFormDialog({
     super.key,
@@ -77,13 +78,13 @@ class _AppDesktopFormDialogState extends State<AppDesktopFormDialog>
             Flexible(child: SingleChildScrollView(child: widget.body)),
             SizedBox(height: spacing.xl),
             AppModalActionRow(
-              cancelLabel: l10n.commonCancel,
               submitLabel: l10n.commonSave,
               submitKey: widget.submitKey,
               isSubmitting: widget.isSubmitting,
               submitDisabled: busy,
               extraAction: widget.extraAction,
-              onCancel: busy ? null : () => Navigator.of(context).pop(),
+              showCancel: false,
+              equalWidth: false,
               onSubmit: widget.onSubmit,
             ),
           ],

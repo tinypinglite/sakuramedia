@@ -25,7 +25,7 @@ Future<VideoCollectionSelection?> showPickVideoCollectionSingleDialog(
     drawerKey: const Key('pick-video-collection-single-drawer'),
     desktopWidth: 420,
     mobileMaxHeightFactor: 0.7,
-    showDesktopCloseButton: false,
+    showDesktopCloseButton: true,
     builder: (_) => _PickVideoCollectionSingleDialog(
       selectedCollectionId: selectedCollectionId,
     ),
@@ -44,7 +44,6 @@ class _PickVideoCollectionSingleDialog extends ConsumerWidget {
     return CollectionPickerResults<VideoCollectionDto>(
       collections: collectionsAsync,
       chrome: (
-        title: l10n.videoSelectCollection,
         keyPrefix: 'pick-video-collection-single',
         emptyMessage: l10n.videoCollectionsEmptyShort,
       ),

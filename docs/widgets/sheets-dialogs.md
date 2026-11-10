@@ -11,7 +11,7 @@
 
 - `showAppBottomDrawer<T>` / `AppBottomDrawerSurface`：`app_bottom_drawer.dart`，移动筛选、动作和详情抽屉。抽屉贴底、贴左右边缘，只保留顶部圆角，正文直接铺在玻璃上；输入框、按钮等控件不要透明化。
 - `showVideoActions(..., variant: AppAdaptiveModalVariant.drawer)`：PornBox 视频动作抽屉。封面、标题与元信息之后是整行主色「播放」按钮；缩略图、加入/移出合集和删除走三列动作格，所属合集 chips 保持可跳转。桌面 / 移动只通过 `variant` 选择壳体，不再维护独立包装函数。
-- `AppBottomFormSheet`：`app_bottom_form_sheet.dart`，带表单布局和提交区域的底部 sheet。
+- `AppBottomFormSheet`：`app_bottom_form_sheet.dart`，带表单布局和通栏主操作按钮的底部 sheet。表单不再重复提供「取消」；关闭由下拉、遮罩或系统返回承担。桌面表单同理只保留右对齐主按钮，关闭由右上角 X 承担。
 - `AppMobileConfirmActions`：`app_mobile_confirm_actions.dart`，移动确认操作区。
 - 所有移动筛选抽屉统一使用 `AppMobileFilterDrawerScaffold`（特殊滚动 / 锚点场景）或 `AppMobileFilterDrawer<T>`（标准筛选）承载平面分段控件和可选的 `AppGlassFilterFooter`；抽屉内不另铺一层实色卡片，正文直接落在 `AppModalGlassSurface` 上。
 
@@ -19,11 +19,11 @@
 
 模态玻璃不再提供强度变体；`AppDesktopDialog`、`showAppBottomDrawer` 和 `showAppAdaptiveModal` 都直接使用统一的 `popover` 材质。Toast 走 `overlay` role，不再维护独立的 glassHighlight/glassBorder 配方。
 
-玻璃弹窗内的正文不要整块铺 `surfaceCard`：选择器使用 `AppPickerIosSection` 的不透明 inset grouped list，外层玻璃只承担 modal chrome；输入框和按钮各自提供局部可读表面。`AppPickerHeader` 按 iOS sheet 导航栏接管关闭/完成、搜索和筛选，调用外壳时关闭 `showCloseButton` / `showDesktopCloseButton`。选中计数放在 grouped section header，新建/清空动作优先做成列表行。
+玻璃弹窗内的正文不要整块铺 `surfaceCard`：选择器使用 `AppPickerIosSection` 的不透明 inset grouped list，外层玻璃只承担 modal chrome；输入框和按钮各自提供局部可读表面。即时生效的选择器不显示标题、关闭和完成，只保留搜索、筛选、计数与列表：移动端靠下拉/遮罩关闭，桌面端靠 `AppDesktopDialog` 的右上角 X 关闭。草稿式选择器（例如下载策略索引器）保留标题和「完成」，左侧不再重复「关闭」。合集成员选择器（加入播放列表 / 时刻 / 视频 / 切片）默认折叠搜索：收起时左侧是「已选 N」，右侧是搜索图标和新建；点搜索图标后搜索框占据左侧弹性区域、在图标左侧原地展开，已选计数暂时隐藏，再点图标收起并清空关键字。搜索行与新建动作固定在列表上方，不随长列表滚走。
 
 ## 菜单和筛选
 
-- `showAppActionMenu<T>` / `AppMenuItem<T>`：`app_action_menu.dart`，全应用唯一的右键 / 长按菜单壳；负责定位、统一表面样式与项渲染、底部操作表（可选标题 + 独立「取消」行）、全屏图片下的抽屉宿主。调用方只组装 items 并派发返回值，不要另写菜单壳。
+- `showAppActionMenu<T>` / `AppMenuItem<T>`：`app_action_menu.dart`，全应用唯一的右键 / 长按菜单壳；负责定位、统一表面样式与项渲染、底部操作表（可选标题 + 动作项）、全屏图片下的抽屉宿主。移动底部操作表不再渲染独立「取消」行，靠下拉、遮罩或系统返回关闭。调用方只组装 items 并派发返回值，不要另写菜单壳。
   - `AppMenuPresentation` 由**触发方式**决定，不按平台：长按 / 右键用 `popup`（默认，锚定按压点），「更多」按钮的动作列表用 `bottomDrawer`。
   - 锚定弹层使用 `AppSurface` 的自绘玻璃 platter，宽度按内容测量：桌面 160–240、移动 180–260；桌面行高 30（副标题 44）、图标 16、圆角 18、外层留白 4、行内左右 10；移动行高 38（副标题 50）、图标 18、圆角 24、外层留白 6、行内左右 12。标题 `s14`，副标题 `s12`。操作表仍为行高 52、图标 18、正文 `s12`。
   - 锚定弹层只显示玻璃动作 platter，保留图标、hover、危险色和禁用态；透明 barrier、无背景压暗和源内容预览，点击外部或返回键得到 `null`。不要退回 `showMenu` 或 `PopupMenuItem`。

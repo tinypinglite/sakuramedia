@@ -9,13 +9,14 @@ const double _navActionSideReserve = 76;
 
 /// 选择器弹层的统一头部。
 ///
-/// 采用 iOS sheet 的导航栏结构：左侧关闭、中间标题、右侧完成。搜索框和
-/// 筛选 chips 放在导航栏下方；选中计数由列表的 grouped section header 展示。
+/// 采用 iOS sheet 的导航栏结构：中间标题、右侧完成。两者都只在调用方显式
+/// 提供时显示；即时生效的选择器不传标题和完成，只保留搜索框和筛选 chips，
+/// 移动端靠下拉/遮罩关闭，桌面端靠弹窗外壳的 X 关闭。
 /// 搜索只做输入透传，防抖由调用方处理。
 class AppPickerHeader extends StatelessWidget {
   const AppPickerHeader({
     super.key,
-    required this.title,
+    this.title,
     this.description,
     this.searchController,
     this.searchFieldKey,
@@ -25,11 +26,9 @@ class AppPickerHeader extends StatelessWidget {
     this.chips = const <Widget>[],
     this.onDone,
     this.doneKey,
-    this.onClose,
-    this.closeKey,
   });
 
-  final String title;
+  final String? title;
   final String? description;
 
   final TextEditingController? searchController;
@@ -43,8 +42,6 @@ class AppPickerHeader extends StatelessWidget {
 
   final VoidCallback? onDone;
   final Key? doneKey;
-  final VoidCallback? onClose;
-  final Key? closeKey;
 
   @override
   Widget build(BuildContext context) {
@@ -53,8 +50,7 @@ class AppPickerHeader extends StatelessWidget {
     final accent = Theme.of(context).colorScheme.primary;
     final fontFamily = resolveAppFontFamily(context);
     final effectiveSearchController = searchController;
-    final effectiveDone = onDone ?? onClose;
-
+    final hasNavRow = title != null || onDone != null;
     Widget navAction({
       required String label,
       required VoidCallback? onPressed,
@@ -82,51 +78,44 @@ class AppPickerHeader extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SizedBox(
-          height: 44,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: _navActionSideReserve,
-                ),
-                child: Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s16,
-                    weight: AppTextWeight.semibold,
-                    tone: AppTextTone.primary,
-                  ).copyWith(fontFamily: fontFamily),
-                ),
-              ),
-              if (onClose != null)
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: navAction(
-                    key: closeKey,
-                    label: l10n.baseClose,
-                    onPressed: onClose,
+        if (hasNavRow)
+          SizedBox(
+            height: 44,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (title != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: _navActionSideReserve,
+                    ),
+                    child: Text(
+                      title!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s16,
+                        weight: AppTextWeight.semibold,
+                        tone: AppTextTone.primary,
+                      ).copyWith(fontFamily: fontFamily),
+                    ),
                   ),
-                ),
-              if (effectiveDone != null)
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: navAction(
-                    key: doneKey,
-                    label: l10n.commonDone,
-                    onPressed: effectiveDone,
+                if (onDone != null)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: navAction(
+                      key: doneKey,
+                      label: l10n.commonDone,
+                      onPressed: onDone,
+                    ),
                   ),
-                ),
-            ],
+              ],
+            ),
           ),
-        ),
         if (description != null && description!.trim().isNotEmpty) ...[
-          SizedBox(height: spacing.xs),
+          if (hasNavRow) SizedBox(height: spacing.xs),
           Text(
             description!,
             maxLines: 2,
@@ -140,7 +129,9 @@ class AppPickerHeader extends StatelessWidget {
           ),
         ],
         if (effectiveSearchController != null) ...[
-          SizedBox(height: spacing.md),
+          if (hasNavRow ||
+              (description != null && description!.trim().isNotEmpty))
+            SizedBox(height: spacing.md),
           AppGlassSearchField(
             fieldKey: searchFieldKey,
             clearKey: clearSearchKey,

@@ -2,8 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/forms/app_picker_header.dart';
 import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_back_button.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
@@ -17,14 +17,13 @@ Future<void> showActorSelectorDialog(
 }) {
   return showAppDialog<void>(
     context: context,
-    builder: (dialogContext) => AppDesktopDialog(
+    builder: (_) => AppDesktopDialog(
       dialogKey: const Key('image-search-actor-picker-dialog'),
       width: context.appComponentTokens.playlistDialogWidth,
-      showCloseButton: false,
+      closeButtonKey: const Key('image-search-actor-close-button'),
       child: ImageSearchActorSelectorBody(
         actors: actors,
         initialSelectedActors: initialSelectedActors,
-        onClose: () => Navigator.of(dialogContext).pop(),
         onSelectionChanged: onSelectionChanged,
       ),
     ),
@@ -36,16 +35,16 @@ class ImageSearchActorSelectorBody extends StatefulWidget {
     super.key,
     required this.actors,
     required this.initialSelectedActors,
-    required this.onClose,
     required this.onSelectionChanged,
     this.isBottomDrawer = false,
+    this.onBack,
   });
 
   final List<ActorListItemDto> actors;
   final List<ActorListItemDto> initialSelectedActors;
-  final VoidCallback onClose;
   final ValueChanged<List<ActorListItemDto>> onSelectionChanged;
   final bool isBottomDrawer;
+  final VoidCallback? onBack;
 
   @override
   State<ImageSearchActorSelectorBody> createState() =>
@@ -128,13 +127,15 @@ class _ImageSearchActorSelectorBodyState
       mainAxisSize: widget.isBottomDrawer ? MainAxisSize.max : MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        AppPickerHeader(
-          title: l10n.imageSearchSelectSubscribedActors,
-          onClose: widget.onClose,
-          closeKey: const Key('image-search-actor-close-button'),
-          doneKey: const Key('image-search-actor-done-button'),
-        ),
-        SizedBox(height: spacing.lg),
+        if (widget.onBack != null) ...[
+          AppBackButton(
+            key: const Key('image-search-actor-back-button'),
+            size: AppBackButtonSize.touch,
+            onPressed: widget.onBack!,
+          ),
+          SizedBox(height: spacing.sm),
+        ],
+        if (!widget.isBottomDrawer) SizedBox(height: spacing.lg),
         AppPickerListFrame(isDrawer: widget.isBottomDrawer, child: body),
       ],
     );

@@ -830,6 +830,7 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
     final selectedClient = _selectedClient(clients);
     final l10n = AppLocalizations.of(context);
     final source = _resolveSource(selectedClient);
+    final isDrawer = AppAdaptiveModalShellScope.maybeIsDrawer(context);
     final canSubmit =
         !_isSubmitting && !_movieResolution.isResolving && source.supported;
 
@@ -859,17 +860,17 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
                           tone: AppTextTone.primary,
                         ),
                       ),
-                      SizedBox(height: spacing.xs),
-                      Text(
-                        _isCompact
-                            ? l10n.downloadSourcePrefilledDescription
-                            : l10n.downloadManualAddDescription,
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s12,
-                          tone: AppTextTone.secondary,
+                      if (_isCompact) ...[
+                        SizedBox(height: spacing.xs),
+                        Text(
+                          l10n.downloadSourcePrefilledDescription,
+                          style: resolveAppTextStyle(
+                            context,
+                            size: AppTextSize.s12,
+                            tone: AppTextTone.secondary,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),
@@ -908,11 +909,10 @@ class _ManualDownloadDialogState extends ConsumerState<_ManualDownloadDialog> {
             ),
             SizedBox(height: spacing.lg),
             AppModalActionRow(
-              cancelKey: const Key('manual-download-cancel-button'),
               submitKey: const Key('manual-download-submit-button'),
-              cancelLabel: l10n.commonCancel,
               submitLabel: l10n.downloadSubmit,
-              onCancel: () => Navigator.of(context).pop(),
+              showCancel: false,
+              equalWidth: isDrawer,
               onSubmit: () => unawaited(_submit()),
               isSubmitting: _isSubmitting,
               submitDisabled: !canSubmit,

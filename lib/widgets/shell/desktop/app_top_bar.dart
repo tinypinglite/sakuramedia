@@ -176,12 +176,11 @@ class AppTopBar extends ConsumerWidget {
         SizedBox(width: isSidebarCollapsed ? collapsedLeading : leftInset),
         if (config.isBackEnabled)
           SizedBox(
-            width: 44.0,
+            width: 40.0,
             child: Center(
               child: AppBackButton(
                 key: const Key('topbar-back-button'),
                 variant: AppBackButtonVariant.glass,
-                size: AppBackButtonSize.touch,
                 onPressed: () => _handleBack(context),
               ),
             ),

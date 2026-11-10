@@ -266,9 +266,7 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor>
     return AppBottomFormSheet(
       formKey: formKey,
       title: _isEditing ? l10n.mediaLibraryEditTitle : l10n.mediaLibraryAdd,
-      subtitle: unavailable
-          ? l10n.mediaLibraryEditSubtitleUnavailable
-          : l10n.mediaLibraryEditSubtitle,
+      subtitle: unavailable ? l10n.mediaLibraryEditSubtitleUnavailable : null,
       submitKey: const Key('mobile-media-library-submit-button'),
       isSubmitting: isSubmitting,
       dismissController: widget.dismissController,

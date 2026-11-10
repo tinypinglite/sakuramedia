@@ -20,7 +20,6 @@ Future<void> showMoviePlaylistPickerDialog(
     variant: presentation,
     config: CollectionMembershipConfig<PlaylistDto>(
       keyPrefix: 'movie-playlist',
-      title: l10n.playlistAddToPlaylist,
       searchHint: l10n.playlistSearchHint,
       createLabel: l10n.playlistCreateTitle,
       emptyMessage: l10n.playlistEmpty,

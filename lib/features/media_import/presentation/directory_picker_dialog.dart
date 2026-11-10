@@ -35,7 +35,6 @@ class DirectoryPickerDialog extends StatelessWidget {
     return MediaImportDialogShell(
       title: l10n.mediaImportPickerTitle,
       submitLabel: l10n.mediaImportPickerSubmitAction,
-      cancelKey: const Key('media-import-picker-cancel-button'),
       submitKey: const Key('media-import-picker-submit-button'),
       onSubmit: (submission) {
         Navigator.of(context).pop(

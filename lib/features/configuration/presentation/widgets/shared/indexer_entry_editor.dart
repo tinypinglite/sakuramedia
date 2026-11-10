@@ -155,7 +155,6 @@ class _IndexerEntryEditorState extends ConsumerState<_IndexerEntryEditor>
     return AppBottomFormSheet(
       formKey: formKey,
       title: _isEditing ? l10n.indexerEditTitle : l10n.indexerAdd,
-      subtitle: l10n.indexerFormSubtitle,
       submitKey: const Key('mobile-indexer-submit-button'),
       isSubmitting: isSubmitting,
       dismissController: widget.dismissController,

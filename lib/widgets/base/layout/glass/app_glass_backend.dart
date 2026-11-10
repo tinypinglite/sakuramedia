@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 
+import 'package:cupertino_ui/cupertino_ui.dart' as cupertino;
 import 'package:flutter/services.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
@@ -7,6 +8,7 @@ import 'package:sakuramedia/widgets/base/layout/glass/app_glass_flat_backend.dar
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_flat_style.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_flat_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_style.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_types.dart';
 import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 import 'package:sakuramedia/theme.dart';
@@ -241,7 +243,6 @@ class AppGlassTextFieldBackend extends StatelessWidget {
     this.borderRadius = 12,
     this.fillColor,
     this.highContrast = false,
-    this.reduceMotion = false,
     this.enabled = true,
     this.tone = AppGlassTone.standard,
   });
@@ -269,7 +270,6 @@ class AppGlassTextFieldBackend extends StatelessWidget {
   final double borderRadius;
   final Color? fillColor;
   final bool highContrast;
-  final bool reduceMotion;
   final bool enabled;
   final AppGlassTone tone;
 
@@ -306,11 +306,7 @@ class AppGlassTextFieldBackend extends StatelessWidget {
         role: AppGlassStyle.flatRoleFor(role),
       );
     }
-    final settings = highContrast
-        ? null
-        : AppGlassStyle.settingsFor(context, role, tintOverride: fillColor);
-
-    final field = GlassTextField(
+    final body = _AppGlassTextFieldBody(
       controller: controller,
       focusNode: focusNode,
       placeholder: placeholder,
@@ -321,7 +317,6 @@ class AppGlassTextFieldBackend extends StatelessWidget {
       textInputAction: textInputAction,
       maxLines: maxLines,
       minLines: minLines,
-      enabled: true,
       readOnly: readOnly,
       inputFormatters: inputFormatters,
       onChanged: onChanged,
@@ -332,30 +327,24 @@ class AppGlassTextFieldBackend extends StatelessWidget {
       padding: padding ?? EdgeInsets.zero,
       iconSpacing: iconSpacing,
       height: height,
-      shape: LiquidRoundedSuperellipse(borderRadius: borderRadius),
-      settings: settings,
-      quality: highContrast ? null : AppGlassStyle.qualityFor(role),
-      useOwnLayer: !highContrast,
-      surfaceStyle: highContrast
-          ? GlassSurfaceStyle.solid
-          : GlassSurfaceStyle.glass,
-      color: highContrast
-          ? (fillColor ?? context.appColors.surfaceMuted)
-          : null,
-      interactionBehavior: highContrast || reduceMotion || !enabled
-          ? GlassInteractionBehavior.none
-          : GlassInteractionBehavior.glowOnly,
+      enabled: enabled,
+    );
+
+    final surface = AppGlassSurface(
+      role: role,
+      height: height,
+      borderRadius: BorderRadius.circular(borderRadius),
+      tintOverride: fillColor,
+      child: height == null
+          ? body
+          : SizedBox(
+              height: height,
+              child: Center(child: body),
+            ),
     );
 
     if (highContrast) {
-      return DecoratedBox(
-        position: DecorationPosition.foreground,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(borderRadius),
-          border: Border.all(color: context.appColors.borderStrong),
-        ),
-        child: field,
-      );
+      return surface;
     }
     final dark = Theme.of(context).brightness == Brightness.dark;
     return CustomPaint(
@@ -371,8 +360,106 @@ class AppGlassTextFieldBackend extends StatelessWidget {
           alpha: dark ? 0.40 : 0.06,
         ),
       ),
-      child: field,
+      child: surface,
     );
+  }
+}
+
+class _AppGlassTextFieldBody extends StatelessWidget {
+  const _AppGlassTextFieldBody({
+    required this.controller,
+    this.focusNode,
+    this.placeholder,
+    this.prefixIcon,
+    this.suffixIcon,
+    this.obscureText = false,
+    this.keyboardType,
+    this.textInputAction,
+    this.maxLines = 1,
+    this.minLines,
+    this.readOnly = false,
+    this.inputFormatters,
+    this.onChanged,
+    this.onSubmitted,
+    this.onTapOutside,
+    required this.textStyle,
+    required this.placeholderStyle,
+    this.padding,
+    this.iconSpacing = 8,
+    this.height,
+    this.enabled = true,
+  });
+
+  final TextEditingController controller;
+  final FocusNode? focusNode;
+  final String? placeholder;
+  final Widget? prefixIcon;
+  final Widget? suffixIcon;
+  final bool obscureText;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final int maxLines;
+  final int? minLines;
+  final bool readOnly;
+  final List<TextInputFormatter>? inputFormatters;
+  final ValueChanged<String>? onChanged;
+  final ValueChanged<String>? onSubmitted;
+  final TapRegionCallback? onTapOutside;
+  final TextStyle textStyle;
+  final TextStyle placeholderStyle;
+  final EdgeInsetsGeometry? padding;
+  final double iconSpacing;
+  final double? height;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final resolvedPadding = (padding ?? EdgeInsets.zero).resolve(
+      Directionality.of(context),
+    );
+    final row = Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        if (prefixIcon != null) ...[prefixIcon!, SizedBox(width: iconSpacing)],
+        Expanded(
+          child: cupertino.CupertinoTextField(
+            controller: controller,
+            focusNode: focusNode,
+            placeholder: placeholder,
+            placeholderStyle: placeholderStyle,
+            style: textStyle,
+            padding: EdgeInsets.zero,
+            decoration: null,
+            cursorColor: Theme.of(context).colorScheme.primary,
+            obscureText: obscureText,
+            keyboardType: keyboardType,
+            textInputAction: textInputAction,
+            maxLines: maxLines,
+            minLines: minLines,
+            enabled: enabled,
+            readOnly: readOnly,
+            inputFormatters: inputFormatters,
+            onChanged: onChanged,
+            onSubmitted: onSubmitted,
+            onTapOutside:
+                onTapOutside ??
+                (event) => FocusManager.instance.primaryFocus?.unfocus(),
+          ),
+        ),
+        if (suffixIcon != null) ...[SizedBox(width: iconSpacing), suffixIcon!],
+      ],
+    );
+
+    if (height != null) {
+      return Padding(
+        padding: EdgeInsets.only(
+          left: resolvedPadding.left,
+          right: resolvedPadding.right,
+        ),
+        child: Align(alignment: Alignment.center, child: row),
+      );
+    }
+    return Padding(padding: padding ?? EdgeInsets.zero, child: row);
   }
 }
 
@@ -615,6 +702,7 @@ class AppGlassGroupedSectionBackend extends StatelessWidget {
       );
     }
     return GlassGroupedSection(
+      margin: EdgeInsets.zero,
       header: header,
       surfaceStyle: GlassSurfaceStyle.solid,
       children: children,

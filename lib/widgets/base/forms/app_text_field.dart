@@ -8,8 +8,9 @@ import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 /// 统一的液态玻璃文本输入基座。
 ///
 /// 用 [FormField] 保留 Material 表单的校验和 autovalidate 语义，输入面本身
-/// 交给 `liquid_glass_widgets` 的 [GlassTextField] 绘制。label / helper / error
-/// 留在玻璃面外侧，避免错误和长说明把玻璃输入撑成内容卡片。
+/// 由本项目自己的玻璃输入体绘制：保留液态玻璃表面、边光和 Cupertino 文本
+/// 输入行为，但不绘制额外焦点环。label / helper / error 留在玻璃面外侧，
+/// 避免错误和长说明把玻璃输入撑成内容卡片。
 /// 正常输入走 `input` role；顶栏等已有玻璃容器上的输入传
 /// [AppGlassTone.toolbar] 走 `toolbarInput`。
 class AppTextField extends StatefulWidget {
@@ -165,8 +166,6 @@ class _AppTextFieldState extends State<AppTextField> {
   Widget build(BuildContext context) {
     final formTokens = context.appFormTokens;
     final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
-    final reduceMotion =
-        MediaQuery.maybeOf(context)?.disableAnimations ?? false;
     final inheritedFontFamily = resolveAppFontFamily(context);
     final resolvedRadius =
         (widget.borderRadius ?? context.appRadius.smBorder).topLeft.x;
@@ -235,7 +234,6 @@ class _AppTextFieldState extends State<AppTextField> {
           borderRadius: resolvedRadius,
           fillColor: widget.fillColor,
           highContrast: highContrast,
-          reduceMotion: reduceMotion,
           enabled: widget.enabled,
           tone: widget.glassTone,
         );

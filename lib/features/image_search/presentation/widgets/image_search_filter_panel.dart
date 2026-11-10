@@ -71,7 +71,7 @@ class _MobileImageSearchFilterDrawerState
         actors: _actors,
         initialSelectedActors: _draft.selectedActors,
         isBottomDrawer: true,
-        onClose: () => setState(() => _isSelectingActors = false),
+        onBack: () => setState(() => _isSelectingActors = false),
         onSelectionChanged: (selectedActors) => setState(
           () => _draft = _draft.copyWith(selectedActors: selectedActors),
         ),

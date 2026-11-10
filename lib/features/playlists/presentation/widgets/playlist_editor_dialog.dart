@@ -21,7 +21,6 @@ Future<PlaylistDto?> showPlaylistEditor(
       keyPrefix: isEditing ? 'playlist-edit' : 'create-playlist',
       copy: CollectionEditorCopy(
         title: isEditing ? l10n.playlistEditTitle : l10n.playlistCreateTitle,
-        subtitle: isEditing ? l10n.playlistEditDescription : null,
         nameHint: l10n.playlistNameHint,
         descriptionHint: l10n.playlistDescriptionHint,
         nameRequiredMessage: l10n.playlistNameRequired,

@@ -6,7 +6,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
-import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_types.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart';
@@ -43,13 +42,14 @@ class AppMenuItem<T> {
 ///
 /// 形态由**触发方式**决定，不按平台：长按 / 右键这类上下文入口用 [popup]
 /// （锚定在按压点，即移动端的「右键菜单」）；「更多」按钮触发的动作列表用
-/// [bottomDrawer]（可选标题 + 独立「取消」行）。国内主流 App 的惯例如此。
+/// [bottomDrawer]（可选标题 + 动作项）。抽屉靠下拉、遮罩或系统返回关闭，
+/// 不再额外渲染「取消」行。
 enum AppMenuPresentation { popup, bottomDrawer }
 
 /// 全应用唯一的右键 / 长按菜单壳。
 ///
 /// 负责：过滤 [AppMenuItem.visible]、定位、统一表面样式与项渲染、底部操作表
-/// （可选标题 + 独立「取消」行）、全屏图片下的抽屉宿主。
+/// （可选标题 + 动作项）、全屏图片下的抽屉宿主。
 ///
 /// 锚定弹层使用 `AppGlassSurface` 的统一玻璃材质，并按桌面 / 移动
 /// 分别采用紧凑密度；不显示源内容预览、抬升动画或全屏压暗。
@@ -62,7 +62,6 @@ Future<T?> showAppActionMenu<T>({
   Key? drawerKey,
   String? title,
   String? titleSubtitle,
-  bool showCancelRow = true,
 }) {
   final visibleItems = items.where((item) => item.visible).toList();
   if (visibleItems.isEmpty) {
@@ -76,7 +75,6 @@ Future<T?> showAppActionMenu<T>({
       drawerKey: drawerKey,
       title: title,
       titleSubtitle: titleSubtitle,
-      showCancelRow: showCancelRow,
     );
   }
   return _showPopupMenu(
@@ -88,7 +86,6 @@ Future<T?> showAppActionMenu<T>({
 
 const double _drawerItemMinHeight = 52;
 const double _drawerItemWithSubtitleHeight = 68;
-const double _cancelGapHeight = 8;
 const double _drawerTopSpacing = 20;
 const double _drawerTitleHeight = 48;
 
@@ -657,7 +654,6 @@ Future<T?> _showDrawerMenu<T>({
   required Key? drawerKey,
   required String? title,
   required String? titleSubtitle,
-  required bool showCancelRow,
 }) {
   final screenHeight = MediaQuery.sizeOf(context).height;
   final itemsHeight = items.fold<double>(0, (total, item) {
@@ -670,11 +666,7 @@ Future<T?> _showDrawerMenu<T>({
   final headerHeight = hasHeader
       ? _drawerTitleHeight + (titleSubtitle == null ? 0 : 18)
       : 0;
-  final estimatedHeight =
-      _drawerTopSpacing +
-      headerHeight +
-      itemsHeight +
-      (showCancelRow ? _cancelGapHeight + _drawerItemMinHeight : 0);
+  final estimatedHeight = _drawerTopSpacing + headerHeight + itemsHeight;
   final heightFactor = (estimatedHeight / screenHeight).clamp(0.24, 0.92);
 
   final inlineFullscreenDrawer = AppImageFullscreenHost.showBottomDrawer<T>(
@@ -687,7 +679,6 @@ Future<T?> _showDrawerMenu<T>({
       items: items,
       title: title,
       titleSubtitle: titleSubtitle,
-      showCancelRow: showCancelRow,
       onSelected: close,
     ),
   );
@@ -705,7 +696,6 @@ Future<T?> _showDrawerMenu<T>({
       items: items,
       title: title,
       titleSubtitle: titleSubtitle,
-      showCancelRow: showCancelRow,
       onSelected: (value) => Navigator.of(drawerContext).pop(value),
     ),
   );
@@ -716,14 +706,12 @@ class _AppActionMenuDrawer<T> extends StatelessWidget {
     required this.items,
     required this.title,
     required this.titleSubtitle,
-    required this.showCancelRow,
     required this.onSelected,
   });
 
   final List<AppMenuItem<T>> items;
   final String? title;
   final String? titleSubtitle;
-  final bool showCancelRow;
   final ValueChanged<T?> onSelected;
 
   @override
@@ -784,13 +772,6 @@ class _AppActionMenuDrawer<T> extends StatelessWidget {
               iconSize: componentTokens.iconSizeSm,
               onSelected: onSelected,
             ),
-          if (showCancelRow) ...[
-            SizedBox(
-              height: _cancelGapHeight,
-              child: ColoredBox(color: context.appColors.surfacePage),
-            ),
-            _AppDrawerCancelRow(onTap: () => onSelected(null)),
-          ],
         ],
       ),
     );
@@ -828,34 +809,6 @@ class _AppDrawerRow<T> extends StatelessWidget {
             item: item,
             iconSize: iconSize,
             labelSize: AppTextSize.s12,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AppDrawerCancelRow extends StatelessWidget {
-  const _AppDrawerCancelRow({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = appL10n(context);
-    return AppInteractiveSurface(
-      onTap: onTap,
-      focusRing: false,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: _drawerItemMinHeight),
-        child: Center(
-          child: Text(
-            l10n.commonCancel,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              tone: AppTextTone.secondary,
-            ),
           ),
         ),
       ),

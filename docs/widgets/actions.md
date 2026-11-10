@@ -40,7 +40,7 @@
 
 路径：`lib/widgets/base/overlays/app_modal_action_row.dart`
 
-弹层底部双按钮的统一布局：取消在左、确认在右、默认等宽；提交中 `isSubmitting` 让确认按钮转圈并禁用取消；`submitVariant: AppButtonVariant.danger` 只用于删除等不可恢复操作。`extraAction` 存在时三等分。`AppConfirmDialog`、`AppDesktopFormDialog`、`AppBottomFormSheet`、`AppMobileConfirmActions` 都走它，页面不要再手写底部 Row。
+弹层底部动作的统一布局：默认取消在左、确认在右、等宽；提交中 `isSubmitting` 让确认按钮转圈并禁用取消；`submitVariant: AppButtonVariant.danger` 只用于删除等不可恢复操作。表单等不需要重复退出入口的场景传 `showCancel: false`，只保留主按钮，此时无需传 `onCancel`；移动抽屉用通栏，桌面对话框用右对齐自然宽度。`extraAction` 存在时按剩余按钮等分。`AppConfirmDialog`、`AppMobileConfirmActions` 保留双按钮；`AppDesktopFormDialog`、`AppBottomFormSheet` 使用单主按钮，页面不要再手写底部 Row。
 
 ## `AppSwitch`
 

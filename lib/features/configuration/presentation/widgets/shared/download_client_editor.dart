@@ -242,7 +242,6 @@ class _DownloadClientEditorState extends ConsumerState<_DownloadClientEditor>
     return AppBottomFormSheet(
       formKey: formKey,
       title: _isEditing ? l10n.downloaderEditTitle : l10n.downloaderAdd,
-      subtitle: l10n.downloaderFormSubtitle,
       submitKey: const Key('mobile-downloader-submit-button'),
       isSubmitting: isSubmitting,
       submitDisabled: _isTesting,

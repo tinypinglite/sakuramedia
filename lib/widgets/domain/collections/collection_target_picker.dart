@@ -23,8 +23,6 @@ Future<T?> showCollectionTargetPicker<T extends Object>({
   int? excludedCollectionId,
   AppAdaptiveModalVariant variant = AppAdaptiveModalVariant.auto,
   Key? drawerKey,
-  String? title,
-  String? createButtonLabel,
 }) {
   return showAppAdaptiveModal<T>(
     context: context,
@@ -32,7 +30,7 @@ Future<T?> showCollectionTargetPicker<T extends Object>({
     drawerKey: drawerKey,
     desktopWidth: 420,
     mobileMaxHeightFactor: 0.7,
-    showDesktopCloseButton: false,
+    showDesktopCloseButton: true,
     builder: (_) => _CollectionTargetPicker<T>(
       watchCollections: watchCollections,
       idOf: idOf,
@@ -41,8 +39,6 @@ Future<T?> showCollectionTargetPicker<T extends Object>({
       optionKeyPrefix: optionKeyPrefix,
       onCreate: onCreate,
       excludedCollectionId: excludedCollectionId,
-      title: title,
-      createButtonLabel: createButtonLabel,
     ),
   );
 }
@@ -56,8 +52,6 @@ class _CollectionTargetPicker<T extends Object> extends ConsumerStatefulWidget {
     required this.optionKeyPrefix,
     required this.onCreate,
     required this.excludedCollectionId,
-    required this.title,
-    required this.createButtonLabel,
   });
 
   final AsyncValue<List<T>> Function(WidgetRef ref) watchCollections;
@@ -73,9 +67,6 @@ class _CollectionTargetPicker<T extends Object> extends ConsumerStatefulWidget {
 
   /// 不在列表中显示的合集 id（从合集详情页发起「加入其它合集」时排除自身）。
   final int? excludedCollectionId;
-
-  final String? title;
-  final String? createButtonLabel;
 
   @override
   ConsumerState<_CollectionTargetPicker<T>> createState() =>
@@ -98,7 +89,6 @@ class _CollectionTargetPickerState<T extends Object>
     return CollectionPickerResults<T>(
       collections: widget.watchCollections(ref),
       chrome: (
-        title: widget.title ?? l10n.widgetCollectionPickerTitle,
         keyPrefix: 'collection-target-picker',
         emptyMessage: l10n.widgetCollectionPickerEmpty,
       ),
@@ -129,8 +119,7 @@ class _CollectionTargetPickerState<T extends Object>
     final accent = Theme.of(context).colorScheme.primary;
     return AppPickerIosRow(
       leading: Icon(Icons.add_circle_outline_rounded, color: accent),
-      title:
-          widget.createButtonLabel ?? l10n.widgetCollectionPickerCreateAndAdd,
+      title: l10n.widgetCollectionPickerCreateAndAdd,
       titleColor: accent,
       onTap: _createAndPick,
       optionKey: const Key('collection-target-picker-create-button'),

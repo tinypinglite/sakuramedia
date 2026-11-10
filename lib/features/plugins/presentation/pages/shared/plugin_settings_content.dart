@@ -261,26 +261,6 @@ class _PluginSettingsContentState extends ConsumerState<PluginSettingsContent> {
           ),
           SizedBox(height: spacing.lg),
           _buildMobileBody(context),
-          SizedBox(height: spacing.lg),
-          Row(
-            children: [
-              Expanded(
-                child: AppButton(
-                  label: AppLocalizations.of(context).commonCancel,
-                  onPressed: () => Navigator.of(context).pop(),
-                ),
-              ),
-              SizedBox(width: spacing.md),
-              Expanded(
-                child: AppButton(
-                  key: const Key('plugin-settings-save-button'),
-                  label: AppLocalizations.of(context).commonSave,
-                  variant: AppButtonVariant.primary,
-                  onPressed: null,
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );

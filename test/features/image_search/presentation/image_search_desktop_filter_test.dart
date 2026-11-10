@@ -141,7 +141,7 @@ void main() {
     );
     await tester.tap(find.byKey(const Key('image-search-actor-option-1')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('image-search-actor-done-button')));
+    await tester.tap(find.byKey(const Key('image-search-actor-close-button')));
     await tester.pumpAndSettle();
 
     expect(bundle.adapter.hitCount('POST', '/image-search/sessions'), 1);

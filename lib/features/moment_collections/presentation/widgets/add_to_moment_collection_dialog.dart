@@ -25,7 +25,6 @@ Future<void> showAddToMomentCollectionDialog(
     context: context,
     config: CollectionMembershipConfig<MomentCollectionDto>(
       keyPrefix: 'add-to-moment-collection',
-      title: l10n.momentAddToCollection,
       searchHint: l10n.momentCollectionSearchHint,
       createLabel: l10n.momentCollectionCreateTitle,
       emptyMessage: l10n.momentCollectionEmptyAddDialog,

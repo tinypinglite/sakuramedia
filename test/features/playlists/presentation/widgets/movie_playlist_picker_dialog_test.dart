@@ -96,6 +96,15 @@ void main() {
     expect(find.text('3 部'), findsOneWidget);
     expect(find.text('已选 1'), findsOneWidget);
 
+    expect(find.byKey(const Key('movie-playlist-search-field')), findsNothing);
+    await tester.tap(find.byKey(const Key('movie-playlist-search-toggle')));
+    await _pumpFrames(tester);
+    expect(
+      find.byKey(const Key('movie-playlist-search-field')),
+      findsOneWidget,
+    );
+    expect(find.text('已选 1'), findsNothing);
+
     await tester.enterText(
       find.byKey(const Key('movie-playlist-search-field')),
       '收藏',
@@ -104,11 +113,11 @@ void main() {
     expect(find.text('稍后再看'), findsNothing);
     expect(find.text('收藏夹'), findsOneWidget);
 
-    await tester.enterText(
-      find.byKey(const Key('movie-playlist-search-field')),
-      '',
-    );
+    await tester.tap(find.byKey(const Key('movie-playlist-search-toggle')));
     await _pumpFrames(tester);
+    expect(find.byKey(const Key('movie-playlist-search-field')), findsNothing);
+    expect(find.text('已选 1'), findsOneWidget);
+    expect(find.text('稍后再看'), findsOneWidget);
     await tester.tap(find.byKey(const Key('movie-playlist-option-1')));
     await _pumpFrames(tester);
     expect(bundle.adapter.hitCount('DELETE', '/playlists/1/movies/ABC-001'), 1);

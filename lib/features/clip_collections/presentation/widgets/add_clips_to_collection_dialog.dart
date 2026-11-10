@@ -14,7 +14,7 @@ import 'package:sakuramedia/widgets/domain/collections/collection_member_picker.
 
 /// 在合集详情里弹出「添加切片」选择器：默认只看未加入，勾选即时加入 / 移出。
 ///
-/// 关闭方式不固定（X / 点遮罩 / 抽屉「完成」），不依赖返回值；调用方关闭后刷新
+/// 关闭方式不固定（桌面 X / 移动端下拉或遮罩），不依赖返回值；调用方关闭后刷新
 /// 合集详情即可。桌面端用居中弹窗，移动端用底部抽屉（`auto` 读 `AppPlatformScope`）。
 Future<void> showAddClipsToCollectionDialog(
   BuildContext context, {
@@ -27,7 +27,7 @@ Future<void> showAddClipsToCollectionDialog(
     drawerKey: const Key('add-clips-to-collection-bottom-sheet'),
     desktopWidth: context.appComponentTokens.playlistDialogWidth,
     mobileHeightFactor: 0.8,
-    showDesktopCloseButton: false,
+    showDesktopCloseButton: true,
     builder: (_) => AddClipsToCollectionDialog(
       collectionId: collectionId,
       memberClipIds: memberClipIds,
@@ -61,8 +61,6 @@ class _AddClipsToCollectionDialogState
   String get pickerKeyPrefix => 'add-clips';
 
   @override
-  String get pickerTitle => AppLocalizations.of(context).clipCollectionAddClips;
-
   @override
   String get pickerSearchHint =>
       AppLocalizations.of(context).clipCollectionSearchClipsHint;

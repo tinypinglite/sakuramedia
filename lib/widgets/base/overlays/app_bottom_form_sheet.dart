@@ -8,7 +8,8 @@ import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.d
 /// 装进 [showAppBottomDrawer] 的表单外壳。
 ///
 /// 承担多个 mobile 编辑抽屉共有的外壳结构：可滚动的标题/副标题/[body]，以及
-/// 常驻的 Cancel/Submit 双按钮。键盘 inset 由抽屉外壳层统一兜底。
+/// 常驻的通栏提交按钮。关闭由抽屉下拉、遮罩或系统返回承担，不再重复提供
+/// Cancel。键盘 inset 由抽屉外壳层统一兜底。
 ///
 /// [body] 由调用方组装 —— 通常是 FormFields，也可以在其后追加页面所需的
 /// 校验提示或其他局部控件。
@@ -22,7 +23,6 @@ class AppBottomFormSheet extends StatefulWidget {
     required this.submitKey,
     required this.isSubmitting,
     required this.onSubmit,
-    this.cancelLabel,
     this.submitLabel,
     this.submitDisabled = false,
     this.dismissController,
@@ -38,10 +38,9 @@ class AppBottomFormSheet extends StatefulWidget {
   /// 提交按钮 Key —— 必填，测试用。
   final Key submitKey;
 
-  final String? cancelLabel;
   final String? submitLabel;
 
-  /// 驱动提交按钮的 spinner。同时会禁用取消按钮防误关。
+  /// 驱动提交按钮的 spinner，并在提交期间锁定弹层，避免误关。
   final bool isSubmitting;
 
   /// 独立门控：即使 `!isSubmitting` 也可让提交禁用（如探针检测进行中）。
@@ -117,13 +116,11 @@ class _AppBottomFormSheetState extends State<AppBottomFormSheet>
             Padding(
               padding: EdgeInsets.only(top: spacing.md),
               child: AppModalActionRow(
-                cancelLabel: widget.cancelLabel ?? l10n.commonCancel,
                 submitLabel: widget.submitLabel ?? l10n.commonSave,
-                cancelKey: null,
                 submitKey: widget.submitKey,
                 isSubmitting: widget.isSubmitting,
                 submitDisabled: busy,
-                onCancel: busy ? null : () => Navigator.of(context).pop(),
+                showCancel: false,
                 onSubmit: widget.onSubmit,
               ),
             ),

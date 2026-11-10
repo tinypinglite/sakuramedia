@@ -32,7 +32,7 @@ enum _MomentKindOption {
 
 /// 在合集详情里弹出「添加时刻」选择器：默认只看未加入，勾选即时加入 / 移出。
 ///
-/// 关闭方式不固定（X / 点遮罩 / 抽屉「完成」），不依赖返回值；调用方关闭后刷新
+/// 关闭方式不固定（桌面 X / 移动端下拉或遮罩），不依赖返回值；调用方关闭后刷新
 /// 合集详情即可。桌面端用居中弹窗，移动端用底部抽屉（`auto` 读 `AppPlatformScope`）。
 Future<void> showAddMomentsToCollectionDialog(
   BuildContext context, {
@@ -45,7 +45,7 @@ Future<void> showAddMomentsToCollectionDialog(
     drawerKey: const Key('add-moments-to-collection-bottom-sheet'),
     desktopWidth: context.appComponentTokens.playlistDialogWidth,
     mobileHeightFactor: 0.8,
-    showDesktopCloseButton: false,
+    showDesktopCloseButton: true,
     builder: (_) => AddMomentsToCollectionDialog(
       collectionId: collectionId,
       memberPointIds: memberPointIds,
@@ -81,8 +81,6 @@ class _AddMomentsToCollectionDialogState
   String get pickerKeyPrefix => 'add-moments';
 
   @override
-  String get pickerTitle => AppLocalizations.of(context).momentAddMomentsAction;
-
   @override
   String get pickerSearchHint =>
       AppLocalizations.of(context).momentPickerSearchHint;

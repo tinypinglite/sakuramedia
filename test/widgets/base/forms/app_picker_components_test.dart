@@ -63,16 +63,13 @@ void main() {
     expect(find.byKey(const Key('picker-busy')), findsOneWidget);
   });
 
-  testWidgets('picker header forwards close and done actions', (tester) async {
-    var closes = 0;
+  testWidgets('picker header forwards done action', (tester) async {
     var dones = 0;
     await pumpWithProviders(
       tester,
       home: Scaffold(
         body: AppPickerHeader(
           title: '加入播放列表',
-          onClose: () => closes++,
-          closeKey: const Key('picker-close'),
           onDone: () => dones++,
           doneKey: const Key('picker-done'),
         ),
@@ -81,11 +78,8 @@ void main() {
       physicalSize: const Size(600, 400),
     );
 
-    await tester.tap(find.byKey(const Key('picker-close')));
-    await tester.pump();
     await tester.tap(find.byKey(const Key('picker-done')));
     await tester.pump();
-    expect(closes, 1);
     expect(dones, 1);
   });
 
@@ -104,7 +98,6 @@ void main() {
           searchFieldKey: const Key('picker-search'),
           clearSearchKey: const Key('picker-search-clear'),
           onSearchChanged: changes.add,
-          onClose: () {},
         ),
       ),
       theme: sakuraThemeData,
@@ -120,5 +113,31 @@ void main() {
     await tester.pump();
     expect(controller.text, isEmpty);
     expect(changes.last, isEmpty);
+  });
+
+  testWidgets('titleless picker header keeps search usable', (tester) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    final changes = <String>[];
+    await pumpWithProviders(
+      tester,
+      home: Scaffold(
+        body: AppPickerHeader(
+          searchController: controller,
+          searchFieldKey: const Key('picker-search'),
+          clearSearchKey: const Key('picker-search-clear'),
+          onSearchChanged: changes.add,
+        ),
+      ),
+      theme: sakuraThemeData,
+      physicalSize: const Size(600, 400),
+    );
+
+    await tester.enterText(find.byKey(const Key('picker-search')), 'Alpha');
+    await tester.pump();
+
+    expect(controller.text, 'Alpha');
+    expect(changes, contains('Alpha'));
+    expect(tester.takeException(), isNull);
   });
 }

@@ -15,6 +15,7 @@ class AppGlassSearchField extends StatelessWidget {
     required this.hintText,
     this.fieldKey,
     this.clearKey,
+    this.focusNode,
     this.onChanged,
   });
 
@@ -22,6 +23,7 @@ class AppGlassSearchField extends StatelessWidget {
   final String hintText;
   final Key? fieldKey;
   final Key? clearKey;
+  final FocusNode? focusNode;
   final ValueChanged<String>? onChanged;
 
   @override
@@ -35,6 +37,7 @@ class AppGlassSearchField extends StatelessWidget {
           key: fieldKey,
           context: context,
           controller: controller,
+          focusNode: focusNode,
           placeholder: hintText,
           height: 40,
           prefixIcon: Icon(

@@ -20,7 +20,6 @@ enum CollectionEditorHeaderStyle { plain, strong, edit }
 class CollectionEditorCopy {
   const CollectionEditorCopy({
     required this.title,
-    this.subtitle,
     required this.nameHint,
     required this.descriptionHint,
     required this.nameRequiredMessage,
@@ -28,7 +27,6 @@ class CollectionEditorCopy {
   });
 
   final String title;
-  final String? subtitle;
   final String nameHint;
   final String descriptionHint;
   final String nameRequiredMessage;
@@ -186,7 +184,6 @@ class _CollectionEditorDialogState<T>
         return AppBottomFormSheet(
           formKey: _formKey,
           title: _config.copy.title,
-          subtitle: _config.copy.subtitle,
           submitKey: _config.submitKey,
           submitLabel: _config.copy.submitLabel,
           isSubmitting: _isSubmitting,
@@ -201,7 +198,9 @@ class _CollectionEditorDialogState<T>
 
   Widget _buildForm(BuildContext context) {
     final spacing = context.appSpacing;
-    final l10n = AppLocalizations.of(context);
+    final isDrawer =
+        AppAdaptiveModalShellScope.maybeIsDrawer(context) ||
+        _config.presentation == CollectionEditorPresentation.drawer;
     final isEditHeader =
         _config.headerStyle == CollectionEditorHeaderStyle.edit;
     return AppModalDismissScope(
@@ -217,13 +216,11 @@ class _CollectionEditorDialogState<T>
             _buildFields(context),
             SizedBox(height: isEditHeader ? spacing.lg : spacing.md),
             AppModalActionRow(
-              cancelLabel: l10n.commonCancel,
               submitLabel: _config.copy.submitLabel,
               submitKey: _config.submitKey,
               isSubmitting: _isSubmitting,
-              onCancel: _isSubmitting
-                  ? null
-                  : () => Navigator.of(context).pop(),
+              showCancel: false,
+              equalWidth: isDrawer,
               onSubmit: _submit,
             ),
           ],
@@ -234,7 +231,6 @@ class _CollectionEditorDialogState<T>
 
   Widget _buildHeader(BuildContext context) {
     final copy = _config.copy;
-    final subtitle = copy.subtitle;
     switch (_config.headerStyle) {
       case CollectionEditorHeaderStyle.plain:
         return Text(
@@ -257,31 +253,14 @@ class _CollectionEditorDialogState<T>
           ),
         );
       case CollectionEditorHeaderStyle.edit:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              copy.title,
-              style: resolveAppTextStyle(
-                context,
-                size: _isDrawer ? AppTextSize.s16 : AppTextSize.s18,
-                weight: AppTextWeight.semibold,
-                tone: AppTextTone.primary,
-              ),
-            ),
-            if (subtitle != null) ...[
-              SizedBox(height: context.appSpacing.xs),
-              Text(
-                subtitle,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.secondary,
-                ),
-              ),
-            ],
-          ],
+        return Text(
+          copy.title,
+          style: resolveAppTextStyle(
+            context,
+            size: _isDrawer ? AppTextSize.s16 : AppTextSize.s18,
+            weight: AppTextWeight.semibold,
+            tone: AppTextTone.primary,
+          ),
         );
     }
   }
