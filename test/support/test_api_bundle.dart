@@ -269,6 +269,11 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
     path: '/moment-collections',
     body: const <dynamic>[],
   );
+  adapter.setFallbackJson(
+    method: 'GET',
+    path: '/status/announcements',
+    body: const <String, dynamic>{'items': <dynamic>[]},
+  );
 
   return TestApiBundle(
     sessionStore: sessionStore,

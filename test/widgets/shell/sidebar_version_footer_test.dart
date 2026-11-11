@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/app/app_version_info_state.dart';
 import 'package:sakuramedia/app/providers/app_update_check_provider.dart';
+import 'package:sakuramedia/features/announcements/data/announcement_dto.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/shell/sidebar_version_footer.dart';
@@ -134,5 +135,79 @@ void main() {
       find.byKey(const Key('sidebar-version-popover-go-plugins')),
       findsNothing,
     );
+  });
+
+  testWidgets('footer exposes unseen announcements inside the version menu', (
+    tester,
+  ) async {
+    String? openedAnnouncementId;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        locale: const Locale('zh'),
+        localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+          AppLocalizations.delegate,
+          ...GlobalMaterialLocalizations.delegates,
+        ],
+        supportedLocales: AppLocalizations.supportedLocales,
+        theme: buildSakuraMobileThemeData(),
+        home: Scaffold(
+          body: Center(
+            child: SizedBox(
+              width: 300,
+              child: SidebarVersionFooter(
+                version: const AppVersionInfoState(
+                  frontendVersion: '1.2.3',
+                  backendVersion: 'v1.0.0',
+                ),
+                pluginUpdates: 0,
+                updates: AppUpdateCheckState.initial,
+                announcements: <AnnouncementDto>[
+                  AnnouncementDto(
+                    id: 'notice-1',
+                    level: AnnouncementLevel.warning,
+                    titleI18n: const <String, String>{
+                      'zh-CN': '系统维护通知',
+                      'en': 'Maintenance notice',
+                    },
+                    bodyI18n: const <String, String>{
+                      'zh-CN': '今晚进行维护',
+                      'en': 'Maintenance tonight',
+                    },
+                    publishedAt: DateTime.utc(2026, 11, 12, 8),
+                  ),
+                ],
+                hasUnseenAnnouncements: true,
+                onOpenAnnouncement: (announcement) {
+                  openedAnnouncementId = announcement.id;
+                },
+                onOpenFrontendRelease: () {},
+                onOpenBackendRelease: () {},
+                onOpenPluginUpdates: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const Key('sidebar-version-update-dot')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('sidebar-version-info')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('sidebar-announcements-section')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('sidebar-announcement-notice-1')),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('sidebar-announcement-notice-1')));
+    await tester.pumpAndSettle();
+    expect(openedAnnouncementId, 'notice-1');
   });
 }

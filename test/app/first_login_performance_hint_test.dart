@@ -97,6 +97,36 @@ void main() {
     expect(find.byKey(const Key('first-login-performance-hint')), findsNothing);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('critical 公告未确认时延后首次登录提示', (tester) async {
+    final sessionStore = SessionStore.inMemory();
+    addTearDown(sessionStore.dispose);
+    final onboardingStore = InMemoryOnboardingStore();
+    final navigatorKey = GlobalKey<NavigatorState>();
+    var suppress = true;
+
+    await _pumpHost(
+      tester,
+      sessionStore: sessionStore,
+      onboardingStore: onboardingStore,
+      navigatorKey: navigatorKey,
+      shouldSuppress: () => suppress,
+    );
+    await tester.pumpAndSettle();
+    await _signIn(sessionStore);
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byKey(const Key('first-login-performance-hint')), findsNothing);
+
+    suppress = false;
+    await tester.pump(const Duration(milliseconds: 600));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('first-login-performance-hint')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
 }
 
 Future<void> _signIn(SessionStore sessionStore) {
@@ -112,6 +142,7 @@ Future<void> _pumpHost(
   required SessionStore sessionStore,
   required InMemoryOnboardingStore onboardingStore,
   required GlobalKey<NavigatorState> navigatorKey,
+  bool Function()? shouldSuppress,
 }) {
   return tester.pumpWidget(
     FirstLoginPerformanceHintHost(
@@ -120,6 +151,7 @@ Future<void> _pumpHost(
       platform: AppPlatform.desktop,
       navigatorKey: navigatorKey,
       isLoginPage: () => false,
+      shouldSuppress: shouldSuppress,
       child: MaterialApp(
         navigatorKey: navigatorKey,
         theme: sakuraDesktopThemeData,

@@ -236,3 +236,21 @@ api_key = ""
 `url` is the Qdrant HTTP API address; with the compose deployment, use the in-container service name `qdrant`. Fill in `api_key` when Qdrant authentication is enabled.
 
 `enabled` controls similar movies and the vector service. When it is off, Qdrant is not contacted and recommendations skip the movie similarity signal; disabling image search does not affect similar movies, which depend on Qdrant alone. When disabling Qdrant you should disable image search as well; desktop prompts you and saves both together. The switch does not stop or remove Docker containers — to free resources, stop the containers on the deployment side.
+
+## Deployment announcements
+
+The backend polls the project announcement feed at
+`https://tinypinglite.github.io/sakuramedia/announcements.json`. It caches a
+successful response for 30 minutes and keeps the last good response when the
+feed is temporarily unavailable.
+
+These optional container environment variables override the defaults:
+
+| Variable | Purpose |
+|---|---|
+| `SAKURAMEDIA_ANNOUNCEMENTS_ENABLED` | Set to `false` to disable announcement checks. |
+| `SAKURAMEDIA_ANNOUNCEMENTS_URL` | Use a mirror or local announcement feed. |
+
+Announcements can be about the client or backend, and may be limited to an
+affected version range. Critical announcements require one acknowledgement in
+the client; other announcements appear in the version menu.
