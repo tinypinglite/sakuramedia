@@ -74,6 +74,7 @@ class _DesktopConfigurationPageState
           label: l10n.configTabMediaLibraries,
           icon: Icons.folder_open_outlined,
         ),
+        keepAlive: false,
         builder: (active) => MediaLibrariesPage(mobile: false, active: active),
       ),
       _ConfigurationTab(
@@ -90,6 +91,7 @@ class _DesktopConfigurationPageState
           label: l10n.configTabMetadataSources,
           icon: Icons.cloud_sync_outlined,
         ),
+        keepAlive: false,
         builder: (active) => MetadataSourcesPage(
           active: active,
           onDirtyChanged: (dirty) => _handleTabDirtyChanged(
@@ -104,6 +106,7 @@ class _DesktopConfigurationPageState
           label: l10n.configTabDownloadClients,
           icon: Icons.download_outlined,
         ),
+        keepAlive: false,
         builder: (active) => DownloadersPage(mobile: false, active: active),
       ),
       _ConfigurationTab(
@@ -112,6 +115,7 @@ class _DesktopConfigurationPageState
           label: l10n.configTabIndexers,
           icon: Icons.travel_explore_outlined,
         ),
+        keepAlive: false,
         builder: (active) => IndexersPage(mobile: false, active: active),
       ),
       _ConfigurationTab(
@@ -135,6 +139,7 @@ class _DesktopConfigurationPageState
             label: l10n.configTabExternalPlayer,
             icon: Icons.open_in_new_rounded,
           ),
+          keepAlive: false,
           builder: (active) => ExternalPlayerSettingsContent(active: active),
         ),
       _ConfigurationTab(
@@ -165,6 +170,7 @@ class _DesktopConfigurationPageState
           label: l10n.configTabPlugins,
           icon: Icons.extension_outlined,
         ),
+        keepAlive: false,
         builder: (active) => DesktopPluginsSection(active: active),
       ),
       _ConfigurationTab(
@@ -352,13 +358,7 @@ class _DesktopConfigurationPageState
                   index: _selectedIndex,
                   sizing: StackFit.expand,
                   children: [
-                    for (var i = 0; i < _tabs.length; i++)
-                      if (_tabs[i].selfScrolling)
-                        _tabs[i].builder(i == _selectedIndex)
-                      else
-                        _ConfigurationTabScrollView(
-                          child: _tabs[i].builder(i == _selectedIndex),
-                        ),
+                    for (var i = 0; i < _tabs.length; i++) _buildTabContent(i),
                   ],
                 ),
               ),
@@ -368,6 +368,18 @@ class _DesktopConfigurationPageState
       ],
     );
   }
+
+  Widget _buildTabContent(int index) {
+    final tab = _tabs[index];
+    final active = index == _selectedIndex;
+    if (!active && !tab.keepAlive) {
+      return const SizedBox.shrink();
+    }
+    final child = tab.builder(active);
+    return tab.selfScrolling
+        ? child
+        : _ConfigurationTabScrollView(child: child);
+  }
 }
 
 /// 系统设置单个分类页：分类描述 + 内容构建器。
@@ -375,12 +387,15 @@ class _ConfigurationTab {
   const _ConfigurationTab({
     required this.category,
     required this.builder,
+    this.keepAlive = true,
     this.selfScrolling = false,
     this.rendersOwnHeader = false,
   });
 
   final _ConfigurationCategory category;
   final Widget Function(bool active) builder;
+
+  final bool keepAlive;
 
   /// 内容自带标题行时为 true，外层不再渲染共享标题（标题与操作区由内容负责）。
   final bool rendersOwnHeader;
