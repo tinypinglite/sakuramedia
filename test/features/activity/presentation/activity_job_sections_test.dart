@@ -11,6 +11,7 @@ void main() {
       final sections = buildActivityJobSections(<JobMetadataDto>[
         _job('movie_heat_update'),
         _job('media_file_scan'),
+        _job('actor_subscription_sync'),
         _job('subscribed_movie_auto_download'),
         _job('download_task_sync'),
       ]);
@@ -20,6 +21,7 @@ void main() {
         ActivityJobSectionKind.system,
       ]);
       expect(sections[0].jobs.map((job) => job.taskKey), <String>[
+        'actor_subscription_sync',
         'subscribed_movie_auto_download',
         'download_task_sync',
         'media_file_scan',

@@ -17,8 +17,13 @@ void main() {
 
     final result = await bundle.configApi.get();
 
+    expect(result.scheduler.crons['actor_subscription_sync'], '0 2 * * *');
     expect(result.scheduler.crons['download_task_sync'], '* * * * *');
     expect(result.scheduler.crons['movie_stats_sync'], '0 5 * * *');
+    expect(
+      result.scheduler.toJson()['actor_subscription_sync_cron'],
+      '0 2 * * *',
+    );
     expect(result.scheduler.workerDefaultConcurrency, 4);
     expect(result.downloads.subscriptionSearchFreshDays, 7);
     expect(result.downloads.subscriptionSearchStaleAttemptLimit, 3);
@@ -77,6 +82,7 @@ Map<String, dynamic> _configJson({
     'media': <String, dynamic>{'allowed_min_video_file_size': 268435456},
     'scheduler': <String, dynamic>{
       if (includeWorkerDefaultConcurrency) 'worker_default_concurrency': 4,
+      'actor_subscription_sync_cron': '0 2 * * *',
       'subscribed_movie_auto_download_cron': '30 2 * * *',
       'download_task_sync_cron': '* * * * *',
       'download_task_auto_import_cron': '* * * * *',

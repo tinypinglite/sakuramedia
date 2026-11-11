@@ -972,7 +972,11 @@ List<_CronGroup> _buildCronGroups(AppLocalizations l10n) => <_CronGroup>[
   ),
   _CronGroup(
     title: l10n.configCronGroupScrapeBackfill,
-    keys: <String>['media_file_hash_backfill', 'gfriends_filetree_refresh'],
+    keys: <String>[
+      'actor_subscription_sync',
+      'media_file_hash_backfill',
+      'gfriends_filetree_refresh',
+    ],
   ),
   _CronGroup(
     title: l10n.configOptionalServicesTitle,
@@ -997,6 +1001,7 @@ List<_CronGroup> _buildCronGroups(AppLocalizations l10n) => <_CronGroup>[
 ];
 
 String _cronCopy(AppLocalizations l10n, String key) => switch (key) {
+  'actor_subscription_sync' => l10n.taskNameActorSubscriptionSync,
   'subscribed_movie_auto_download' => l10n.taskNameSubscribedMovieAutoDownload,
   'download_task_sync' => l10n.taskNameDownloadTaskSync,
   'download_task_auto_import' => l10n.taskNameDownloadTaskAutoImport,
@@ -1014,6 +1019,7 @@ String _cronCopy(AppLocalizations l10n, String key) => switch (key) {
 };
 
 String _cronFieldHelper(AppLocalizations l10n, String key) => switch (key) {
+  'actor_subscription_sync' => l10n.taskHelpActorSubscriptionSync,
   'subscribed_movie_auto_download' => l10n.taskHelpSubscribedMovieAutoDownload,
   'download_task_sync' => l10n.taskHelpDownloadTaskSync,
   'download_task_auto_import' => l10n.taskHelpDownloadTaskAutoImport,

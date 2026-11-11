@@ -80,6 +80,7 @@ class AdvancedSchedulerConfigDto {
   });
 
   static const List<String> cronKeys = <String>[
+    'actor_subscription_sync',
     'subscribed_movie_auto_download',
     'download_task_sync',
     'download_task_auto_import',

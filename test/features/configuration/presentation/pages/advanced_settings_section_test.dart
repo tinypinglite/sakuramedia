@@ -53,6 +53,12 @@ void main() {
       findsOneWidget,
     );
     expect(
+      find.byKey(
+        const Key('configuration-advanced-cron-actor_subscription_sync-field'),
+      ),
+      findsOneWidget,
+    );
+    expect(
       find.byKey(const Key('configuration-advanced-other-card')),
       findsOneWidget,
     );
@@ -66,6 +72,7 @@ Map<String, dynamic> _configJson() => <String, dynamic>{
     'media': <String, dynamic>{'allowed_min_video_file_size': 268435456},
     'scheduler': <String, dynamic>{
       'worker_default_concurrency': 4,
+      'actor_subscription_sync_cron': '0 2 * * *',
       'subscribed_movie_auto_download_cron': '30 2 * * *',
       'download_task_sync_cron': '* * * * *',
       'download_task_auto_import_cron': '* * * * *',

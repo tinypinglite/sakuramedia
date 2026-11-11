@@ -3,6 +3,7 @@ import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
 
 /// 概览固定展示的常用任务；顺序即卡片顺序。
 const List<String> activityCommonJobKeys = <String>[
+  'actor_subscription_sync',
   'subscribed_movie_auto_download',
   'download_task_sync',
   'download_task_auto_import',
