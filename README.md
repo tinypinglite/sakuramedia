@@ -10,6 +10,12 @@
   Built for people running their own media library: the backend can run on a NAS, mini PC, server, or VPS, and movies can live on local disks or in a 115 cloud drive.
 </p>
 
+> [!WARNING]
+> **SakuraMedia is currently unavailable due to changes to the upstream JavDB API.**
+
+
+> **由于上游 JavDB 接口发生变动，SakuraMedia 目前无法正常使用。**
+
 <p align="center">
   <a href="https://github.com/tinypinglite/sakuramedia/releases/latest"><strong>Download the client</strong></a>
   ·

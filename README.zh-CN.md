@@ -10,6 +10,9 @@
   面向自建媒体库的用户：后端可部署在 NAS、迷你主机、服务器或 VPS 上；影片可以存本地，也可以存 115 网盘。
 </p>
 
+> [!WARNING]
+> **由于上游 JavDB 接口发生变动，SakuraMedia 目前暂无法正常使用。我们正在跟进适配，恢复后会更新说明。**
+
 <p align="center">
   <a href="https://github.com/tinypinglite/sakuramedia/releases/latest"><strong>下载客户端</strong></a>
   ·
