@@ -954,7 +954,6 @@
       }
     }
   },
-  "pluginBindingsLegacyStats": "旧数据",
   "configTabDownloadClients": "下载器",
   "configTabIndexers": "索引器",
   "configTabExternalPlayer": "外部播放器",
@@ -3231,22 +3230,6 @@
   "moviePageSectionSimilarMovies": "相似影片",
   "moviePageMetaSeries": "系列",
   "moviePageMetaMetadata": "元数据",
-  "moviePageMetaWantWatch": "想看 · {count}",
-  "@moviePageMetaWantWatch": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "moviePageMetaWatched": "看过 · {count}",
-  "@moviePageMetaWatched": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "moviePageMetaReleased": "上映 · {date}",
   "@moviePageMetaReleased": {
     "placeholders": {
@@ -4312,7 +4295,6 @@
     }
   },
   "movieWidgetCreateLocalActorEntry": "没找到？新建本地女优",
-  "movieWidgetLocalActorBadge": "本地女优",
   "movieWidgetActorAlreadyInCast": "已在演员表",
   "movieWidgetBackToSelection": "返回选择",
   "movieWidgetActorNameLabel": "姓名",
@@ -4996,8 +4978,6 @@
   },
   "rankingSortFieldRank": "榜单名次",
   "@rankingSortFieldRank": {},
-  "rankingSortFieldCommentCount": "评论人数",
-  "@rankingSortFieldCommentCount": {},
   "externalPlayerInAppTitle": "应用内播放器",
   "@externalPlayerInAppTitle": {},
   "externalPlayerInAppSubtitle": "使用 SakuraMedia 内置播放器",

@@ -954,7 +954,6 @@
       }
     }
   },
-  "pluginBindingsLegacyStats": "Legacy data",
   "configTabDownloadClients": "Download clients",
   "configTabIndexers": "Indexers",
   "configTabExternalPlayer": "External player",
@@ -3231,22 +3230,6 @@
   "moviePageSectionSimilarMovies": "Similar movies",
   "moviePageMetaSeries": "Series",
   "moviePageMetaMetadata": "Metadata",
-  "moviePageMetaWantWatch": "Want to watch · {count}",
-  "@moviePageMetaWantWatch": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "moviePageMetaWatched": "Watched · {count}",
-  "@moviePageMetaWatched": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "moviePageMetaReleased": "Released · {date}",
   "@moviePageMetaReleased": {
     "placeholders": {
@@ -4159,7 +4142,6 @@
     }
   },
   "movieWidgetCreateLocalActorEntry": "Not found? Create a local actor",
-  "movieWidgetLocalActorBadge": "Local actor",
   "movieWidgetActorAlreadyInCast": "In cast",
   "movieWidgetBackToSelection": "Back to selection",
   "movieWidgetActorNameLabel": "Name",
@@ -4843,8 +4825,6 @@
   },
   "rankingSortFieldRank": "Board rank",
   "@rankingSortFieldRank": {},
-  "rankingSortFieldCommentCount": "Comment count",
-  "@rankingSortFieldCommentCount": {},
   "externalPlayerInAppTitle": "Built-in player",
   "@externalPlayerInAppTitle": {},
   "externalPlayerInAppSubtitle": "Play inside the built-in SakuraMedia player",
