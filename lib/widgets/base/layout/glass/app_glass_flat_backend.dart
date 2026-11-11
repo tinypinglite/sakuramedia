@@ -255,12 +255,15 @@ class AppGlassFlatTextFieldBackend extends StatelessWidget {
     final trailingInset = direction == TextDirection.rtl
         ? resolvedPadding.left
         : resolvedPadding.right;
+    final inputPadding = height == null
+        ? (padding ?? EdgeInsets.zero)
+        : EdgeInsetsDirectional.only(start: leadingInset, end: trailingInset);
     // InputDecorator 在存在 prefixIcon / suffixIcon 时会忽略 contentPadding
     // 的水平部分，只在图标和输入区之间留一个固定 gap，所以图标内边距要在
     // 图标自身补齐。
     final inputGap = Theme.of(context).useMaterial3 ? 4.0 : 0.0;
     final iconTextGap = math.max(0.0, iconSpacing - inputGap);
-    final field = Material(
+    Widget field = Material(
       color: Colors.transparent,
       child: TextField(
         controller: controller,
@@ -297,7 +300,7 @@ class AppGlassFlatTextFieldBackend extends StatelessWidget {
             minHeight: 0,
           ),
           isDense: true,
-          contentPadding: padding ?? EdgeInsets.zero,
+          contentPadding: inputPadding,
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
@@ -319,6 +322,16 @@ class AppGlassFlatTextFieldBackend extends StatelessWidget {
         textAlignVertical: TextAlignVertical.center,
       ),
     );
+
+    if (height != null) {
+      final theme = Theme.of(context);
+      field = Theme(
+        data: theme.copyWith(
+          visualDensity: theme.visualDensity.copyWith(vertical: 0),
+        ),
+        child: field,
+      );
+    }
 
     final content = height == null
         ? field
