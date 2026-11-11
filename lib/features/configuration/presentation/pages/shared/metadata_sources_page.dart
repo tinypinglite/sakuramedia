@@ -6,7 +6,7 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/configuration/data/dto/metadata_source_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/metadata_sources_api_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/plugin_bindings_section.dart';
-import 'package:sakuramedia/features/shared/presentation/restart_messages.dart';
+import 'package:sakuramedia/features/plugins/presentation/widgets/plugin_restart_notice_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
@@ -141,10 +141,6 @@ class _MetadataSourcesPageState extends ConsumerState<MetadataSourcesPage> {
         _orderDirty = false;
       });
       widget.onDirtyChanged?.call(_dirty);
-      showToast(
-        buildRestartRequiredMessage(_l10n.commonSaved, _l10n),
-        tone: AppToastTone.warning,
-      );
     } catch (error) {
       if (!mounted) return;
       setState(() => _saving = false);
@@ -156,7 +152,13 @@ class _MetadataSourcesPageState extends ConsumerState<MetadataSourcesPage> {
         ),
         tone: AppToastTone.error,
       );
+      return;
     }
+    if (!mounted) return;
+    await showPluginRestartNoticeDialog(
+      context,
+      action: PluginRestartNoticeAction.metadataOrderSaved,
+    );
   }
 
   @override

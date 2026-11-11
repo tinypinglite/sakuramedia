@@ -1145,11 +1145,8 @@
     }
   },
   "pluginInstallConfirm": "安装",
-  "pluginInstalled": "插件已安装",
   "pluginInstalledRefreshFailed": "插件已安装，但列表刷新失败，请稍后重试",
   "pluginInstallFailed": "安装插件失败",
-  "pluginEnabled": "插件已启用",
-  "pluginDisabled": "插件已停用",
   "pluginToggleFailed": "插件启停失败",
   "pluginUpdateCheckPartialFailed": "部分插件的更新检查失败，请稍后重试",
   "pluginNoUpdates": "未发现可用更新",
@@ -1162,7 +1159,7 @@
     }
   },
   "pluginUpgradeTitle": "更新插件",
-  "pluginUpgradeMessage": "将「{name}」从 v{fromVersion} 更新到 v{toVersion}。更新完成后，需手动重启容器才会生效。",
+  "pluginUpgradeMessage": "将「{name}」从 v{fromVersion} 更新到 v{toVersion}。更新完成后，稍后需要重启后端容器；重启完成后请完全退出 App 后重新打开。",
   "@pluginUpgradeMessage": {
     "placeholders": {
       "name": {
@@ -1196,8 +1193,8 @@
     }
   },
   "pluginDeleteFailed": "删除插件失败",
-  "pluginRestartNoticeTitle": "需要重启后端",
-  "pluginRestartNoticeInstalledMessage": "插件包「{name}」已安装。请重启后端容器使变更生效；在重启前继续使用，可能会出现意想不到的错误。",
+  "pluginRestartNoticeTitle": "稍后需要重启后端",
+  "pluginRestartNoticeInstalledMessage": "插件包「{name}」已安装。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
   "@pluginRestartNoticeInstalledMessage": {
     "placeholders": {
       "name": {
@@ -1205,7 +1202,7 @@
       }
     }
   },
-  "pluginRestartNoticeUpgradedMessage": "插件「{name}」已更新。请重启后端容器使变更生效；在重启前继续使用，可能会出现意想不到的错误。",
+  "pluginRestartNoticeUpgradedMessage": "插件「{name}」已更新。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
   "@pluginRestartNoticeUpgradedMessage": {
     "placeholders": {
       "name": {
@@ -1213,7 +1210,7 @@
       }
     }
   },
-  "pluginRestartNoticeDeletedMessage": "插件「{name}」已删除。请重启后端容器使变更生效；在重启前继续使用，可能会出现意想不到的错误。",
+  "pluginRestartNoticeDeletedMessage": "插件「{name}」已删除。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
   "@pluginRestartNoticeDeletedMessage": {
     "placeholders": {
       "name": {
@@ -1221,8 +1218,33 @@
       }
     }
   },
-  "pluginRestartNoticeCheckbox": "我已了解，需要重启后端容器后变更才会生效",
-  "pluginRestartNoticeConfirm": "我知道了",
+  "pluginRestartNoticeEnabledMessage": "插件「{name}」已启用。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "@pluginRestartNoticeEnabledMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeDisabledMessage": "插件「{name}」已停用。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "@pluginRestartNoticeDisabledMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeSettingsSavedMessage": "插件「{name}」的配置已保存。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "@pluginRestartNoticeSettingsSavedMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeBindingsSavedMessage": "插件来源绑定已保存。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "pluginRestartNoticeMetadataOrderSavedMessage": "元数据源顺序已保存。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "pluginRestartNoticeConfirm": "知道了",
   "pluginMarketInstallMessage": "将从 {repo} 下载 v{version} 安装包并安装「{name}」。",
   "@pluginMarketInstallMessage": {
     "placeholders": {
@@ -1347,7 +1369,6 @@
   "pluginSettingsEmpty": "配置不能为空",
   "pluginSettingsMustBeObject": "插件配置必须是一个 JSON 对象",
   "pluginSettingsInvalidJson": "不是合法的 JSON",
-  "pluginSettingsSaved": "插件配置已保存",
   "pluginSettingsSaveFailed": "插件配置保存失败",
   "pluginSettingsTitle": "插件配置",
   "pluginSettingsJsonLabel": "配置内容（JSON）",
@@ -1358,12 +1379,12 @@
   "pluginsTabMarket": "插件市场",
   "pluginsLoadFailed": "插件加载失败",
   "pluginsLoadFailedFallback": "插件加载失败，请稍后重试。",
-  "pluginsRestartNotice": "插件安装、更新、启停、删除或配置修改后，需重启容器才生效。",
+  "pluginsRestartNotice": "插件安装、更新、启停、删除或配置修改后，稍后需要重启后端容器；重启完成后，请完全退出 App 后重新打开。",
   "pluginsCheckUpdates": "检查更新",
   "pluginsZipSupport": "支持上传 .zip 插件包",
   "pluginsEmptyTitle": "还没有安装插件",
-  "pluginsEmptyMessage": "点击上方「安装插件」上传 zip 插件包，安装后需重启容器才生效。",
-  "pluginsEmptyMessageMobile": "点击下方「安装插件」上传 zip 插件包，安装后需重启容器才生效。",
+  "pluginsEmptyMessage": "点击上方「安装插件」上传 zip 插件包；安装后，稍后需要重启后端容器，重启完成后请完全退出 App 后重新打开。",
+  "pluginsEmptyMessageMobile": "点击下方「安装插件」上传 zip 插件包；安装后，稍后需要重启后端容器，重启完成后请完全退出 App 后重新打开。",
   "pluginsInstalledTitle": "已安装插件",
   "pluginsCount": "{count} 个",
   "@pluginsCount": {
@@ -1385,7 +1406,7 @@
     }
   },
   "pluginsManagementTitle": "插件管理",
-  "pluginsManageNotice": "安装、更新、启停、删除或配置修改后，需重启容器才会生效。",
+  "pluginsManageNotice": "安装、更新、启停、删除或配置修改后，稍后需要重启后端容器；重启完成后，请完全退出 App 后重新打开。",
   "pluginsUpdatableStat": "可更新",
   "pluginsLoadingList": "正在加载插件列表",
   "pluginsCheckReleaseUpdates": "检查插件 Release 更新",

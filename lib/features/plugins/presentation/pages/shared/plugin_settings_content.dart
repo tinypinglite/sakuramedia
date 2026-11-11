@@ -9,7 +9,6 @@ import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/features/plugins/presentation/widgets/plugin_settings_schema.dart';
 import 'package:sakuramedia/features/plugins/data/dto/plugin_dto.dart';
 import 'package:sakuramedia/features/plugins/presentation/providers/plugins_api_provider.dart';
-import 'package:sakuramedia/features/shared/presentation/restart_messages.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/features/plugins/presentation/widgets/plugin_settings_form.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -163,12 +162,7 @@ class _PluginSettingsContentState extends ConsumerState<PluginSettingsContent> {
       if (!mounted) {
         return;
       }
-      final l10n = AppLocalizations.of(context);
-      showToast(
-        buildRestartRequiredMessage(l10n.pluginSettingsSaved, l10n),
-        tone: AppToastTone.warning,
-      );
-      Navigator.of(context).pop();
+      Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) {
         return;

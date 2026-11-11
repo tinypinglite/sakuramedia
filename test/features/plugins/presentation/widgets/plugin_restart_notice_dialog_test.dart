@@ -7,14 +7,16 @@ import 'package:sakuramedia/theme.dart';
 import '../../../../support/pump_with_providers.dart';
 
 void main() {
-  testWidgets('desktop restart notice requires acknowledgement', (
+  testWidgets('desktop restart notice closes from confirm or barrier', (
     tester,
   ) async {
     await _openRestartNotice(tester);
     await _expectRestartNoticeFlow(tester);
   });
 
-  testWidgets('mobile restart notice requires acknowledgement', (tester) async {
+  testWidgets('mobile restart notice closes from confirm or barrier', (
+    tester,
+  ) async {
     await _openRestartNotice(tester, mobile: true);
     await _expectRestartNoticeFlow(tester);
   });
@@ -57,25 +59,17 @@ Future<void> _openRestartNotice(
 Future<void> _expectRestartNoticeFlow(WidgetTester tester) async {
   expect(find.byKey(const Key('plugin-restart-notice-dialog')), findsOneWidget);
 
+  await tester.tap(
+    find.byKey(const Key('plugin-restart-notice-confirm-button')),
+  );
+  await tester.pumpAndSettle();
+  expect(find.byKey(const Key('plugin-restart-notice-dialog')), findsNothing);
+
+  await tester.tap(find.byKey(const Key('open-plugin-restart-notice')));
+  await tester.pumpAndSettle();
+  expect(find.byKey(const Key('plugin-restart-notice-dialog')), findsOneWidget);
+
   await tester.tapAt(const Offset(5, 5));
-  await tester.pumpAndSettle();
-  expect(find.byKey(const Key('plugin-restart-notice-dialog')), findsOneWidget);
-
-  await tester.binding.handlePopRoute();
-  await tester.pumpAndSettle();
-  expect(find.byKey(const Key('plugin-restart-notice-dialog')), findsOneWidget);
-
-  await tester.tap(
-    find.byKey(const Key('plugin-restart-notice-confirm-button')),
-  );
-  await tester.pumpAndSettle();
-  expect(find.byKey(const Key('plugin-restart-notice-dialog')), findsOneWidget);
-
-  await tester.tap(find.byKey(const Key('plugin-restart-notice-checkbox')));
-  await tester.pumpAndSettle();
-  await tester.tap(
-    find.byKey(const Key('plugin-restart-notice-confirm-button')),
-  );
   await tester.pumpAndSettle();
   expect(find.byKey(const Key('plugin-restart-notice-dialog')), findsNothing);
 }

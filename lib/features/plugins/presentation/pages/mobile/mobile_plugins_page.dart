@@ -7,6 +7,7 @@ import 'package:sakuramedia/features/plugins/presentation/pages/shared/plugin_se
 import 'package:sakuramedia/features/plugins/presentation/plugin_management_actions.dart';
 import 'package:sakuramedia/features/plugins/presentation/plugin_placeholders.dart';
 import 'package:sakuramedia/features/plugins/presentation/providers/plugins_provider.dart';
+import 'package:sakuramedia/features/plugins/presentation/widgets/plugin_restart_notice_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
@@ -37,7 +38,7 @@ class _MobilePluginsPageState extends ConsumerState<MobilePluginsPage> {
 
   Future<void> _openSettings(PluginSummaryDto plugin) async {
     final dismissController = AppModalDismissController();
-    await showAppBottomDrawer<void>(
+    final saved = await showAppBottomDrawer<bool>(
       context: context,
       drawerKey: Key('mobile-plugin-settings-drawer-${plugin.pluginId}'),
       heightFactor: 0.9,
@@ -48,6 +49,13 @@ class _MobilePluginsPageState extends ConsumerState<MobilePluginsPage> {
         dismissController: dismissController,
       ),
     );
+    if (saved == true && mounted) {
+      await showPluginRestartNoticeDialog(
+        context,
+        action: PluginRestartNoticeAction.settingsSaved,
+        pluginName: plugin.displayName,
+      );
+    }
   }
 
   Future<void> _showActions(PluginSummaryDto plugin) async {

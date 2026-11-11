@@ -11,7 +11,6 @@ import 'package:sakuramedia/features/plugins/presentation/plugin_zip_picker.dart
 import 'package:sakuramedia/features/plugins/presentation/providers/plugin_market_provider.dart';
 import 'package:sakuramedia/features/plugins/presentation/providers/plugins_provider.dart';
 import 'package:sakuramedia/features/plugins/presentation/widgets/plugin_restart_notice_dialog.dart';
-import 'package:sakuramedia/features/shared/presentation/restart_messages.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
@@ -96,15 +95,6 @@ class PluginManagementActions {
       await ref
           .read(pluginsProvider.notifier)
           .setEnabled(plugin.pluginId, enabled);
-      if (context.mounted) {
-        showToast(
-          buildRestartRequiredMessage(
-            enabled ? _l10n.pluginEnabled : _l10n.pluginDisabled,
-            _l10n,
-          ),
-          tone: AppToastTone.warning,
-        );
-      }
     } catch (error) {
       if (context.mounted) {
         showToast(
@@ -116,7 +106,18 @@ class PluginManagementActions {
           tone: AppToastTone.error,
         );
       }
+      return;
     }
+    if (!context.mounted) {
+      return;
+    }
+    await showPluginRestartNoticeDialog(
+      context,
+      action: enabled
+          ? PluginRestartNoticeAction.enabled
+          : PluginRestartNoticeAction.disabled,
+      pluginName: plugin.displayName,
+    );
   }
 
   Future<void> checkUpdates() async {

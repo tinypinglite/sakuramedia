@@ -83,7 +83,7 @@ Future<TestApiBundle> openSettings(
             builder: (context) => TextButton(
               child: const Text('配置'),
               onPressed: () => mobile
-                  ? showAppBottomDrawer<void>(
+                  ? showAppBottomDrawer<bool>(
                       context: context,
                       builder: (_) => PluginSettingsContent(
                         plugin: pluginSummaryDto(),
@@ -480,5 +480,31 @@ void main() {
       'custom': {'a': 2},
     });
     await tester.pump(const Duration(seconds: 3));
+  });
+
+  testWidgets('successful plugin settings save shows restart notice', (
+    tester,
+  ) async {
+    final bundle = await openSettings(tester, mobile: false);
+    bundle.adapter.enqueueJson(
+      method: 'PUT',
+      path: '/system/plugins/demo_plugin/settings',
+      body: {'settings': {}},
+    );
+
+    await tester.tap(find.byKey(const Key('plugin-settings-save-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('plugin-settings-save-button')), findsNothing);
+    expect(
+      find.byKey(const Key('plugin-restart-notice-dialog')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('plugin-restart-notice-confirm-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('plugin-restart-notice-dialog')), findsNothing);
   });
 }

@@ -6,7 +6,7 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/plugins/data/dto/plugin_binding_dto.dart';
 import 'package:sakuramedia/features/plugins/presentation/providers/plugin_bindings_provider.dart';
 import 'package:sakuramedia/features/plugins/presentation/providers/plugins_api_provider.dart';
-import 'package:sakuramedia/features/shared/presentation/restart_messages.dart';
+import 'package:sakuramedia/features/plugins/presentation/widgets/plugin_restart_notice_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
@@ -108,10 +108,6 @@ class _PluginBindingsFormState extends ConsumerState<_PluginBindingsForm> {
       setState(() => _saving = false);
       widget.onDirtyChanged?.call(false);
       ref.invalidate(pluginBindingsProvider);
-      showToast(
-        buildRestartRequiredMessage(_l10n.pluginBindingsSave, _l10n),
-        tone: AppToastTone.warning,
-      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -125,7 +121,15 @@ class _PluginBindingsFormState extends ConsumerState<_PluginBindingsForm> {
         ),
         tone: AppToastTone.error,
       );
+      return;
     }
+    if (!mounted) {
+      return;
+    }
+    await showPluginRestartNoticeDialog(
+      context,
+      action: PluginRestartNoticeAction.bindingsSaved,
+    );
   }
 
   void _setStatsSource(String? value) {

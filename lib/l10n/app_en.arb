@@ -1145,11 +1145,8 @@
     }
   },
   "pluginInstallConfirm": "Install",
-  "pluginInstalled": "Plugin installed",
   "pluginInstalledRefreshFailed": "Plugin installed, but refreshing the list failed. Try again later.",
   "pluginInstallFailed": "Failed to install plugin",
-  "pluginEnabled": "Plugin enabled",
-  "pluginDisabled": "Plugin disabled",
   "pluginToggleFailed": "Failed to enable or disable plugin",
   "pluginUpdateCheckPartialFailed": "Some plugin update checks failed. Try again later.",
   "pluginNoUpdates": "No updates available",
@@ -1162,7 +1159,7 @@
     }
   },
   "pluginUpgradeTitle": "Update plugin",
-  "pluginUpgradeMessage": "Update \"{name}\" from v{fromVersion} to v{toVersion}. Restart the container manually after updating.",
+  "pluginUpgradeMessage": "Update \"{name}\" from v{fromVersion} to v{toVersion}. You'll need to restart the backend container later after updating, then fully quit and reopen the app.",
   "@pluginUpgradeMessage": {
     "placeholders": {
       "name": {
@@ -1196,8 +1193,8 @@
     }
   },
   "pluginDeleteFailed": "Failed to delete plugin",
-  "pluginRestartNoticeTitle": "Restart required",
-  "pluginRestartNoticeInstalledMessage": "The plugin package \"{name}\" has been installed. Restart the backend container for the change to take effect. Using it before restarting may cause unexpected errors.",
+  "pluginRestartNoticeTitle": "Backend restart needed later",
+  "pluginRestartNoticeInstalledMessage": "The plugin package \"{name}\" has been installed. You'll need to restart the backend container later for the change to take effect. After the container restarts, fully quit and reopen the app.",
   "@pluginRestartNoticeInstalledMessage": {
     "placeholders": {
       "name": {
@@ -1205,7 +1202,7 @@
       }
     }
   },
-  "pluginRestartNoticeUpgradedMessage": "Plugin \"{name}\" has been updated. Restart the backend container for the change to take effect. Using it before restarting may cause unexpected errors.",
+  "pluginRestartNoticeUpgradedMessage": "Plugin \"{name}\" has been updated. You'll need to restart the backend container later for the change to take effect. After the container restarts, fully quit and reopen the app.",
   "@pluginRestartNoticeUpgradedMessage": {
     "placeholders": {
       "name": {
@@ -1213,7 +1210,7 @@
       }
     }
   },
-  "pluginRestartNoticeDeletedMessage": "Plugin \"{name}\" has been deleted. Restart the backend container for the change to take effect. Using it before restarting may cause unexpected errors.",
+  "pluginRestartNoticeDeletedMessage": "Plugin \"{name}\" has been deleted. You'll need to restart the backend container later for the change to take effect. After the container restarts, fully quit and reopen the app.",
   "@pluginRestartNoticeDeletedMessage": {
     "placeholders": {
       "name": {
@@ -1221,7 +1218,32 @@
       }
     }
   },
-  "pluginRestartNoticeCheckbox": "I understand that the backend container must be restarted for the change to take effect",
+  "pluginRestartNoticeEnabledMessage": "Plugin \"{name}\" has been enabled. You'll need to restart the backend container later for the change to take effect. After the container restarts, fully quit and reopen the app.",
+  "@pluginRestartNoticeEnabledMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeDisabledMessage": "Plugin \"{name}\" has been disabled. You'll need to restart the backend container later for the change to take effect. After the container restarts, fully quit and reopen the app.",
+  "@pluginRestartNoticeDisabledMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeSettingsSavedMessage": "Settings for plugin \"{name}\" have been saved. You'll need to restart the backend container later for the change to take effect. After the container restarts, fully quit and reopen the app.",
+  "@pluginRestartNoticeSettingsSavedMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeBindingsSavedMessage": "Plugin source bindings have been saved. You'll need to restart the backend container later for the change to take effect. After the container restarts, fully quit and reopen the app.",
+  "pluginRestartNoticeMetadataOrderSavedMessage": "Metadata source order has been saved. You'll need to restart the backend container later for the change to take effect. After the container restarts, fully quit and reopen the app.",
   "pluginRestartNoticeConfirm": "Got it",
   "pluginMarketInstallMessage": "Download v{version} from {repo} and install \"{name}\".",
   "@pluginMarketInstallMessage": {
@@ -1347,7 +1369,6 @@
   "pluginSettingsEmpty": "Configuration cannot be empty",
   "pluginSettingsMustBeObject": "Plugin settings must be a JSON object",
   "pluginSettingsInvalidJson": "Invalid JSON",
-  "pluginSettingsSaved": "Plugin settings saved",
   "pluginSettingsSaveFailed": "Failed to save plugin settings",
   "pluginSettingsTitle": "Plugin settings",
   "pluginSettingsJsonLabel": "Configuration (JSON)",
@@ -1358,12 +1379,12 @@
   "pluginsTabMarket": "Plugin market",
   "pluginsLoadFailed": "Failed to load plugins",
   "pluginsLoadFailedFallback": "Failed to load plugins. Try again later.",
-  "pluginsRestartNotice": "Restart the container after installing, updating, enabling, disabling, deleting, or configuring plugins.",
+  "pluginsRestartNotice": "After installing, updating, enabling, disabling, deleting, or configuring plugins, you'll need to restart the backend container later. After it restarts, fully quit and reopen the app.",
   "pluginsCheckUpdates": "Check for updates",
   "pluginsZipSupport": "Upload a .zip plugin package",
   "pluginsEmptyTitle": "No plugins installed yet",
-  "pluginsEmptyMessage": "Click \"Install plugin\" above to upload a zip package; restart the container after installing.",
-  "pluginsEmptyMessageMobile": "Click \"Install plugin\" below to upload a zip package; restart the container after installing.",
+  "pluginsEmptyMessage": "Click \"Install plugin\" above to upload a zip package. You'll need to restart the backend container later after installing, then fully quit and reopen the app.",
+  "pluginsEmptyMessageMobile": "Click \"Install plugin\" below to upload a zip package. You'll need to restart the backend container later after installing, then fully quit and reopen the app.",
   "pluginsInstalledTitle": "Installed plugins",
   "pluginsCount": "{count}",
   "@pluginsCount": {
@@ -1385,7 +1406,7 @@
     }
   },
   "pluginsManagementTitle": "Plugin management",
-  "pluginsManageNotice": "Restart the container after installing, updating, enabling, disabling, deleting, or configuring plugins.",
+  "pluginsManageNotice": "After installing, updating, enabling, disabling, deleting, or configuring plugins, you'll need to restart the backend container later. After it restarts, fully quit and reopen the app.",
   "pluginsUpdatableStat": "Updatable",
   "pluginsLoadingList": "Loading plugin list",
   "pluginsCheckReleaseUpdates": "Check plugin release updates",

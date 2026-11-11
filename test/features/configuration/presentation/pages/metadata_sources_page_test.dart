@@ -70,6 +70,15 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(seconds: 4));
 
+    expect(
+      find.byKey(const Key('plugin-restart-notice-dialog')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const Key('plugin-restart-notice-confirm-button')),
+    );
+    await tester.pumpAndSettle();
+
     final request = bundle.adapter.requests.singleWhere(
       (item) =>
           item.method == 'PUT' && item.path == '/system/metadata-sources/order',
@@ -241,6 +250,15 @@ void main() {
     await tester.tap(find.byKey(const Key('plugin-bindings-save-button')));
     await tester.pump();
     await tester.pump(const Duration(seconds: 4));
+
+    expect(
+      find.byKey(const Key('plugin-restart-notice-dialog')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const Key('plugin-restart-notice-confirm-button')),
+    );
+    await tester.pumpAndSettle();
 
     final request = bundle.adapter.requests.singleWhere(
       (item) => item.method == 'PUT' && item.path == '/system/plugins/bindings',
