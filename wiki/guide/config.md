@@ -103,6 +103,10 @@ import_metadata_max_workers = 3
 
 Requests to external sites uniformly use the container environment variables `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY`. Connections to indexers, download providers and media providers are managed by each plugin's own configuration.
 
+### Metadata plugins
+
+Movie search, import by movie number and manual matching use only installed metadata plugins, in the order configured under Settings → Metadata Sources. This release requires every plugin to declare Host API 18; older plugins must be released again before they can load. Actor search uses the backend's bundled GFriends index and needs no account configuration.
+
 ## `[plugins]`
 
 ```toml
@@ -111,6 +115,8 @@ root_dir = "/data/plugins"
 enabled = []
 job_crons = {}
 settings = {}
+# stats_source = "stats_plugin"
+# review_source = "review_plugin"
 ```
 
 | Field | Purpose |
@@ -119,8 +125,12 @@ settings = {}
 | `enabled` | List of enabled plugin IDs. |
 | `job_crons` | Cron overrides for plugin background tasks, grouped by plugin ID. |
 | `settings` | Private plugin settings, grouped by plugin ID. |
+| `stats_source` | Plugin ID used for movie interaction stats and heat. Leave empty to keep existing data without syncing. |
+| `review_source` | Preferred plugin ID for movie reviews. When empty, enabled review plugins are tried in order. |
 
 The entry point for installing, enabling and configuring plugins is "System Settings → Plugins"; you can also use the `plugins` commands in [Common Commands](/guide/commands).
+
+Interaction stats and review sources are configured under "System Settings → Metadata Sources". Only one plugin can provide interaction stats at a time.
 
 ## `[scheduler]`
 
@@ -130,12 +140,10 @@ This group controls host scheduled tasks. Every value is a cron expression; the 
 [scheduler]
 enabled = true
 log_dir = "/data/logs"
-actor_subscription_sync_cron = "0 2 * * *"
 subscribed_movie_auto_download_cron = "30 2 * * *"
 download_task_sync_cron = "* * * * *"
 download_task_auto_import_cron = "* * * * *"
-movie_heat_cron = "15 0 * * *"
-movie_interaction_sync_cron = "0 5 * * *"
+movie_stats_sync_cron = "0 5 * * *"
 media_file_hash_backfill_cron = "0 3 * * *"
 media_thumbnail_cron = "*/30 * * * *"
 image_search_index_cron = "*/5 * * * *"
@@ -152,12 +160,10 @@ activity_notification_read_retention_days = 3
 |---|---|
 | `enabled` | Whether background scheduled tasks are enabled. |
 | `log_dir` | Log directory for background tasks. |
-| `actor_subscription_sync_cron` | Sync of movies for subscribed actors. |
 | `subscribed_movie_auto_download_cron` | Auto-download of missing subscribed movies. |
 | `download_task_sync_cron` | Sync of provider download task status. |
 | `download_task_auto_import_cron` | Hands completed provider tasks to the import flow. |
-| `movie_heat_cron` | Movie heat recalculation. |
-| `movie_interaction_sync_cron` | Sync of movie interaction counts. |
+| `movie_stats_sync_cron` | Refreshes interaction stats and heat through the bound plugin. |
 | `media_file_hash_backfill_cron` | Fills in hashes for media files that lack them. |
 | `media_thumbnail_cron` | Media thumbnail generation. |
 | `image_search_index_cron` | Vector indexing of media thumbnails and scene images. |

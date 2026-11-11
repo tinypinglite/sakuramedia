@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
-import 'package:sakuramedia/features/actors/data/dto/actor_search_stream_update.dart';
+import 'package:sakuramedia/features/actors/data/dto/actor_detail_dto.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actor_subscription_events_provider.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actors_api_provider.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
-import 'package:sakuramedia/features/movies/data/dto/series_import/movie_search_stream_update.dart';
+import 'package:sakuramedia/features/movies/data/dto/movie_search_stream_update.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
@@ -95,6 +95,9 @@ class CatalogSearch extends _$CatalogSearch {
         isLoading: false,
         errorMessage: null,
         streamStatus: null,
+        sourceErrors: const [],
+        actorCandidates: const [],
+        importingActorCandidateIds: const {},
         useOnlineSearch: useOnlineSearch,
       );
       return;
@@ -108,6 +111,9 @@ class CatalogSearch extends _$CatalogSearch {
       useOnlineSearch: useOnlineSearch,
       errorMessage: null,
       streamStatus: null,
+      sourceErrors: const [],
+      actorCandidates: const [],
+      importingActorCandidateIds: const {},
     );
 
     try {
@@ -129,6 +135,7 @@ class CatalogSearch extends _$CatalogSearch {
       state = state.copyWith(
         movieResults: const [],
         actorResults: const [],
+        actorCandidates: const [],
         errorMessage: ref.apiErrorMessage(
           error,
           fallback: ref.read(appLocalizationsProvider).errorSearchFailed,
@@ -171,16 +178,10 @@ class CatalogSearch extends _$CatalogSearch {
     state = state.copyWith(
       activeKind: CatalogSearchKind.actors,
       isOnlineSearchActive: true,
-      streamStatus: CatalogSearchStreamStatus(
-        message: ref.read(appLocalizationsProvider).sseActorSearchingExternal,
-        isRunning: true,
-        isFailure: false,
-      ),
+      streamStatus: null,
+      isLoading: true,
     );
-    await _consumeActorOnlineSearch(
-      requestVersion: requestVersion,
-      actorName: query,
-    );
+    await _loadActorCandidates(requestVersion: requestVersion, query: query);
   }
 
   /// 本地关键词搜索：影片与女优依次查询，按命中结果决定默认展示的页签。
@@ -212,6 +213,7 @@ class CatalogSearch extends _$CatalogSearch {
       isLoading: false,
       movieResults: moviePage.items,
       actorResults: actorPage.items,
+      actorCandidates: const [],
     );
   }
 
@@ -505,52 +507,74 @@ class CatalogSearch extends _$CatalogSearch {
     }
   }
 
-  Future<void> _consumeActorOnlineSearch({
+  Future<void> _loadActorCandidates({
     required int requestVersion,
-    required String actorName,
+    required String query,
   }) async {
-    final completer = Completer<void>();
-    final subscription = ref
-        .read(actorsApiProvider)
-        .searchOnlineActorsStream(actorName: actorName)
-        .listen(
-          (update) {
-            if (_isCurrent(requestVersion)) {
-              _applyActorSearchStreamUpdate(update);
-            }
-          },
-          onError: (Object error, StackTrace stackTrace) {
-            if (_isCurrent(requestVersion)) {
-              state = state.copyWith(
-                movieResults: const [],
-                actorResults: const [],
-                errorMessage: ref.apiErrorMessage(
-                  error,
-                  fallback: ref
-                      .read(appLocalizationsProvider)
-                      .errorSearchFailed,
-                ),
-                isLoading: false,
-              );
-            }
-            if (!completer.isCompleted) {
-              completer.complete();
-            }
-          },
-          onDone: () {
-            if (_isCurrent(requestVersion)) {
-              state = state.copyWith(isLoading: false);
-            }
-            if (!completer.isCompleted) {
-              completer.complete();
-            }
-          },
-          cancelOnError: false,
+    try {
+      final candidates = await ref
+          .read(actorsApiProvider)
+          .searchActorCandidates(query: query);
+      if (!_isCurrent(requestVersion)) {
+        return;
+      }
+      state = state.copyWith(
+        isLoading: false,
+        movieResults: const [],
+        actorResults: const [],
+        actorCandidates: candidates,
+        errorMessage: null,
+      );
+    } catch (error) {
+      if (!_isCurrent(requestVersion)) {
+        return;
+      }
+      state = state.copyWith(
+        movieResults: const [],
+        actorResults: const [],
+        actorCandidates: const [],
+        errorMessage: ref.apiErrorMessage(
+          error,
+          fallback: ref.read(appLocalizationsProvider).errorSearchFailed,
+        ),
+        isLoading: false,
+      );
+    }
+  }
+
+  Future<ActorDetailDto?> importActorCandidate(String candidateId) async {
+    if (state.importingActorCandidateIds.contains(candidateId)) {
+      return null;
+    }
+    final importing = Set<String>.of(state.importingActorCandidateIds)
+      ..add(candidateId);
+    state = state.copyWith(importingActorCandidateIds: importing);
+    try {
+      final actor = await ref
+          .read(actorsApiProvider)
+          .importActorCandidate(candidateId: candidateId);
+      if (!_isDisposed) {
+        final done = Set<String>.of(state.importingActorCandidateIds)
+          ..remove(candidateId);
+        state = state.copyWith(
+          importingActorCandidateIds: done,
+          actorCandidates: state.actorCandidates
+              .map(
+                (candidate) => candidate.candidateId == candidateId
+                    ? candidate.copyWith(existingActorId: actor.summary.id)
+                    : candidate,
+              )
+              .toList(growable: false),
         );
-    _activeSearchSubscription = subscription;
-    await completer.future;
-    if (identical(_activeSearchSubscription, subscription)) {
-      _activeSearchSubscription = null;
+      }
+      return actor;
+    } catch (_) {
+      if (!_isDisposed) {
+        final done = Set<String>.of(state.importingActorCandidateIds)
+          ..remove(candidateId);
+        state = state.copyWith(importingActorCandidateIds: done);
+      }
+      rethrow;
     }
   }
 
@@ -569,26 +593,11 @@ class CatalogSearch extends _$CatalogSearch {
       ),
       movieResults: update.isComplete ? update.results : null,
       actorResults: update.isComplete ? const [] : null,
+      actorCandidates: update.isComplete ? const [] : null,
       errorMessage: update.isComplete ? null : state.errorMessage,
-    );
-  }
-
-  void _applyActorSearchStreamUpdate(ActorSearchStreamUpdate update) {
-    state = state.copyWith(
-      streamStatus: CatalogSearchStreamStatus(
-        message: update.message,
-        isRunning: !update.isComplete,
-        isFailure:
-            update.isComplete &&
-            update.success == false &&
-            !_isNotFoundReason(update.reason),
-        current: update.current,
-        total: update.total,
-        statsLabel: _statsLabelOf(update.stats),
-      ),
-      actorResults: update.isComplete ? update.results : null,
-      movieResults: update.isComplete ? const [] : null,
-      errorMessage: update.isComplete ? null : state.errorMessage,
+      sourceErrors: update.sourceErrors.isNotEmpty
+          ? update.sourceErrors
+          : state.sourceErrors,
     );
   }
 
@@ -601,8 +610,7 @@ class CatalogSearch extends _$CatalogSearch {
   bool _isCurrent(int requestVersion) =>
       !_isDisposed && requestVersion == _requestVersion;
 
-  bool _isNotFoundReason(String? reason) =>
-      reason == 'movie_not_found' || reason == 'actor_not_found';
+  bool _isNotFoundReason(String? reason) => reason == 'movie_not_found';
 
   /// 把检索统计渲染成当前语言的摘要文案；无统计时返回 null。
   String? _statsLabelOf(CatalogSearchStreamStats? stats) {

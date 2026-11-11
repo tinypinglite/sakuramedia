@@ -6,7 +6,7 @@ import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
 
-/// 桌面端「女优上新」全量列表页：订阅女优的最近影片。
+/// 桌面端「订阅女优影片」全量列表页：订阅女优的本地最近影片。
 class DesktopFollowPage extends StatelessWidget {
   const DesktopFollowPage({super.key});
 

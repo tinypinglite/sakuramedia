@@ -1,7 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 import 'package:sakuramedia/core/json/dto_json_codec.dart';
 import 'package:sakuramedia/core/json/json_parse.dart'
-    show asBool, asObject, asObjectList, asObjectOrNull, asStringList;
+    show asBool, asObject, asObjectList, asStringList;
 
 part 'status_dto.g.dart';
 
@@ -187,83 +187,6 @@ class StatusImageSearchDto {
       _$StatusImageSearchDtoFromJson(json);
 
   Map<String, dynamic> toJson() => _$StatusImageSearchDtoToJson(this);
-}
-
-/// 元数据源探测失败详情。
-///
-/// [type] 是后端 `StatusService.test_metadata_provider` 定义的**封闭枚举**，
-/// 只有三种取值（见 [MetadataProviderErrorType]）；诊断文案必须按它分派，
-/// 不要去猜 [message] 里的关键字——JavDB 的 message 是英文异常串，关键字匹配不可靠。
-@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
-class StatusMetadataProviderTestErrorDto {
-  const StatusMetadataProviderTestErrorDto({
-    required this.type,
-    required this.message,
-    this.method,
-    this.url,
-    this.resource,
-    this.lookupValue,
-  });
-
-  final String type;
-  final String message;
-
-  /// 仅 `metadata_request_error` 带：失败请求的方法与 URL。
-  final String? method;
-  final String? url;
-
-  /// 仅 `metadata_not_found` 带：找不到的资源类型（javdb=`movie`）与查询值（探测番号）。
-  final String? resource;
-  final String? lookupValue;
-
-  factory StatusMetadataProviderTestErrorDto.fromJson(
-    Map<String, dynamic> json,
-  ) => _$StatusMetadataProviderTestErrorDtoFromJson(json);
-
-  Map<String, dynamic> toJson() =>
-      _$StatusMetadataProviderTestErrorDtoToJson(this);
-}
-
-/// 后端 `StatusMetadataProviderTestError.type` 的全部取值。
-abstract final class MetadataProviderErrorType {
-  /// 站点可访问，但按探测番号搜不到 / 解析不出目标内容。
-  static const String notFound = 'metadata_not_found';
-
-  /// HTTP 层失败（重试耗尽）：不可达、超时、非 2xx。
-  static const String requestError = 'metadata_request_error';
-
-  /// 其它未归类异常，含 JavDB 登录失败（后端未单独 catch `JavdbAuthError`）。
-  static const String unexpected = 'unexpected_error';
-}
-
-@JsonSerializable(converters: dtoJsonConverters, explicitToJson: true)
-class StatusMetadataProviderTestDto {
-  const StatusMetadataProviderTestDto({
-    required this.healthy,
-    required this.provider,
-    required this.movieNumber,
-    required this.elapsedMs,
-    this.checkedAt,
-    this.error,
-  });
-
-  @JsonKey(fromJson: asBool)
-  final bool healthy;
-  final String provider;
-
-  /// 后端写死的探测番号（`StatusService.METADATA_PROVIDER_TEST_MOVIE_NUMBER`），
-  /// 失败文案里要带上它，用户才知道"搜不到"说的是哪个番号。
-  final String movieNumber;
-  final int elapsedMs;
-  final DateTime? checkedAt;
-
-  @JsonKey(fromJson: _metadataErrorFromJson)
-  final StatusMetadataProviderTestErrorDto? error;
-
-  factory StatusMetadataProviderTestDto.fromJson(Map<String, dynamic> json) =>
-      _$StatusMetadataProviderTestDtoFromJson(json);
-
-  Map<String, dynamic> toJson() => _$StatusMetadataProviderTestDtoToJson(this);
 }
 
 /// 单个媒体库的用量；各库 [fileCount] 之和恒等于全局媒体文件总数。
@@ -505,9 +428,6 @@ ImageSearchIndexingStatsDto _indexingStatsFromJson(Object? value) =>
 
 ImageSearchIndexSpaceStatsDto _indexSpaceStatsFromJson(Object? value) =>
     asObject(value, ImageSearchIndexSpaceStatsDto.fromJson);
-
-StatusMetadataProviderTestErrorDto? _metadataErrorFromJson(Object? value) =>
-    asObjectOrNull(value, StatusMetadataProviderTestErrorDto.fromJson);
 
 CollectionSummaryDto _collectionSummaryFromJson(Object? value) =>
     asObject(value, CollectionSummaryDto.fromJson);

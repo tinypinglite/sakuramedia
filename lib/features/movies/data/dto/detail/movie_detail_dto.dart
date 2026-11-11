@@ -13,7 +13,6 @@ part 'movie_detail_dto.g.dart';
 class MovieDetailDto with MovieCoverSelection {
   const MovieDetailDto({
     this.id = 0,
-    required this.javdbId,
     this.metadataSourceName,
     required this.movieNumber,
     required this.title,
@@ -24,12 +23,10 @@ class MovieDetailDto with MovieCoverSelection {
     required this.coverImage,
     required this.releaseDate,
     required this.durationMinutes,
-    required this.score,
+    this.interactionStats,
+    this.statsSource,
+    this.statsUpdatedAt,
     required this.heat,
-    required this.watchedCount,
-    required this.wantWatchCount,
-    required this.commentCount,
-    required this.scoreNumber,
     required this.isCollection,
     required this.isSubscribed,
     this.isBlacklisted = false,
@@ -50,8 +47,6 @@ class MovieDetailDto with MovieCoverSelection {
   /// 后端返回的影片整数主键，可用于与订阅等域数据关联。
   final int id;
 
-  final String? javdbId;
-
   @JsonKey(name: 'metadata_source', fromJson: _metadataSourceNameFromJson)
   final String? metadataSourceName;
 
@@ -68,12 +63,15 @@ class MovieDetailDto with MovieCoverSelection {
 
   final DateTime? releaseDate;
   final int durationMinutes;
-  final double score;
+
+  /// 插件声明的互动数快照；字段文案由绑定接口的 `stats_fields` 提供。
+  @JsonKey(fromJson: _interactionStatsFromJson)
+  final Map<String, num>? interactionStats;
+
+  /// 互动数来源：插件 ID 或 `legacy:host`。
+  final String? statsSource;
+  final DateTime? statsUpdatedAt;
   final int heat;
-  final int watchedCount;
-  final int wantWatchCount;
-  final int commentCount;
-  final int scoreNumber;
   final bool isCollection;
   final bool isSubscribed;
   final bool isBlacklisted;
@@ -201,7 +199,6 @@ class MovieRankingDto {
 class MovieActorDto {
   const MovieActorDto({
     required this.id,
-    required this.javdbId,
     required this.name,
     required this.aliasName,
     required this.gender,
@@ -213,7 +210,6 @@ class MovieActorDto {
   static const int femaleGender = 1;
 
   final int id;
-  final String javdbId;
   final String name;
   final String aliasName;
   final int gender;
@@ -462,6 +458,20 @@ class MovieMediaPointDto {
 
 String? _metadataSourceNameFromJson(Object? value) =>
     asMapOrNull(value)?['display_name'] as String?;
+
+Map<String, num>? _interactionStatsFromJson(Object? value) {
+  final map = asMapOrNull(value);
+  if (map == null) {
+    return null;
+  }
+  final result = <String, num>{};
+  map.forEach((key, data) {
+    if (data is num) {
+      result[key.toString()] = data;
+    }
+  });
+  return result.isEmpty ? null : Map<String, num>.unmodifiable(result);
+}
 
 List<MovieImageDto> _plotImagesFromJson(Object? value) =>
     asObjectList(value, MovieImageDto.fromJson);

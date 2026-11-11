@@ -10,10 +10,8 @@ SakuraMedia 宿主内置定时任务，插件也可以注册自己的任务。�
 
 | 任务 | 作用 | 默认频率 |
 |---|---|---|
-| 订阅女优影片同步 | 抓取已订阅女优的最新影片 | 每天 02:00 |
 | 已订阅缺失影片自动下载 | 搜索并提交符合条件的资源 | 每天 02:30 |
-| 影片热度重算 | 更新影片热度 | 每天 00:15 |
-| 影片互动数同步 | 同步评分、想看和评论等统计 | 每天 05:00 |
+| 影片互动数与热度同步 | 通过绑定插件刷新互动数与热度 | 每天 05:00 |
 | 下载任务状态同步 | 同步各 provider 下载器的任务状态 | 每分钟 |
 | 已完成下载自动导入 | 使用 `completed_source_ref` 将完成任务交给导入流程 | 每分钟 |
 | 媒体文件哈希补齐 | 为缺少哈希的媒体文件计算哈希值 | 每天 03:00 |
@@ -50,7 +48,7 @@ SakuraMedia 宿主内置定时任务，插件也可以注册自己的任务。�
 - **以图搜图索引**：将待处理的媒体缩略图和剧情图交给 SigLIP2 嵌入服务，再写入 Qdrant。
 - **影片相似度重算**：离线计算详情页的相似影片结果。
 - **推荐时刻生成 / 每日推荐生成**：准备发现页和推荐页数据。
-- **影片热度重算、互动数同步**：更新影片的发现和排序数据。
+- **影片互动数与热度同步**：刷新影片的 `interaction_stats` 和由插件计算的热度。未绑定互动数插件时不执行，已有数据继续保留。
 - **GFriends 头像缓存刷新**：下载文件树索引并写入本地缓存。
 
 ## 默认 cron 配置
@@ -60,12 +58,10 @@ SakuraMedia 宿主内置定时任务，插件也可以注册自己的任务。�
 enabled = true
 log_dir = "/data/logs"
 
-actor_subscription_sync_cron = "0 2 * * *"
 subscribed_movie_auto_download_cron = "30 2 * * *"
 download_task_sync_cron = "* * * * *"
 download_task_auto_import_cron = "* * * * *"
-movie_heat_cron = "15 0 * * *"
-movie_interaction_sync_cron = "0 5 * * *"
+movie_stats_sync_cron = "0 5 * * *"
 media_file_hash_backfill_cron = "0 3 * * *"
 media_thumbnail_cron = "*/30 * * * *"
 image_search_index_cron = "*/5 * * * *"

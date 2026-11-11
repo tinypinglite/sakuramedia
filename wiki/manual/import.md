@@ -41,7 +41,7 @@ JAV file imports add the linked movies to your subscriptions, so they show up un
 | Result or cause | Where to look |
 | --- | --- |
 | Movie number not detected | Check the file name against the movie number; choose the correct movie in the failed entry that offers "Manual match" |
-| Scrape failed (metadata fetch, cover download) | Check the data source, network and proxy, then handle the failed entry |
+| Scrape failed (metadata fetch, cover download) | Check enabled [metadata plugins](/guide/config#metadata), network and proxy, then handle the failed entry |
 | File import failed | Read the specific error and check source reachability and the media library configuration |
 | Skipped because the file is too small | Confirm whether it is a sample; adjust the minimum video size setting if you need to keep it |
 

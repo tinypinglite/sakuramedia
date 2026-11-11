@@ -201,76 +201,84 @@ void main() {
     expect(items.single.lastRetryError, isNull);
   });
 
-  test('searchMetadataCandidates queries the number and parses candidates', () async {
-    adapter.enqueueJson(
-      method: 'GET',
-      path: '/imports/42/failed-items/failure-1/metadata-candidates',
-      body: <String, dynamic>{
-        'movie_number': 'ABC-001',
-        'candidates': <Map<String, dynamic>>[
-          <String, dynamic>{
-            'candidate_id': 'javdb:ABC-001:javdb-001',
-            'source': 'javdb',
-            'source_name': 'JavDB',
-            'source_id': null,
-            'javdb_id': 'javdb-001',
-            'movie_number': 'ABC-001',
-            'title': 'JavDB 标题',
-            'cover_url': '/files/images/metadata-search/a/0.jpg',
-            'release_date': '2026-09-01',
-            'duration_minutes': 120,
-          },
-        ],
-        'source_errors': <Map<String, dynamic>>[
-          <String, dynamic>{
-            'source': 'metadata_two',
-            'source_name': 'Metadata Two',
-            'reason': 'RuntimeError',
-            'detail': 'plugin offline',
-          },
-        ],
-      },
-    );
+  test(
+    'searchMetadataCandidates queries the number and parses candidates',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/imports/42/failed-items/failure-1/metadata-candidates',
+        body: <String, dynamic>{
+          'movie_number': 'ABC-001',
+          'candidates': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'candidate_id': 'plugin:demo:ABC-001',
+              'plugin_id': 'demo',
+              'source_name': 'Demo Metadata',
+              'source_id': null,
+              'movie_number': 'ABC-001',
+              'title': 'Demo 标题',
+              'cover_url': '/files/images/metadata-search/a/0.jpg',
+              'release_date': '2026-09-01',
+              'duration_minutes': 120,
+            },
+          ],
+          'source_errors': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'source': 'metadata_two',
+              'source_name': 'Metadata Two',
+              'reason': 'metadata_request_error',
+              'detail': 'plugin offline',
+            },
+          ],
+        },
+      );
 
-    final response = await api.searchMetadataCandidates(
-      taskRunId: 42,
-      itemId: 'failure-1',
-      movieNumber: 'ABC-001',
-    );
+      final response = await api.searchMetadataCandidates(
+        taskRunId: 42,
+        itemId: 'failure-1',
+        movieNumber: 'ABC-001',
+      );
 
-    expect(response.candidates.single.title, 'JavDB 标题');
-    expect(
-      response.candidates.single.coverUrl,
-      '/files/images/metadata-search/a/0.jpg',
-    );
-    expect(response.sourceErrors.single.sourceName, 'Metadata Two');
-    expect(
-      adapter.requests.single.uri.queryParameters['movie_number'],
-      'ABC-001',
-    );
-  });
+      expect(response.candidates.single.title, 'Demo 标题');
+      expect(
+        response.candidates.single.coverUrl,
+        '/files/images/metadata-search/a/0.jpg',
+      );
+      expect(response.sourceErrors.single.source, 'metadata_two');
+      expect(response.sourceErrors.single.reason, 'metadata_request_error');
+      expect(response.sourceErrors.single.detail, 'plugin offline');
+      expect(response.sourceErrors.single.sourceName, 'Metadata Two');
+      expect(
+        adapter.requests.single.uri.queryParameters['movie_number'],
+        'ABC-001',
+      );
+    },
+  );
 
-  test('retryFailedItem posts the candidate and returns the accepted run', () async {
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/imports/42/failed-items/failure-1/retry',
-      statusCode: 202,
-      body: <String, dynamic>{
-        'task_run_id': 77,
-        'task_key': 'library_import',
-        'state': 'pending',
-      },
-    );
+  test(
+    'retryFailedItem posts the candidate and returns the accepted run',
+    () async {
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/imports/42/failed-items/failure-1/retry',
+        statusCode: 202,
+        body: <String, dynamic>{
+          'task_run_id': 77,
+          'task_key': 'library_import',
+          'state': 'pending',
+        },
+      );
 
-    final response = await api.retryFailedItem(
-      taskRunId: 42,
-      itemId: 'failure-1',
-      candidateId: 'javdb:ABC-001:javdb-001',
-    );
+      final response = await api.retryFailedItem(
+        taskRunId: 42,
+        itemId: 'failure-1',
+        candidateId: 'plugin:demo:ABC-001',
+      );
 
-    expect(response.taskRunId, 77);
-    expect(adapter.requests.single.body, <String, dynamic>{
-      'candidate_id': 'javdb:ABC-001:javdb-001',
-    });
-  });
+      expect(response.taskRunId, 77);
+      expect(adapter.requests.single.body, <String, dynamic>{
+        'candidate_id': 'plugin:demo:ABC-001',
+      });
+    },
+  );
 }

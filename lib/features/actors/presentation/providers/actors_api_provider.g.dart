@@ -61,4 +61,4 @@ final class ActorsApiProvider
   }
 }
 
-String _$actorsApiHash() => r'a972156293c1ef8e2a7708f4e3827c573cdf2682';
+String _$actorsApiHash() => r'965b6274ca93a4aff4a19ec324bf8fb53fd2dadf';

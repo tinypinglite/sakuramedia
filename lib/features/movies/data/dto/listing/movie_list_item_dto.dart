@@ -70,7 +70,6 @@ mixin MovieCoverSelection {
 class MovieListItemDto implements SubscriptionMovieListItem<MovieListItemDto> {
   const MovieListItemDto({
     this.id = 0,
-    required this.javdbId,
     required this.movieNumber,
     required this.title,
     this.seriesId,
@@ -91,7 +90,6 @@ class MovieListItemDto implements SubscriptionMovieListItem<MovieListItemDto> {
   /// 后端返回的影片整数主键，可用于与订阅等域数据关联。
   final int id;
 
-  final String? javdbId;
   @override
   final String movieNumber;
   final String title;
@@ -118,7 +116,6 @@ class MovieListItemDto implements SubscriptionMovieListItem<MovieListItemDto> {
   String get preferredTitle => title.trim();
 
   MovieListItemDto copyWith({
-    String? javdbId,
     String? movieNumber,
     String? title,
     int? seriesId,
@@ -138,7 +135,6 @@ class MovieListItemDto implements SubscriptionMovieListItem<MovieListItemDto> {
       // id 是不可变主键，copyWith 不开放改写、只透传（漏传会被默认 0 抹掉）。
       id: id,
       maxMediaWidth: maxMediaWidth,
-      javdbId: javdbId ?? this.javdbId,
       movieNumber: movieNumber ?? this.movieNumber,
       title: title ?? this.title,
       seriesId: seriesId ?? this.seriesId,
@@ -164,7 +160,6 @@ class MovieListItemDto implements SubscriptionMovieListItem<MovieListItemDto> {
     return MovieListItemDto(
       id: _intFromJson(json['id']) ?? 0,
       maxMediaWidth: _maxMediaWidthFromJson(json['media_items']),
-      javdbId: json['javdb_id'] as String?,
       movieNumber: json['movie_number'] as String? ?? '',
       title: json['title'] as String? ?? '',
       seriesId: _intFromJson(json['series_id']),

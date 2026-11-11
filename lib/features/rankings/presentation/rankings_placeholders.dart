@@ -9,7 +9,6 @@ List<RankedMovieListItemDto> rankedMoviePlaceholders({int count = 8}) {
     count,
     (index) => RankedMovieListItemDto(
       rank: index + 1,
-      javdbId: 'rank-placeholder-${index + 1}',
       movieNumber: 'ABC-${(index + 1).toString().padLeft(3, '0')}',
       title: BoneMock.words(3),
       coverImage: null,

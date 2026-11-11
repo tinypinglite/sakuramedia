@@ -42,13 +42,6 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands migrate
 docker exec --user app -w /app sakuramedia python -m src.start.commands wait-db --timeout 60 --interval 2
 ```
 
-### Test JavDB queries
-
-```bash
-docker exec --user app -w /app sakuramedia python -m src.start.commands test-javdb --movie-number ABP-001
-docker exec --user app -w /app sakuramedia python -m src.start.commands test-javdb --movie-number ABP-001 --json
-```
-
 ## Triggering background tasks manually
 
 The `aps` subcommand puts tasks into the Task Center, where you can check progress and results:

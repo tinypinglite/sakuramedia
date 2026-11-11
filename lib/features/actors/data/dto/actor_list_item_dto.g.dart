@@ -9,8 +9,6 @@ part of 'actor_list_item_dto.dart';
 abstract class _$ActorListItemDtoCWProxy {
   ActorListItemDto id(int id);
 
-  ActorListItemDto javdbId(String javdbId);
-
   ActorListItemDto name(String name);
 
   ActorListItemDto aliasName(String aliasName);
@@ -47,7 +45,6 @@ abstract class _$ActorListItemDtoCWProxy {
   /// ```
   ActorListItemDto call({
     int id,
-    String javdbId,
     String name,
     String aliasName,
     MovieImageDto? profileImage,
@@ -73,9 +70,6 @@ class _$ActorListItemDtoCWProxyImpl implements _$ActorListItemDtoCWProxy {
 
   @override
   ActorListItemDto id(int id) => call(id: id);
-
-  @override
-  ActorListItemDto javdbId(String javdbId) => call(javdbId: javdbId);
 
   @override
   ActorListItemDto name(String name) => call(name: name);
@@ -130,7 +124,6 @@ class _$ActorListItemDtoCWProxyImpl implements _$ActorListItemDtoCWProxy {
   @override
   ActorListItemDto call({
     Object? id = const $CopyWithPlaceholder(),
-    Object? javdbId = const $CopyWithPlaceholder(),
     Object? name = const $CopyWithPlaceholder(),
     Object? aliasName = const $CopyWithPlaceholder(),
     Object? profileImage = const $CopyWithPlaceholder(),
@@ -150,10 +143,6 @@ class _$ActorListItemDtoCWProxyImpl implements _$ActorListItemDtoCWProxy {
           ? _value.id
           // ignore: cast_nullable_to_non_nullable
           : id as int,
-      javdbId: javdbId == const $CopyWithPlaceholder() || javdbId == null
-          ? _value.javdbId
-          // ignore: cast_nullable_to_non_nullable
-          : javdbId as String,
       name: name == const $CopyWithPlaceholder() || name == null
           ? _value.name
           // ignore: cast_nullable_to_non_nullable
@@ -226,7 +215,6 @@ extension $ActorListItemDtoCopyWith on ActorListItemDto {
 ActorListItemDto _$ActorListItemDtoFromJson(Map<String, dynamic> json) =>
     ActorListItemDto(
       id: const IntJsonConverter().fromJson(json['id']),
-      javdbId: const StringJsonConverter().fromJson(json['javdb_id']),
       name: const StringJsonConverter().fromJson(json['name']),
       aliasName: const StringJsonConverter().fromJson(json['alias_name']),
       profileImage: movieImageFromJson(json['profile_image']),

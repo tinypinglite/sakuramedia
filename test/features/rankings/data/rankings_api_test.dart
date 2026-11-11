@@ -86,7 +86,6 @@ void main() {
         'items': [
           <String, dynamic>{
             'rank': 1,
-            'javdb_id': 'MovieA1',
             'movie_number': 'ABP-001',
             'title': 'Movie A',
             'cover_image': <String, dynamic>{
@@ -117,26 +116,21 @@ void main() {
       period: 'weekly',
       page: 2,
       pageSize: 24,
-      sort: 'comment_count:desc',
+      sort: 'heat:desc',
       interaction: MovieInteractionFilter.initial
-          .withRange(MovieInteractionMetric.score, min: 8.0)
-          .withRange(MovieInteractionMetric.watchedCount, min: 100),
+          .withRange(MovieInteractionMetric.heat, min: 100),
     );
 
     final request = adapter.requests.single;
     expect(request.uri.queryParameters['period'], 'weekly');
     expect(request.uri.queryParameters['page'], '2');
     expect(request.uri.queryParameters['page_size'], '24');
-    expect(request.uri.queryParameters['sort'], 'comment_count:desc');
-    expect(request.uri.queryParameters['score_min'], '8.0');
-    expect(request.uri.queryParameters['watched_count_min'], '100');
+    expect(request.uri.queryParameters['sort'], 'heat:desc');
+    expect(request.uri.queryParameters['heat_min'], '100');
     expect(page.items.single.rank, 1);
     expect(page.items.single.movieNumber, 'ABP-001');
     expect(page.items.single.coverImage?.origin, 'cover-large.jpg');
-    expect(
-      page.items.single.thinCoverImage?.origin,
-      'thin-large.jpg',
-    );
+    expect(page.items.single.thinCoverImage?.origin, 'thin-large.jpg');
     expect(
       page.items.single.toMovieListItem().thinCoverImage?.origin,
       'thin-large.jpg',

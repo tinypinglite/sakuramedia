@@ -15,7 +15,6 @@ part of 'overview_system_info_provider.dart';
 ///
 /// - [load] 不置 loading 标志([refresh] 才置)——桌面概览页刷新走 [load],
 ///   卡片不闪骨架;移动页刷新走 [refresh],闪骨架。
-/// - 元数据源探针进行中直接 return；其余加载腿不加重入锁。
 /// - 图搜索引状态失败静默（UI 显示「不可用」），不打扰主信息。
 
 @ProviderFor(OverviewSystemInfo)
@@ -28,7 +27,6 @@ final overviewSystemInfoProvider = OverviewSystemInfoProvider._();
 ///
 /// - [load] 不置 loading 标志([refresh] 才置)——桌面概览页刷新走 [load],
 ///   卡片不闪骨架;移动页刷新走 [refresh],闪骨架。
-/// - 元数据源探针进行中直接 return；其余加载腿不加重入锁。
 /// - 图搜索引状态失败静默（UI 显示「不可用」），不打扰主信息。
 final class OverviewSystemInfoProvider
     extends $NotifierProvider<OverviewSystemInfo, OverviewSystemInfoState> {
@@ -39,7 +37,6 @@ final class OverviewSystemInfoProvider
   ///
   /// - [load] 不置 loading 标志([refresh] 才置)——桌面概览页刷新走 [load],
   ///   卡片不闪骨架;移动页刷新走 [refresh],闪骨架。
-  /// - 元数据源探针进行中直接 return；其余加载腿不加重入锁。
   /// - 图搜索引状态失败静默（UI 显示「不可用」），不打扰主信息。
   OverviewSystemInfoProvider._()
     : super(
@@ -69,7 +66,7 @@ final class OverviewSystemInfoProvider
 }
 
 String _$overviewSystemInfoHash() =>
-    r'87527a6c27352f409b3e2e4b4b974d904ee8ca0c';
+    r'b070bcd7b5dec5b28324c84970e7da5f29e411ea';
 
 /// 系统概览(一次性加载 + 两个手动探针,无轮询)。
 ///
@@ -78,7 +75,6 @@ String _$overviewSystemInfoHash() =>
 ///
 /// - [load] 不置 loading 标志([refresh] 才置)——桌面概览页刷新走 [load],
 ///   卡片不闪骨架;移动页刷新走 [refresh],闪骨架。
-/// - 元数据源探针进行中直接 return；其余加载腿不加重入锁。
 /// - 图搜索引状态失败静默（UI 显示「不可用」），不打扰主信息。
 
 abstract class _$OverviewSystemInfo extends $Notifier<OverviewSystemInfoState> {

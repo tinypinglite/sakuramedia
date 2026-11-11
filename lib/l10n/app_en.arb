@@ -103,7 +103,6 @@
   "errorRankingLoadFailed": "Failed to load rankings. Please try again later.",
   "errorVideoListLoadFailed": "Failed to load videos. Please try again later.",
   "errorActorListLoadFailed": "Failed to load actors. Please try again later.",
-  "errorImportFailed": "Import failed. Please try again later.",
   "errorReviewLoadFailed": "Failed to load reviews. Please try again later.",
   "errorReviewFilterUpdateFailed": "Failed to update review filters. Please try again later.",
   "errorReviewLoadMoreFailed": "Failed to load more reviews. Please try again later.",
@@ -120,60 +119,13 @@
   "errorUsernameExists": "That username is already taken. Choose another one.",
   "errorUsernameRequired": "Enter a username.",
   "errorUsernameUnchanged": "The username is unchanged.",
-  "sseMovieSeriesSearching": "Searching series...",
-  "sseMovieSeriesFound": "Found series in library: {name}",
-  "@sseMovieSeriesFound": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "sseMovieJavdbSeriesFound": "Matched JAVDB series",
-  "sseMovieJavdbSeriesCount": " · {count} videos",
-  "@sseMovieJavdbSeriesCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "sseMovieCandidatesReady": "Found {total} movies. Preparing to import...",
-  "@sseMovieCandidatesReady": {
-    "placeholders": {
-      "total": {
-        "type": "int"
-      }
-    }
-  },
   "sseMovieImporting": "Importing movies...",
-  "sseMovieImportFinished": "Import complete",
-  "sseMovieImportSuccess": "Import succeeded",
-  "sseMovieImportFailed": "Import failed",
-  "sseMovieProcessing": "Processing...",
   "sseMovieSearchingExternal": "Searching external sources for movies...",
   "sseMovieCandidatesFetched": "Fetched movie candidates from online sources",
   "sseMovieImportingOnline": "Importing online movies...",
   "sseMovieOnlineImportFinished": "Online movie import complete",
   "sseMovieOnlineSearchFinished": "Online search complete",
   "sseMovieSyncingOnlineResults": "Syncing online movie search results...",
-  "sseActorSearchingExternal": "Searching external sources for actors...",
-  "sseActorCandidatesFetched": "Fetched actor candidates from online sources",
-  "sseActorImportingOnline": "Importing online actors...",
-  "sseActorDownloadingAvatar": "Downloading avatars {index}/{total}",
-  "@sseActorDownloadingAvatar": {
-    "placeholders": {
-      "index": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "sseActorOnlineImportFinished": "Online actor import complete",
-  "sseActorOnlineSearchFinished": "Online search complete",
-  "sseActorSyncingOnlineResults": "Syncing online actor search results...",
   "commonCancel": "Cancel",
   "commonRetry": "Retry",
   "commonClose": "Close",
@@ -336,13 +288,10 @@
   "configCronGroupScrapeBackfill": "Scraping / backfill",
   "configCronGroupRecommendation": "Recommendations",
   "configCronGroupMaintenance": "Checks / cleanup",
-  "taskNameActorSubscriptionSync": "Subscribed actor movie sync",
   "taskNameSubscribedMovieAutoDownload": "Auto-download subscribed missing movies",
   "taskNameDownloadTaskSync": "Download task status sync",
   "taskNameDownloadTaskAutoImport": "Auto-import completed downloads",
-  "taskNameMovieHeatUpdate": "Movie heat update",
-  "taskNameMovieInteractionSync": "Movie interaction sync",
-  "taskNameMovieJavdbBackfill": "JavDB movie backfill",
+  "taskNameMovieStatsSync": "Movie stats and heat sync",
   "taskNameMediaFileHashBackfill": "Media file hash backfill",
   "taskNameMediaFileScan": "Media file scan",
   "taskNameMediaThumbnailGeneration": "Media thumbnail generation",
@@ -352,13 +301,10 @@
   "taskNameDailyRecommendationGenerate": "Daily recommendation snapshot generation",
   "taskNameActivityRecordCleanup": "Task record cleanup",
   "taskNameGfriendsFiletreeRefresh": "GFriends cache refresh",
-  "taskHelpActorSubscriptionSync": "Sync movie data for subscribed JavDB actors; local actors have no remote source and are not synced.",
   "taskHelpSubscribedMovieAutoDownload": "Automatically download subscribed movies that are missing.",
   "taskHelpDownloadTaskSync": "Sync download task status.",
   "taskHelpDownloadTaskAutoImport": "Import completed download tasks.",
-  "taskHelpMovieHeatUpdate": "Recompute movie heat.",
-  "taskHelpMovieInteractionSync": "Sync movie interaction counts; candidates still follow the tiered refresh rules.",
-  "taskHelpMovieJavdbBackfill": "Try to backfill due plugin movies from JavDB, checking each movie every 7 days.",
+  "taskHelpMovieStatsSync": "Refresh movie interaction stats and heat through the bound plugin.",
   "taskHelpMediaFileHashBackfill": "Backfill missing media file hashes.",
   "taskHelpMediaFileScan": "Validate media files against the storage provider's listing.",
   "taskHelpMediaThumbnailGeneration": "Generate media thumbnails.",
@@ -920,9 +866,6 @@
   "systemMaintenanceMovieAssetPackTitle": "Movie image pack backfill",
   "systemMaintenanceMovieAssetPackDescription": "Pack movie covers, thin covers, and plot images from individual files into archives to reduce the number of small files on the server. Only unpacked movies are processed; large libraries may take a while.",
   "systemMaintenanceMovieAssetPackSuccess": "Movie image pack backfill task submitted. Check the task center for progress.",
-  "systemMaintenanceActorGenderTitle": "Actor gender backfill",
-  "systemMaintenanceActorGenderDescription": "Correct stored actor genders from movie metadata; manually locked profiles are not overwritten. The task processes every candidate in one run, visiting JavDB with rate limiting, so many actors may take a while.",
-  "systemMaintenanceActorGenderSuccess": "Actor gender backfill task submitted. Check the task center for progress.",
   "systemMaintenanceImageSearchTitle": "Image search index",
   "systemMaintenanceSubmit": "Submitting",
   "systemMaintenanceRunNow": "Run now",
@@ -980,6 +923,36 @@
   "configTabAppearance": "Appearance",
   "configTabMediaLibraries": "Media libraries",
   "configTabMediaTags": "Media file tags",
+  "configTabMetadataSources": "Metadata sources",
+  "metadataSourcesOrderTitle": "Metadata source order",
+  "metadataSourcesOrderDescription": "Movie imports try the enabled metadata plugins in this order. The first complete result wins.",
+  "metadataSourcesOrderEmpty": "No metadata plugins are loaded. Install and enable a Host API 18 metadata plugin first.",
+  "metadataSourcesSaveOrder": "Save order",
+  "metadataSourcesMoveUp": "Move up",
+  "metadataSourcesMoveDown": "Move down",
+  "metadataSourcesPluginsHint": "Plugin accounts and settings are managed on the Plugins page.",
+  "metadataSourcesLoadFailed": "Failed to load metadata sources",
+  "metadataSourcesSaveFailed": "Failed to save metadata source order",
+  "pluginBindingsTitle": "Stats and review sources",
+  "pluginBindingsDescription": "Stats use one bound plugin. When no review source is bound, enabled plugins are tried in order. Metadata sources still fall back in the order above.",
+  "pluginBindingsStatsLabel": "Stats source",
+  "pluginBindingsReviewLabel": "Review source",
+  "pluginBindingsUnbound": "Not bound",
+  "pluginBindingsNoStatsSource": "No stats plugin available",
+  "pluginBindingsNoReviewSource": "No review plugin available",
+  "pluginBindingsEmpty": "No plugin currently provides stats or reviews.",
+  "pluginBindingsLoadFailed": "Failed to load source bindings",
+  "pluginBindingsSave": "Save source bindings",
+  "pluginBindingsSaveFailed": "Failed to save source bindings",
+  "pluginBindingsSourceUnavailable": "The bound source {source} is currently unavailable. Select another source.",
+  "@pluginBindingsSourceUnavailable": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginBindingsLegacyStats": "Legacy data",
   "configTabDownloadClients": "Download clients",
   "configTabIndexers": "Indexers",
   "configTabExternalPlayer": "External player",
@@ -1846,7 +1819,6 @@
   "videoEpisodeActionsTooltip": "Episode actions",
   "diagnosticCategoryBasicResources": "Core resources",
   "diagnosticCategoryDownloadAndIndexing": "Downloads & indexing",
-  "diagnosticCategoryExternalDataSources": "External data sources",
   "diagnosticCategoryIntelligence": "Intelligence",
   "diagnosticItemMediaLibrary": "Media library",
   "diagnosticItemIndexer": "Indexer",
@@ -1905,14 +1877,6 @@
     }
   },
   "diagnosticEmbeddingModelNotReady": "Model not ready",
-  "diagnosticProbeRequestFailed": "{name} probe request failed",
-  "@diagnosticProbeRequestFailed": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
   "diagnosticCheckRequestFailed": "Check request failed",
   "diagnosticMediaLibraryOneAvailable": "1 available ({name})",
   "@diagnosticMediaLibraryOneAvailable": {
@@ -1956,24 +1920,6 @@
   },
   "diagnosticIndexerNoneSaved": "No indexers saved yet",
   "diagnosticTorznabTestFailed": "Torznab connectivity test failed",
-  "diagnosticMetadataFetchSucceeded": "Fetched {number} successfully",
-  "@diagnosticMetadataFetchSucceeded": {
-    "placeholders": {
-      "number": {
-        "type": "String"
-      }
-    }
-  },
-  "diagnosticMetadataEndpointUnhealthy": "The endpoint reported an unhealthy status",
-  "diagnosticMetadataProbeFailed": "Probe failed",
-  "diagnosticMetadataProbeFailedFor": "Probe failed for {number}",
-  "@diagnosticMetadataProbeFailedFor": {
-    "placeholders": {
-      "number": {
-        "type": "String"
-      }
-    }
-  },
   "diagnosticHintMediaLibraryEmptyCause": "No media library is configured yet.",
   "diagnosticHintMediaLibraryEmptyFix": "Create one on the Media Library page and point it at the folder that stores your movies.",
   "diagnosticHintMediaLibraryProbeFailedCause": "Failed to load the media library list; the backend did not respond correctly.",
@@ -1991,12 +1937,6 @@
   "diagnosticHintJoyTagUnhealthyCause": "The JoyTag inference service is not responding.",
   "diagnosticHintJoyTagUnhealthyFix": "Check the embedding service logs on the machine running the backend.",
   "diagnosticHintProbeRequestFailedCause": "The check request did not complete; the backend did not respond.",
-  "diagnosticHintJavdbNotFoundCause": "JavDB is reachable, but the test movie number could not be found.",
-  "diagnosticHintJavdbNotFoundFix": "Run the check again first. If it still fails, JavDB has likely changed and needs an adapter update.",
-  "diagnosticHintJavdbUnreachableCause": "JavDB cannot be reached.",
-  "diagnosticHintJavdbUnreachableFix": "Proxy routing is controlled by deployment environment variables: if HTTP_PROXY is set, add the JavDB domains to NO_PROXY, or allow direct connections in your transparent proxy rules. See the wiki FAQ on proxy configuration.",
-  "diagnosticHintJavdbUnexpectedCause": "An error occurred while fetching from JavDB.",
-  "diagnosticHintJavdbUnexpectedFix": "Check the backend logs, then run the check again.",
   "overviewStatusUnavailable": "Unavailable",
   "overviewStatusHealthy": "Healthy",
   "overviewStatusAbnormal": "Unhealthy",
@@ -2053,9 +1993,6 @@
   "overviewServiceHealth": "Service health",
   "overviewEmbeddingService": "Embedding service",
   "overviewRebuild": "Rebuild",
-  "overviewExternalDataSources": "External data sources",
-  "overviewTesting": "Testing…",
-  "overviewTest": "Test",
   "overviewWatchTrend": "Watch trend",
   "overviewRangeLast7Days": "Last 7 days",
   "overviewRangeLast7DaysShort": "7D",
@@ -2192,7 +2129,7 @@
   "routeMomentCollectionsTitle": "Moment Collections",
   "routeVideoCollectionsTitle": "Video Collections",
   "routePlaylistDetailsTitle": "Playlist Details",
-  "routeNewActorReleasesTitle": "New Actor Releases",
+  "routeNewActorReleasesTitle": "Subscribed Actor Movies",
   "routeRecommendedMoviesTitle": "Recommended Movies",
   "routeRecommendedMomentsTitle": "Recommended Moments",
   "routePopularNewReleasesTitle": "Popular New Releases",
@@ -3224,7 +3161,6 @@
       }
     }
   },
-  "moviePageSeriesSync": "Sync series movies",
   "moviePagePlaylistAdded": "Added to",
   "moviePagePlaylistTotalCount": "{count} total",
   "@moviePagePlaylistTotalCount": {
@@ -3272,14 +3208,6 @@
   "moviePageSectionSimilarMovies": "Similar movies",
   "moviePageMetaSeries": "Series",
   "moviePageMetaMetadata": "Metadata",
-  "moviePageMetaNotIndexed": "{source} · Not indexed on JavDB yet",
-  "@moviePageMetaNotIndexed": {
-    "placeholders": {
-      "source": {
-        "type": "String"
-      }
-    }
-  },
   "moviePageMetaWantWatch": "Want to watch · {count}",
   "@moviePageMetaWantWatch": {
     "placeholders": {
@@ -3492,11 +3420,6 @@
   "movieProviderSubtitleFetchFailed": "Failed to fetch subtitles",
   "movieProviderPlayerLoadFailed": "The player is temporarily unavailable. Please try again later.",
   "movieProviderMagnetSearchFailed": "Failed to search for sources. Please try again later.",
-  "movieProviderSeriesImportReady": "Ready",
-  "movieProviderSeriesImportConnecting": "Connecting to the server...",
-  "movieProviderSeriesImportDisconnected": "The connection was lost. Please try again.",
-  "movieProviderSeriesImportSeriesNotFound": "The series does not exist in the library",
-  "movieProviderSeriesImportJavdbSeriesNotFound": "No matching series found on JAVDB. Check the series name.",
   "movieProviderSubscribeMovieFailed": "Failed to subscribe to the movie",
   "movieProviderBatchSubscribeMoviesFailed": "Failed to subscribe to the selected movies",
   "movieProviderForceUnsubscribeBusy": "The selected movies are already being processed. Please try again later.",
@@ -3579,10 +3502,6 @@
       }
     }
   },
-  "movieActionMovieMetadataRefreshed": "Movie metadata refreshed",
-  "movieActionRefreshMovieMetadataFailed": "Failed to refresh movie metadata",
-  "movieActionHeatRecomputeSubmitted": "Movie heat recompute submitted. Check the activity center for progress.",
-  "movieActionRecomputeMovieHeatFailed": "Failed to recompute movie heat",
   "mediaListTabList": "Media list",
   "mediaListTabDuplicates": "Duplicate media",
   "mediaListTabVersions": "Multi-version movies",
@@ -4144,6 +4063,14 @@
   "widgetSearchLocalNoActors": "No matching actors in the local library",
   "widgetSearchOnlineNoActor": "No matching actors from the online source",
   "widgetSearchLocalNoMatchingActors": "No actors in the local library match this keyword.",
+  "searchSourceErrors": "Some metadata sources failed: {names}",
+  "@searchSourceErrors": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
   "widgetSearchFetchExternal": "Fetch from external sources",
   "widgetSearchDefaultTooltip": "Search movies or actors",
   "widgetSearchTextImageTooltip": "Text image search",
@@ -4274,9 +4201,9 @@
   "movieWidgetRemoveActorFailed": "Failed to remove the actor. Please try again later.",
   "movieWidgetActorsSectionTitle": "Actors",
   "movieWidgetActorRemovalScopeNotice": "Removing only affects this movie; the actor profile is kept.",
-  "movieWidgetActorCastManualNotice": "The cast is managed manually; refreshing metadata will not overwrite it.",
-  "movieWidgetActorRemovalEditingHint": "Removing only affects this movie; the cast switches to manual management and metadata refresh no longer overwrites it.",
-  "movieWidgetActorAddManualHint": "Adding switches the cast to manual management; metadata refresh no longer overwrites it.",
+  "movieWidgetActorCastManualNotice": "The cast is managed manually.",
+  "movieWidgetActorRemovalEditingHint": "Removing only affects this movie; the cast switches to manual management.",
+  "movieWidgetActorAddManualHint": "Adding switches the cast to manual management.",
   "movieWidgetManageAction": "Manage",
   "movieWidgetAddLabel": "Add",
   "movieWidgetRemoveActorFromCast": "Remove {name} from the cast",
@@ -4396,12 +4323,6 @@
   "movieWidgetAddDimension": "Add dimension",
   "movieWidgetEditDimension": "Edit dimension",
   "movieWidgetDimensionNameHint": "Dimension name, e.g. Looks / Story",
-  "movieWidgetSeriesImportTitle": "Import series movies",
-  "movieWidgetSeriesCreated": "Added",
-  "movieWidgetSeriesAlreadyExists": "Existing",
-  "movieWidgetSeriesFailed": "Failed",
-  "movieWidgetSeriesImportDoneWithRefresh": "Done (refresh list)",
-  "movieWidgetClose": "Close",
   "subscriptionStatusImported": "Imported",
   "subscriptionStatusDownloading": "Downloading",
   "subscriptionStatusImportFailed": "Import failed",
@@ -4655,8 +4576,8 @@
   "subscriptionImportSubmitFailed": "Failed to submit the import. Please try again later.",
   "subscriptionDownloadTaskMissing": "The download task no longer exists",
   "subscriptionFollowEmpty": "No followed movies yet",
-  "subscriptionFollowLoadFailed": "Failed to load the new actor releases. Please try again later.",
-  "subscriptionFollowEmptyDescription": "No new actor releases yet. Subscribe to the actors you like; the scheduled task will sync them here.",
+  "subscriptionFollowLoadFailed": "Failed to load movies from subscribed actors. Please try again later.",
+  "subscriptionFollowEmptyDescription": "No recent movies from subscribed actors yet. Subscribe to actors you like; imported movies will appear here.",
   "subscriptionRefreshFailed": "Refresh failed",
   "actorSubscriptionStatusAll": "All",
   "actorSubscriptionStatusSubscribed": "Subscribed",
@@ -4692,7 +4613,12 @@
       }
     }
   },
-  "actorLocalSubscriptionHint": "Local actors are not synced with new releases; subscribing only keeps them in your favorites.",
+  "actorLocalSubscriptionHint": "Actor subscriptions only keep actors in your favorites; new releases are not synced automatically.",
+  "actorCandidateImport": "Import",
+  "actorCandidateView": "View",
+  "actorCandidateExisting": "In library",
+  "actorCandidateImportSuccess": "Actor imported",
+  "actorCandidateImportFailed": "Failed to import actor",
   "actorMergeTooltip": "Merge actors",
   "actorEditProfileTooltip": "Edit actor profile",
   "actorMovieYearsLoadFailed": "Failed to load the years",
@@ -4813,11 +4739,11 @@
   "actorTasteRecommendedTitle": "You may want to follow",
   "actorTastePanelTitle": "Frequent actors",
   "actorRefreshFailed": "Refresh failed",
-  "discoveryActressReleaseTitle": "New from Followed Actors",
+  "discoveryActressReleaseTitle": "Subscribed Actor Movies",
   "@discoveryActressReleaseTitle": {},
-  "discoveryActressReleaseLoadFailed": "Failed to load new releases from followed actors. Please try again later.",
+  "discoveryActressReleaseLoadFailed": "Failed to load movies from subscribed actors. Please try again later.",
   "@discoveryActressReleaseLoadFailed": {},
-  "discoveryActressReleaseEmpty": "No new releases yet. Follow the actors you like; their latest titles show up after the scheduled sync.",
+  "discoveryActressReleaseEmpty": "No recent movies from subscribed actors yet. Follow actors you like; imported movies will appear here.",
   "@discoveryActressReleaseEmpty": {},
   "discoveryHotNewTitle": "Trending New Releases",
   "@discoveryHotNewTitle": {},
@@ -5092,10 +5018,10 @@
   "widgetMovieFilterAll": "All",
   "widgetMovieFilterCollectionTypeTitle": "Collection type",
   "widgetMovieFilterNumberSourceTitle": "Number source",
-  "widgetMovieFilterInteractionTitle": "Engagement",
+  "widgetMovieFilterInteractionTitle": "Heat",
   "widgetMovieFilterClear": "Clear",
-  "widgetMovieFilterInteractionLoadFailed": "Failed to load engagement ranges",
-  "widgetMovieFilterInteractionEmpty": "No engagement ranges available",
+  "widgetMovieFilterInteractionLoadFailed": "Failed to load heat ranges",
+  "widgetMovieFilterInteractionEmpty": "No heat ranges available",
   "widgetMovieFilterActorAgeTitle": "Actor age",
   "widgetMovieFilterYearTitle": "Release year",
   "widgetMovieFilterAllYears": "All years",
@@ -5434,12 +5360,6 @@
   "shellWindowClose": "Close",
   "shellWindowMinimize": "Minimize",
   "shellWindowFullscreen": "Full screen",
-  "movieActionRefreshMetadata": "Refresh metadata",
-  "movieActionRecomputeHeat": "Recompute heat",
-  "movieActionRefreshMetadataDescription": "Refreshing re-downloads the cover and plot images, and re-links this movie's actors and tags.",
-  "movieActionRefreshMetadataDescriptionManualActors": "Refreshing re-downloads the cover and plot images, and re-links this movie's tags. The actor list is managed manually, so it will not be overwritten.",
-  "movieActionRefreshMetadataHint": "This is an overwrite refresh: the movie metadata in SakuraMedia will be replaced by the latest remote result.",
-  "movieActionRefreshMetadataConfirm": "Refresh",
   "errorLatestMovieListLoadFailed": "Failed to load the latest movies. Please try again later.",
   "errorMovieListLoadFailed": "Failed to load the movie list. Please try again later.",
   "errorTagMovieListLoadFailed": "Failed to load the movies of this tag. Please try again later.",

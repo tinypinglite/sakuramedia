@@ -214,6 +214,12 @@ List<AppDrawerSection> mobileDrawerSections(AppLocalizations l10n) {
           icon: Icons.sell_outlined,
         ),
         AppDrawerEntry(
+          key: 'metadata-sources',
+          routeId: AppRouteId.mobileSettingsMetadataSources,
+          label: l10n.configTabMetadataSources,
+          icon: Icons.cloud_sync_outlined,
+        ),
+        AppDrawerEntry(
           key: 'downloaders',
           routeId: AppRouteId.mobileSettingsDownloaders,
           label: l10n.shellNavDownloaders,

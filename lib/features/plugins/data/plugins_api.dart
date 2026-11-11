@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:sakuramedia/core/format/release_version.dart';
 import 'package:sakuramedia/core/json/json_parse.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/features/plugins/data/dto/plugin_binding_dto.dart';
 import 'package:sakuramedia/features/plugins/data/dto/plugin_dto.dart';
 import 'package:sakuramedia/features/plugins/data/dto/plugin_market_dto.dart';
 
@@ -20,6 +21,25 @@ class PluginsApi {
   Future<List<PluginSummaryDto>> list() async {
     final response = await _apiClient.getList('/system/plugins');
     return response.map(PluginSummaryDto.fromJson).toList(growable: false);
+  }
+
+  Future<PluginBindingsDto> getBindings() async {
+    final response = await _apiClient.get('/system/plugins/bindings');
+    return PluginBindingsDto.fromJson(response);
+  }
+
+  Future<PluginBindingsDto> updateBindings({
+    String? statsSource,
+    String? reviewSource,
+  }) async {
+    final response = await _apiClient.put(
+      '/system/plugins/bindings',
+      data: <String, dynamic>{
+        'stats_source': statsSource,
+        'review_source': reviewSource,
+      },
+    );
+    return PluginBindingsDto.fromJson(response);
   }
 
   Future<void> install({

@@ -60,10 +60,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const Key('series-movies-title')), findsOneWidget);
-    expect(
-      find.byKey(const Key('series-movies-import-button')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('series-movies-import-button')), findsNothing);
     expect(find.byKey(const Key('movie-summary-card-ABC-001')), findsOneWidget);
 
     final firstRequest = _seriesRequests(bundle).single;
@@ -272,7 +269,7 @@ void main() {
       expect(title.value, 'Series Mobile');
       expect(
         find.byKey(const Key('series-movies-import-button')),
-        findsOneWidget,
+        findsNothing,
       );
 
       await tester.longPress(
@@ -408,7 +405,6 @@ List<RecordedRequest> _seriesRequests(TestApiBundle bundle) {
 Map<String, dynamic> _movie(String movieNumber, {required String seriesName}) {
   return <String, dynamic>{
     'id': movieNumber.hashCode,
-    'javdb_id': movieNumber,
     'movie_number': movieNumber,
     'title': movieNumber,
     'series_id': _seriesId,

@@ -14,7 +14,6 @@ void main() {
 
   MovieDetailDto buildMovieDetail({List<MovieMediaItemDto>? mediaItems}) {
     return MovieDetailDto(
-      javdbId: 'MovieA1',
       movieNumber: 'ABC-001',
       title: 'Movie 1',
       seriesName: '',
@@ -23,12 +22,9 @@ void main() {
       coverImage: null,
       releaseDate: DateTime.parse('2026-03-08'),
       durationMinutes: 120,
-      score: 4.5,
+      interactionStats: const <String, num>{'score': 4.5},
+      statsSource: 'legacy:host',
       heat: 18,
-      watchedCount: 12,
-      wantWatchCount: 23,
-      commentCount: 34,
-      scoreNumber: 45,
       isCollection: false,
       isSubscribed: true,
       canPlay: true,
@@ -67,28 +63,19 @@ void main() {
         thumbnailId: 1,
         mediaId: 100,
         offsetSeconds: 10,
-        image: const MovieImageDto(
-          id: 10,
-          origin: 'thumb-10.webp',
-        ),
+        image: const MovieImageDto(id: 10, origin: 'thumb-10.webp'),
       ),
       MovieMediaThumbnailDto(
         thumbnailId: 2,
         mediaId: 100,
         offsetSeconds: 20,
-        image: const MovieImageDto(
-          id: 11,
-          origin: 'thumb-20.webp',
-        ),
+        image: const MovieImageDto(id: 11, origin: 'thumb-20.webp'),
       ),
       MovieMediaThumbnailDto(
         thumbnailId: 3,
         mediaId: 100,
         offsetSeconds: 35,
-        image: const MovieImageDto(
-          id: 12,
-          origin: 'thumb-35.webp',
-        ),
+        image: const MovieImageDto(id: 12, origin: 'thumb-35.webp'),
       ),
     ];
   }

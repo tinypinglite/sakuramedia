@@ -1,7 +1,7 @@
 import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/core/metadata/metadata_source_error_dto.dart';
 import 'package:sakuramedia/core/network/api_sse_event.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
-import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_review_dto.dart';
@@ -12,7 +12,7 @@ import 'package:sakuramedia/features/movies/data/dto/listing/parsed_movie_number
 import 'package:sakuramedia/features/movies/data/dto/player/movie_subtitle_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/rating/movie_rating_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/rating/rating_dimension_dto.dart';
-import 'package:sakuramedia/features/movies/data/dto/series_import/movie_search_stream_update.dart';
+import 'package:sakuramedia/features/movies/data/dto/movie_search_stream_update.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/search/data/catalog_search_stream_stats.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -200,24 +200,6 @@ class MoviesApi {
     return MovieMergedPlaybackDto.fromJson(response);
   }
 
-  Future<MovieDetailDto> refreshMovieMetadata({
-    required String movieNumber,
-  }) async {
-    final response = await _apiClient.post(
-      '/movies/$movieNumber/metadata-refresh',
-    );
-    return MovieDetailDto.fromJson(response);
-  }
-
-  Future<ManualJobTriggerResponseDto> recomputeMovieHeat({
-    required String movieNumber,
-  }) async {
-    final response = await _apiClient.post(
-      '/movies/$movieNumber/heat-recompute',
-    );
-    return ManualJobTriggerResponseDto.fromJson(response);
-  }
-
   Future<List<RatingDimensionDto>> getRatingDimensions() async {
     final response = await _apiClient.getList('/movie-rating-dimensions');
     return response.map(RatingDimensionDto.fromJson).toList(growable: false);
@@ -399,89 +381,6 @@ class MoviesApi {
     return MovieSubscriptionBatchResultDto.fromJson(response);
   }
 
-  Stream<MovieSearchStreamUpdate> importSeriesMoviesStream({
-    required int seriesId,
-  }) {
-    return _apiClient
-        .postSse(
-          '/movies/series/$seriesId/metadata-imports',
-          data: <String, dynamic>{},
-        )
-        .map(_mapSeriesImportStreamEvent);
-  }
-
-  MovieSearchStreamUpdate _mapSeriesImportStreamEvent(ApiSseEvent event) {
-    final payload = event.jsonData;
-
-    switch (event.event) {
-      case 'search_started':
-        return MovieSearchStreamUpdate(
-          stage: 'searching',
-          message: _localizations.sseMovieSeriesSearching,
-        );
-      case 'series_found':
-        return MovieSearchStreamUpdate(
-          stage: 'series_matched',
-          message: _localizations.sseMovieSeriesFound(
-            payload['series_name'] as String? ?? '',
-          ),
-        );
-      case 'javdb_series_found':
-        final count = payload['videos_count'];
-        final countLabel = count != null
-            ? _localizations.sseMovieJavdbSeriesCount(count as int)
-            : '';
-        return MovieSearchStreamUpdate(
-          stage: 'series_matched',
-          message: '${_localizations.sseMovieJavdbSeriesFound}$countLabel',
-          total: count as int?,
-        );
-      case 'movie_found':
-        final total = payload['total'] as int?;
-        return MovieSearchStreamUpdate(
-          stage: 'movies_found',
-          message: _localizations.sseMovieCandidatesReady(total ?? 0),
-          total: total,
-        );
-      case 'upsert_started':
-        return MovieSearchStreamUpdate(
-          stage: 'importing',
-          message: _localizations.sseMovieImporting,
-          current: 0,
-          total: payload['total'] as int?,
-        );
-      case 'movie_skipped' || 'movie_upsert_started' || 'movie_upsert_finished':
-        return MovieSearchStreamUpdate(
-          stage: 'importing',
-          message: _localizations.sseMovieImporting,
-          current: payload['index'] as int?,
-          total: payload['total'] as int?,
-        );
-      case 'upsert_finished':
-        return MovieSearchStreamUpdate(
-          stage: 'import_finished',
-          message: _localizations.sseMovieImportFinished,
-          stats: CatalogSearchStreamStats.fromLooseJson(payload),
-        );
-      case 'completed':
-        return MovieSearchStreamUpdate(
-          stage: 'completed',
-          message: payload['success'] as bool? ?? false
-              ? _localizations.sseMovieImportSuccess
-              : _localizations.sseMovieImportFailed,
-          results: _parseMovieResults(payload['movies']),
-          stats: CatalogSearchStreamStats.fromLooseJson(payload),
-          success: payload['success'] as bool?,
-          reason: payload['reason'] as String?,
-        );
-      default:
-        return MovieSearchStreamUpdate(
-          stage: event.event,
-          message: _localizations.sseMovieProcessing,
-        );
-    }
-  }
-
   MovieSearchStreamUpdate _mapMovieSearchStreamEvent(ApiSseEvent event) {
     final payload = event.jsonData;
 
@@ -496,6 +395,9 @@ class MoviesApi {
           stage: 'movie_found',
           message: _localizations.sseMovieCandidatesFetched,
           total: payload['total'] as int?,
+          sourceErrors: MetadataSourceErrorDto.listFromJson(
+            payload['source_errors'],
+          ),
         );
       case 'upsert_started':
         return MovieSearchStreamUpdate(
@@ -510,15 +412,19 @@ class MoviesApi {
           stats: CatalogSearchStreamStats.fromLooseJson(payload),
         );
       case 'completed':
+        final reason = payload['reason'] as String?;
         return MovieSearchStreamUpdate(
           stage: 'completed',
           message: _localizations.sseMovieOnlineSearchFinished,
           results: _parseMovieResults(payload['movies']),
           success: payload['success'] as bool? ?? false,
-          reason: payload['reason'] as String?,
+          reason: reason,
           stats: payload.containsKey('stats') || payload.containsKey('total')
               ? CatalogSearchStreamStats.fromLooseJson(payload)
               : null,
+          sourceErrors: MetadataSourceErrorDto.listFromJson(
+            payload['source_errors'],
+          ),
         );
       default:
         return MovieSearchStreamUpdate(

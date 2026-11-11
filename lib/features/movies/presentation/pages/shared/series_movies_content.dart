@@ -4,10 +4,8 @@ import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_summary_list_content.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
-import 'package:sakuramedia/features/movies/presentation/widgets/series_import/series_import_dialog.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
@@ -99,7 +97,7 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent> {
     );
   }
 
-  /// 系列页没有筛选维度：左侧是系列名/总数，右侧是导入与选择。
+  /// 系列页没有筛选维度：左侧是系列名/总数，右侧是选择入口。
   Widget _buildHeader(
     BuildContext context,
     Iterable<MovieListItemDto> movies,
@@ -123,12 +121,6 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent> {
         trailing: AppGlassHeaderGroup(
           children: <Widget>[
             AppGlassHeaderButton(
-              key: const Key('series-movies-import-button'),
-              icon: Icons.sync_rounded,
-              label: l10n.moviePageSeriesSync,
-              onTap: _handleImport,
-            ),
-            AppGlassHeaderButton(
               key: const Key('series-movies-enter-selection-button'),
               icon: Icons.check_circle_outline,
               label: l10n.baseSelect,
@@ -148,25 +140,10 @@ class _SeriesMoviesContentState extends ConsumerState<SeriesMoviesContent> {
         title: widget.hoistTitleToSubpageShell ? null : seriesName,
         countLabel: totalLabel,
       ),
-      actions: <Widget>[
-        AppGlassIconButton(
-          key: const Key('series-movies-import-button'),
-          tooltip: l10n.moviePageSeriesSync,
-          icon: Icons.sync_rounded,
-          onPressed: _handleImport,
-        ),
-      ],
       filterUpdate: args.filterUpdate,
       hasPreviousFilterItems: args.total > 0,
       onRetryFilter: args.onRetryFilter,
     );
-  }
-
-  Future<void> _handleImport() async {
-    final hasNewMovies = await showSeriesImportDialog(context, widget.seriesId);
-    if (hasNewMovies && mounted) {
-      await ref.read(movieSummaryProvider(_scope).notifier).refresh();
-    }
   }
 
   String _displaySeriesName(

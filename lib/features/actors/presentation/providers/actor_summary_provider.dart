@@ -211,7 +211,6 @@ class ActorSummary extends _$ActorSummary
       (actor) => actor.id == updated.id,
       (actor) => ActorListItemDto(
         id: actor.id,
-        javdbId: actor.javdbId,
         name: actor.name,
         aliasName: actor.aliasName,
         profileImage: updated.profileImage,

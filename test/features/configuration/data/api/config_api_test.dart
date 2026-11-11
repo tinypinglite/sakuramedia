@@ -18,6 +18,7 @@ void main() {
     final result = await bundle.configApi.get();
 
     expect(result.scheduler.crons['download_task_sync'], '* * * * *');
+    expect(result.scheduler.crons['movie_stats_sync'], '0 5 * * *');
     expect(result.scheduler.workerDefaultConcurrency, 4);
     expect(result.downloads.subscriptionSearchFreshDays, 7);
     expect(result.downloads.subscriptionSearchStaleAttemptLimit, 3);
@@ -56,14 +57,14 @@ void main() {
     );
 
     final result = await bundle.configApi.patch(const <String, dynamic>{
-      'scheduler': <String, dynamic>{'movie_heat_cron': '30 0 * * *'},
+      'scheduler': <String, dynamic>{'movie_stats_sync_cron': '30 0 * * *'},
     });
 
     expect(result.restartRequired, <String>['aps']);
     expect(result.values.logging.level, 'INFO');
     final request = bundle.adapter.requests.single;
     expect(request.body, <String, dynamic>{
-      'scheduler': <String, dynamic>{'movie_heat_cron': '30 0 * * *'},
+      'scheduler': <String, dynamic>{'movie_stats_sync_cron': '30 0 * * *'},
     });
   });
 }
@@ -73,18 +74,13 @@ Map<String, dynamic> _configJson({
   bool includeWorkerDefaultConcurrency = true,
 }) => <String, dynamic>{
   'values': <String, dynamic>{
-    'media': <String, dynamic>{
-      'allowed_min_video_file_size': 268435456,
-    },
+    'media': <String, dynamic>{'allowed_min_video_file_size': 268435456},
     'scheduler': <String, dynamic>{
       if (includeWorkerDefaultConcurrency) 'worker_default_concurrency': 4,
-      'actor_subscription_sync_cron': '0 2 * * *',
       'subscribed_movie_auto_download_cron': '30 2 * * *',
       'download_task_sync_cron': '* * * * *',
       'download_task_auto_import_cron': '* * * * *',
-      'movie_heat_cron': '15 0 * * *',
-      'movie_interaction_sync_cron': '0 5 * * *',
-      'movie_javdb_backfill_cron': '30 5 * * *',
+      'movie_stats_sync_cron': '0 5 * * *',
       'media_file_hash_backfill_cron': '0 3 * * *',
       'media_file_scan_cron': '0 4 * * *',
       'media_thumbnail_cron': '*/30 * * * *',

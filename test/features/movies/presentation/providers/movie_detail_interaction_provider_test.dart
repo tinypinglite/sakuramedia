@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
-import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_menu.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_action_result.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_interaction_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_provider.dart';
@@ -172,43 +171,6 @@ void main() {
     expect(bundle.adapter.hitCount('GET', '/movies/ABC-001'), 1);
   });
 
-  test(
-    'remote action returns success or the localized failure result',
-    () async {
-      _enqueue(
-        bundle,
-        method: 'POST',
-        path: '/movies/ABC-001/heat-recompute',
-        body: const <String, dynamic>{
-          'task_run_id': 1,
-          'task_key': 'movie-heat',
-          'state': 'queued',
-        },
-      );
-
-      final success = await notifier.executeRemoteAction(
-        MovieDetailActionType.recomputeHeat,
-      );
-
-      expect(success.status, MovieDetailActionResultStatus.success);
-      expect(state().activeMovieAction, isNull);
-
-      _enqueue(
-        bundle,
-        method: 'POST',
-        path: '/movies/ABC-001/heat-recompute',
-        statusCode: 500,
-        body: const <String, dynamic>{'detail': 'boom'},
-      );
-      final failure = await notifier.executeRemoteAction(
-        MovieDetailActionType.recomputeHeat,
-      );
-
-      expect(failure.status, MovieDetailActionResultStatus.error);
-      expect(failure.message, isNotEmpty);
-      expect(state().activeMovieAction, isNull);
-    },
-  );
 }
 
 MovieDetailDto _movie({List<int> mediaIds = const <int>[10, 20]}) {

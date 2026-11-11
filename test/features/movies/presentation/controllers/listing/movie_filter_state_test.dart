@@ -54,11 +54,6 @@ void main() {
       expect(MovieInteractionMetric.heat.maxFromSlider(5000, maxValue), 5000);
     });
 
-    test('评分按 0.1 精度归一化', () {
-      expect(MovieInteractionMetric.score.minFromSlider(8.04), 8.0);
-      expect(MovieInteractionMetric.score.minFromSlider(8.06), 8.1);
-      expect(MovieInteractionMetric.score.maxFromSlider(5, 5), isNull);
-    });
   });
 
   group('movieInteractionRangeLabel', () {
@@ -185,15 +180,6 @@ void main() {
       expect(both.triggerLabel(zh), '热度 1000 ~ 5000');
     });
 
-    test('多个互动数指标折叠为数量摘要', () {
-      final filter = _range(MovieInteractionMetric.heat, min: 1000)
-          .withRange(MovieInteractionMetric.score, min: 8.0)
-          .withRange(MovieInteractionMetric.commentCount, min: 10);
-      final state = const MovieFilterState().copyWith(interaction: filter);
-
-      expect(state.triggerLabel(zh), '互动数 · 3 项');
-    });
-
     test('triggerLabel 优先级：年份 > 互动数 > 状态', () {
       final withYear = const MovieFilterState().copyWith(years: <int>{2024});
       expect(withYear.triggerLabel(zh), '2024');
@@ -258,10 +244,10 @@ void main() {
       );
       expect(
         MovieFilterState(
-          interaction: _range(MovieInteractionMetric.score, min: 8.0),
+          interaction: _range(MovieInteractionMetric.heat, min: 1000),
         ).matches(
           MovieFilterState(
-            interaction: _range(MovieInteractionMetric.score, min: 8.0),
+            interaction: _range(MovieInteractionMetric.heat, min: 1000),
           ),
         ),
         isTrue,

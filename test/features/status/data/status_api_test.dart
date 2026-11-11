@@ -336,41 +336,6 @@ void main() {
     expect(adapter.requests.single.path, '/image-search/reset');
   });
 
-  test(
-    'testMetadataProvider parses structured error type and probe metadata',
-    () async {
-      adapter.enqueueJson(
-        method: 'POST',
-        path: '/metadata-providers/javdb/test',
-        statusCode: 200,
-        body: <String, dynamic>{
-          'healthy': false,
-          'checked_at': '2026-07-11T08:00:00Z',
-          'provider': 'javdb',
-          'movie_number': 'SSNI-888',
-          'elapsed_ms': 1234,
-          'error': <String, dynamic>{
-            'type': 'metadata_not_found',
-            'message': 'movie not found: SSNI-888',
-            'resource': 'movie',
-            'lookup_value': 'SSNI-888',
-          },
-        },
-      );
-
-      final result = await statusApi.testMetadataProvider('javdb');
-
-      expect(result.healthy, isFalse);
-      expect(result.provider, 'javdb');
-      expect(result.movieNumber, 'SSNI-888');
-      expect(result.elapsedMs, 1234);
-      // type 是分派依据，以前整个被丢掉，只留 message 供关键字猜测。
-      expect(result.error?.type, 'metadata_not_found');
-      expect(result.error?.resource, 'movie');
-      expect(result.error?.lookupValue, 'SSNI-888');
-    },
-  );
-
   test('getImageSearchStatus converts backend error to ApiException', () async {
     await sessionStore.clearSession();
     adapter.enqueueJson(
@@ -392,69 +357,6 @@ void main() {
           (ApiException error) => error.error?.code,
           'error.code',
           'unauthorized',
-        ),
-      ),
-    );
-  });
-
-  test('testMetadataProvider parses healthy result', () async {
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/metadata-providers/javdb/test',
-      statusCode: 200,
-      body: <String, dynamic>{
-        'healthy': true,
-        'provider': 'javdb',
-        'error': null,
-      },
-    );
-
-    final result = await statusApi.testMetadataProvider('javdb');
-
-    expect(result.healthy, isTrue);
-    expect(result.provider, 'javdb');
-    expect(result.error, isNull);
-  });
-
-  test('testMetadataProvider parses unhealthy result', () async {
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/metadata-providers/javdb/test',
-      statusCode: 200,
-      body: <String, dynamic>{
-        'healthy': false,
-        'provider': 'javdb',
-        'error': <String, dynamic>{'message': 'metadata request failed'},
-      },
-    );
-
-    final result = await statusApi.testMetadataProvider('javdb');
-
-    expect(result.healthy, isFalse);
-    expect(result.provider, 'javdb');
-    expect(result.error?.message, 'metadata request failed');
-  });
-
-  test('testMetadataProvider converts backend error to ApiException', () async {
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/metadata-providers/invalid/test',
-      statusCode: 422,
-      body: <String, dynamic>{
-        'error': <String, dynamic>{
-          'code': 'invalid_metadata_provider',
-          'message': 'Metadata provider must be javdb',
-        },
-      },
-    );
-
-    expect(
-      () => statusApi.testMetadataProvider('invalid'),
-      throwsA(
-        isA<ApiException>().having(
-          (ApiException error) => error.error?.code,
-          'error.code',
-          'invalid_metadata_provider',
         ),
       ),
     );

@@ -60,7 +60,7 @@ class MediaImportApi {
     return response.map(ImportFailedItemDto.fromJson).toList(growable: false);
   }
 
-  /// 按用户输入的番号搜索可用元数据候选（JavDB + 已启用插件）。
+  /// 按用户输入的番号搜索已启用元数据插件的候选。
   Future<ImportMetadataSearchResponseDto> searchMetadataCandidates({
     required int taskRunId,
     required String itemId,

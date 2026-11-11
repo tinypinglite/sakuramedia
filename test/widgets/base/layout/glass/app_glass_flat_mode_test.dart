@@ -290,14 +290,7 @@ void main() {
           (ref) async => const MovieInteractionFilterOptionsDto(
             movieCount: 0,
             heat: MovieInteractionDistributionDto(p999: 100, max: 100),
-            score: MovieInteractionDistributionDto(p999: 5, max: 5),
-            scoreNumber: MovieInteractionDistributionDto(p999: 100, max: 100),
-            watchedCount: MovieInteractionDistributionDto(p999: 100, max: 100),
-            wantWatchCount: MovieInteractionDistributionDto(
-              p999: 100,
-              max: 100,
-            ),
-            commentCount: MovieInteractionDistributionDto(p999: 100, max: 100),
+            heatVersion: 'host:v6',
           ),
         ),
       ],

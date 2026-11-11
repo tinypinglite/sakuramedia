@@ -347,14 +347,6 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
             selectedMedia: derived.selectedMedia,
           );
         }
-      case MovieDetailActionType.refreshMetadata:
-        final confirmed = await _overlays.confirmRefreshMetadata(
-          context: context,
-          isActorsManuallyManaged: movie.isActorsManuallyManaged,
-        );
-        if (confirmed) {
-          _showActionFeedback(await _interaction.executeRemoteAction(action));
-        }
       case MovieDetailActionType.openMagnetSearch:
         await _openInspector(
           movie,
@@ -373,8 +365,6 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         _showActionFeedback(
           await _interaction.setBlacklisted(isBlacklisted: blacklist),
         );
-      case MovieDetailActionType.recomputeHeat:
-        _showActionFeedback(await _interaction.executeRemoteAction(action));
       case MovieDetailActionType.toggleCollectionType:
         _showActionFeedback(
           await _interaction.toggleCollection(

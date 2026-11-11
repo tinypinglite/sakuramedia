@@ -14,6 +14,7 @@ import 'package:sakuramedia/features/actors/presentation/actor_placeholders.dart
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_provider.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_scope.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_state.dart';
+import 'package:sakuramedia/features/search/presentation/widgets/actor_candidate_sliver.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
@@ -21,6 +22,9 @@ import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
+import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_bottom_safe_area_sliver.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_fixed_header_layout.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
@@ -191,12 +195,32 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
                   ),
                 ),
               ),
+            if (state.sourceErrors.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: context.appSpacing.md),
+                  child: AppNoticeCard(
+                    leadingIcon: Icons.warning_amber_rounded,
+                    description: _sourceErrorsDescription(state, l10n),
+                  ),
+                ),
+              ),
             _buildBodySliver(context, state),
             ...bottomSafeAreaSliver(context),
           ],
         ),
       ),
     );
+  }
+
+  String _sourceErrorsDescription(
+    CatalogSearchState state,
+    AppLocalizations l10n,
+  ) {
+    final names = state.sourceErrors
+        .map((error) => error.sourceName)
+        .join(', ');
+    return l10n.searchSourceErrors(names);
   }
 
   Widget _buildBodySliver(BuildContext context, CatalogSearchState state) {
@@ -265,6 +289,34 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
           ),
         );
       case CatalogSearchKind.actors:
+        if (state.isOnlineSearchActive) {
+          if (state.isLoading) {
+            return AppSkeletonizer.sliver(
+              enabled: true,
+              child: ActorSummarySliver(
+                items: actorListItemPlaceholders(count: 8),
+              ),
+            );
+          }
+          if (state.actorCandidates.isEmpty) {
+            return ActorSummarySliver(
+              items: const [],
+              emptyMessage: l10n.widgetSearchOnlineNoActor,
+            );
+          }
+          return ActorCandidateSliver(
+            candidates: state.actorCandidates,
+            importingCandidateIds: state.importingActorCandidateIds,
+            onOpenActor: (candidate) {
+              final actorId = candidate.existingActorId;
+              if (actorId != null) {
+                _openActor(actorId);
+              }
+            },
+            onImport: (candidate) =>
+                unawaited(_importActorCandidate(candidate.candidateId)),
+          );
+        }
         if (!state.isOnlineSearchActive &&
             state.actorResults.isEmpty &&
             !state.isLoading) {
@@ -284,11 +336,7 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
                 ? l10n.widgetSearchOnlineNoActor
                 : l10n.widgetSearchLocalNoMatchingActors,
             onActorTap: (actor) {
-              if (widget.mobile) {
-                MobileRoutes.actorDetail(actorId: actor.id).push(context);
-              } else {
-                DesktopRoutes.actorDetail(actorId: actor.id).push(context);
-              }
+              _openActor(actor.id);
             },
             onActorSubscriptionTap: (actor) =>
                 _toggleActorSubscription(actor.id),
@@ -296,6 +344,42 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
                 state.isActorSubscriptionUpdating(actor.id),
           ),
         );
+    }
+  }
+
+  void _openActor(int actorId) {
+    if (widget.mobile) {
+      MobileRoutes.actorDetail(actorId: actorId).push(context);
+    } else {
+      DesktopRoutes.actorDetail(actorId: actorId).push(context);
+    }
+  }
+
+  Future<void> _importActorCandidate(String candidateId) async {
+    try {
+      final actor = await ref
+          .read(catalogSearchProvider(_scope).notifier)
+          .importActorCandidate(candidateId);
+      if (!mounted || actor == null) {
+        return;
+      }
+      showToast(
+        AppLocalizations.of(context).actorCandidateImportSuccess,
+        tone: AppToastTone.success,
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      final l10n = AppLocalizations.of(context);
+      showToast(
+        apiErrorMessage(
+          error,
+          fallback: l10n.actorCandidateImportFailed,
+          l10n: l10n,
+        ),
+        tone: AppToastTone.error,
+      );
     }
   }
 

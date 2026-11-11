@@ -528,7 +528,6 @@ Map<String, dynamic> _page({
 Map<String, dynamic> _actor(int id, {bool isSubscribed = true}) {
   return <String, dynamic>{
     'id': id,
-    'javdb_id': 'javdb-$id',
     'name': '演员$id',
     'alias_name': '',
     'profile_image': null,

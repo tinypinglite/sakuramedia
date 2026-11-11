@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/actors/data/api/actors_api.dart';
+import 'package:sakuramedia/features/actors/data/dto/actor_detail_dto.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actors_api_provider.dart';
 import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
@@ -44,6 +45,9 @@ class CatalogSearchHarness {
   dynamic get streamStatus => _state.streamStatus;
   List get movieResults => _state.movieResults;
   List get actorResults => _state.actorResults;
+  List get actorCandidates => _state.actorCandidates;
+  Set<String> get importingActorCandidateIds =>
+      _state.importingActorCandidateIds;
   MovieFilterState get movieFilter => _state.movieFilter;
   MovieSortField? get movieSortField => _state.movieSortField;
   SortDirection get movieSortDirection => _state.movieSortDirection;
@@ -85,6 +89,10 @@ class CatalogSearchHarness {
   }) => _container
       .read(catalogSearchProvider(_scope).notifier)
       .toggleActorSubscription(actorId);
+
+  Future<ActorDetailDto?> importActorCandidate(String candidateId) => _container
+      .read(catalogSearchProvider(_scope).notifier)
+      .importActorCandidate(candidateId);
 
   void applyMovieSubscriptionChange({
     required String movieNumber,

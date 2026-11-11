@@ -151,7 +151,7 @@ class MovieDetail extends _$MovieDetail {
     );
   }
 
-  /// 外部拿到新 DTO 后就地写入（如 refreshMetadata 成功回写）。
+  /// 外部拿到新 DTO 后就地写入，避免重新请求详情。
   void applyMovie(MovieDetailDto movie, {bool resetPreview = false}) {
     if (_isDisposed) return;
     state = state.copyWith(

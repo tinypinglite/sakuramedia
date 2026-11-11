@@ -69,7 +69,6 @@ void _enqueueActorDetail(TestApiBundle bundle) {
     path: '/actors/1',
     responder: (request, _) async => _jsonResponse(<String, dynamic>{
       'id': 1,
-      'javdb_id': 'test-actor-1',
       'name': '演员一号',
       'alias_name': '演员一号',
       'profile_image': null,

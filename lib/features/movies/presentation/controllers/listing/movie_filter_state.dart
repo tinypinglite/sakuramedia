@@ -85,11 +85,6 @@ enum MovieSortField {
   addedAt,
   subscribedAt,
   heat,
-  score,
-  scoreNumber,
-  watchedCount,
-  wantWatchCount,
-  commentCount,
   myScore,
 }
 
@@ -99,11 +94,6 @@ extension MovieSortFieldX on MovieSortField {
     MovieSortField.addedAt => 'added_at',
     MovieSortField.subscribedAt => 'subscribed_at',
     MovieSortField.heat => 'heat',
-    MovieSortField.score => 'score',
-    MovieSortField.scoreNumber => 'score_number',
-    MovieSortField.watchedCount => 'watched_count',
-    MovieSortField.wantWatchCount => 'want_watch_count',
-    MovieSortField.commentCount => 'comment_count',
     MovieSortField.myScore => 'my_score',
   };
 
@@ -113,11 +103,6 @@ extension MovieSortFieldX on MovieSortField {
     MovieSortField.addedAt => l10n.playlistSortAddedAt,
     MovieSortField.subscribedAt => l10n.subscriptionSortFieldSubscribedAt,
     MovieSortField.heat => l10n.sharedInteractionHeat,
-    MovieSortField.score => l10n.sharedInteractionScore,
-    MovieSortField.scoreNumber => l10n.sharedInteractionScoreNumber,
-    MovieSortField.watchedCount => l10n.sharedInteractionWatchedCount,
-    MovieSortField.wantWatchCount => l10n.sharedInteractionWantWatchCount,
-    MovieSortField.commentCount => l10n.rankingSortFieldCommentCount,
     MovieSortField.myScore => l10n.movieSortMyScore,
   };
 }
@@ -224,7 +209,7 @@ class MovieFilterState {
   /// 多选年份，空集表示不限；多个年份之间为 OR。
   final Set<int> years;
 
-  /// 6 个互动数字段的 min/max 条件；空集表示不限。
+  /// 热度 min/max 条件；空集表示不限。
   final MovieInteractionFilter interaction;
 
   /// 出演年龄下限（接口 `actor_age_min` 语义）：null 表示不限。

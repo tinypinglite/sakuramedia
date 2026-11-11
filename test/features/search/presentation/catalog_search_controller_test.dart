@@ -15,7 +15,6 @@ Map<String, dynamic> _movieItem({
   bool isSubscribed = false,
 }) => <String, dynamic>{
   'id': 11,
-  'javdb_id': 'MovieA1',
   'movie_number': movieNumber,
   'title': 'Movie 1',
   'cover_image': null,
@@ -28,7 +27,6 @@ Map<String, dynamic> _movieItem({
 Map<String, dynamic> _actorItem({int id = 1, bool isSubscribed = false}) =>
     <String, dynamic>{
       'id': id,
-      'javdb_id': 'ActorA1',
       'name': '三上悠亚',
       'alias_name': '三上悠亚 / 鬼头桃菜',
       'profile_image': null,
@@ -333,7 +331,7 @@ void main() {
         'event: upsert_started\n'
             'data: {"total":1}\n\n',
         'event: completed\n'
-            'data: {"success":true,"movies":[{"javdb_id":"MovieA1","movie_number":"ABP-123","title":"Movie 1","cover_image":null,"release_date":null,"duration_minutes":120,"is_subscribed":false,"can_play":true}],"failed_items":[],"stats":{"total":1,"created_count":1,"already_exists_count":0,"failed_count":0}}\n\n',
+            'data: {"success":true,"movies":[{"movie_number":"ABP-123","title":"Movie 1","cover_image":null,"release_date":null,"duration_minutes":120,"is_subscribed":false,"can_play":true}],"failed_items":[],"stats":{"total":1,"created_count":1,"already_exists_count":0,"failed_count":0}}\n\n',
       ],
     );
 
@@ -383,7 +381,7 @@ void main() {
         path: '/movies/metadata-imports',
         chunks: <String>[
           'event: completed\n'
-              'data: {"success":true,"movies":[{"javdb_id":"MovieA1","movie_number":"ABP-123","title":"Movie 1","cover_image":null,"release_date":null,"duration_minutes":120,"is_subscribed":false,"can_play":true}],"failed_items":[],"stats":{"total":1,"created_count":1,"already_exists_count":0,"failed_count":0}}\n\n',
+              'data: {"success":true,"movies":[{"movie_number":"ABP-123","title":"Movie 1","cover_image":null,"release_date":null,"duration_minutes":120,"is_subscribed":false,"can_play":true}],"failed_items":[],"stats":{"total":1,"created_count":1,"already_exists_count":0,"failed_count":0}}\n\n',
         ],
       );
 
@@ -396,89 +394,84 @@ void main() {
     },
   );
 
-  test(
-    'submit searches online actors and keeps not-found as empty state',
-    () async {
-      bundle.adapter.enqueueJson(
-        method: 'POST',
-        path: '/movies/search/parse-number',
-        body: <String, dynamic>{
-          'query': 'mikami',
-          'parsed': false,
-          'movie_number': null,
-          'reason': 'movie_number_not_found',
+  test('submit searches GFriends actor candidates', () async {
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/search/parse-number',
+      body: <String, dynamic>{
+        'query': 'mikami',
+        'parsed': false,
+        'movie_number': null,
+        'reason': 'movie_number_not_found',
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors/gfriends/search',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'candidate_id': 'candidate-a',
+          'name': '三上悠亚',
+          'alias_names': <String>['三上悠亜'],
+          'avatar_url': 'https://cdn.example/actor.jpg',
+          'existing_actor_id': null,
         },
-      );
-      bundle.adapter.enqueueSse(
-        method: 'POST',
-        path: '/actors/metadata-imports',
-        chunks: <String>[
-          'event: search_started\n'
-              'data: {"actor_name":"mikami"}\n\n',
-          'event: completed\n'
-              'data: {"success":false,"reason":"actor_not_found","actors":[]}\n\n',
-        ],
-      );
+      ],
+    );
 
-      await controller.submit('mikami', useOnlineSearch: true);
+    await controller.submit('mikami', useOnlineSearch: true);
 
-      expect(bundle.adapter.hitCount('POST', '/actors/metadata-imports'), 1);
-      expect(controller.isOnlineSearchActive, isTrue);
-      expect(controller.actorResults, isEmpty);
-      expect(controller.errorMessage, isNull);
-      expect(controller.streamStatus?.message, '在线搜索已完成');
-      expect(controller.streamStatus?.isFailure, isFalse);
-    },
-  );
+    expect(bundle.adapter.hitCount('GET', '/actors/gfriends/search'), 1);
+    expect(controller.isOnlineSearchActive, isTrue);
+    expect(controller.actorResults, isEmpty);
+    expect(controller.actorCandidates.single.candidateId, 'candidate-a');
+    expect(controller.errorMessage, isNull);
+  });
 
-  test(
-    'submit re-runs online actor search when called twice with same query',
-    () async {
-      bundle.adapter.enqueueJson(
-        method: 'POST',
-        path: '/movies/search/parse-number',
-        body: <String, dynamic>{
-          'query': 'mikami',
-          'parsed': false,
-          'movie_number': null,
-          'reason': 'movie_number_not_found',
+  test('importActorCandidate marks the candidate as existing', () async {
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/search/parse-number',
+      body: <String, dynamic>{
+        'query': 'mikami',
+        'parsed': false,
+        'movie_number': null,
+        'reason': 'movie_number_not_found',
+      },
+    );
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors/gfriends/search',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'candidate_id': 'candidate-a',
+          'name': '三上悠亚',
+          'alias_names': <String>['三上悠亜'],
+          'avatar_url': 'https://cdn.example/actor.jpg',
+          'existing_actor_id': null,
         },
-      );
-      bundle.adapter.enqueueSse(
-        method: 'POST',
-        path: '/actors/metadata-imports',
-        chunks: <String>[
-          'event: completed\n'
-              'data: {"success":false,"reason":"actor_not_found","actors":[]}\n\n',
-        ],
-      );
-      bundle.adapter.enqueueJson(
-        method: 'POST',
-        path: '/movies/search/parse-number',
-        body: <String, dynamic>{
-          'query': 'mikami',
-          'parsed': false,
-          'movie_number': null,
-          'reason': 'movie_number_not_found',
-        },
-      );
-      bundle.adapter.enqueueSse(
-        method: 'POST',
-        path: '/actors/metadata-imports',
-        chunks: <String>[
-          'event: completed\n'
-              'data: {"success":true,"actors":[{"id":1,"javdb_id":"ActorA1","name":"三上悠亚","alias_name":"三上悠亚 / 鬼头桃菜","profile_image":null,"is_subscribed":false}]}\n\n',
-        ],
-      );
+      ],
+    );
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/actors/gfriends/import',
+      statusCode: 201,
+      body: <String, dynamic>{
+        'id': 9,
+        'name': '三上悠亚',
+        'alias_name': '三上悠亚 / 三上悠亜',
+        'profile_image': null,
+        'is_subscribed': false,
+      },
+    );
 
-      await controller.submit('mikami', useOnlineSearch: true);
-      await controller.submit('mikami', useOnlineSearch: true);
+    await controller.submit('mikami', useOnlineSearch: true);
+    final actor = await controller.importActorCandidate('candidate-a');
 
-      expect(bundle.adapter.hitCount('POST', '/movies/search/parse-number'), 2);
-      expect(bundle.adapter.hitCount('POST', '/actors/metadata-imports'), 2);
-      expect(controller.actorResults.single.id, 1);
-    },
-  );
+    expect(actor?.summary.id, 9);
+    expect(controller.actorCandidates.single.existingActorId, 9);
+    expect(controller.importingActorCandidateIds, isEmpty);
+  });
 
   test(
     'submit cancels stale online search when a new local query starts',

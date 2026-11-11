@@ -4,7 +4,7 @@ outline: [2, 3]
 
 # 插件开发
 
-SakuraMedia 插件是运行在后端进程内的 Python 包。本文对应当前后端的 **Host API 17**，宿主接受 API **4–17** 的插件。插件的 `manifest.json` 与 `register()` 返回值中的 `plugin_id`、插件 `version` 必须一致；Host API 的声明规则见[版本兼容](#版本兼容)。
+SakuraMedia 插件是运行在后端进程内的 Python 包。本文对应当前后端的 **Host API 18**，宿主只接受 API **18** 的插件。插件的 `manifest.json` 与 `register()` 返回值中的 `plugin_id`、插件 `version` 必须一致；Host API 的声明规则见[版本兼容](#版本兼容)。
 
 插件不是前端扩展机制。当前不能注册页面、UI 组件、HTTP 路由、事件钩子或中间件，也不应直接访问宿主数据库。请只使用本文列出的公开契约；绑定 `src.model`、`src.service` 等内部实现会使插件随宿主重构失效。
 
@@ -15,7 +15,7 @@ SakuraMedia 插件是运行在后端进程内的 Python 包。本文对应当前
 | 定时抓取、手动处理、字幕或影片数据处理 | 注册后台任务 |
 | 定时浏览媒体库内容、自动导入或整理合集 | 注册后台任务，调用 `context.imports`、`context.videos` 与 `context.collections` |
 | 按媒体库判断缺片、分辨率或文件大小并自动下载 | 注册后台任务，调用 `context.media` 与 `context.downloads` |
-| JavDB 未收录时提供影片元数据 | 注册 `catalog.metadata_source` 扩展点（需要 Host API 6） |
+| 按番号提供影片元数据 | 注册 `catalog.metadata_source` 扩展点（需要 Host API 18） |
 | 提供排行榜来源 | 注册 `discovery.ranking_source` 扩展点，并自行注册同步任务 |
 | 接入一种新的媒体存储或下载平台 | 注册 `media.provider` 扩展点 |
 
@@ -51,7 +51,7 @@ example_plugin/
     "en": "One sentence about what the plugin does, at most 200 characters."
   },
   "version": "1.0.0",
-  "host_api_version": 17,
+  "host_api_version": 18,
   "settings_model": "Settings",
   "requires_python": ">=3.10,<3.11",
   "dependencies": []
@@ -132,7 +132,7 @@ def register(context: PluginContext) -> PluginRegistration:
 - `downloads`：列出下载目标，按宿主默认路由或指定 `download_client_id` 搜索候选并提交。
 - `imports`：列出媒体库、浏览 provider 存储，按 provider 引用发起媒体库导入，并查询自己任务的结果（Host API 9）。
 - `videos`：读取普通视频快照；合集成员管理见 `context.collections`（Host API 9）。
-- `import_movie_by_number(movie_number, *, force_subscribed=False)`：复用本地影片，或按 JavDB 优先、元数据插件兜底的顺序导入，返回 `MovieSnapshot`。
+- `import_movie_by_number(movie_number, *, force_subscribed=False)`：复用本地影片，或按元数据插件顺序导入，返回 `MovieSnapshot`。
 - `list_existing_movie_numbers()`：读取全库影片番号的大写集合。
 - `import_subtitle(movie_number, content, filename, language=None)`：交由宿主校验、去重、落盘并登记字幕。
 - `sync_ranking_sources(progress_callback=None)`、`sync_ranking_board()`：同步当前插件声明的排行榜来源。
@@ -184,7 +184,7 @@ for movie in page.items:
 | `context.actors.patch()` | `height_cm`、`bust_cm`、`waist_cm`、`hips_cm` | 1–2147483647 的整数厘米值，不接受布尔值 |
 | `context.actors.patch()` | `cup`、`birthplace`、`blood_type` | 1–255 字符的非空文本 |
 
-演员资料字段可传 `None` 显式清空，但仍保留插件归属。演员姓名、别名、JavDB 身份、头像和订阅状态不在写入白名单内。
+演员资料字段可传 `None` 显式清空，但仍保留插件归属。演员姓名、别名、头像和订阅状态不在写入白名单内。
 
 字段未被接管时，`owners` 中没有对应键；插件写入成功后归属为 `plugin:<plugin_id>`，人工修改的归属为 `host:manual`。插件只能写未被接管或由自己持有的字段。记录不存在、版本不匹配或任一字段归属冲突时，`patch()` 返回 `False`，整次零修改；字段或值非法则抛出 `ValueError`。收到 `False` 后应重新读取并决定是否还需要更新，不要盲目循环重试。
 
@@ -306,7 +306,7 @@ for entry in page.entries:
 导入规则与前端手动导入一致：
 
 - `media_kind="video"`：按文件名建立普通视频，可选加入 `collection_id`；
-- `media_kind="jav"`：从文件名解析番号，走 JavDB 优先、元数据插件兜底的元数据导入并自动订阅；番号缺失、文件小于最小视频体积或元数据获取失败会记录为失败项，可在任务中心人工处理；JAV 不支持 `collection_id`；
+- `media_kind="jav"`：从文件名解析番号，按元数据插件顺序导入并自动订阅；番号缺失、文件小于最小视频体积或元数据获取失败会记录为失败项，可在任务中心人工处理；JAV 不支持 `collection_id`；
 - `source_disposition="delete_after_commit"` 时，导入成功后由 provider 删除来源文件；默认 `keep`；
 - `source_disposition="in_place"` 时，不复制也不移动文件，媒体直接引用源文件当前位置；只有声明了该能力的 provider（bundle 的 `supports_in_place_import = True`）可用，其余 provider 会返回 `422 in_place_import_unsupported`；
 - 同一媒体库同一时间只允许一个导入任务；冲突时抛出 `409 import_task_conflict`，应等待当前导入结束后再重试；
@@ -344,7 +344,7 @@ if pending_ids:
 
 通过 `PluginExtension(key="catalog.metadata_source", data=PluginMetadataSource(...))` 注册同步回调 `fetch_movie(movie_number) -> PluginMovieMetadata | None`。`PluginMetadataSource`、`PluginMovieMetadata`、`PluginMetadataActor` 和 `METADATA_SOURCE_EXTENSION_KEY` 均可从 `src.plugins` 导入。
 
-下面是可加载的注册骨架；实际插件需将 `fetch_movie()` 的占位返回替换为站点查询、图片下载及结果构造，manifest 的 `host_api_version` 至少声明为 `6`：
+下面是可加载的注册骨架；实际插件需将 `fetch_movie()` 的占位返回替换为站点查询、图片下载及结果构造，manifest 的 `host_api_version` 必须声明为 `18`：
 
 ```python
 from src.plugins import (
@@ -377,7 +377,7 @@ def register(context: PluginContext) -> PluginRegistration:
     )
 ```
 
-宿主先查询 JavDB，只有明确“未找到影片”才按 `plugins.enabled` 的顺序调用已启用的元数据来源。JavDB 的网络、认证等错误不会触发兜底。插件返回 `None` 时继续下一个来源；抛异常或交付校验失败时记录错误并继续，首个合法结果被采用。全部来源均未找到则按未找到处理；存在失败且没有来源成功时，返回元数据来源错误。
+宿主按 `plugins.enabled` 中的顺序调用已启用的元数据来源。插件返回 `None` 时继续下一个来源；抛异常或交付校验失败时记录错误并继续，首个合法结果被采用。全部来源均未找到时按未找到处理；存在失败且没有来源成功时，返回来源错误。
 
 回调只负责交付结果，不要在其中调用 `context.import_movie_by_number()`，否则会重新进入相同的兜底链路。
 
@@ -393,7 +393,7 @@ def register(context: PluginContext) -> PluginRegistration:
 | `duration_minutes` | 正整数，不接受字符串、浮点数或布尔值 |
 | `cover_image_path` | 已下载封面图片的本地文件路径，不能是 URL |
 
-可选字段为 `summary`、`maker_name`、`director_name`、`series_name`、`actors`、`tags`、`plot_image_paths`、`source_url`、`source_id`。演员以 `PluginMetadataActor(name=..., alias_names=[...])` 表达；剧情图同样交付本地文件路径。此契约不接收伪造的 JavDB ID、评分或外站演员 ID。
+可选字段为 `summary`、`maker_name`、`director_name`、`series_name`、`actors`、`tags`、`plot_image_paths`、`source_url`、`source_id`。演员以 `PluginMetadataActor(name=..., alias_names=[...])` 表达；剧情图同样交付本地文件路径。此契约不接收伪造的来源 ID、评分或外站演员 ID。
 
 图片交付遵守以下约定：
 
@@ -402,7 +402,7 @@ def register(context: PluginContext) -> PluginRegistration:
 3. 返回后让文件继续存在，交由宿主校验、复制并入库。宿主在消费结束后清理已接管的交付文件；不要在回调返回前通过临时目录上下文自动删掉图片。
 4. 插件自行清理下载失败、返回 `None` 或未通过路径交付校验时遗留的文件。不要将长期缓存文件直接作为交付文件，因为它们可能被宿主删除。
 
-宿主保存来源信息，并将匹配到唯一 JavDB 身份的演员关联到影片；无法唯一匹配的演员会被过滤，不会创建虚假身份。插件导入的影片可暂时没有 JavDB ID，宿主的 `movie_javdb_backfill` 任务会后续补录，来源插件停用或卸载后仍可执行。补录保留同一影片记录，已有人工或插件接管的受保护字段不会被覆盖；元数据来源交付本身不会自动取得字段归属。
+宿主保存来源信息，并按本地演员主名称/别名匹配影片演员；无匹配时会创建本地演员，同级多命中时使用最早创建的记录。插件导入的影片直接成为普通本地影片，不再有 JavDB 补录任务。元数据来源交付本身不会自动取得字段归属。
 
 ## 排行榜来源
 
@@ -569,7 +569,7 @@ reporter.emit(
 
 ### 声明与语言选择
 
-新插件把 manifest 的 `host_api_version` 声明为 `17`（宿主当前版本，`4`–`16` 仍兼容），`register()` 继续使用 `HOST_API_VERSION` 常量；不要因为多语言改动插件自身的 `version`。
+新插件把 manifest 的 `host_api_version` 声明为 `18`，`register()` 继续使用 `HOST_API_VERSION` 常量；不要因为多语言改动插件自身的 `version`。
 
 请求路径上，宿主按 `Accept-Language`、其次用户的 `User.language` 偏好、最后默认 `zh-CN` 决定当前语言；后台任务没有请求上下文，执行时读取单账号的 `User.language`。插件不需要自己解析请求头。
 
@@ -577,14 +577,11 @@ reporter.emit(
 
 ## 版本兼容
 
-当前宿主常量为 `HOST_API_VERSION = 17`、`MIN_SUPPORTED_HOST_API_VERSION = 4`，加载规则如下：
+当前宿主常量为 `HOST_API_VERSION = 18`、`MIN_SUPPORTED_HOST_API_VERSION = 18`，加载规则如下：
 
-- manifest 的 `host_api_version` 必须在 **4–17** 内。
-- `register()` 的 `host_api_version` 必须等于 manifest 声明的版本，或当前宿主版本 `17`。例如 manifest 为 `4` 时，注册返回 `4` 或导入宿主常量得到的 `17` 均可，返回 `5` 则不兼容。
-- `catalog.metadata_source` 额外要求 manifest 声明 **6**；只把 `register()` 改为宿主常量不能绕过这一限制。
-- `context.media` 和 `context.downloads` 需要 Host API **7**；旧宿主能加载旧声明，不意味着旧宿主能提供这两个接口。
-- `context.imports`、`context.videos`、`context.collections.ensure_video_collection()` 与视频合集成员管理需要 Host API **9**。
-- 下载来源类型能力声明与 `source_kind`/`resource_key` 契约需要 Host API **17**。
-- Provider 的扫描进度回调只对按 Host API **7** 注册的实现启用；旧 Provider 仍按不带回调的旧签名调用。
+- manifest 的 `host_api_version` 必须等于 **18**。
+- `register()` 的 `host_api_version` 必须等于 manifest 声明的 **18**。
+- `catalog.metadata_source`、`catalog.movie_reviews` 和 `catalog.movie_stats` 都要求 Host API **18**。
+- 旧 Host API 插件全部不兼容，升级插件前必须重新发版并声明 18。
 
 升级前应核对实际宿主版本、公开类型与所用能力，再运行插件检查。插件自身的 `version` 与 Host API 版本是两个概念，manifest 与 `register()` 的插件 `version` 仍须严格一致。

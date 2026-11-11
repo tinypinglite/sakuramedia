@@ -70,13 +70,4 @@ class StatusApi {
     }
     return latestTag;
   }
-
-  Future<StatusMetadataProviderTestDto> testMetadataProvider(
-    String provider,
-  ) async {
-    final response = await _apiClient.post(
-      '/metadata-providers/$provider/test',
-    );
-    return StatusMetadataProviderTestDto.fromJson(response);
-  }
 }

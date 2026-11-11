@@ -24,11 +24,15 @@ You can also pass `--username` and `--password` directly. The command clears ref
 
 ## Search and data
 
+### Search or import by movie number fails. What should I do?
+
+This release uses only installed metadata plugins, in the order configured under Settings → Metadata Sources. Every plugin must declare Host API 18; older plugins must be released again before they can load. Confirm that at least one compatible metadata plugin is installed and enabled, then check its configuration and network access.
+
 ### Online search for movies or actors fails
 
-First run "Component diagnostics" on the "Overview" page to confirm JavDB is reachable, then check container networking, proxy rules and DNS. If image domains are unreachable, check the same network settings.
+First run "Component diagnostics" on the "Overview" page to confirm the media library and indexers are reachable, then check container networking, proxy rules and DNS. Plugin-specific errors appear in the manual-match source-error notice or backend logs.
 
-Covers, stills and avatars are downloaded by the backend from the JavDB image CDN (`tp.spfcas.com`). If your router runs a transparent proxy, check whether that domain is routed to an unusable gateway; when it cannot be reached, movie images will be missing.
+Covers and stills are delivered by metadata plugins; avatars are downloaded by the backend from GFriends. If your router runs a transparent proxy, check whether the relevant domains are routed to an unusable gateway; when they cannot be reached, images will be missing.
 
 ### Why don't I see any movies or actors right after starting?
 
@@ -36,7 +40,7 @@ Local search only queries data that has already been imported. After a first dep
 
 ### Why is "New from actors" empty?
 
-That page only shows release updates for actors you have subscribed to. An empty list is a normal result when you have no subscriptions, the sync task has not finished, or no new release matches the conditions. Subscribing to an actor does not subscribe to her movies; once you see a movie you want, subscribe to that movie separately. See [Discover movies and follow actors](/manual/discover).
+That page only shows recent local movies linked to actors you have subscribed to. This release no longer performs remote actor release sync, so new movies must first enter the local library through metadata plugins or media import. Subscribing to an actor does not subscribe to her movies; once you see a movie you want, subscribe to that movie separately.
 
 ### What does search by image require?
 

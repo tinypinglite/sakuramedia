@@ -181,7 +181,6 @@ void _enqueueActorsPage(TestApiBundle bundle, {required int actorId}) {
       'items': <Map<String, dynamic>>[
         <String, dynamic>{
           'id': actorId,
-          'javdb_id': 'actor-$actorId',
           'name': '演员$actorId',
           'alias_name': '演员$actorId',
           'profile_image': null,

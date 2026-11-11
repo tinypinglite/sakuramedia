@@ -23,7 +23,6 @@ import 'package:sakuramedia/features/system_diagnostics/presentation/hints/diagn
 import 'package:sakuramedia/features/system_diagnostics/presentation/hints/indexer_hints.dart';
 import 'package:sakuramedia/features/system_diagnostics/presentation/hints/joytag_hints.dart';
 import 'package:sakuramedia/features/system_diagnostics/presentation/hints/media_library_hints.dart';
-import 'package:sakuramedia/features/system_diagnostics/presentation/hints/metadata_provider_hints.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 
 part 'system_diagnostics_controller.g.dart';
@@ -65,7 +64,7 @@ class SystemDiagnosticsState {
 ///
 /// 调度算法（[runAll]）：
 ///   Stage A（基础资源）：媒体库。空 → 后置全部 blocked。
-///   Stage B（独立探针，与 A 并行）：JavDB / 嵌入服务。
+///   Stage B（独立探针，与 A 并行）：嵌入服务。
 ///   Stage C（依赖 A）：索引器 —— 静态校验、绑定核对和真实搜索测试。
 ///
 /// 单项 try/catch 隔离，任何一项抛异常不影响整体流水推进。
@@ -92,7 +91,6 @@ class SystemDiagnostics extends _$SystemDiagnostics {
 
   static const String _mediaLibraryItemKey = 'media-library';
   static const String _indexerItemKey = 'indexer';
-  static const String _javdbItemKey = 'javdb';
   static const String _joyTagItemKey = 'joytag';
 
   bool _isRunning = false;
@@ -122,7 +120,6 @@ class SystemDiagnostics extends _$SystemDiagnostics {
 
     // Stage A + Stage B 完全并发（独立项互不依赖）。
     final mediaLibraryFuture = _probeMediaLibrary(l10n);
-    final javdbFuture = _probeMetadataProvider(_javdbItemKey, l10n);
     final joyTagFuture = _probeJoyTag(l10n);
 
     final mediaLibrary = await mediaLibraryFuture;
@@ -155,12 +152,6 @@ class SystemDiagnostics extends _$SystemDiagnostics {
     _publish();
 
     // 收 stage B。
-    final javdb = await javdbFuture;
-    _replaceCategoryItems(
-      l10n.diagnosticCategoryExternalDataSources,
-      <DiagnosticItemState>[javdb],
-    );
-
     final joyTag = await joyTagFuture;
     _replaceCategoryItems(
       l10n.diagnosticCategoryIntelligence,
@@ -265,54 +256,6 @@ class SystemDiagnostics extends _$SystemDiagnostics {
         status: DiagnosticItemStatus.unhealthy,
         hint: indexerHints(l10n)['torznab-request-error']!,
         summary: l10n.diagnosticIndexerConfigOrConnectionFailed,
-      );
-    }
-  }
-
-  /// 后端 `/metadata-providers/{provider}/test` 目前只支持 JavDB。
-  Future<DiagnosticItemState> _probeMetadataProvider(
-    String provider,
-    AppLocalizations l10n,
-  ) async {
-    const displayName = 'JavDB';
-    const kind = DiagnosticItemKind.javdb;
-    final hints = javdbHints(l10n);
-    try {
-      final result = await _statusApi.testMetadataProvider(provider);
-      // 后端已经量过耗时（含内部重试），比前端在 await 两端掐表准。
-      if (result.healthy) {
-        return DiagnosticItemState.healthy(
-          kind: kind,
-          itemKey: provider,
-          displayName: displayName,
-          elapsedMs: result.elapsedMs,
-          summary: _metadataProviderHealthySummary(result, l10n),
-        );
-      }
-      final hintKey = resolveMetadataProviderHintKey(result.error);
-      return _fromHint(
-        kind: kind,
-        itemKey: provider,
-        displayName: displayName,
-        status: DiagnosticItemStatus.unhealthy,
-        hint: hints[hintKey]!,
-        elapsedMs: result.elapsedMs,
-        summary: _metadataProviderErrorSummary(result, l10n),
-      );
-    } catch (error) {
-      // 后端探测端点本身挂了：这不是 JavDB 站点的问题，不能套站点文案。
-      return _fromHint(
-        kind: kind,
-        itemKey: provider,
-        displayName: displayName,
-        status: DiagnosticItemStatus.unhealthy,
-        hint: hints['probe-request-failed']!,
-        summary: _shortenError(
-          ref.apiErrorMessage(
-            error,
-            fallback: l10n.diagnosticProbeRequestFailed(displayName),
-          ),
-        ),
       );
     }
   }
@@ -474,13 +417,6 @@ class SystemDiagnostics extends _$SystemDiagnostics {
         ],
       ),
       DiagnosticCategoryState(
-        label: l10n.diagnosticCategoryExternalDataSources,
-        icon: Icons.public,
-        items: <DiagnosticItemState>[
-          make(DiagnosticItemKind.javdb, _javdbItemKey, 'JavDB'),
-        ],
-      ),
-      DiagnosticCategoryState(
         label: l10n.diagnosticCategoryIntelligence,
         icon: Icons.psychology_outlined,
         items: <DiagnosticItemState>[
@@ -555,47 +491,5 @@ class SystemDiagnostics extends _$SystemDiagnostics {
     final trimmed = message.trim();
     if (trimmed.length <= 40) return trimmed;
     return '${trimmed.substring(0, 40)}…';
-  }
-
-  /// 状态短句优先用后端 message，退回 type，再退回 [fallback]。
-  ///
-  /// type 是内部标识，对用户几乎没信息量，只在没有 message 时才拿它顶着。
-  String _errorSummary(
-    String? message,
-    String? type, {
-    required String fallback,
-  }) {
-    if (message != null && message.trim().isNotEmpty) {
-      return _shortenError(message);
-    }
-    if (type != null && type.trim().isNotEmpty) return type.trim();
-    return fallback;
-  }
-
-  /// healthy 时把后端返回的实证数据摆出来，让"绿"是可验证的而不是一句"连通正常"。
-  String _metadataProviderHealthySummary(
-    StatusMetadataProviderTestDto result,
-    AppLocalizations l10n,
-  ) {
-    final number = result.movieNumber;
-    return number.isEmpty
-        ? l10n.indexerTestStatusHealthy
-        : l10n.diagnosticMetadataFetchSucceeded(number);
-  }
-
-  String _metadataProviderErrorSummary(
-    StatusMetadataProviderTestDto result,
-    AppLocalizations l10n,
-  ) {
-    final error = result.error;
-    if (error == null) return l10n.diagnosticMetadataEndpointUnhealthy;
-    // not_found 的 message 里已经含番号，直接用；其余带上探测番号做定位。
-    return _errorSummary(
-      error.message,
-      error.type,
-      fallback: result.movieNumber.isEmpty
-          ? l10n.diagnosticMetadataProbeFailed
-          : l10n.diagnosticMetadataProbeFailedFor(result.movieNumber),
-    );
   }
 }

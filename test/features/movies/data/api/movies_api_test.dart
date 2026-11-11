@@ -46,40 +46,6 @@ void main() {
     apiClient.dispose();
   });
 
-  Map<String, dynamic> movieDetailBody({
-    String title = 'Movie 1',
-    String coverOrigin = '/files/images/movies/ABC-001/cover.jpg',
-  }) {
-    return <String, dynamic>{
-      'javdb_id': 'MovieA1',
-      'movie_number': 'ABC-001',
-      'title': title,
-      'series_id': 7,
-      'series_name': 'Series 1',
-      'maker_name': 'Maker',
-      'director_name': 'Director',
-      'cover_image': <String, dynamic>{'id': 10, 'origin': coverOrigin},
-      'release_date': '2026-03-08',
-      'duration_minutes': 120,
-      'score': 4.5,
-      'heat': 18,
-      'watched_count': 12,
-      'want_watch_count': 23,
-      'comment_count': 34,
-      'score_number': 45,
-      'is_collection': false,
-      'is_subscribed': true,
-      'can_play': true,
-      'summary': '',
-      'thin_cover_image': null,
-      'actors': const <Map<String, dynamic>>[],
-      'tags': const <Map<String, dynamic>>[],
-      'plot_images': const <Map<String, dynamic>>[],
-      'media_items': const <Map<String, dynamic>>[],
-      'playlists': const <Map<String, dynamic>>[],
-    };
-  }
-
   test('getMovies sends movie library filters and parses response', () async {
     adapter.enqueueJson(
       method: 'GET',
@@ -89,7 +55,6 @@ void main() {
         'items': [
           <String, dynamic>{
             'id': 77,
-            'javdb_id': 'MovieA1',
             'movie_number': 'ABC-001',
             'title': 'Movie 1',
             'series_id': 7,
@@ -113,8 +78,7 @@ void main() {
       collectionType: MovieCollectionTypeFilter.single,
       sort: 'release_date:desc',
       interaction: MovieInteractionFilter.initial
-          .withRange(MovieInteractionMetric.heat, min: 1000, max: 5000)
-          .withRange(MovieInteractionMetric.score, min: 8.0),
+          .withRange(MovieInteractionMetric.heat, min: 1000, max: 5000),
       actorAgeMin: 20,
       actorAgeMax: 30,
       query: '温泉 三上',
@@ -128,7 +92,6 @@ void main() {
     expect(request.uri.queryParameters['sort'], 'release_date:desc');
     expect(request.uri.queryParameters['heat_min'], '1000');
     expect(request.uri.queryParameters['heat_max'], '5000');
-    expect(request.uri.queryParameters['score_min'], '8.0');
     expect(request.uri.queryParameters['actor_age_min'], '20');
     expect(request.uri.queryParameters['actor_age_max'], '30');
     expect(request.uri.queryParameters['query'], '温泉 三上');
@@ -171,7 +134,6 @@ void main() {
       body: <String, dynamic>{
         'items': [
           <String, dynamic>{
-            'javdb_id': 'MovieA2',
             'movie_number': 'ABC-002',
             'title': 'Movie 2',
             'series_id': 12,
@@ -644,11 +606,11 @@ void main() {
         'event: search_started\n'
             'data: {"movie_number":"ABP-123"}\n\n',
         'event: movie_found\n'
-            'data: {"movies":[{"javdb_id":"javdb-ABP-123","movie_number":"ABP-123","title":"title-ABP-123","cover_image":"https://example.com/cover.jpg"}],"total":1}\n\n',
+            'data: {"movies":[{"movie_number":"ABP-123","title":"title-ABP-123","cover_image":"https://example.com/cover.jpg"}],"total":1}\n\n',
         'event: upsert_started\n'
             'data: {"total":1}\n\n',
         'event: completed\n'
-            'data: {"success":true,"movies":[{"javdb_id":"MovieA1","movie_number":"ABP-123","title":"Movie 1","cover_image":null,"release_date":null,"duration_minutes":120,"is_subscribed":false,"can_play":true}],"failed_items":[],"stats":{"total":1,"created_count":1,"already_exists_count":0,"failed_count":0}}\n\n',
+            'data: {"success":true,"movies":[{"movie_number":"ABP-123","title":"Movie 1","cover_image":null,"release_date":null,"duration_minutes":120,"is_subscribed":false,"can_play":true}],"failed_items":[],"stats":{"total":1,"created_count":1,"already_exists_count":0,"failed_count":0}}\n\n',
       ],
     );
 
@@ -663,6 +625,26 @@ void main() {
     expect(updates.last.message, '在线搜索已完成');
     expect(updates.last.success, isTrue);
     expect(updates.last.results.single.movieNumber, 'ABP-123');
+  });
+
+  test('searchOnlineMoviesStream exposes metadata fallback errors', () async {
+    adapter.enqueueSse(
+      method: 'POST',
+      path: '/movies/metadata-imports',
+      chunks: <String>[
+        'event: movie_found\n'
+            'data: {"movies":[{"movie_number":"ABP-123","title":"fallback","cover_image":null}],"total":1,"source_errors":[{"source":"metadata_one","source_name":"Metadata One","reason":"metadata_fetch_failed","detail":"plugin offline"}]}\n\n',
+        'event: completed\n'
+            'data: {"success":true,"movies":[{"movie_number":"ABP-123","title":"fallback","cover_image":null,"release_date":null,"duration_minutes":0,"is_subscribed":false,"can_play":false}],"source_errors":[{"source":"metadata_one","source_name":"Metadata One","reason":"metadata_fetch_failed","detail":"plugin offline"}],"stats":{"total":1,"created_count":1,"already_exists_count":0,"failed_count":0}}\n\n',
+      ],
+    );
+
+    final updates = await moviesApi
+        .searchOnlineMoviesStream(movieNumber: 'ABP-123')
+        .toList();
+
+    expect(updates.first.sourceErrors.single.reason, 'metadata_fetch_failed');
+    expect(updates.last.sourceErrors.single.sourceName, 'Metadata One');
   });
 
   test('searchOnlineMoviesStream localizes progress messages', () async {
@@ -719,7 +701,7 @@ void main() {
       path: '/movies/metadata-imports',
       chunks: <String>[
         'event: completed\n',
-        'data: {"success":true,"movies":[{"javdb_id":"MovieA1",',
+        'data: {"success":true,"movies":[{"movie_number":"MovieA1",',
         '"movie_number":"ABP-123","title":"Movie 1","cover_image":null,',
         '"release_date":null,"duration_minutes":120,"is_subscribed":false,"can_play":true}],"failed_items":[],"stats":{"total":1,"created_count":1,"already_exists_count":0,"failed_count":0}}\n\n',
       ],
@@ -760,7 +742,6 @@ void main() {
       body: <String, dynamic>{
         'items': [
           <String, dynamic>{
-            'javdb_id': 'MovieA1',
             'movie_number': 'ABC-001',
             'title': 'Movie 1',
             'cover_image': <String, dynamic>{'id': 10, 'origin': 'large.jpg'},
@@ -827,7 +808,6 @@ void main() {
       body: <String, dynamic>{
         'items': [
           <String, dynamic>{
-            'javdb_id': 'MovieA2',
             'movie_number': 'ABC-002',
             'title': 'Movie 2',
             'cover_image': null,
@@ -887,18 +867,21 @@ void main() {
       statusCode: 200,
       body: <String, dynamic>{
         'id': 77,
-        'javdb_id': 'MovieA1',
         'movie_number': 'ABC-001',
         'title': 'Movie 1',
         'cover_image': <String, dynamic>{'id': 10, 'origin': 'cover-large.jpg'},
         'release_date': '2024-01-02',
         'duration_minutes': 120,
-        'score': 4.5,
+        'interaction_stats': <String, dynamic>{
+          'score': 4.5,
+          'watched_count': 12,
+          'want_watch_count': 23,
+          'comment_count': 34,
+          'score_number': 45,
+        },
+        'stats_source': 'legacy:host',
+        'stats_updated_at': null,
         'heat': 27,
-        'watched_count': 12,
-        'want_watch_count': 23,
-        'comment_count': 34,
-        'score_number': 45,
         'is_collection': true,
         'is_subscribed': false,
         'is_blacklisted': true,
@@ -911,7 +894,6 @@ void main() {
         'actors': [
           <String, dynamic>{
             'id': 1,
-            'javdb_id': 'ActorA1',
             'name': '三上悠亚',
             'alias_name': '三上悠亚 / 鬼头桃菜',
             'gender': 1,
@@ -1048,6 +1030,10 @@ void main() {
     expect(detail.movieNumber, 'ABC-001');
     expect(detail.title, 'Movie 1');
     expect(detail.preferredTitle, 'Movie 1');
+    expect(detail.interactionStats?['score'], 4.5);
+    expect(detail.interactionStats?['watched_count'], 12);
+    expect(detail.statsSource, 'legacy:host');
+    expect(detail.statsUpdatedAt, isNull);
     expect(detail.heat, 27);
     expect(detail.isBlacklisted, isTrue);
     expect(detail.seriesId, 7);
@@ -1127,13 +1113,11 @@ void main() {
         path: '/movies/ABC-003',
         statusCode: 200,
         body: <String, dynamic>{
-          'javdb_id': 'MovieA3',
           'movie_number': 'ABC-003',
           'title': 'Movie 3',
           'actors': [
             <String, dynamic>{
               'id': 3,
-              'javdb_id': 'ActorA3',
               'name': '未知演员',
               'alias_name': '',
               'is_subscribed': false,
@@ -1161,7 +1145,6 @@ void main() {
       statusCode: 200,
       body: <Map<String, dynamic>>[
         <String, dynamic>{
-          'javdb_id': 'MovieS1',
           'movie_number': 'SIM-001',
           'title': 'Similar movie',
           'cover_image': null,
@@ -1196,18 +1179,15 @@ void main() {
       path: '/movies/ABC-002',
       statusCode: 200,
       body: <String, dynamic>{
-        'javdb_id': 'MovieA2',
         'movie_number': 'ABC-002',
         'title': 'Movie 2',
         'cover_image': null,
         'release_date': null,
         'duration_minutes': 0,
-        'score': 0.0,
+        'interaction_stats': null,
+        'stats_source': null,
+        'stats_updated_at': null,
         'heat': 0,
-        'watched_count': 0,
-        'want_watch_count': 0,
-        'comment_count': 0,
-        'score_number': 0,
         'is_collection': false,
         'is_subscribed': false,
         'can_play': false,
@@ -1242,7 +1222,6 @@ void main() {
       path: '/movies/ABC-020',
       statusCode: 200,
       body: <String, dynamic>{
-        'javdb_id': 'MovieA20',
         'movie_number': 'ABC-020',
         'title': 'Movie 20',
         'summary': '  summary fallback  ',
@@ -1267,7 +1246,6 @@ void main() {
         path: '/movies/ABC-022',
         statusCode: 200,
         body: <String, dynamic>{
-          'javdb_id': 'MovieA22',
           'movie_number': 'ABC-022',
           'title': 'Movie 22',
           'summary': '  ',
@@ -1291,7 +1269,6 @@ void main() {
       path: '/movies/ABC-010',
       statusCode: 200,
       body: <String, dynamic>{
-        'javdb_id': 'MovieA10',
         'movie_number': 'ABC-010',
         'title': 'Movie 10',
         'actors': const <Map<String, dynamic>>[],
@@ -1352,94 +1329,6 @@ void main() {
               'error.code',
               'movie_not_found',
             ),
-      ),
-    );
-  });
-
-  test('refreshMovieMetadata posts to metadata refresh endpoint', () async {
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/movies/ABC-001/metadata-refresh',
-      statusCode: 200,
-      body: movieDetailBody(title: 'Refreshed movie'),
-    );
-
-    final detail = await moviesApi.refreshMovieMetadata(movieNumber: 'ABC-001');
-
-    final request = adapter.requests.single;
-    expect(request.method, 'POST');
-    expect(request.path, '/movies/ABC-001/metadata-refresh');
-    expect(detail.title, 'Refreshed movie');
-  });
-
-  test('refreshMovieMetadata preserves backend ApiException payload', () async {
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/movies/ABC-001/metadata-refresh',
-      statusCode: 409,
-      body: <String, dynamic>{
-        'error': <String, dynamic>{
-          'code': 'movie_metadata_number_conflict',
-          'message': '冲突',
-        },
-      },
-    );
-
-    expect(
-      () => moviesApi.refreshMovieMetadata(movieNumber: 'ABC-001'),
-      throwsA(
-        isA<ApiException>().having(
-          (ApiException error) => error.error?.code,
-          'error.code',
-          'movie_metadata_number_conflict',
-        ),
-      ),
-    );
-  });
-
-  test('recomputeMovieHeat posts to heat recompute endpoint', () async {
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/movies/ABC-001/heat-recompute',
-      statusCode: 202,
-      body: <String, dynamic>{
-        'task_run_id': 42,
-        'task_key': 'movie_heat_update',
-        'state': 'pending',
-      },
-    );
-
-    final accepted = await moviesApi.recomputeMovieHeat(movieNumber: 'ABC-001');
-
-    final request = adapter.requests.single;
-    expect(request.method, 'POST');
-    expect(request.path, '/movies/ABC-001/heat-recompute');
-    expect(accepted.taskRunId, 42);
-    expect(accepted.taskKey, 'movie_heat_update');
-    expect(accepted.state, 'pending');
-  });
-
-  test('recomputeMovieHeat preserves backend ApiException payload', () async {
-    adapter.enqueueJson(
-      method: 'POST',
-      path: '/movies/ABC-001/heat-recompute',
-      statusCode: 500,
-      body: <String, dynamic>{
-        'error': <String, dynamic>{
-          'code': 'movie_heat_recompute_failed',
-          'message': '重算失败',
-        },
-      },
-    );
-
-    expect(
-      () => moviesApi.recomputeMovieHeat(movieNumber: 'ABC-001'),
-      throwsA(
-        isA<ApiException>().having(
-          (ApiException error) => error.error?.code,
-          'error.code',
-          'movie_heat_recompute_failed',
-        ),
       ),
     );
   });
@@ -1880,11 +1769,7 @@ void main() {
       body: <String, dynamic>{
         'movie_count': 2,
         'heat': <String, dynamic>{'p999': 10839, 'max': 36278},
-        'score': <String, dynamic>{'p999': 5.0, 'max': 5.0},
-        'score_number': <String, dynamic>{'p999': 19915, 'max': 52523},
-        'watched_count': <String, dynamic>{'p999': 4714, 'max': 14321},
-        'want_watch_count': <String, dynamic>{'p999': 15516, 'max': 39456},
-        'comment_count': <String, dynamic>{'p999': 158, 'max': 611},
+        'heat_version': 'test-v1',
       },
     );
 
@@ -1892,8 +1777,7 @@ void main() {
 
     expect(options.movieCount, 2);
     expect(options.sliderMaxFor(MovieInteractionMetric.heat), 10839);
-    expect(options.sliderMaxFor(MovieInteractionMetric.score), 5.0);
-    expect(options.sliderMaxFor(MovieInteractionMetric.commentCount), 158);
+    expect(options.heatVersion, 'test-v1');
   });
 
   test('unsubscribeMovie preserves backend ApiException payload', () async {

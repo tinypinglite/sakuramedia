@@ -248,6 +248,7 @@ final AppRouteRegistry appRoutes = AppRouteRegistry(<AppRouteDefinition>[
   mobileSearchQueryRoute,
   mobileSettingsMediaLibrariesRoute,
   mobileSettingsMediaTagsRoute,
+  mobileSettingsMetadataSourcesRoute,
   mobileSettingsPluginsRoute,
   mobileSettingsPluginMarketRoute,
   mobileLatestMoviesRoute,

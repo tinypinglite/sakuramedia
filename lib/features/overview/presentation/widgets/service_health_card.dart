@@ -1,6 +1,5 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/overview/presentation/overview_system_info_format.dart';
-import 'package:sakuramedia/features/overview/presentation/widgets/external_data_source_status_chips.dart';
 import 'package:sakuramedia/features/status/data/status_dto.dart';
 import 'package:sakuramedia/features/status/presentation/status_placeholders.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -10,25 +9,19 @@ import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 
 /// 移动端「服务健康」卡：移动端没有组件诊断页，连通性状态收敛在这里，
-/// 只保留可操作的项（重建索引 / 检测外部数据源）。
+/// 只保留可操作的项（重建索引）。
 class ServiceHealthCard extends StatelessWidget {
   const ServiceHealthCard({
     super.key,
     required this.imageSearchStatus,
-    required this.javdbHealthy,
     required this.isLoading,
-    required this.isTestingExternalDataSources,
     required this.isRebuildingIndex,
-    this.onTestExternalDataSources,
     this.onRebuildIndex,
   });
 
   final StatusImageSearchDto? imageSearchStatus;
-  final bool? javdbHealthy;
   final bool isLoading;
-  final bool isTestingExternalDataSources;
   final bool isRebuildingIndex;
-  final VoidCallback? onTestExternalDataSources;
   final VoidCallback? onRebuildIndex;
 
   @override
@@ -77,27 +70,6 @@ class ServiceHealthCard extends StatelessWidget {
                     )
                   : null,
             ),
-            const _HealthDivider(),
-            _HealthRow(
-              label: l10n.overviewExternalDataSources,
-              rowKey: const Key('mobile-service-health-external'),
-              valueWidget: ExternalDataSourceStatusChips(
-                javdbHealthy: javdbHealthy,
-                isTesting: isTestingExternalDataSources,
-                keyPrefix: 'mobile-service-health',
-              ),
-              action: AppButton(
-                key: const Key('mobile-service-health-test-button'),
-                label: isTestingExternalDataSources
-                    ? l10n.overviewTesting
-                    : l10n.overviewTest,
-                size: AppButtonSize.small,
-                isLoading: isTestingExternalDataSources,
-                onPressed: isTestingExternalDataSources
-                    ? null
-                    : onTestExternalDataSources,
-              ),
-            ),
           ],
         ),
       ),
@@ -110,7 +82,6 @@ class _HealthRow extends StatelessWidget {
     required this.label,
     required this.rowKey,
     this.value,
-    this.valueWidget,
     this.valueTone = AppTextTone.primary,
     this.action,
   });
@@ -118,7 +89,6 @@ class _HealthRow extends StatelessWidget {
   final String label;
   final Key rowKey;
   final String? value;
-  final Widget? valueWidget;
   final AppTextTone valueTone;
   final Widget? action;
 
@@ -141,18 +111,15 @@ class _HealthRow extends StatelessWidget {
             ),
           ),
           SizedBox(width: context.appSpacing.sm),
-          if (valueWidget != null)
-            valueWidget!
-          else
-            Text(
-              value ?? '',
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s14,
-                weight: AppTextWeight.medium,
-                tone: valueTone,
-              ),
+          Text(
+            value ?? '',
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.medium,
+              tone: valueTone,
             ),
+          ),
           if (action != null) ...<Widget>[
             SizedBox(width: context.appSpacing.md),
             action!,

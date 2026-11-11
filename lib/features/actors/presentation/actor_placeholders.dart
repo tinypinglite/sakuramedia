@@ -10,7 +10,6 @@ List<ActorListItemDto> actorListItemPlaceholders({int count = 8}) {
     count,
     (index) => ActorListItemDto(
       id: -1 - index,
-      javdbId: 'actor-placeholder-${index + 1}',
       name: BoneMock.words(2),
       aliasName: '',
       profileImage: null,

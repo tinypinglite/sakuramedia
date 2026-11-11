@@ -171,7 +171,6 @@ void _enqueueRankingItems(TestApiBundle bundle) {
       'items': <Map<String, dynamic>>[
         <String, dynamic>{
           'rank': 1,
-          'javdb_id': 'javdb-1',
           'movie_number': 'ABC-001',
           'title': 'Movie 1',
           'cover_image': null,

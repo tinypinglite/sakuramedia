@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/format/app_date_format.dart';
 import 'package:sakuramedia/core/format/app_number_format.dart';
-import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
@@ -24,9 +24,11 @@ import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_si
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_subtitle_section.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_tag_wrap.dart';
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
+import 'package:sakuramedia/features/plugins/data/dto/plugin_binding_dto.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_bindings_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 
-class MovieDetailPageContent extends StatelessWidget {
+class MovieDetailPageContent extends ConsumerWidget {
   /// 正文滚动容器（[AppNoPullDownScrollView]，顶部不可下拉）的测试锚点。
   static const Key scrollViewKey = Key('movie-detail-scroll-view');
 
@@ -49,7 +51,8 @@ class MovieDetailPageContent extends StatelessWidget {
       data.selectedPreviewUrl != null && data.selectedPreviewUrl!.isNotEmpty;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statsFields = ref.watch(pluginBindingsProvider).value?.statsFields;
     return Stack(
       children: [
         // 整页模糊背景：封面高斯模糊铺底 + 底色罩一层，保证下方文字可读。
@@ -87,6 +90,7 @@ class MovieDetailPageContent extends StatelessWidget {
                       context: context,
                       heroHeight: heroHeight,
                       heroFit: heroFit,
+                      statsFields: statsFields,
                     ),
                   ),
                   ...bottomSafeAreaSliver(context),
@@ -176,6 +180,7 @@ class MovieDetailPageContent extends StatelessWidget {
     required BuildContext context,
     required double heroHeight,
     required BoxFit heroFit,
+    required List<PluginStatsFieldDto>? statsFields,
   }) {
     final hoverActions = movieCardHoverFeatureActions(context);
     final l10n = AppLocalizations.of(context);
@@ -230,7 +235,11 @@ class MovieDetailPageContent extends StatelessWidget {
                 child: MovieDetailInfoBlock(
                   overlayTitle: _resolveOverlayTitle(data.movie),
                   eyebrow: data.movie.movieNumber,
-                  metaItems: _resolveMetaItems(context, data.movie),
+                  metaItems: _resolveMetaItems(
+                    context,
+                    data.movie,
+                    statsFields,
+                  ),
                   fileSizeLabel: _resolveFileSizeLabel(
                     mediaItems,
                     data.selectedMediaId,
@@ -434,9 +443,7 @@ List<Widget> _buildInlineMetaItems(
     if (movie.metadataSourceName != null)
       _MovieInlineMetaItem(
         label: l10n.moviePageMetaMetadata,
-        value: movie.javdbId == null
-            ? l10n.moviePageMetaNotIndexed(movie.metadataSourceName!)
-            : 'JavDB',
+        value: movie.metadataSourceName!,
       ),
   ].where((item) => item.value.isNotEmpty).toList(growable: false);
 
@@ -613,33 +620,40 @@ String _resolveOverlayTitle(MovieDetailDto movie) {
   return title;
 }
 
-/// 标题下的元信息段：评分｜评论数｜想看｜看过｜热度｜上映日期｜时长｜厂商｜导演，
+/// 标题下的元信息段：动态互动数｜热度｜上映日期｜时长｜厂商｜导演，
 /// 有值的段才出现（零值/空串隐藏）。
 List<MovieDetailMetaItem> _resolveMetaItems(
   BuildContext context,
   MovieDetailDto movie,
+  List<PluginStatsFieldDto>? statsFields,
 ) {
   final colors = context.appColors;
   final l10n = AppLocalizations.of(context);
+  final fields = <String, PluginStatsFieldDto>{
+    for (final field in statsFields ?? const <PluginStatsFieldDto>[])
+      if (field.key.isNotEmpty) field.key: field,
+  };
+  final interactionItems =
+      _orderedInteractionEntries(movie.interactionStats, fields)
+          .map((entry) {
+            final field = fields[entry.key];
+            final label = (field?.label.isNotEmpty ?? false)
+                ? field!.label
+                : _fallbackInteractionLabel(entry.key, l10n);
+            final value = entry.value;
+            final isFloat =
+                field?.valueType == 'float' ||
+                (field == null && value is double);
+            final formatted = isFloat
+                ? value.toDouble().toStringAsFixed(1)
+                : formatAppCompactCount(value.round());
+            final unit = field?.unit?.trim() ?? '';
+            final displayValue = unit.isEmpty ? formatted : '$formatted$unit';
+            return MovieDetailMetaItem(text: '$label $displayValue');
+          })
+          .where((item) => item.text.isNotEmpty);
   return [
-    if (movie.score > 0)
-      MovieDetailMetaItem(
-        icon: Icons.star_outline_rounded,
-        iconColor: colors.movieDetailScoreIcon,
-        text: movie.score.toStringAsFixed(1),
-      ),
-    if (movie.commentCount > 0)
-      MovieDetailMetaItem(
-        icon: Icons.chat_bubble_outline_rounded,
-        iconColor: colors.movieDetailCommentCountIcon,
-        text: formatAppCount(movie.commentCount),
-      ),
-    if (movie.wantWatchCount > 0)
-      MovieDetailMetaItem(
-        text: l10n.moviePageMetaWantWatch(movie.wantWatchCount),
-      ),
-    if (movie.watchedCount > 0)
-      MovieDetailMetaItem(text: l10n.moviePageMetaWatched(movie.watchedCount)),
+    ...interactionItems,
     if (movie.heat > 0)
       MovieDetailMetaItem(
         icon: Icons.local_fire_department_rounded,
@@ -665,6 +679,41 @@ List<MovieDetailMetaItem> _resolveMetaItems(
         text: l10n.moviePageMetaDirector(movie.directorName.trim()),
       ),
   ];
+}
+
+List<MapEntry<String, num>> _orderedInteractionEntries(
+  Map<String, num>? stats,
+  Map<String, PluginStatsFieldDto> fields,
+) {
+  if (stats == null || stats.isEmpty) {
+    return const <MapEntry<String, num>>[];
+  }
+  final entries = <MapEntry<String, num>>[];
+  final seen = <String>{};
+  for (final field in fields.values) {
+    final value = stats[field.key];
+    if (value != null && value > 0) {
+      entries.add(MapEntry<String, num>(field.key, value));
+      seen.add(field.key);
+    }
+  }
+  for (final entry in stats.entries) {
+    if (entry.value > 0 && seen.add(entry.key)) {
+      entries.add(entry);
+    }
+  }
+  return entries;
+}
+
+String _fallbackInteractionLabel(String key, AppLocalizations l10n) {
+  return switch (key) {
+    'score' => l10n.sharedInteractionScore,
+    'score_number' => l10n.sharedInteractionScoreNumber,
+    'watched_count' => l10n.sharedInteractionWatchedCount,
+    'want_watch_count' => l10n.sharedInteractionWantWatchCount,
+    'comment_count' => l10n.sharedInteractionCommentCount,
+    _ => key,
+  };
 }
 
 /// 右列文件大小：选中媒体的文件大小，无选中/大小为 0 时不显示。

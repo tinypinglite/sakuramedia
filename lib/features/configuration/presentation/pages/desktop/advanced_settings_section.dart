@@ -972,11 +972,7 @@ List<_CronGroup> _buildCronGroups(AppLocalizations l10n) => <_CronGroup>[
   ),
   _CronGroup(
     title: l10n.configCronGroupScrapeBackfill,
-    keys: <String>[
-      'actor_subscription_sync',
-      'media_file_hash_backfill',
-      'gfriends_filetree_refresh',
-    ],
+    keys: <String>['media_file_hash_backfill', 'gfriends_filetree_refresh'],
   ),
   _CronGroup(
     title: l10n.configOptionalServicesTitle,
@@ -993,9 +989,7 @@ List<_CronGroup> _buildCronGroups(AppLocalizations l10n) => <_CronGroup>[
     title: l10n.configCronGroupMaintenance,
     keys: <String>[
       'media_thumbnail',
-      'movie_heat',
-      'movie_interaction_sync',
-      'movie_javdb_backfill',
+      'movie_stats_sync',
       'media_file_scan',
       'activity_cleanup',
     ],
@@ -1003,13 +997,10 @@ List<_CronGroup> _buildCronGroups(AppLocalizations l10n) => <_CronGroup>[
 ];
 
 String _cronCopy(AppLocalizations l10n, String key) => switch (key) {
-  'actor_subscription_sync' => l10n.taskNameActorSubscriptionSync,
   'subscribed_movie_auto_download' => l10n.taskNameSubscribedMovieAutoDownload,
   'download_task_sync' => l10n.taskNameDownloadTaskSync,
   'download_task_auto_import' => l10n.taskNameDownloadTaskAutoImport,
-  'movie_heat' => l10n.taskNameMovieHeatUpdate,
-  'movie_interaction_sync' => l10n.taskNameMovieInteractionSync,
-  'movie_javdb_backfill' => l10n.taskNameMovieJavdbBackfill,
+  'movie_stats_sync' => l10n.taskNameMovieStatsSync,
   'media_file_hash_backfill' => l10n.taskNameMediaFileHashBackfill,
   'media_file_scan' => l10n.taskNameMediaFileScan,
   'media_thumbnail' => l10n.taskNameMediaThumbnailGeneration,
@@ -1023,13 +1014,10 @@ String _cronCopy(AppLocalizations l10n, String key) => switch (key) {
 };
 
 String _cronFieldHelper(AppLocalizations l10n, String key) => switch (key) {
-  'actor_subscription_sync' => l10n.taskHelpActorSubscriptionSync,
   'subscribed_movie_auto_download' => l10n.taskHelpSubscribedMovieAutoDownload,
   'download_task_sync' => l10n.taskHelpDownloadTaskSync,
   'download_task_auto_import' => l10n.taskHelpDownloadTaskAutoImport,
-  'movie_heat' => l10n.taskHelpMovieHeatUpdate,
-  'movie_interaction_sync' => l10n.taskHelpMovieInteractionSync,
-  'movie_javdb_backfill' => l10n.taskHelpMovieJavdbBackfill,
+  'movie_stats_sync' => l10n.taskHelpMovieStatsSync,
   'media_file_hash_backfill' => l10n.taskHelpMediaFileHashBackfill,
   'media_file_scan' => l10n.taskHelpMediaFileScan,
   'media_thumbnail' => l10n.taskHelpMediaThumbnailGeneration,

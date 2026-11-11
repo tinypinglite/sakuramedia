@@ -13,7 +13,7 @@ import 'package:sakuramedia/features/downloads/data/downloads_api.dart';
 import 'package:sakuramedia/features/downloads/data/download_source_link.dart';
 import 'package:sakuramedia/features/downloads/presentation/providers/downloads_api_provider.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
-import 'package:sakuramedia/features/movies/data/dto/series_import/movie_search_stream_update.dart';
+import 'package:sakuramedia/features/movies/data/dto/movie_search_stream_update.dart';
 import 'package:sakuramedia/features/movies/data/movie_number_matcher.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/file_picker_with_bytes.dart';

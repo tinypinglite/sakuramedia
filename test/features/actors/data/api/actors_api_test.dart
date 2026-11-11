@@ -7,7 +7,6 @@ import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/actors/data/api/actors_api.dart';
 import 'package:sakuramedia/features/actors/presentation/controllers/listing/actor_filter_state.dart';
-import 'package:sakuramedia/l10n/app_localizations_en.dart';
 
 import '../../../../support/fake_http_client_adapter.dart';
 
@@ -47,7 +46,6 @@ void main() {
         'items': [
           <String, dynamic>{
             'id': 1,
-            'javdb_id': 'ActorA1',
             'name': '三上悠亚',
             'alias_name': '三上悠亚 / 鬼头桃菜',
             'profile_image': <String, dynamic>{'id': 10, 'origin': 'large.jpg'},
@@ -185,7 +183,6 @@ void main() {
       statusCode: 200,
       body: <String, dynamic>{
         'id': 1,
-        'javdb_id': 'ActorA1',
         'name': '三上悠亚',
         'alias_name': '三上悠亚 / 鬼头桃菜',
         'profile_image': <String, dynamic>{'id': 10, 'origin': 'large.jpg'},
@@ -387,91 +384,56 @@ void main() {
     expect(adapter.requests.single.path, '/actors/1/tags');
   });
 
-  test(
-    'searchOnlineActorsStream maps avatar download stages and results',
-    () async {
-      adapter.enqueueSse(
-        method: 'POST',
-        path: '/actors/metadata-imports',
-        chunks: <String>[
-          'event: search_started\n'
-              'data: {"actor_name":"三上悠亚"}\n\n',
-          'event: image_download_started\n'
-              'data: {"javdb_id":"ActorA1","index":1,"total":2}\n\n',
-          'event: image_download_finished\n'
-              'data: {"javdb_id":"ActorA1","index":1,"total":2,"has_avatar":true}\n\n',
-          'event: completed\n'
-              'data: {"success":true,"actors":[{"id":1,"javdb_id":"ActorA1","name":"三上悠亚","alias_name":"三上悠亚","profile_image":null,"is_subscribed":false}],"failed_items":[],"stats":{"total":2,"created_count":1,"already_exists_count":0,"failed_count":0}}\n\n',
-        ],
-      );
-
-      final updates = await actorsApi
-          .searchOnlineActorsStream(actorName: '三上悠亚')
-          .toList();
-
-      final request = adapter.requests.single;
-      expect(request.method, 'POST');
-      expect(request.path, '/actors/metadata-imports');
-      expect(request.body, <String, dynamic>{'actor_name': '三上悠亚'});
-      expect(updates.any((update) => update.message == '正在下载头像 1/2'), isTrue);
-      expect(updates.last.success, isTrue);
-      expect(updates.last.results.single.id, 1);
-    },
-  );
-
-  test('searchOnlineActorsStream localizes progress messages', () async {
-    adapter.enqueueSse(
-      method: 'POST',
-      path: '/actors/metadata-imports',
-      chunks: <String>[
-        'event: search_started\n'
-            'data: {"actor_name":"三上悠亚"}\n\n',
-        'event: image_download_started\n'
-            'data: {"javdb_id":"ActorA1","index":1,"total":2}\n\n',
-        'event: completed\n'
-            'data: {"success":true,"actors":[],"failed_items":[],"stats":{"total":0,"created_count":0,"already_exists_count":0,"failed_count":0}}\n\n',
+  test('searchActorCandidates parses GFriends candidates', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/actors/gfriends/search',
+      statusCode: 200,
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'candidate_id': 'candidate-a',
+          'name': '三上悠亚',
+          'alias_names': <String>['三上悠亜', '鬼头桃菜'],
+          'avatar_url': 'https://cdn.example/actor.jpg',
+          'existing_actor_id': 3,
+        },
       ],
     );
 
-    final englishApi = ActorsApi(
-      apiClient: apiClient,
-      l10n: () => AppLocalizationsEn(),
-    );
-    final updates = await englishApi
-        .searchOnlineActorsStream(actorName: '三上悠亚')
-        .toList();
+    final candidates = await actorsApi.searchActorCandidates(query: '三上');
 
-    expect(updates.first.message, 'Searching external sources for actors...');
-    expect(
-      updates.any((update) => update.message == 'Downloading avatars 1/2'),
-      isTrue,
-    );
-    expect(updates.last.message, 'Online search complete');
+    expect(candidates, hasLength(1));
+    expect(candidates.single.candidateId, 'candidate-a');
+    expect(candidates.single.aliasNames, contains('鬼头桃菜'));
+    expect(candidates.single.existingActorId, 3);
+    expect(adapter.requests.single.path, '/actors/gfriends/search');
   });
 
-  test(
-    'searchOnlineActorsStream keeps actor_not_found as non-error completion',
-    () async {
-      adapter.enqueueSse(
-        method: 'POST',
-        path: '/actors/metadata-imports',
-        chunks: <String>[
-          'event: search_started\n'
-              'data: {"actor_name":"mikami"}\n\n',
-          'event: completed\n'
-              'data: {"success":false,"reason":"actor_not_found","actors":[]}\n\n',
-        ],
-      );
+  test('importActorCandidate imports one candidate', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/actors/gfriends/import',
+      statusCode: 201,
+      body: <String, dynamic>{
+        'id': 9,
+        'name': '三上悠亚',
+        'alias_name': '三上悠亚 / 鬼头桃菜',
+        'display_name': '三上悠亚',
+        'profile_image': null,
+        'is_subscribed': false,
+        'gender': 1,
+      },
+    );
 
-      final updates = await actorsApi
-          .searchOnlineActorsStream(actorName: 'mikami')
-          .toList();
+    final actor = await actorsApi.importActorCandidate(
+      candidateId: 'candidate-a',
+    );
 
-      expect(updates.last.success, isFalse);
-      expect(updates.last.reason, 'actor_not_found');
-      expect(updates.last.results, isEmpty);
-    },
-  );
+    expect(actor.summary.id, 9);
+    expect(adapter.requests.single.body, <String, dynamic>{
+      'candidate_id': 'candidate-a',
+    });
+  });
 
   test(
     'subscribeActor sends PUT request to actor subscription endpoint',
@@ -540,7 +502,6 @@ void main() {
         statusCode: 201,
         body: <String, dynamic>{
           'id': 9,
-          'javdb_id': null,
           'name': '本地女优',
           'alias_name': '本地女优 / 别名A / 别名B',
           'display_name': '本地女优',
@@ -557,7 +518,6 @@ void main() {
       );
 
       expect(detail.summary.id, 9);
-      expect(detail.summary.isLocal, isTrue);
       expect(detail.summary.displayName, '本地女优');
       final request = adapter.requests.single;
       expect(request.method, 'POST');
@@ -574,7 +534,6 @@ void main() {
 Map<String, dynamic> _actorDetailResponse() {
   return <String, dynamic>{
     'id': 1,
-    'javdb_id': 'ActorA1',
     'name': '来源名称',
     'alias_name': '',
     'display_name': '来源名称',

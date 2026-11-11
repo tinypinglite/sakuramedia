@@ -226,7 +226,6 @@ MovieDetailDto _$MovieDetailDtoFromJson(
   Map<String, dynamic> json,
 ) => MovieDetailDto(
   id: json['id'] == null ? 0 : const IntJsonConverter().fromJson(json['id']),
-  javdbId: const NullableStringJsonConverter().fromJson(json['javdb_id']),
   metadataSourceName: _metadataSourceNameFromJson(json['metadata_source']),
   movieNumber: const StringJsonConverter().fromJson(json['movie_number']),
   title: const StringJsonConverter().fromJson(json['title']),
@@ -237,12 +236,14 @@ MovieDetailDto _$MovieDetailDtoFromJson(
   coverImage: movieImageFromJson(json['cover_image']),
   releaseDate: const DateTimeJsonConverter().fromJson(json['release_date']),
   durationMinutes: const IntJsonConverter().fromJson(json['duration_minutes']),
-  score: const DoubleJsonConverter().fromJson(json['score']),
+  interactionStats: _interactionStatsFromJson(json['interaction_stats']),
+  statsSource: const NullableStringJsonConverter().fromJson(
+    json['stats_source'],
+  ),
+  statsUpdatedAt: const DateTimeJsonConverter().fromJson(
+    json['stats_updated_at'],
+  ),
   heat: const IntJsonConverter().fromJson(json['heat']),
-  watchedCount: const IntJsonConverter().fromJson(json['watched_count']),
-  wantWatchCount: const IntJsonConverter().fromJson(json['want_watch_count']),
-  commentCount: const IntJsonConverter().fromJson(json['comment_count']),
-  scoreNumber: const IntJsonConverter().fromJson(json['score_number']),
   isCollection: const BoolJsonConverter().fromJson(json['is_collection']),
   isSubscribed: const BoolJsonConverter().fromJson(json['is_subscribed']),
   isBlacklisted: json['is_blacklisted'] == null
@@ -309,7 +310,6 @@ MovieRankingDto _$MovieRankingDtoFromJson(Map<String, dynamic> json) =>
 MovieActorDto _$MovieActorDtoFromJson(Map<String, dynamic> json) =>
     MovieActorDto(
       id: const IntJsonConverter().fromJson(json['id']),
-      javdbId: const StringJsonConverter().fromJson(json['javdb_id']),
       name: const StringJsonConverter().fromJson(json['name']),
       aliasName: const StringJsonConverter().fromJson(json['alias_name']),
       gender: const IntJsonConverter().fromJson(json['gender']),

@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/configuration/presentation/pages/shared/dow
 import 'package:sakuramedia/features/configuration/presentation/pages/shared/indexers_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/shared/media_libraries_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/shared/media_tags_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/shared/metadata_sources_page.dart';
 import 'package:sakuramedia/features/downloads/presentation/pages/desktop/download_tasks_page.dart';
 import 'package:sakuramedia/features/downloads/presentation/pages/mobile/download_tasks_page.dart';
 import 'package:sakuramedia/features/external_player/presentation/pages/mobile/external_player_settings_page.dart';
@@ -300,6 +301,21 @@ final AppRouteDefinition mobileSettingsPluginsRoute = AppRouteDefinition(
   title: (l10n, [_]) => l10n.configTabPlugins,
   backTarget: (state) => mobileOverviewPath,
 );
+
+final AppRouteDefinition mobileSettingsMetadataSourcesRoute =
+    AppRouteDefinition(
+      id: AppRouteId.mobileSettingsMetadataSources,
+      name: 'mobile-settings-metadata-sources',
+      platform: AppPlatform.mobile,
+      path: mobileSettingsMetadataSourcesPath,
+      scope: AppRouteScope.outsideShell,
+      transition: AppRouteTransition.cupertino,
+      subpageChrome: const AppSubpageChrome(),
+      pageBuilder: (context, state) =>
+          const MetadataSourcesPage(active: true, mobile: true),
+      title: (l10n, [_]) => l10n.configTabMetadataSources,
+      backTarget: (state) => mobileOverviewPath,
+    );
 
 final AppRouteDefinition mobileSettingsPluginMarketRoute = AppRouteDefinition(
   id: AppRouteId.mobileSettingsPluginMarket,

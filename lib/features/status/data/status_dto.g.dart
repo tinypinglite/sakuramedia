@@ -184,54 +184,6 @@ Map<String, dynamic> _$StatusImageSearchDtoToJson(
   'index_space': instance.indexSpace.toJson(),
 };
 
-StatusMetadataProviderTestErrorDto _$StatusMetadataProviderTestErrorDtoFromJson(
-  Map<String, dynamic> json,
-) => StatusMetadataProviderTestErrorDto(
-  type: const StringJsonConverter().fromJson(json['type']),
-  message: const StringJsonConverter().fromJson(json['message']),
-  method: const NullableStringJsonConverter().fromJson(json['method']),
-  url: const NullableStringJsonConverter().fromJson(json['url']),
-  resource: const NullableStringJsonConverter().fromJson(json['resource']),
-  lookupValue: const NullableStringJsonConverter().fromJson(
-    json['lookup_value'],
-  ),
-);
-
-Map<String, dynamic> _$StatusMetadataProviderTestErrorDtoToJson(
-  StatusMetadataProviderTestErrorDto instance,
-) => <String, dynamic>{
-  'type': const StringJsonConverter().toJson(instance.type),
-  'message': const StringJsonConverter().toJson(instance.message),
-  'method': const NullableStringJsonConverter().toJson(instance.method),
-  'url': const NullableStringJsonConverter().toJson(instance.url),
-  'resource': const NullableStringJsonConverter().toJson(instance.resource),
-  'lookup_value': const NullableStringJsonConverter().toJson(
-    instance.lookupValue,
-  ),
-};
-
-StatusMetadataProviderTestDto _$StatusMetadataProviderTestDtoFromJson(
-  Map<String, dynamic> json,
-) => StatusMetadataProviderTestDto(
-  healthy: asBool(json['healthy']),
-  provider: const StringJsonConverter().fromJson(json['provider']),
-  movieNumber: const StringJsonConverter().fromJson(json['movie_number']),
-  elapsedMs: const IntJsonConverter().fromJson(json['elapsed_ms']),
-  checkedAt: const DateTimeJsonConverter().fromJson(json['checked_at']),
-  error: _metadataErrorFromJson(json['error']),
-);
-
-Map<String, dynamic> _$StatusMetadataProviderTestDtoToJson(
-  StatusMetadataProviderTestDto instance,
-) => <String, dynamic>{
-  'healthy': const BoolJsonConverter().toJson(instance.healthy),
-  'provider': const StringJsonConverter().toJson(instance.provider),
-  'movie_number': const StringJsonConverter().toJson(instance.movieNumber),
-  'elapsed_ms': const IntJsonConverter().toJson(instance.elapsedMs),
-  'checked_at': const DateTimeJsonConverter().toJson(instance.checkedAt),
-  'error': instance.error?.toJson(),
-};
-
 MediaLibraryUsageDto _$MediaLibraryUsageDtoFromJson(
   Map<String, dynamic> json,
 ) => MediaLibraryUsageDto(

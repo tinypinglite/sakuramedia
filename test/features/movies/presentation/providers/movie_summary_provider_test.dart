@@ -274,8 +274,7 @@ void main() {
             status: MovieStatusFilter.subscribed,
             years: const <int>{2023, 2024},
             interaction: MovieInteractionFilter.initial
-                .withRange(MovieInteractionMetric.heat, min: 1000, max: 20000)
-                .withRange(MovieInteractionMetric.score, min: 8.0),
+                .withRange(MovieInteractionMetric.heat, min: 1000, max: 20000),
           ),
         );
 
@@ -288,7 +287,6 @@ void main() {
     // 女优详情也走 /catalog/movies 接口，互动数范围与 actor_id 可组合过滤。
     expect(secondRequest.uri.queryParameters['heat_min'], '1000');
     expect(secondRequest.uri.queryParameters['heat_max'], '20000');
-    expect(secondRequest.uri.queryParameters['score_min'], '8.0');
   });
 
   test('出演年龄筛选写入请求参数，清空后不再发送', () async {
@@ -1156,7 +1154,6 @@ Map<String, dynamic> _page({
 
 Map<String, dynamic> _movie(String movieNumber, {bool isSubscribed = false}) {
   return <String, dynamic>{
-    'javdb_id': 'javdb-$movieNumber',
     'movie_number': movieNumber,
     'title': 'Movie $movieNumber',
     'cover_image': null,

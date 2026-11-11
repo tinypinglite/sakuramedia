@@ -146,9 +146,6 @@ class _LocalHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (!actor.summary.isLocal) {
-      return const SizedBox.shrink();
-    }
     return Padding(
       padding: EdgeInsets.only(top: context.appSpacing.xs),
       child: Text(
@@ -194,17 +191,15 @@ class _ActorActions extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (!actor.summary.isLocal) ...[
-          AppIconButton(
-            key: Key('$prefix-merge-button'),
-            icon: const Icon(Icons.call_merge_outlined),
-            size: size,
-            tooltip: AppLocalizations.of(context).actorMergeTooltip,
-            semanticLabel: AppLocalizations.of(context).actorMergeTooltip,
-            onPressed: onMergeTap,
-          ),
-          SizedBox(width: context.appSpacing.sm),
-        ],
+        AppIconButton(
+          key: Key('$prefix-merge-button'),
+          icon: const Icon(Icons.call_merge_outlined),
+          size: size,
+          tooltip: AppLocalizations.of(context).actorMergeTooltip,
+          semanticLabel: AppLocalizations.of(context).actorMergeTooltip,
+          onPressed: onMergeTap,
+        ),
+        SizedBox(width: context.appSpacing.sm),
         AppIconButton(
           key: Key('$prefix-edit-button'),
           icon: const Icon(Icons.edit_outlined),

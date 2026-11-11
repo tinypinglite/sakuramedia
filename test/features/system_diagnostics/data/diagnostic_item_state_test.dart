@@ -30,9 +30,9 @@ void main() {
 
     test('healthy factory 保留 elapsedMs 与 summary', () {
       final state = DiagnosticItemState.healthy(
-        kind: DiagnosticItemKind.javdb,
-        itemKey: 'javdb',
-        displayName: 'JavDB',
+        kind: DiagnosticItemKind.joyTag,
+        itemKey: 'joytag',
+        displayName: 'JoyTag',
         elapsedMs: 42,
         summary: '连通正常',
       );

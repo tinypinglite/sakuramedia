@@ -157,7 +157,7 @@ class MovieSummaryListContent extends ConsumerStatefulWidget {
   /// 一级移动列表页的大标题等前置内容；仅与 [usePinnedMobileHeader] 搭配使用。
   final Widget? mobileHeaderLeading;
 
-  /// 无筛选维度的列表（如女优上新）可以整行不渲染顶栏，把高度留给内容。
+  /// 无筛选维度的列表（如订阅女优影片）可以整行不渲染顶栏，把高度留给内容。
   final bool showHeader;
   final bool useMobileSelectionLayout;
   final bool usePinnedMobileHeader;

@@ -103,6 +103,10 @@ import_metadata_max_workers = 3
 
 外部站点请求统一使用容器环境变量 `HTTP_PROXY`、`HTTPS_PROXY` 和 `NO_PROXY`。索引器、下载 provider 和媒体 provider 的连接由各自插件配置管理。
 
+### 元数据插件
+
+影片搜索、按番号导入和手动匹配只使用已安装的元数据插件，并按「设置 → 元数据源」中的顺序调用。当前版本要求所有插件声明 Host API 18；旧插件需要重新发版后才能加载。演员搜索使用后端内置的 GFriends 索引，不需要单独配置账号。
+
 ## `[plugins]`
 
 ```toml
@@ -111,6 +115,8 @@ root_dir = "/data/plugins"
 enabled = []
 job_crons = {}
 settings = {}
+# stats_source = "stats_plugin"
+# review_source = "review_plugin"
 ```
 
 | 字段 | 作用 |
@@ -119,8 +125,12 @@ settings = {}
 | `enabled` | 已启用的插件 ID 列表。 |
 | `job_crons` | 插件后台任务的 cron 覆盖值，按插件 ID 分组。 |
 | `settings` | 插件私有配置，按插件 ID 分组。 |
+| `stats_source` | 影片互动数与热度的来源插件 ID。留空时保留现有数据且不自动同步。 |
+| `review_source` | 优先使用的影片评论插件 ID。留空时按已启用评论插件的顺序回退。 |
 
 插件安装、启用和配置入口是「系统设置 → 插件」；也可以使用[常用命令](/zh-CN/guide/commands)中的 `plugins` 命令。
+
+互动数与评论来源在「系统设置 → 元数据源」中配置。互动数同一时间只能绑定一个插件。
 
 ## `[scheduler]`
 
@@ -130,12 +140,10 @@ settings = {}
 [scheduler]
 enabled = true
 log_dir = "/data/logs"
-actor_subscription_sync_cron = "0 2 * * *"
 subscribed_movie_auto_download_cron = "30 2 * * *"
 download_task_sync_cron = "* * * * *"
 download_task_auto_import_cron = "* * * * *"
-movie_heat_cron = "15 0 * * *"
-movie_interaction_sync_cron = "0 5 * * *"
+movie_stats_sync_cron = "0 5 * * *"
 media_file_hash_backfill_cron = "0 3 * * *"
 media_thumbnail_cron = "*/30 * * * *"
 image_search_index_cron = "*/5 * * * *"
@@ -152,12 +160,10 @@ activity_notification_read_retention_days = 3
 |---|---|
 | `enabled` | 是否启用后台定时任务。 |
 | `log_dir` | 后台任务日志目录。 |
-| `actor_subscription_sync_cron` | 订阅女优影片同步。 |
 | `subscribed_movie_auto_download_cron` | 已订阅缺失影片自动下载。 |
 | `download_task_sync_cron` | 同步 provider 下载任务状态。 |
 | `download_task_auto_import_cron` | 将 provider 已完成任务交给导入流程。 |
-| `movie_heat_cron` | 影片热度重算。 |
-| `movie_interaction_sync_cron` | 影片互动数同步。 |
+| `movie_stats_sync_cron` | 通过绑定插件刷新影片互动数与热度。 |
 | `media_file_hash_backfill_cron` | 补齐缺少哈希的媒体文件。 |
 | `media_thumbnail_cron` | 媒体缩略图生成。 |
 | `image_search_index_cron` | 媒体缩略图和剧情图向量索引。 |

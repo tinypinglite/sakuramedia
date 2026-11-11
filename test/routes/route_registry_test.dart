@@ -17,9 +17,9 @@ void main() {
   });
 
   test('registry contains exactly the current route surface', () {
-    expect(appRoutes.definitions.length, 104);
+    expect(appRoutes.definitions.length, 105);
     expect(appRoutes.forPlatform(AppPlatform.desktop).length, 49);
-    expect(appRoutes.forPlatform(AppPlatform.mobile).length, 55);
+    expect(appRoutes.forPlatform(AppPlatform.mobile).length, 56);
 
     expect(
       appRoutes.scoped(AppPlatform.desktop, AppRouteScope.outsideShell).length,
@@ -35,7 +35,7 @@ void main() {
     );
     expect(
       appRoutes.scoped(AppPlatform.mobile, AppRouteScope.outsideShell).length,
-      42,
+      43,
     );
     expect(
       appRoutes.scoped(AppPlatform.mobile, AppRouteScope.branchRoot).length,
@@ -114,7 +114,7 @@ void main() {
     final drawerEntries = drawerSections
         .expand((section) => section.entries)
         .toList(growable: false);
-    expect(drawerEntries.length, 22);
+    expect(drawerEntries.length, 23);
     expect(
       drawerEntries.map((entry) => entry.key).toSet().length,
       drawerEntries.length,
@@ -126,7 +126,7 @@ void main() {
     final subpages = appRoutes.definitions
         .where((definition) => definition.subpageChrome != null)
         .toList(growable: false);
-    expect(subpages.length, 44);
+    expect(subpages.length, 45);
     expect(
       subpages
           .where((definition) => definition.subpageChrome!.glassChrome)

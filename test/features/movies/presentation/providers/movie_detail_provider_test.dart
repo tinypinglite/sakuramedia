@@ -232,8 +232,7 @@ void main() {
     // 上报成功触发的 invalidate 让存活的「最近浏览」重拉一次。
     for (
       var attempt = 0;
-      attempt < 100 &&
-          bundle.adapter.hitCount('GET', '/view-history') < 2;
+      attempt < 100 && bundle.adapter.hitCount('GET', '/view-history') < 2;
       attempt++
     ) {
       await Future<void>.delayed(const Duration(milliseconds: 1));
@@ -243,7 +242,6 @@ void main() {
 }
 
 Map<String, dynamic> _similarJson() => <String, dynamic>{
-  'javdb_id': 'MovieS1',
   'movie_number': 'SIM-001',
   'title': 'Similar movie',
   'cover_image': null,
@@ -286,7 +284,6 @@ Future<void> _settle() async {
 
 Map<String, dynamic> _movieJson() => <String, dynamic>{
   'id': 5,
-  'javdb_id': 'MovieA1',
   'movie_number': 'ABC-001',
   'title': 'Movie 1',
   'cover_image': null,

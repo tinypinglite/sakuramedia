@@ -50,6 +50,49 @@ void main() {
       expect(adapter.hitCount('GET', '/system/plugins'), 1);
     });
 
+    test('reads and updates stats/review source bindings', () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/plugins/bindings',
+        body: _bindingsJson(
+          statsSource: 'stats_plugin',
+          reviewSource: 'review_plugin',
+        ),
+      );
+      adapter.enqueueJson(
+        method: 'PUT',
+        path: '/system/plugins/bindings',
+        body: <String, dynamic>{
+          ..._bindingsJson(statsSource: 'stats_plugin_2', reviewSource: null),
+          'pending_restart': <String>['api', 'aps'],
+        },
+      );
+
+      final current = await api.getBindings();
+      final updated = await api.updateBindings(
+        statsSource: 'stats_plugin_2',
+        reviewSource: null,
+      );
+
+      expect(current.statsSource, 'stats_plugin');
+      expect(current.reviewSource, 'review_plugin');
+      expect(current.statsSourceAvailable, isTrue);
+      expect(current.statsFields.single.key, 'watched_count');
+      expect(current.statsFields.single.label, '观看数');
+      expect(current.availableStatsSources.first.displayName, '互动数插件');
+      expect(updated.statsSource, 'stats_plugin_2');
+      expect(updated.reviewSource, isNull);
+      expect(updated.pendingRestart, <String>['api', 'aps']);
+
+      final request = adapter.requests.last;
+      expect(request.method, 'PUT');
+      expect(request.path, '/system/plugins/bindings');
+      expect(request.body, <String, dynamic>{
+        'stats_source': 'stats_plugin_2',
+        'review_source': null,
+      });
+    });
+
     test('installs a zip with multipart file and enable flag', () async {
       adapter.enqueueJson(
         method: 'POST',
@@ -251,44 +294,39 @@ void main() {
       expect(request.body, <String, dynamic>{'overlap_days': 14});
     });
 
-    test(
-      'fetches the market catalog from a text/plain raw response '
-      'without sending the SakuraMedia token',
-      () async {
-        // GitHub raw 返回 text/plain，dio 不会自动按 JSON 解析；
-        // 用真实 content-type 复现，防止再次退化为类型转换错误。
-        adapter.enqueueResponder(
-          method: 'GET',
-          path: kPluginMarketIndexUrl,
-          responder: (options, _) async {
-            return ResponseBody.fromString(
-              jsonEncode(pluginMarketIndexJson()),
-              200,
-              headers: const <String, List<String>>{
-                Headers.contentTypeHeader: <String>[
-                  'text/plain; charset=utf-8',
-                ],
-              },
-            );
-          },
-        );
+    test('fetches the market catalog from a text/plain raw response '
+        'without sending the SakuraMedia token', () async {
+      // GitHub raw 返回 text/plain，dio 不会自动按 JSON 解析；
+      // 用真实 content-type 复现，防止再次退化为类型转换错误。
+      adapter.enqueueResponder(
+        method: 'GET',
+        path: kPluginMarketIndexUrl,
+        responder: (options, _) async {
+          return ResponseBody.fromString(
+            jsonEncode(pluginMarketIndexJson()),
+            200,
+            headers: const <String, List<String>>{
+              Headers.contentTypeHeader: <String>['text/plain; charset=utf-8'],
+            },
+          );
+        },
+      );
 
-        final catalog = await api.fetchMarketCatalog(kPluginMarketIndexUrl);
+      final catalog = await api.fetchMarketCatalog(kPluginMarketIndexUrl);
 
-        expect(catalog.schemaVersion, 1);
-        final item = catalog.plugins.single;
-        expect(item.pluginId, 'demo_plugin');
-        expect(item.official, isTrue);
-        expect(item.latest!.version, '1.1.0');
-        expect(item.latest!.hostApiVersion, 10);
-        expect(item.latest!.sha256, hasLength(64));
-        final request = adapter.requests.single;
-        expect(request.path, kPluginMarketIndexUrl);
-        expect(request.headers.containsKey('Authorization'), isFalse);
-        expect(request.connectTimeout, const Duration(seconds: 15));
-        expect(request.receiveTimeout, const Duration(seconds: 15));
-      },
-    );
+      expect(catalog.schemaVersion, 1);
+      final item = catalog.plugins.single;
+      expect(item.pluginId, 'demo_plugin');
+      expect(item.official, isTrue);
+      expect(item.latest!.version, '1.1.0');
+      expect(item.latest!.hostApiVersion, 10);
+      expect(item.latest!.sha256, hasLength(64));
+      final request = adapter.requests.single;
+      expect(request.path, kPluginMarketIndexUrl);
+      expect(request.headers.containsKey('Authorization'), isFalse);
+      expect(request.connectTimeout, const Duration(seconds: 15));
+      expect(request.receiveTimeout, const Duration(seconds: 15));
+    });
 
     test('parses a JSON content-type market response too', () async {
       adapter.enqueueJson(
@@ -352,4 +390,39 @@ void main() {
       );
     });
   });
+}
+
+Map<String, dynamic> _bindingsJson({
+  required String? statsSource,
+  required String? reviewSource,
+}) {
+  return <String, dynamic>{
+    'stats_source': statsSource,
+    'review_source': reviewSource,
+    'stats_source_available': statsSource != null,
+    'review_source_available': reviewSource != null,
+    'stats_source_display_name': statsSource == null ? null : '互动数插件',
+    'review_source_display_name': reviewSource == null ? null : '评论插件',
+    'stats_fields': <Map<String, dynamic>>[
+      <String, dynamic>{
+        'key': 'watched_count',
+        'label': '观看数',
+        'value_type': 'int',
+        'min': 0,
+        'max': null,
+        'unit': null,
+      },
+    ],
+    'heat_version': 'plugin:v1',
+    'available_stats_sources': <Map<String, dynamic>>[
+      <String, dynamic>{'plugin_id': 'stats_plugin', 'display_name': '互动数插件'},
+      <String, dynamic>{
+        'plugin_id': 'stats_plugin_2',
+        'display_name': '互动数插件 2',
+      },
+    ],
+    'available_review_sources': <Map<String, dynamic>>[
+      <String, dynamic>{'plugin_id': 'review_plugin', 'display_name': '评论插件'},
+    ],
+  };
 }

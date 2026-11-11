@@ -6,7 +6,6 @@ class RankedMovieListItemDto
   const RankedMovieListItemDto({
     required this.rank,
     this.maxMediaWidth = 0,
-    required this.javdbId,
     required this.movieNumber,
     required this.title,
     required this.coverImage,
@@ -20,7 +19,6 @@ class RankedMovieListItemDto
 
   final int rank;
   final int maxMediaWidth;
-  final String javdbId;
   @override
   final String movieNumber;
   final String title;
@@ -35,7 +33,6 @@ class RankedMovieListItemDto
 
   RankedMovieListItemDto copyWith({
     int? rank,
-    String? javdbId,
     String? movieNumber,
     String? title,
     MovieImageDto? coverImage,
@@ -49,7 +46,6 @@ class RankedMovieListItemDto
     return RankedMovieListItemDto(
       rank: rank ?? this.rank,
       maxMediaWidth: maxMediaWidth,
-      javdbId: javdbId ?? this.javdbId,
       movieNumber: movieNumber ?? this.movieNumber,
       title: title ?? this.title,
       coverImage: coverImage ?? this.coverImage,
@@ -68,7 +64,6 @@ class RankedMovieListItemDto
 
   MovieListItemDto toMovieListItem() {
     return MovieListItemDto(
-      javdbId: javdbId,
       movieNumber: movieNumber,
       title: title,
       coverImage: coverImage,
@@ -86,7 +81,6 @@ class RankedMovieListItemDto
     return RankedMovieListItemDto(
       rank: json['rank'] as int? ?? 0,
       maxMediaWidth: MovieListItemDto.fromJson(json).maxMediaWidth,
-      javdbId: json['javdb_id'] as String? ?? '',
       movieNumber: json['movie_number'] as String? ?? '',
       title: json['title'] as String? ?? '',
       coverImage: _movieImageFromJson(json['cover_image']),

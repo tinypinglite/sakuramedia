@@ -225,8 +225,7 @@ void main() {
       body: _page(items: <Map<String, dynamic>>[_rankedMovie(2)], total: 1),
     );
     final interaction = MovieInteractionFilter.initial
-        .withRange(MovieInteractionMetric.score, min: 8.0)
-        .withRange(MovieInteractionMetric.commentCount, min: 20);
+        .withRange(MovieInteractionMetric.heat, min: 100);
 
     final update = container
         .read(rankingSummaryProvider(scope).notifier)
@@ -237,8 +236,7 @@ void main() {
 
     await update;
     final parameters = adapter.requests.last.uri.queryParameters;
-    expect(parameters['score_min'], '8.0');
-    expect(parameters['comment_count_min'], '20');
+    expect(parameters['heat_min'], '100');
   });
 
   test('刷新成功替换首页，失败保留旧条目并返回文案', () async {
@@ -385,7 +383,6 @@ Map<String, dynamic> _page({
 Map<String, dynamic> _rankedMovie(int rank) {
   return <String, dynamic>{
     'rank': rank,
-    'javdb_id': 'javdb-$rank',
     'movie_number': 'ABC-${rank.toString().padLeft(3, '0')}',
     'title': 'Movie $rank',
     'cover_image': null,

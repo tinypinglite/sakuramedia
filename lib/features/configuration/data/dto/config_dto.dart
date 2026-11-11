@@ -80,13 +80,10 @@ class AdvancedSchedulerConfigDto {
   });
 
   static const List<String> cronKeys = <String>[
-    'actor_subscription_sync',
     'subscribed_movie_auto_download',
     'download_task_sync',
     'download_task_auto_import',
-    'movie_heat',
-    'movie_interaction_sync',
-    'movie_javdb_backfill',
+    'movie_stats_sync',
     'media_file_hash_backfill',
     'media_file_scan',
     'media_thumbnail',
@@ -194,8 +191,14 @@ int _intAt(Map<String, dynamic> json, String key, {int fallback = 0}) {
 }
 
 class OptionalServicesConfigDto {
-  const OptionalServicesConfigDto({required this.qdrantEnabled, required this.imageSearchEnabled,
-    required this.qdrantUrl, required this.qdrantApiKey, required this.inferenceUrl, required this.inferenceApiKey});
+  const OptionalServicesConfigDto({
+    required this.qdrantEnabled,
+    required this.imageSearchEnabled,
+    required this.qdrantUrl,
+    required this.qdrantApiKey,
+    required this.inferenceUrl,
+    required this.inferenceApiKey,
+  });
   final bool qdrantEnabled;
   final bool imageSearchEnabled;
   final String qdrantUrl;
@@ -204,11 +207,15 @@ class OptionalServicesConfigDto {
   final String inferenceApiKey;
 
   /// 旧版后端不返回这两个 `enabled` 键，此时不展示可选服务配置卡片。
-  static OptionalServicesConfigDto? fromJsonOrNull(Map<String, dynamic> values) {
+  static OptionalServicesConfigDto? fromJsonOrNull(
+    Map<String, dynamic> values,
+  ) {
     final qdrant = asMapOrNull(values['qdrant']);
     final image = asMapOrNull(values['image_search']);
-    if (qdrant == null || image == null ||
-        !qdrant.containsKey('enabled') || !image.containsKey('enabled')) {
+    if (qdrant == null ||
+        image == null ||
+        !qdrant.containsKey('enabled') ||
+        !image.containsKey('enabled')) {
       return null;
     }
     return OptionalServicesConfigDto.fromJson(values);

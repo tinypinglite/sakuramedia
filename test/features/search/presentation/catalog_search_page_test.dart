@@ -20,7 +20,6 @@ Map<String, dynamic> _moviePage() => <String, dynamic>{
   'items': <Map<String, dynamic>>[
     <String, dynamic>{
       'id': 11,
-      'javdb_id': 'MovieA1',
       'movie_number': _movieNumber,
       'title': 'Movie 1',
       'cover_image': null,

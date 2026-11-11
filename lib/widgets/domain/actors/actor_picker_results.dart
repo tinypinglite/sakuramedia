@@ -202,9 +202,7 @@ class ActorPickerResults extends StatelessWidget {
               : '$_keyPrefix-candidate-avatar-placeholder-${candidate.id}',
         ),
       ),
-      subtitle: _isMovieCast && candidate.isLocal
-          ? l10n.movieWidgetLocalActorBadge
-          : candidate.javdbId,
+      subtitle: null,
       trailingText: isExisting ? l10n.movieWidgetActorAlreadyInCast : null,
     );
   }

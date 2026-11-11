@@ -122,26 +122,6 @@ Map<String, dynamic> _indexerConnectionTest({
   };
 }
 
-/// 对齐后端 `StatusMetadataProviderTestResource`：带 movie_number / elapsed_ms，
-/// error 带结构化 type（`StatusMetadataProviderTestError`）。
-Map<String, dynamic> _providerTest({
-  required bool healthy,
-  String provider = 'javdb',
-  String errorType = 'metadata_request_error',
-  String errorMessage = 'metadata request failed: GET https://example ()',
-}) {
-  return <String, dynamic>{
-    'healthy': healthy,
-    'checked_at': '2026-07-11T08:00:00Z',
-    'provider': provider,
-    'movie_number': 'SSNI-888',
-    'elapsed_ms': 42,
-    'error': healthy
-        ? null
-        : <String, dynamic>{'type': errorType, 'message': errorMessage},
-  };
-}
-
 /// 对齐后端 `StatusImageSearchResource`。向量库那一节后端也会返回，但前端不做
 /// 独立诊断项，所以这里不造它。
 Map<String, dynamic> _imageSearchStatus({
@@ -168,17 +148,11 @@ Map<String, dynamic> _imageSearchStatus({
 }
 
 // 独立探针的响应：一次性 enqueue 好，媒体库/索引器分支是否继续都不影响
-// JavDB 与 JoyTag 探针执行。
+// 嵌入服务探针执行。
 void _enqueueIndependentProbes({
-  bool javdbHealthy = true,
   bool joyTagHealthy = true,
   bool joyTagEnabled = true,
 }) {
-  _bundle.adapter.enqueueJson(
-    method: 'POST',
-    path: '/metadata-providers/javdb/test',
-    body: _providerTest(healthy: javdbHealthy, provider: 'javdb'),
-  );
   _bundle.adapter.enqueueJson(
     method: 'GET',
     path: '/status/image-search',
@@ -283,7 +257,7 @@ void main() {
       isTrue,
     );
 
-    // 媒体库未就绪时索引器阶段被跳过；独立的 JavDB/JoyTag 探针仍会完成。
+    // 媒体库未就绪时索引器阶段被跳过；嵌入服务探针仍会完成。
     expect(_bundle.adapter.hitCount('GET', '/download-clients'), 0);
     expect(_bundle.adapter.hitCount('GET', '/indexer-settings'), 0);
   });
@@ -373,39 +347,6 @@ void main() {
     expect(indexer.fixHint, contains('API Key'));
   });
 
-  test('单项 throw 不影响其他项：JavDB 抛错 → JavDB unhealthy，其他仍推进', () async {
-    _bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/media-libraries',
-      body: <Map<String, dynamic>>[_library()],
-    );
-    _bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/download-clients',
-      body: <Map<String, dynamic>>[],
-    );
-    // javdb 端点直接返回 500
-    _bundle.adapter.enqueueJson(
-      method: 'POST',
-      path: '/metadata-providers/javdb/test',
-      statusCode: 500,
-      body: <String, dynamic>{'message': 'boom'},
-    );
-    _bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/status/image-search',
-      body: _imageSearchStatus(joyTagHealthy: true),
-    );
-
-    final c = _newController();
-    await c.runAll();
-
-    final javdb = _find(c, (i) => i.kind == DiagnosticItemKind.javdb);
-    expect(javdb.status, DiagnosticItemStatus.unhealthy);
-    final joyTag = _find(c, (i) => i.kind == DiagnosticItemKind.joyTag);
-    expect(joyTag.status, DiagnosticItemStatus.healthy);
-  });
-
   test('runAll 幂等：正在跑时二次调用被吞掉', () async {
     _bundle.adapter.enqueueJson(
       method: 'GET',
@@ -429,7 +370,7 @@ void main() {
   });
 
   // 独立探针场景的最小骨架：媒体库有 1 个，索引器配置列表为空，
-  // 只验证 JavDB/JoyTag 的结果与媒体库状态互不干扰。
+  // 只验证嵌入服务的结果与媒体库状态互不干扰。
   Future<_SystemDiagnosticsHarness> _runWithProbes({
     required void Function() enqueueProbes,
   }) async {
@@ -448,56 +389,6 @@ void main() {
     await c.runAll();
     return c;
   }
-
-  group('元数据源：按后端 error.type 出 JavDB 文案', () {
-    test('JavDB 请求失败 → 说明代理由环境变量分流并导向 wiki，不给跳转按钮', () async {
-      final c = await _runWithProbes(
-        enqueueProbes: () => _enqueueIndependentProbes(javdbHealthy: false),
-      );
-
-      final javdb = _find(c, (i) => i.kind == DiagnosticItemKind.javdb);
-      expect(javdb.status, DiagnosticItemStatus.unhealthy);
-      expect(javdb.fixHint, contains('环境变量'));
-      expect(javdb.fixHint, contains('wiki'));
-      // 没有应用内设置可跳转。
-      expect(javdb.fixTarget, isNull);
-    });
-
-    test('探测端点本身 500 → 用"后端故障"文案，不套站点结论', () async {
-      _bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/media-libraries',
-        body: <Map<String, dynamic>>[_library()],
-      );
-      _bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/download-clients',
-        body: <Map<String, dynamic>>[],
-      );
-      _bundle.adapter.enqueueJson(
-        method: 'POST',
-        path: '/metadata-providers/javdb/test',
-        statusCode: 500,
-        body: <String, dynamic>{
-          'error': <String, dynamic>{'code': 'internal', 'message': 'boom'},
-        },
-      );
-      _bundle.adapter.enqueueJson(
-        method: 'GET',
-        path: '/status/image-search',
-        body: _imageSearchStatus(joyTagHealthy: true),
-      );
-
-      final c = _newController();
-      await c.runAll();
-
-      final javdb = _find(c, (i) => i.kind == DiagnosticItemKind.javdb);
-      expect(javdb.status, DiagnosticItemStatus.unhealthy);
-      expect(javdb.cause, contains('后端没有响应'));
-      // 探测端点 500 时不能引导用户检查应用内不存在的代理字段。
-      expect(javdb.fixHint, isNot(contains('代理')));
-    });
-  });
 
   test('JoyTag 挂了 → 状态短句带上后端给的失败原因', () async {
     final c = await _runWithProbes(

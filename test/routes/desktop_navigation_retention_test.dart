@@ -34,7 +34,6 @@ void main() {
           'items': List.generate(
             40,
             (i) => {
-              'javdb_id': 'movie$i',
               'movie_number': 'ABC-${i.toString().padLeft(3, '0')}',
               'title': '影片 $i',
               'cover_image': null,

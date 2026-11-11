@@ -64,15 +64,11 @@ import 'package:sakuramedia/features/videos/presentation/providers/videos_api_pr
 import 'fake_http_client_adapter.dart';
 import 'in_memory_credential_store.dart';
 
-/// 测试/预览用的互动数分布，取值与正式库 P99.9 一致，避免面板测试走网络。
+/// 测试/预览用的热度分布，避免面板测试走网络。
 const testInteractionFilterOptions = MovieInteractionFilterOptionsDto(
   movieCount: 166506,
   heat: MovieInteractionDistributionDto(p999: 10839, max: 36278),
-  score: MovieInteractionDistributionDto(p999: 5.0, max: 5.0),
-  scoreNumber: MovieInteractionDistributionDto(p999: 19915, max: 52523),
-  watchedCount: MovieInteractionDistributionDto(p999: 4714, max: 14321),
-  wantWatchCount: MovieInteractionDistributionDto(p999: 15516, max: 39456),
-  commentCount: MovieInteractionDistributionDto(p999: 158, max: 611),
+  heatVersion: 'host:v6',
 );
 
 class TestApiBundle {
@@ -268,6 +264,19 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
     method: 'GET',
     path: '/moment-collections',
     body: const <dynamic>[],
+  );
+  // 元数据设置页和影片详情页都会读取来源绑定；默认空绑定，避免每个用例重复
+  // enqueue。需要验证绑定交互的用例显式 enqueue 即可覆盖。
+  adapter.setFallbackJson(
+    method: 'GET',
+    path: '/system/plugins/bindings',
+    body: const <String, dynamic>{
+      'stats_source': null,
+      'review_source': null,
+      'stats_fields': <dynamic>[],
+      'available_stats_sources': <dynamic>[],
+      'available_review_sources': <dynamic>[],
+    },
   );
 
   return TestApiBundle(

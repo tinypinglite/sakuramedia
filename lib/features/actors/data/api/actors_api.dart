@@ -2,30 +2,19 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
-import 'package:sakuramedia/core/network/api_sse_event.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
+import 'package:sakuramedia/features/actors/data/dto/actor_candidate_dto.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_detail_dto.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_filter_options_dto.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_movie_year_dto.dart';
-import 'package:sakuramedia/features/actors/data/dto/actor_search_stream_update.dart';
 import 'package:sakuramedia/features/actors/presentation/controllers/listing/actor_filter_state.dart';
-import 'package:sakuramedia/features/search/data/catalog_search_stream_stats.dart';
 import 'package:sakuramedia/features/tags/data/tag_list_item_dto.dart';
-import 'package:sakuramedia/l10n/app_localizations.dart';
-import 'package:sakuramedia/l10n/app_localizations_zh.dart';
 
 class ActorsApi {
-  const ActorsApi({
-    required ApiClient apiClient,
-    AppLocalizations Function()? l10n,
-  }) : _apiClient = apiClient,
-       _l10n = l10n;
+  const ActorsApi({required ApiClient apiClient}) : _apiClient = apiClient;
 
   final ApiClient _apiClient;
-  final AppLocalizations Function()? _l10n;
-
-  AppLocalizations get _localizations => _l10n?.call() ?? AppLocalizationsZh();
 
   Future<PaginatedResponseDto<ActorListItemDto>> getActors({
     ActorSubscriptionStatus subscriptionStatus = ActorSubscriptionStatus.all,
@@ -116,7 +105,7 @@ class ActorsApi {
     return ActorDetailDto.fromJson(response);
   }
 
-  /// 创建没有 JavDB 身份的用户自建女优。
+  /// 创建本地演员。
   Future<ActorDetailDto> createLocalActor({
     required String name,
     String? aliasName,
@@ -189,15 +178,28 @@ class ActorsApi {
     return response.map(TagListItemDto.fromJson).toList(growable: false);
   }
 
-  Stream<ActorSearchStreamUpdate> searchOnlineActorsStream({
-    required String actorName,
-  }) {
-    return _apiClient
-        .postSse(
-          '/actors/metadata-imports',
-          data: <String, dynamic>{'actor_name': actorName},
-        )
-        .map(_mapActorSearchStreamEvent);
+  Future<List<ActorCandidateDto>> searchActorCandidates({
+    required String query,
+    int limit = 20,
+  }) async {
+    final response = await _apiClient.getList(
+      '/actors/gfriends/search',
+      queryParameters: <String, dynamic>{'query': query, 'limit': limit},
+    );
+    return response
+        .map(ActorCandidateDto.fromJson)
+        .where((item) => item.candidateId.isNotEmpty)
+        .toList(growable: false);
+  }
+
+  Future<ActorDetailDto> importActorCandidate({
+    required String candidateId,
+  }) async {
+    final response = await _apiClient.post(
+      '/actors/gfriends/import',
+      data: <String, dynamic>{'candidate_id': candidateId},
+    );
+    return ActorDetailDto.fromJson(response);
   }
 
   Future<void> subscribeActor({required int actorId}) {
@@ -217,93 +219,5 @@ class ActorsApi {
       data: <String, dynamic>{'source_actor_ids': sourceActorIds},
     );
     return ActorDetailDto.fromJson(response);
-  }
-
-  ActorSearchStreamUpdate _mapActorSearchStreamEvent(ApiSseEvent event) {
-    final payload = event.jsonData;
-
-    switch (event.event) {
-      case 'search_started':
-        return ActorSearchStreamUpdate(
-          stage: 'search_started',
-          message: _localizations.sseActorSearchingExternal,
-        );
-      case 'actor_found':
-        return ActorSearchStreamUpdate(
-          stage: 'actor_found',
-          message: _localizations.sseActorCandidatesFetched,
-          total: payload['total'] as int?,
-        );
-      case 'upsert_started':
-        return ActorSearchStreamUpdate(
-          stage: 'upsert_started',
-          message: _localizations.sseActorImportingOnline,
-          total: payload['total'] as int?,
-        );
-      case 'image_download_started':
-        return ActorSearchStreamUpdate(
-          stage: 'image_download_started',
-          message: _localizations.sseActorDownloadingAvatar(
-            payload['index'] as int? ?? 0,
-            payload['total'] as int? ?? 0,
-          ),
-          current: payload['index'] as int?,
-          total: payload['total'] as int?,
-        );
-      case 'image_download_finished':
-        return ActorSearchStreamUpdate(
-          stage: 'image_download_finished',
-          message: _localizations.sseActorDownloadingAvatar(
-            payload['index'] as int? ?? 0,
-            payload['total'] as int? ?? 0,
-          ),
-          current: payload['index'] as int?,
-          total: payload['total'] as int?,
-        );
-      case 'upsert_finished':
-        return ActorSearchStreamUpdate(
-          stage: 'upsert_finished',
-          message: _localizations.sseActorOnlineImportFinished,
-          stats: CatalogSearchStreamStats.fromLooseJson(payload),
-        );
-      case 'completed':
-        return ActorSearchStreamUpdate(
-          stage: 'completed',
-          message: _localizations.sseActorOnlineSearchFinished,
-          results: _parseActorResults(payload['actors']),
-          success: payload['success'] as bool? ?? false,
-          reason: payload['reason'] as String?,
-          stats: payload.containsKey('stats') || payload.containsKey('total')
-              ? CatalogSearchStreamStats.fromLooseJson(payload)
-              : null,
-        );
-      default:
-        return ActorSearchStreamUpdate(
-          stage: event.event,
-          message: _localizations.sseActorSyncingOnlineResults,
-        );
-    }
-  }
-
-  List<ActorListItemDto> _parseActorResults(dynamic value) {
-    if (value is! List) {
-      return const <ActorListItemDto>[];
-    }
-    return value
-        .whereType<Object?>()
-        .map((item) => ActorListItemDto.fromJson(_toMap(item)))
-        .toList(growable: false);
-  }
-
-  Map<String, dynamic> _toMap(Object? value) {
-    if (value is Map<String, dynamic>) {
-      return value;
-    }
-    if (value is Map) {
-      return value.map(
-        (dynamic key, dynamic data) => MapEntry(key.toString(), data),
-      );
-    }
-    return const <String, dynamic>{};
   }
 }

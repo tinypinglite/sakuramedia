@@ -11,7 +11,6 @@ part 'actor_list_item_dto.g.dart';
 class ActorListItemDto {
   const ActorListItemDto({
     required this.id,
-    required this.javdbId,
     required this.name,
     required this.aliasName,
     required this.profileImage,
@@ -28,7 +27,6 @@ class ActorListItemDto {
   });
 
   final int id;
-  final String javdbId;
   final String name;
   final String aliasName;
   @JsonKey(fromJson: movieImageFromJson)
@@ -53,9 +51,6 @@ class ActorListItemDto {
     }
     return aliasName.trim().isNotEmpty ? aliasName : name;
   }
-
-  /// 用户自建女优没有 JavDB 身份，后端返回 null，这里归一为空串。
-  bool get isLocal => javdbId.isEmpty;
 
   _$ActorListItemDtoCWProxy get copyWith => _$ActorListItemDtoCWProxyImpl(this);
 

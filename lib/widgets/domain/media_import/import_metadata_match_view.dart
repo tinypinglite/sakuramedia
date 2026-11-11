@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/core/metadata/metadata_source_error_dto.dart';
 import 'package:sakuramedia/features/media_import/data/import_failed_item_dto.dart';
 import 'package:sakuramedia/features/media_import/data/import_metadata_search_dto.dart';
 import 'package:sakuramedia/features/media_import/presentation/providers/import_metadata_match_provider.dart';
@@ -226,28 +227,37 @@ class _ImportMetadataMatchViewState
         ),
       );
     }
+    final sourceErrors = response.sourceErrors;
+    final hasErrors = sourceErrors.isNotEmpty;
     if (response.candidates.isEmpty) {
       return Center(
-        child: AppEmptyState(
-          icon: Icons.search_off_rounded,
-          message: l10n.widgetMediaImportNoCandidates,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (hasErrors) ...[
+              AppNoticeCard(
+                leadingIcon: Icons.warning_amber_rounded,
+                description: _sourceErrorDescription(sourceErrors, l10n),
+              ),
+              SizedBox(height: context.appSpacing.lg),
+            ],
+            AppEmptyState(
+              icon: Icons.search_off_rounded,
+              message: l10n.widgetMediaImportNoCandidates,
+            ),
+          ],
         ),
       );
     }
-    final sourceErrors = response.sourceErrors;
-    final hasErrors = sourceErrors.isNotEmpty;
     return ListView.separated(
       itemCount: response.candidates.length + (hasErrors ? 1 : 0),
       separatorBuilder: (context, index) =>
           SizedBox(height: context.appSpacing.md),
       itemBuilder: (context, index) {
         if (hasErrors && index == 0) {
-          final names = sourceErrors
-              .map((error) => '「${error.sourceName}」')
-              .join();
           return AppNoticeCard(
             leadingIcon: Icons.warning_amber_rounded,
-            description: l10n.widgetMediaImportSourceErrors(names),
+            description: _sourceErrorDescription(sourceErrors, l10n),
           );
         }
         final candidate = response.candidates[index - (hasErrors ? 1 : 0)];
@@ -260,6 +270,14 @@ class _ImportMetadataMatchViewState
         );
       },
     );
+  }
+
+  String _sourceErrorDescription(
+    List<MetadataSourceErrorDto> errors,
+    AppLocalizations l10n,
+  ) {
+    final names = errors.map((error) => error.sourceName).join(', ');
+    return l10n.widgetMediaImportSourceErrors(names);
   }
 }
 
@@ -329,9 +347,7 @@ class _MetadataCandidateCard extends StatelessWidget {
             alignment: AlignmentDirectional.centerStart,
             child: AppBadge(
               label: candidate.sourceName,
-              tone: candidate.source == 'javdb'
-                  ? AppBadgeTone.primary
-                  : AppBadgeTone.neutral,
+              tone: AppBadgeTone.neutral,
               size: AppBadgeSize.compact,
             ),
           ),

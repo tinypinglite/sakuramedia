@@ -3,12 +3,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 
 /// 影片互动数筛选项。字段与后端 `*_min` / `*_max` query 参数一一对应。
 enum MovieInteractionMetric {
-  heat('heat'),
-  score('score', isDecimal: true),
-  scoreNumber('score_number'),
-  watchedCount('watched_count'),
-  wantWatchCount('want_watch_count'),
-  commentCount('comment_count');
+  heat('heat');
 
   const MovieInteractionMetric(this.apiValue, {this.isDecimal = false});
 
@@ -19,11 +14,6 @@ enum MovieInteractionMetric {
   /// 互动数字段的展示文案，按当前语言渲染。
   String localizedLabel(AppLocalizations l10n) => switch (this) {
     MovieInteractionMetric.heat => l10n.sharedInteractionHeat,
-    MovieInteractionMetric.score => l10n.sharedInteractionScore,
-    MovieInteractionMetric.scoreNumber => l10n.sharedInteractionScoreNumber,
-    MovieInteractionMetric.watchedCount => l10n.sharedInteractionWatchedCount,
-    MovieInteractionMetric.wantWatchCount => l10n.sharedInteractionWantWatchCount,
-    MovieInteractionMetric.commentCount => l10n.sharedInteractionCommentCount,
   };
 
   String format(num value) => isDecimal

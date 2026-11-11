@@ -9,7 +9,6 @@ import 'package:sakuramedia/features/media/presentation/providers/media_api_prov
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_menu.dart';
-import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_support.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_action_result.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_view_model.dart';
@@ -531,56 +530,6 @@ class MovieDetailInteraction extends _$MovieDetailInteraction {
               ? _l10n.moviePageBlacklistFailed
               : _l10n.moviePageUnblacklistFailed,
         ),
-      );
-    } finally {
-      if (!_disposed) {
-        state = state.copyWith(activeMovieAction: null);
-      }
-    }
-  }
-
-  Future<MovieDetailActionResult> executeRemoteAction(
-    MovieDetailActionType action,
-  ) async {
-    if (state.isActionLocked) {
-      return const MovieDetailActionResult.ignored();
-    }
-    final spec = movieDetailRemoteActionSpecFor(
-      action: action,
-      movieNumber: _movieNumber,
-      l10n: _l10n,
-    );
-    if (spec == null) {
-      return const MovieDetailActionResult.ignored();
-    }
-    state = state.copyWith(activeMovieAction: action);
-    try {
-      final response = await spec.request(ref.read(moviesApiProvider));
-      if (_disposed) return const MovieDetailActionResult.ignored();
-      if (response is MovieDetailDto) {
-        final selectedMediaId = state.selectedMediaId;
-        final resolvedSelectedMediaId =
-            selectedMediaId != null &&
-                response.mediaItems.any(
-                  (item) => item.mediaId == selectedMediaId,
-                )
-            ? selectedMediaId
-            : (response.mediaItems.isNotEmpty
-                  ? response.mediaItems.first.mediaId
-                  : null);
-        ref
-            .read(movieDetailProvider(_movieNumber).notifier)
-            .applyMovie(response, resetPreview: spec.resetPreview);
-        state = state.copyWith(
-          selectedMediaId: resolvedSelectedMediaId,
-          isSubscribedOverride: null,
-          isCollectionOverride: null,
-        );
-      }
-      return MovieDetailActionResult.success(spec.successMessage);
-    } catch (error) {
-      return MovieDetailActionResult.error(
-        ref.apiErrorMessage(error, fallback: spec.failureMessage),
       );
     } finally {
       if (!_disposed) {

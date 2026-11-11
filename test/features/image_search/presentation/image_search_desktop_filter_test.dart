@@ -96,7 +96,6 @@ void main() {
         'items': <Map<String, dynamic>>[
           <String, dynamic>{
             'id': 1,
-            'javdb_id': 'A1',
             'name': '演员 A',
             'alias_name': '演员 A',
             'profile_image': null,

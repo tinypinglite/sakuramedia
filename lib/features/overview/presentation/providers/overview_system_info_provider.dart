@@ -14,7 +14,6 @@ part 'overview_system_info_provider.g.dart';
 ///
 /// - [load] 不置 loading 标志([refresh] 才置)——桌面概览页刷新走 [load],
 ///   卡片不闪骨架;移动页刷新走 [refresh],闪骨架。
-/// - 元数据源探针进行中直接 return；其余加载腿不加重入锁。
 /// - 图搜索引状态失败静默（UI 显示「不可用」），不打扰主信息。
 @riverpod
 class OverviewSystemInfo extends _$OverviewSystemInfo {
@@ -155,33 +154,6 @@ class OverviewSystemInfo extends _$OverviewSystemInfo {
       if (!_disposed) {
         state = state.copyWith(isResettingImageSearch: false);
       }
-    }
-  }
-
-  Future<void> testExternalDataSources() async {
-    if (state.isTestingMetadataProviders) {
-      return;
-    }
-
-    state = state.copyWith(isTestingMetadataProviders: true);
-
-    final javdbHealthy = await _testMetadataProvider('javdb');
-
-    if (_disposed) return;
-    state = state.copyWith(
-      javdbHealthy: javdbHealthy,
-      isTestingMetadataProviders: false,
-    );
-  }
-
-  Future<bool> _testMetadataProvider(String provider) async {
-    try {
-      final result = await ref
-          .read(statusApiProvider)
-          .testMetadataProvider(provider);
-      return result.healthy;
-    } catch (_) {
-      return false;
     }
   }
 }

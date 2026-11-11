@@ -79,7 +79,7 @@ services:
       PGID: 0
       # Change this to the host time zone if you are not on China time.
       TZ: "Asia/Shanghai"
-      # If the host cannot reach the JavDB API or GFriends directly, uncomment the next three lines and fill in your proxy address.
+      # If the host cannot reach GFriends directly, uncomment the next three lines and fill in your proxy address.
       # HTTP_PROXY: "http://192.168.1.1:7890"
       # HTTPS_PROXY: "http://192.168.1.1:7890"
       # NO_PROXY: "localhost,127.0.0.1"
@@ -111,13 +111,17 @@ docker compose up -d
 docker compose ps
 ```
 
-The first start creates the tables and installs the officially preinstalled plugins. Once `postgres` shows `healthy` and `sakuramedia` shows `running` in `docker compose ps`, open the client and enter the backend address on first login:
+The first start creates the tables. Once `postgres` shows `healthy` and `sakuramedia` shows `running` in `docker compose ps`, open the client and enter the backend address on first login:
 
 ```text
 http://your-ip:38000
 ```
 
 The default username and password are `account` and `account`. Change the password right after logging in.
+
+::: tip Metadata plugins
+This release requires every plugin to declare Host API 18. After installing compatible metadata plugins, set their order under Settings → Metadata Sources to search and import movies by number. Actor search uses the backend's bundled GFriends index.
+:::
 
 ## Stage 2: Create a media library and import your existing movies
 
@@ -198,7 +202,7 @@ After saving, bind one or more download clients (the first one becomes the defau
 
 ### 4. Verify
 
-1. On the "Overview" page, run "Component Diagnostics" to confirm connectivity to the media library, indexers and JavDB; check the download client separately with "Test Configuration" on the download clients page.
+1. On the "Overview" page, run "Component Diagnostics" to confirm connectivity to the media library and indexers; check the download client separately with "Test Configuration" on the download clients page.
 2. Subscribe to a movie and wait for the background task to look for resources.
 3. To actively verify the automatic flow, manually trigger "Auto-download missing subscribed movies" in the Task Center and check the run result. When no suitable resource exists, a completed run does not mean a successful download.
 

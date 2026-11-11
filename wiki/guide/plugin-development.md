@@ -4,7 +4,7 @@ outline: [2, 3]
 
 # Plugin Development
 
-SakuraMedia plugins are Python packages running inside the backend process. This article covers the backend's current **Host API 17**; the host accepts plugins declaring API **4–17**. A plugin's `manifest.json` and the `plugin_id` and `version` in the `register()` return value must match; for Host API declaration rules see [Version compatibility](#version-compatibility).
+SakuraMedia plugins are Python packages running inside the backend process. This article covers the backend's current **Host API 18**; the host accepts only plugins declaring API **18**. A plugin's `manifest.json` and the `plugin_id` and `version` in the `register()` return value must match; for Host API declaration rules see [Version compatibility](#version-compatibility).
 
 Plugins are not a frontend extension mechanism. You cannot currently register pages, UI components, HTTP routes, event hooks, or middleware, and you should not access the host database directly. Use only the public contracts listed here; binding to internal implementations such as `src.model` or `src.service` will break your plugin when the host is refactored.
 
@@ -15,7 +15,7 @@ Plugins are not a frontend extension mechanism. You cannot currently register pa
 | Scheduled scraping, manual processing, subtitle or movie data processing | Register a background job |
 | Periodically browse media library content, auto-import, or organize collections | Register a background job and call `context.imports`, `context.videos`, and `context.collections` |
 | Detect missing movies, resolution, or file size in the media library and download automatically | Register a background job and call `context.media` and `context.downloads` |
-| Provide movie metadata when JavDB doesn't have it | Register the `catalog.metadata_source` extension point (requires Host API 6) |
+| Provide movie metadata by number | Register the `catalog.metadata_source` extension point (requires Host API 18) |
 | Provide a ranking source | Register the `discovery.ranking_source` extension point and register your own sync job |
 | Integrate a new media storage or download platform | Register the `media.provider` extension point |
 
@@ -51,7 +51,7 @@ example_plugin/
     "en": "One sentence about what the plugin does, at most 200 characters."
   },
   "version": "1.0.0",
-  "host_api_version": 17,
+  "host_api_version": 18,
   "settings_model": "Settings",
   "requires_python": ">=3.10,<3.11",
   "dependencies": []
@@ -132,7 +132,7 @@ The host imports plugins and calls `register(context)` when the API and job serv
 - `downloads`: list download targets, search candidates via the host's default routing or a specified `download_client_id`, and submit.
 - `imports`: list media libraries, browse provider storage, start media library imports by provider reference, and query the results of your own jobs (Host API 9).
 - `videos`: read regular video snapshots; for collection membership see `context.collections` (Host API 9).
-- `import_movie_by_number(movie_number, *, force_subscribed=False)`: reuse a local movie, or import it with JavDB first and a metadata plugin as fallback, returning a `MovieSnapshot`.
+- `import_movie_by_number(movie_number, *, force_subscribed=False)`: reuse a local movie, or import it through the enabled metadata plugin chain, returning a `MovieSnapshot`.
 - `list_existing_movie_numbers()`: read the uppercase set of all movie numbers in the library.
 - `import_subtitle(movie_number, content, filename, language=None)`: hand the subtitle to the host for validation, deduplication, storage, and registration.
 - `sync_ranking_sources(progress_callback=None)`, `sync_ranking_board()`: sync the ranking sources declared by the current plugin.
@@ -184,7 +184,7 @@ Both entry points use `patch(id, fields, expected_revision) -> bool` and only al
 | `context.actors.patch()` | `height_cm`, `bust_cm`, `waist_cm`, `hips_cm` | integers from 1 to 2147483647 in centimeters; booleans are not accepted |
 | `context.actors.patch()` | `cup`, `birthplace`, `blood_type` | non-empty text of 1–255 characters |
 
-Actor profile fields can be passed `None` to clear them explicitly, but plugin ownership is retained. Actor names, aliases, JavDB identity, avatars, and subscription state are not in the write whitelist.
+Actor profile fields can be passed `None` to clear them explicitly, but plugin ownership is retained. Actor names, aliases, avatars, and subscription state are not in the write whitelist.
 
 When a field has not been taken over, there is no corresponding key in `owners`; after a plugin writes successfully, ownership becomes `plugin:<plugin_id>`, and manual edits become `host:manual`. Plugins may only write fields that are unclaimed or owned by themselves. If the record doesn't exist, the revision doesn't match, or any field ownership conflicts, `patch()` returns `False` with no changes at all; an illegal field or value raises `ValueError`. After receiving `False`, re-read and decide whether an update is still needed; don't blindly loop and retry.
 
@@ -306,7 +306,7 @@ for entry in page.entries:
 Import rules match manual imports in the frontend:
 
 - `media_kind="video"`: create a regular video based on the file name, optionally adding it to `collection_id`;
-- `media_kind="jav"`: parse the movie number from the file name, go through metadata import with JavDB first and metadata plugins as fallback, and subscribe automatically; a missing movie number, a file smaller than the minimum video size, or failed metadata retrieval is recorded as a failed item that can be handled manually in the Task Center; JAV does not support `collection_id`;
+- `media_kind="jav"`: parse the movie number from the file name, import it through the enabled metadata plugin chain, and subscribe automatically; a missing movie number, a file smaller than the minimum video size, or failed metadata retrieval is recorded as a failed item that can be handled manually in the Task Center; JAV does not support `collection_id`;
 - `source_disposition="delete_after_commit"`: after a successful import, the provider deletes the source file; the default is `keep`;
 - `source_disposition="in_place"`: neither copies nor moves the file; the media references the source file's current location. Only providers declaring this capability (bundle's `supports_in_place_import = True`) can use it; other providers return `422 in_place_import_unsupported`;
 - only one import job is allowed per media library at a time; on conflict a `409 import_task_conflict` is raised, so wait for the current import to finish before retrying;
@@ -344,7 +344,7 @@ Plugins cannot rewrite a video's title, description, or cover, and there is no d
 
 Register the synchronous callback `fetch_movie(movie_number) -> PluginMovieMetadata | None` through `PluginExtension(key="catalog.metadata_source", data=PluginMetadataSource(...))`. `PluginMetadataSource`, `PluginMovieMetadata`, `PluginMetadataActor`, and `METADATA_SOURCE_EXTENSION_KEY` can all be imported from `src.plugins`.
 
-Below is a loadable registration skeleton; a real plugin needs to replace the placeholder return of `fetch_movie()` with site queries, image downloads, and result construction, and declare the manifest's `host_api_version` as at least `6`:
+Below is a loadable registration skeleton; a real plugin needs to replace the placeholder return of `fetch_movie()` with site queries, image downloads, and result construction, and declare the manifest's `host_api_version` as `18`:
 
 ```python
 from src.plugins import (
@@ -377,7 +377,7 @@ def register(context: PluginContext) -> PluginRegistration:
     )
 ```
 
-The host queries JavDB first, and only when it definitively "does not find the movie" does it call enabled metadata sources in `plugins.enabled` order. JavDB network or authentication errors do not trigger the fallback. When a plugin returns `None`, the next source is tried; exceptions or delivery validation failures are logged and the next source continues; the first valid result is used. If no source finds the movie, it's treated as not found; if there were failures and no source succeeded, a metadata source error is returned.
+The host calls enabled metadata sources in `plugins.enabled` order. When a plugin returns `None`, the next source is tried; exceptions or delivery validation failures are logged and the next source continues; the first valid result is used. If every source reports not found, the result is treated as not found; if sources failed and none succeeded, the source errors are returned.
 
 The callback only delivers results; don't call `context.import_movie_by_number()` inside it, or you'll re-enter the same fallback chain.
 
@@ -393,7 +393,7 @@ The callback only delivers results; don't call `context.import_movie_by_number()
 | `duration_minutes` | positive integer; strings, floats, or booleans are not accepted |
 | `cover_image_path` | local file path of the downloaded cover image; must not be a URL |
 
-Optional fields are `summary`, `maker_name`, `director_name`, `series_name`, `actors`, `tags`, `plot_image_paths`, `source_url`, and `source_id`. Actors are expressed as `PluginMetadataActor(name=..., alias_names=[...])`; plot images are also delivered as local file paths. This contract does not accept fabricated JavDB IDs, ratings, or external actor IDs.
+Optional fields are `summary`, `maker_name`, `director_name`, `series_name`, `actors`, `tags`, `plot_image_paths`, `source_url`, and `source_id`. Actors are expressed as `PluginMetadataActor(name=..., alias_names=[...])`; plot images are also delivered as local file paths. This contract does not accept fabricated source IDs, ratings, or external actor IDs.
 
 Image delivery follows these rules:
 
@@ -402,7 +402,7 @@ Image delivery follows these rules:
 3. Leave the files in place after returning; the host validates, copies, and ingests them. The host cleans up delivery files it has taken over after consumption; don't let a temporary directory context delete the images before the callback returns.
 4. Plugins clean up files left behind by download failures, `None` returns, or failed path delivery validation. Don't use long-term cache files directly as delivery files, because the host may delete them.
 
-The host stores source information and links actors that match a unique JavDB identity to the movie; actors that cannot be uniquely matched are filtered out and no fake identity is created. Movies imported by plugins may temporarily lack a JavDB ID; the host's `movie_javdb_backfill` job fills it in later, and still works after the source plugin is disabled or uninstalled. Backfill keeps the same movie record, and protected fields already claimed manually or by a plugin are not overwritten; metadata source delivery itself does not automatically claim field ownership.
+The host stores source information and matches actors by local primary name or alias. If there is no match, it creates a local actor; when several records match at the same priority, the oldest record wins. Imported movies are ordinary local movies and there is no JavDB backfill job. Metadata source delivery itself does not automatically claim field ownership.
 
 ## Ranking sources
 
@@ -571,7 +571,7 @@ reporter.emit(
 
 ### Declarations and language selection
 
-New plugins should declare the manifest's `host_api_version` as `17` (the host's current version; `4`–`16` remain compatible), and keep using the `HOST_API_VERSION` constant in `register()`; do not change the plugin's own `version` because of multilingual support.
+New plugins should declare the manifest's `host_api_version` as `18`, and keep using the `HOST_API_VERSION` constant in `register()`; do not change the plugin's own `version` because of multilingual support.
 
 On request paths, the host determines the current language from `Accept-Language`, then the user's `User.language` preference, and finally the default `zh-CN`; background jobs have no request context and read the single account's `User.language` when they run. Plugins do not need to parse request headers themselves.
 
@@ -579,14 +579,11 @@ Use `sakuramedia_javdb_ranking` as the sample: the manifest and `plugin.py` decl
 
 ## Version compatibility
 
-The current host constants are `HOST_API_VERSION = 17` and `MIN_SUPPORTED_HOST_API_VERSION = 4`. Loading rules:
+The current host constants are `HOST_API_VERSION = 18` and `MIN_SUPPORTED_HOST_API_VERSION = 18`. Loading rules:
 
-- The manifest's `host_api_version` must be within **4–17**.
-- `register()`'s `host_api_version` must equal the version declared in the manifest or the current host version `17`. For example, when the manifest is `4`, returning `4` or the `17` obtained by importing the host constant is fine, but returning `5` is incompatible.
-- `catalog.metadata_source` additionally requires the manifest to declare **6**; changing only `register()` to the host constant cannot bypass this limit.
-- `context.media` and `context.downloads` require Host API **7**; the fact that an old host can load an old declaration doesn't mean it can provide these two interfaces.
-- `context.imports`, `context.videos`, `context.collections.ensure_video_collection()`, and video collection membership require Host API **9**.
-- Download source-kind capability declarations and the `source_kind`/`resource_key` contract require Host API **17**.
-- Provider scan progress callbacks are only enabled for implementations registered under Host API **7**; older providers are still called with the old signature without the callback.
+- The manifest's `host_api_version` must be **18**.
+- `register()`'s `host_api_version` must also be **18**.
+- `catalog.metadata_source`, `catalog.movie_reviews`, and `catalog.movie_stats` require Host API **18**.
+- All older Host API plugins are incompatible and must be released again with API 18.
 
 Before upgrading, verify the actual host version, public types, and capabilities you use, then run the plugin check. A plugin's own `version` and the Host API version are two different concepts; the plugin `version` in the manifest and `register()` must still match exactly.

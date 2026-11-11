@@ -75,6 +75,8 @@ const String mobileVideosPath = '/mobile/library/videos';
 const String mobileSettingsMediaLibrariesPath =
     '/mobile/settings/media-libraries';
 const String mobileSettingsMediaTagsPath = '/mobile/settings/media-tags';
+const String mobileSettingsMetadataSourcesPath =
+    '/mobile/settings/metadata-sources';
 const String mobileSettingsPluginsPath = '/mobile/settings/plugins';
 const String mobileSettingsPluginMarketPath = '/mobile/settings/plugins/market';
 const String mobileSettingsDownloadersPath = '/mobile/settings/downloaders';

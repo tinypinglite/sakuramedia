@@ -227,17 +227,11 @@ void main() {
       body: <String, dynamic>{
         'items': [
           <String, dynamic>{
-            'javdb_id': 'MovieA1',
             'movie_number': 'ABC-001',
             'title': 'Movie 1',
             'cover_image': null,
             'release_date': '2024-01-02',
             'duration_minutes': 120,
-            'score': 4.5,
-            'watched_count': 0,
-            'want_watch_count': 0,
-            'comment_count': 0,
-            'score_number': 0,
             'is_collection': true,
             'is_subscribed': false,
             'can_play': true,

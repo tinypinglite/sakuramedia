@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/configuration/presentation/pages/shared/med
 import 'package:sakuramedia/features/configuration/presentation/pages/shared/downloaders_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/shared/indexers_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/shared/media_tags_page.dart';
+import 'package:sakuramedia/features/configuration/presentation/pages/shared/metadata_sources_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/configuration_tab_request_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/download_selection_policy_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/system_maintenance_section.dart';
@@ -82,6 +83,20 @@ class _DesktopConfigurationPageState
           icon: Icons.sell_outlined,
         ),
         builder: (active) => MediaTagsPage(mobile: false, active: active),
+      ),
+      _ConfigurationTab(
+        category: _ConfigurationCategory(
+          itemKey: const Key('configuration-tab-metadata-sources'),
+          label: l10n.configTabMetadataSources,
+          icon: Icons.cloud_sync_outlined,
+        ),
+        builder: (active) => MetadataSourcesPage(
+          active: active,
+          onDirtyChanged: (dirty) => _handleTabDirtyChanged(
+            const Key('configuration-tab-metadata-sources'),
+            dirty,
+          ),
+        ),
       ),
       _ConfigurationTab(
         category: _ConfigurationCategory(

@@ -104,7 +104,6 @@ Map<String, dynamic> _actressJson({
   return <String, dynamic>{
     'actor': <String, dynamic>{
       'id': id,
-      'javdb_id': 'actor-$id',
       'name': name,
       'alias_name': '',
       'display_name': name,

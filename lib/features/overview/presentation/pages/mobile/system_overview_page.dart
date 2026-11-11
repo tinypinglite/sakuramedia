@@ -68,12 +68,8 @@ class MobileSystemOverviewPage extends ConsumerWidget {
                 SizedBox(height: context.appSpacing.lg),
                 ServiceHealthCard(
                   imageSearchStatus: state.imageSearchStatus,
-                  javdbHealthy: state.javdbHealthy,
                   isLoading: state.isLoadingImageSearchStatus,
-                  isTestingExternalDataSources:
-                      state.isTestingMetadataProviders,
                   isRebuildingIndex: state.isResettingImageSearch,
-                  onTestExternalDataSources: notifier.testExternalDataSources,
                   onRebuildIndex: () => _confirmImageSearchReset(
                     context,
                     notifier,

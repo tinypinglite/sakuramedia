@@ -1,4 +1,6 @@
 import 'package:flutter/foundation.dart';
+import 'package:sakuramedia/core/metadata/metadata_source_error_dto.dart';
+import 'package:sakuramedia/features/actors/data/dto/actor_candidate_dto.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
@@ -22,12 +24,15 @@ class CatalogSearchState {
     this.streamStatus,
     this.movieResults = const <MovieListItemDto>[],
     this.actorResults = const <ActorListItemDto>[],
+    this.actorCandidates = const <ActorCandidateDto>[],
+    this.importingActorCandidateIds = const <String>{},
     this.movieFilter = initialCatalogSearchMovieFilter,
     this.movieSortField,
     this.movieSortDirection = SortDirection.desc,
     this.updatingMovieNumbers = const <String>{},
     this.updatingActorIds = const <int>{},
     this.hasBootstrapped = false,
+    this.sourceErrors = const <MetadataSourceErrorDto>[],
   });
 
   static const CatalogSearchState initial = CatalogSearchState();
@@ -41,12 +46,15 @@ class CatalogSearchState {
   final CatalogSearchStreamStatus? streamStatus;
   final List<MovieListItemDto> movieResults;
   final List<ActorListItemDto> actorResults;
+  final List<ActorCandidateDto> actorCandidates;
+  final Set<String> importingActorCandidateIds;
   final MovieFilterState movieFilter;
   final MovieSortField? movieSortField;
   final SortDirection movieSortDirection;
   final Set<String> updatingMovieNumbers;
   final Set<int> updatingActorIds;
   final bool hasBootstrapped;
+  final List<MetadataSourceErrorDto> sourceErrors;
 
   static bool hasActiveMovieFilterConditions(MovieFilterState filter) =>
       filter.status != MovieStatusFilter.all ||
@@ -85,12 +93,15 @@ class CatalogSearchState {
     Object? streamStatus = _sentinel,
     List<MovieListItemDto>? movieResults,
     List<ActorListItemDto>? actorResults,
+    List<ActorCandidateDto>? actorCandidates,
+    Set<String>? importingActorCandidateIds,
     MovieFilterState? movieFilter,
     Object? movieSortField = _sentinel,
     SortDirection? movieSortDirection,
     Set<String>? updatingMovieNumbers,
     Set<int>? updatingActorIds,
     bool? hasBootstrapped,
+    List<MetadataSourceErrorDto>? sourceErrors,
   }) {
     return CatalogSearchState(
       query: query ?? this.query,
@@ -110,6 +121,12 @@ class CatalogSearchState {
       actorResults: List<ActorListItemDto>.unmodifiable(
         actorResults ?? this.actorResults,
       ),
+      actorCandidates: List<ActorCandidateDto>.unmodifiable(
+        actorCandidates ?? this.actorCandidates,
+      ),
+      importingActorCandidateIds: Set<String>.unmodifiable(
+        importingActorCandidateIds ?? this.importingActorCandidateIds,
+      ),
       movieFilter: movieFilter ?? this.movieFilter,
       movieSortField: identical(movieSortField, _sentinel)
           ? this.movieSortField
@@ -122,6 +139,9 @@ class CatalogSearchState {
         updatingActorIds ?? this.updatingActorIds,
       ),
       hasBootstrapped: hasBootstrapped ?? this.hasBootstrapped,
+      sourceErrors: List<MetadataSourceErrorDto>.unmodifiable(
+        sourceErrors ?? this.sourceErrors,
+      ),
     );
   }
 }

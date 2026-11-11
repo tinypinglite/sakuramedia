@@ -14,12 +14,10 @@ class OverviewSystemInfoState {
     this.isLoadingInsights = true,
     this.isLoadingWatchTrend = true,
     this.isResettingImageSearch = false,
-    this.isTestingMetadataProviders = false,
     this.status,
     this.imageSearchStatus,
     this.insights,
     this.watchTrend,
-    this.javdbHealthy,
     this.statusError,
     this.insightsError,
     this.watchTrendError,
@@ -31,12 +29,10 @@ class OverviewSystemInfoState {
   final bool isLoadingInsights;
   final bool isLoadingWatchTrend;
   final bool isResettingImageSearch;
-  final bool isTestingMetadataProviders;
   final StatusDto? status;
   final StatusImageSearchDto? imageSearchStatus;
   final StatusInsightsDto? insights;
   final StatusWatchTrendDto? watchTrend;
-  final bool? javdbHealthy;
   final String? statusError;
   final String? insightsError;
   final String? watchTrendError;
@@ -48,12 +44,10 @@ class OverviewSystemInfoState {
     bool? isLoadingInsights,
     bool? isLoadingWatchTrend,
     bool? isResettingImageSearch,
-    bool? isTestingMetadataProviders,
     Object? status = _kSentinel,
     Object? imageSearchStatus = _kSentinel,
     Object? insights = _kSentinel,
     Object? watchTrend = _kSentinel,
-    Object? javdbHealthy = _kSentinel,
     Object? statusError = _kSentinel,
     Object? insightsError = _kSentinel,
     Object? watchTrendError = _kSentinel,
@@ -67,9 +61,9 @@ class OverviewSystemInfoState {
       isLoadingWatchTrend: isLoadingWatchTrend ?? this.isLoadingWatchTrend,
       isResettingImageSearch:
           isResettingImageSearch ?? this.isResettingImageSearch,
-      isTestingMetadataProviders:
-          isTestingMetadataProviders ?? this.isTestingMetadataProviders,
-      status: identical(status, _kSentinel) ? this.status : status as StatusDto?,
+      status: identical(status, _kSentinel)
+          ? this.status
+          : status as StatusDto?,
       imageSearchStatus: identical(imageSearchStatus, _kSentinel)
           ? this.imageSearchStatus
           : imageSearchStatus as StatusImageSearchDto?,
@@ -79,9 +73,6 @@ class OverviewSystemInfoState {
       watchTrend: identical(watchTrend, _kSentinel)
           ? this.watchTrend
           : watchTrend as StatusWatchTrendDto?,
-      javdbHealthy: identical(javdbHealthy, _kSentinel)
-          ? this.javdbHealthy
-          : javdbHealthy as bool?,
       statusError: identical(statusError, _kSentinel)
           ? this.statusError
           : statusError as String?,

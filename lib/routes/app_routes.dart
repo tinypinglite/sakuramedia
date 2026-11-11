@@ -329,6 +329,9 @@ abstract final class MobileRoutes {
   static AppRouteTarget settingsMediaTags() =>
       const AppRouteTarget(id: AppRouteId.mobileSettingsMediaTags);
 
+  static AppRouteTarget settingsMetadataSources() =>
+      const AppRouteTarget(id: AppRouteId.mobileSettingsMetadataSources);
+
   static AppRouteTarget settingsPlugins() =>
       const AppRouteTarget(id: AppRouteId.mobileSettingsPlugins);
 

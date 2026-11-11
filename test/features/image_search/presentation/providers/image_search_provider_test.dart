@@ -139,7 +139,6 @@ void main() {
         'items': [
           <String, dynamic>{
             'id': 1,
-            'javdb_id': 'ActorA1',
             'name': '三上悠亚',
             'alias_name': '三上悠亚',
             'profile_image': null,
@@ -298,7 +297,6 @@ void main() {
       );
       const actor = ActorListItemDto(
         id: 7,
-        javdbId: 'actor-7',
         name: '女优',
         aliasName: '',
         profileImage: null,
@@ -429,10 +427,7 @@ Map<String, dynamic> _itemBody({
     'movie_number': movieNumber,
     'offset_seconds': 120,
     'score': 0.91,
-    'image': <String, dynamic>{
-      'id': 10,
-      'origin': '/thumb-$thumbnailId.webp',
-    },
+    'image': <String, dynamic>{'id': 10, 'origin': '/thumb-$thumbnailId.webp'},
   };
 }
 

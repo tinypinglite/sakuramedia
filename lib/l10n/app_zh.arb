@@ -103,7 +103,6 @@
   "errorRankingLoadFailed": "排行榜加载失败，请稍后重试",
   "errorVideoListLoadFailed": "视频列表加载失败，请稍后重试",
   "errorActorListLoadFailed": "女优列表加载失败，请稍后重试",
-  "errorImportFailed": "导入失败，请稍后重试",
   "errorReviewLoadFailed": "评论加载失败，请稍后重试。",
   "errorReviewFilterUpdateFailed": "评论筛选更新失败，请稍后重试。",
   "errorReviewLoadMoreFailed": "评论加载更多失败，请稍后重试。",
@@ -120,60 +119,13 @@
   "errorUsernameExists": "用户名已存在，请换一个名称",
   "errorUsernameRequired": "请输入用户名",
   "errorUsernameUnchanged": "用户名未变化",
-  "sseMovieSeriesSearching": "正在搜索系列...",
-  "sseMovieSeriesFound": "已找到库内系列：{name}",
-  "@sseMovieSeriesFound": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "sseMovieJavdbSeriesFound": "已匹配到 JAVDB 系列",
-  "sseMovieJavdbSeriesCount": "，共 {count} 部",
-  "@sseMovieJavdbSeriesCount": {
-    "placeholders": {
-      "count": {
-        "type": "int"
-      }
-    }
-  },
-  "sseMovieCandidatesReady": "已获取到 {total} 部影片，准备入库",
-  "@sseMovieCandidatesReady": {
-    "placeholders": {
-      "total": {
-        "type": "int"
-      }
-    }
-  },
   "sseMovieImporting": "正在入库影片...",
-  "sseMovieImportFinished": "入库完成",
-  "sseMovieImportSuccess": "导入成功",
-  "sseMovieImportFailed": "导入失败",
-  "sseMovieProcessing": "正在处理...",
   "sseMovieSearchingExternal": "正在从外部数据源搜索影片",
   "sseMovieCandidatesFetched": "已从在线源获取候选影片",
   "sseMovieImportingOnline": "正在入库在线影片",
   "sseMovieOnlineImportFinished": "在线影片入库完成",
   "sseMovieOnlineSearchFinished": "在线搜索已完成",
   "sseMovieSyncingOnlineResults": "正在同步在线影片搜索结果",
-  "sseActorSearchingExternal": "正在从外部数据源搜索女优",
-  "sseActorCandidatesFetched": "已从在线源获取候选女优",
-  "sseActorImportingOnline": "正在入库在线女优",
-  "sseActorDownloadingAvatar": "正在下载头像 {index}/{total}",
-  "@sseActorDownloadingAvatar": {
-    "placeholders": {
-      "index": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "sseActorOnlineImportFinished": "在线女优入库完成",
-  "sseActorOnlineSearchFinished": "在线搜索已完成",
-  "sseActorSyncingOnlineResults": "正在同步在线女优搜索结果",
   "commonCancel": "取消",
   "commonRetry": "重试",
   "commonClose": "关闭",
@@ -336,13 +288,10 @@
   "configCronGroupScrapeBackfill": "抓取 / 回填",
   "configCronGroupRecommendation": "推荐",
   "configCronGroupMaintenance": "巡检 / 清理",
-  "taskNameActorSubscriptionSync": "订阅演员影片同步",
   "taskNameSubscribedMovieAutoDownload": "已订阅缺失影片自动下载",
   "taskNameDownloadTaskSync": "下载任务状态同步",
   "taskNameDownloadTaskAutoImport": "已完成下载自动导入",
-  "taskNameMovieHeatUpdate": "影片热度更新",
-  "taskNameMovieInteractionSync": "影片互动数同步",
-  "taskNameMovieJavdbBackfill": "JavDB 影片补录",
+  "taskNameMovieStatsSync": "影片互动数与热度同步",
   "taskNameMediaFileHashBackfill": "媒体文件哈希补算",
   "taskNameMediaFileScan": "媒体文件巡检",
   "taskNameMediaThumbnailGeneration": "媒体缩略图生成",
@@ -352,13 +301,10 @@
   "taskNameDailyRecommendationGenerate": "每日推荐快照生成",
   "taskNameActivityRecordCleanup": "任务记录清理",
   "taskNameGfriendsFiletreeRefresh": "GFriends 缓存刷新",
-  "taskHelpActorSubscriptionSync": "同步已订阅 JavDB 女优的影片数据；本地女优没有远端来源，不会参与同步。",
   "taskHelpSubscribedMovieAutoDownload": "自动下载已订阅但缺失的影片。",
   "taskHelpDownloadTaskSync": "同步下载任务状态。",
   "taskHelpDownloadTaskAutoImport": "导入已完成的下载任务。",
-  "taskHelpMovieHeatUpdate": "重算影片热度。",
-  "taskHelpMovieInteractionSync": "同步影片互动数，候选仍受分层刷新规则影响。",
-  "taskHelpMovieJavdbBackfill": "尝试从 JavDB 补录到期的插件影片，每部影片间隔 7 天检查。",
+  "taskHelpMovieStatsSync": "通过绑定的互动数插件刷新影片互动数与热度。",
   "taskHelpMediaFileHashBackfill": "补算缺失的媒体文件哈希。",
   "taskHelpMediaFileScan": "用存储提供方清单校验媒体文件有效性。",
   "taskHelpMediaThumbnailGeneration": "生成媒体缩略图。",
@@ -920,9 +866,6 @@
   "systemMaintenanceMovieAssetPackTitle": "影片图片打包回填",
   "systemMaintenanceMovieAssetPackDescription": "把影片的封面、薄封面与剧情图从单文件整理为打包存储，减少服务器上的小文件数量。只处理尚未打包的影片，媒体库较大时可能运行较久。",
   "systemMaintenanceMovieAssetPackSuccess": "影片图片打包回填任务已提交，进度请在任务中心查看",
-  "systemMaintenanceActorGenderTitle": "演员性别回填",
-  "systemMaintenanceActorGenderDescription": "按影片元数据修正演员的存量性别，人工锁定的资料不会被覆盖。任务会一次处理完所有候选，逐条访问 JavDB 并限速，演员数量较多时可能运行较久。",
-  "systemMaintenanceActorGenderSuccess": "演员性别回填任务已提交，进度请在任务中心查看",
   "systemMaintenanceImageSearchTitle": "图搜索索引",
   "systemMaintenanceSubmit": "提交中",
   "systemMaintenanceRunNow": "立即执行",
@@ -980,6 +923,36 @@
   "configTabAppearance": "外观",
   "configTabMediaLibraries": "媒体库",
   "configTabMediaTags": "媒体文件标签",
+  "configTabMetadataSources": "元数据源",
+  "metadataSourcesOrderTitle": "元数据源顺序",
+  "metadataSourcesOrderDescription": "影片导入会按这里的顺序依次尝试已启用的元数据插件，第一个完整结果胜出。",
+  "metadataSourcesOrderEmpty": "当前没有已加载的元数据插件，请先安装并启用 Host API 18 的元数据插件。",
+  "metadataSourcesSaveOrder": "保存顺序",
+  "metadataSourcesMoveUp": "上移",
+  "metadataSourcesMoveDown": "下移",
+  "metadataSourcesPluginsHint": "插件账号与配置请在「插件」页维护。",
+  "metadataSourcesLoadFailed": "元数据源加载失败",
+  "metadataSourcesSaveFailed": "元数据源顺序保存失败",
+  "pluginBindingsTitle": "互动数与评论来源",
+  "pluginBindingsDescription": "互动数只使用一个绑定插件；评论未绑定时按插件启用顺序自动选择。元数据来源仍按上方顺序 fallback。",
+  "pluginBindingsStatsLabel": "互动数来源",
+  "pluginBindingsReviewLabel": "评论来源",
+  "pluginBindingsUnbound": "不绑定",
+  "pluginBindingsNoStatsSource": "没有可用的互动数插件",
+  "pluginBindingsNoReviewSource": "没有可用的评论插件",
+  "pluginBindingsEmpty": "当前没有支持互动数或评论的插件。",
+  "pluginBindingsLoadFailed": "来源绑定加载失败",
+  "pluginBindingsSave": "保存来源绑定",
+  "pluginBindingsSaveFailed": "来源绑定保存失败",
+  "pluginBindingsSourceUnavailable": "已绑定的来源 {source} 当前不可用，请重新选择。",
+  "@pluginBindingsSourceUnavailable": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginBindingsLegacyStats": "旧数据",
   "configTabDownloadClients": "下载器",
   "configTabIndexers": "索引器",
   "configTabExternalPlayer": "外部播放器",
@@ -1846,7 +1819,6 @@
   "videoEpisodeActionsTooltip": "选集操作",
   "diagnosticCategoryBasicResources": "基础资源",
   "diagnosticCategoryDownloadAndIndexing": "下载与检索链",
-  "diagnosticCategoryExternalDataSources": "外部数据源",
   "diagnosticCategoryIntelligence": "智能能力",
   "diagnosticItemMediaLibrary": "媒体库",
   "diagnosticItemIndexer": "索引器",
@@ -1905,14 +1877,6 @@
     }
   },
   "diagnosticEmbeddingModelNotReady": "模型未就绪",
-  "diagnosticProbeRequestFailed": "{name} 探测请求失败",
-  "@diagnosticProbeRequestFailed": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
   "diagnosticCheckRequestFailed": "检测请求失败",
   "diagnosticMediaLibraryOneAvailable": "1 个可用（{name}）",
   "@diagnosticMediaLibraryOneAvailable": {
@@ -1956,24 +1920,6 @@
   },
   "diagnosticIndexerNoneSaved": "尚未保存任何索引器条目",
   "diagnosticTorznabTestFailed": "Torznab 连通性测试失败",
-  "diagnosticMetadataFetchSucceeded": "{number} 抓取成功",
-  "@diagnosticMetadataFetchSucceeded": {
-    "placeholders": {
-      "number": {
-        "type": "String"
-      }
-    }
-  },
-  "diagnosticMetadataEndpointUnhealthy": "接口返回不健康",
-  "diagnosticMetadataProbeFailed": "探测失败",
-  "diagnosticMetadataProbeFailedFor": "{number} 探测失败",
-  "@diagnosticMetadataProbeFailedFor": {
-    "placeholders": {
-      "number": {
-        "type": "String"
-      }
-    }
-  },
   "diagnosticHintMediaLibraryEmptyCause": "还没有配置媒体库。",
   "diagnosticHintMediaLibraryEmptyFix": "在「媒体库」页新建一个，指向存放影片的目录。",
   "diagnosticHintMediaLibraryProbeFailedCause": "读取媒体库列表失败，后端没有正常响应。",
@@ -1991,12 +1937,6 @@
   "diagnosticHintJoyTagUnhealthyCause": "JoyTag 推理服务没有响应。",
   "diagnosticHintJoyTagUnhealthyFix": "在部署后端的机器上查看嵌入服务日志。",
   "diagnosticHintProbeRequestFailedCause": "检测请求没完成，后端没有响应。",
-  "diagnosticHintJavdbNotFoundCause": "JavDB 打得开，但搜不到测试用的番号。",
-  "diagnosticHintJavdbNotFoundFix": "先重新检测一次。还是失败就是 JavDB 改版了，需要等适配。",
-  "diagnosticHintJavdbUnreachableCause": "连不上 JavDB。",
-  "diagnosticHintJavdbUnreachableFix": "代理改由部署侧环境变量分流：若配置了 HTTP_PROXY，需在 NO_PROXY 排除 JavDB 相关域名，或让透明代理规则放行直连，详见 wiki「常见问题 · 代理配置」。",
-  "diagnosticHintJavdbUnexpectedCause": "JavDB 抓取时出错了。",
-  "diagnosticHintJavdbUnexpectedFix": "确认后端日志后重新检测。",
   "overviewStatusUnavailable": "不可用",
   "overviewStatusHealthy": "正常",
   "overviewStatusAbnormal": "异常",
@@ -2053,9 +1993,6 @@
   "overviewServiceHealth": "服务健康",
   "overviewEmbeddingService": "嵌入服务",
   "overviewRebuild": "重建",
-  "overviewExternalDataSources": "外部数据源",
-  "overviewTesting": "检测中",
-  "overviewTest": "检测",
   "overviewWatchTrend": "观看趋势",
   "overviewRangeLast7Days": "近 7 天",
   "overviewRangeLast7DaysShort": "7天",
@@ -2192,7 +2129,7 @@
   "routeMomentCollectionsTitle": "时刻合集",
   "routeVideoCollectionsTitle": "视频合集",
   "routePlaylistDetailsTitle": "播放列表详情",
-  "routeNewActorReleasesTitle": "女优上新",
+  "routeNewActorReleasesTitle": "订阅女优影片",
   "routeRecommendedMoviesTitle": "推荐影片",
   "routeRecommendedMomentsTitle": "推荐时刻",
   "routePopularNewReleasesTitle": "热门新片",
@@ -3224,7 +3161,6 @@
       }
     }
   },
-  "moviePageSeriesSync": "同步系列影片",
   "moviePagePlaylistAdded": "已加入",
   "moviePagePlaylistTotalCount": "共 {count} 个",
   "@moviePagePlaylistTotalCount": {
@@ -3272,14 +3208,6 @@
   "moviePageSectionSimilarMovies": "相似影片",
   "moviePageMetaSeries": "系列",
   "moviePageMetaMetadata": "元数据",
-  "moviePageMetaNotIndexed": "{source} · 待 JavDB 收录",
-  "@moviePageMetaNotIndexed": {
-    "placeholders": {
-      "source": {
-        "type": "String"
-      }
-    }
-  },
   "moviePageMetaWantWatch": "想看 · {count}",
   "@moviePageMetaWantWatch": {
     "placeholders": {
@@ -3492,11 +3420,6 @@
   "movieProviderSubtitleFetchFailed": "字幕抓取失败",
   "movieProviderPlayerLoadFailed": "播放器暂时无法加载，请稍后重试",
   "movieProviderMagnetSearchFailed": "搜索资源失败，请稍后重试。",
-  "movieProviderSeriesImportReady": "准备就绪",
-  "movieProviderSeriesImportConnecting": "正在连接服务器...",
-  "movieProviderSeriesImportDisconnected": "连接意外断开，请重试",
-  "movieProviderSeriesImportSeriesNotFound": "库内系列不存在",
-  "movieProviderSeriesImportJavdbSeriesNotFound": "未能在 JAVDB 找到匹配的系列，请确认系列名称",
   "movieProviderSubscribeMovieFailed": "订阅影片失败",
   "movieProviderBatchSubscribeMoviesFailed": "批量订阅影片失败",
   "movieProviderForceUnsubscribeBusy": "选中影片正在处理，请稍后重试",
@@ -3579,10 +3502,6 @@
       }
     }
   },
-  "movieActionMovieMetadataRefreshed": "影片元数据已刷新",
-  "movieActionRefreshMovieMetadataFailed": "刷新影片元数据失败",
-  "movieActionHeatRecomputeSubmitted": "影片热度重算任务已提交，请在活动中心查看进度",
-  "movieActionRecomputeMovieHeatFailed": "计算影片热度失败",
   "mediaListTabList": "媒体列表",
   "mediaListTabDuplicates": "重复媒体",
   "mediaListTabVersions": "多版本影片",
@@ -4276,6 +4195,14 @@
   "widgetSearchLocalNoActors": "本地库未找到匹配女优",
   "widgetSearchOnlineNoActor": "在线源未找到匹配女优",
   "widgetSearchLocalNoMatchingActors": "本地库中没有匹配该关键词的女优。",
+  "searchSourceErrors": "部分元数据源查询失败：{names}",
+  "@searchSourceErrors": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
   "widgetSearchFetchExternal": "从外部数据源获取",
   "widgetSearchDefaultTooltip": "搜索影片或女优",
   "widgetSearchTextImageTooltip": "文字搜图",
@@ -4427,9 +4354,9 @@
   "movieWidgetRemoveActorFailed": "移除演员失败，请稍后重试",
   "movieWidgetActorsSectionTitle": "演员",
   "movieWidgetActorRemovalScopeNotice": "移除只影响本片，不会删除女优资料。",
-  "movieWidgetActorCastManualNotice": "演员表已手动管理，刷新元数据不会覆盖。",
-  "movieWidgetActorRemovalEditingHint": "移除只影响本片；增删后将改为手动管理，刷新元数据不再覆盖。",
-  "movieWidgetActorAddManualHint": "添加后将改为手动管理，刷新元数据不再覆盖。",
+  "movieWidgetActorCastManualNotice": "演员表已手动管理。",
+  "movieWidgetActorRemovalEditingHint": "移除只影响本片；增删后将改为手动管理。",
+  "movieWidgetActorAddManualHint": "添加后将改为手动管理。",
   "movieWidgetManageAction": "管理",
   "movieWidgetAddLabel": "添加",
   "movieWidgetRemoveActorFromCast": "从演员表移除 {name}",
@@ -4549,12 +4476,6 @@
   "movieWidgetAddDimension": "新增维度",
   "movieWidgetEditDimension": "编辑维度",
   "movieWidgetDimensionNameHint": "维度名称，如 颜值 / 剧情",
-  "movieWidgetSeriesImportTitle": "导入系列影片",
-  "movieWidgetSeriesCreated": "新增",
-  "movieWidgetSeriesAlreadyExists": "已存在",
-  "movieWidgetSeriesFailed": "失败",
-  "movieWidgetSeriesImportDoneWithRefresh": "完成（刷新列表）",
-  "movieWidgetClose": "关闭",
   "subscriptionStatusImported": "已入库",
   "subscriptionStatusDownloading": "下载中",
   "subscriptionStatusImportFailed": "导入失败",
@@ -4808,8 +4729,8 @@
   "subscriptionImportSubmitFailed": "提交导入失败，请稍后重试",
   "subscriptionDownloadTaskMissing": "下载任务已不存在",
   "subscriptionFollowEmpty": "暂无关注影片",
-  "subscriptionFollowLoadFailed": "女优上新加载失败，请稍后重试",
-  "subscriptionFollowEmptyDescription": "暂无女优上新，先订阅感兴趣的女优，等定时任务同步后展示",
+  "subscriptionFollowLoadFailed": "订阅女优影片加载失败，请稍后重试",
+  "subscriptionFollowEmptyDescription": "暂无已订阅女优的近期影片。先订阅感兴趣的女优，导入影片后会展示在这里。",
   "subscriptionRefreshFailed": "刷新失败",
   "actorSubscriptionStatusAll": "全部",
   "actorSubscriptionStatusSubscribed": "已订阅",
@@ -4845,7 +4766,12 @@
       }
     }
   },
-  "actorLocalSubscriptionHint": "本地女优不会同步新作品，订阅仅作为收藏。",
+  "actorLocalSubscriptionHint": "订阅演员只作为收藏，不会自动同步新作品。",
+  "actorCandidateImport": "导入",
+  "actorCandidateView": "查看",
+  "actorCandidateExisting": "已在库中",
+  "actorCandidateImportSuccess": "演员已导入",
+  "actorCandidateImportFailed": "导入演员失败",
   "actorMergeTooltip": "合并女优",
   "actorEditProfileTooltip": "编辑女优资料",
   "actorMovieYearsLoadFailed": "年份加载失败",
@@ -4966,11 +4892,11 @@
   "actorTasteRecommendedTitle": "你可能想关注",
   "actorTastePanelTitle": "常看女优",
   "actorRefreshFailed": "刷新失败",
-  "discoveryActressReleaseTitle": "女优上新",
+  "discoveryActressReleaseTitle": "订阅女优影片",
   "@discoveryActressReleaseTitle": {},
-  "discoveryActressReleaseLoadFailed": "女优上新加载失败，请稍后重试",
+  "discoveryActressReleaseLoadFailed": "订阅女优影片加载失败，请稍后重试",
   "@discoveryActressReleaseLoadFailed": {},
-  "discoveryActressReleaseEmpty": "暂无女优上新，先订阅感兴趣的女优，等定时任务同步后展示",
+  "discoveryActressReleaseEmpty": "暂无已订阅女优的近期影片。先订阅感兴趣的女优，导入影片后会展示在这里。",
   "@discoveryActressReleaseEmpty": {},
   "discoveryHotNewTitle": "热门新片",
   "@discoveryHotNewTitle": {},
@@ -5245,10 +5171,10 @@
   "widgetMovieFilterAll": "全部",
   "widgetMovieFilterCollectionTypeTitle": "合集类型",
   "widgetMovieFilterNumberSourceTitle": "番号来源",
-  "widgetMovieFilterInteractionTitle": "互动数",
+  "widgetMovieFilterInteractionTitle": "热度",
   "widgetMovieFilterClear": "清空",
-  "widgetMovieFilterInteractionLoadFailed": "互动数范围加载失败",
-  "widgetMovieFilterInteractionEmpty": "暂无可用的互动数范围",
+  "widgetMovieFilterInteractionLoadFailed": "热度范围加载失败",
+  "widgetMovieFilterInteractionEmpty": "暂无可用的热度范围",
   "widgetMovieFilterActorAgeTitle": "出演年龄",
   "widgetMovieFilterYearTitle": "发行年份",
   "widgetMovieFilterAllYears": "全部年份",
@@ -5587,12 +5513,6 @@
   "shellWindowClose": "关闭",
   "shellWindowMinimize": "最小化",
   "shellWindowFullscreen": "全屏",
-  "movieActionRefreshMetadata": "刷新元数据",
-  "movieActionRecomputeHeat": "计算热度",
-  "movieActionRefreshMetadataDescription": "刷新后会重新下载封面图和剧情图，并重新绑定当前影片的女优和标签关联。",
-  "movieActionRefreshMetadataDescriptionManualActors": "刷新后会重新下载封面图和剧情图，并重新绑定当前影片的标签关联；演员表已手动管理，本次刷新不会覆盖。",
-  "movieActionRefreshMetadataHint": "这是一次覆盖式刷新，SakuraMedia 中的影片元数据会以远端最新结果为准。",
-  "movieActionRefreshMetadataConfirm": "确认刷新",
   "errorLatestMovieListLoadFailed": "最新入库影片加载失败，请稍后重试",
   "errorMovieListLoadFailed": "影片列表加载失败，请稍后重试",
   "errorTagMovieListLoadFailed": "标签影片加载失败，请稍后重试",

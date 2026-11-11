@@ -10,10 +10,8 @@ The SakuraMedia host includes built-in scheduled tasks, and plugins can register
 
 | Task | Purpose | Default schedule |
 |---|---|---|
-| Actor subscription movie sync | Fetches the latest movies of subscribed actors | Daily at 02:00 |
 | Auto-download missing subscribed movies | Searches for and submits matching resources | Daily at 02:30 |
-| Movie heat recalculation | Updates movie heat | Daily at 00:15 |
-| Movie interaction sync | Syncs statistics such as ratings, wants and comments | Daily at 05:00 |
+| Movie stats and heat sync | Refreshes interaction stats and heat through the bound plugin | Daily at 05:00 |
 | Download task status sync | Syncs task status from each provider's download client | Every minute |
 | Auto-import completed downloads | Hands completed tasks to the import flow using `completed_source_ref` | Every minute |
 | Media file hash backfill | Computes hashes for media files that lack them | Daily at 03:00 |
@@ -50,7 +48,7 @@ Once a download client returns `completed` with a `completed_source_ref`, the ta
 - **Image search indexing**: hands pending media thumbnails and scene images to the SigLIP2 embedding service, then writes them into Qdrant.
 - **Movie similarity recalculation**: computes the similar movies shown on detail pages offline.
 - **Recommended moment generation / daily recommendation generation**: prepares data for the discover and recommendation pages.
-- **Movie heat recalculation and interaction sync**: updates the discovery and sorting data for movies.
+- **Movie stats and heat sync**: refreshes `interaction_stats` and the plugin-computed `heat` for movies. It does nothing when no stats plugin is bound; existing values remain available.
 - **GFriends avatar cache refresh**: downloads the file-tree index and writes it to the local cache.
 
 ## Default cron configuration
@@ -60,12 +58,10 @@ Once a download client returns `completed` with a `completed_source_ref`, the ta
 enabled = true
 log_dir = "/data/logs"
 
-actor_subscription_sync_cron = "0 2 * * *"
 subscribed_movie_auto_download_cron = "30 2 * * *"
 download_task_sync_cron = "* * * * *"
 download_task_auto_import_cron = "* * * * *"
-movie_heat_cron = "15 0 * * *"
-movie_interaction_sync_cron = "0 5 * * *"
+movie_stats_sync_cron = "0 5 * * *"
 media_file_hash_backfill_cron = "0 3 * * *"
 media_thumbnail_cron = "*/30 * * * *"
 image_search_index_cron = "*/5 * * * *"

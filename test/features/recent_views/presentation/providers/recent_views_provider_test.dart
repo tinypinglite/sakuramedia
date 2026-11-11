@@ -64,7 +64,6 @@ void main() {
             'viewed_at': '2026-05-08T09:00:00',
             'actor': <String, dynamic>{
               'id': 3,
-              'javdb_id': 'actor-3',
               'name': 'Actor A',
               'alias_name': '',
               'display_name': 'Actor A',

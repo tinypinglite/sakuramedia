@@ -46,7 +46,6 @@ class _SystemMaintenanceContentState
   static const _fileHashBackfillTaskKey = 'media_file_hash_backfill';
   static const _thumbnailPackBackfillTaskKey = 'media_thumbnail_pack_backfill';
   static const _movieAssetPackBackfillTaskKey = 'movie_asset_pack_backfill';
-  static const _actorGenderBackfillTaskKey = 'actor_gender_backfill';
 
   StatusImageSearchDto? _imageSearchStatus;
   String? _errorMessage;
@@ -173,14 +172,6 @@ class _SystemMaintenanceContentState
           title: l10n.systemMaintenanceMovieAssetPackTitle,
           description: l10n.systemMaintenanceMovieAssetPackDescription,
           successMessage: l10n.systemMaintenanceMovieAssetPackSuccess,
-        ),
-        SizedBox(height: context.appSpacing.xl),
-        _buildMaintenanceTaskCard(
-          context,
-          taskKey: _actorGenderBackfillTaskKey,
-          title: l10n.systemMaintenanceActorGenderTitle,
-          description: l10n.systemMaintenanceActorGenderDescription,
-          successMessage: l10n.systemMaintenanceActorGenderSuccess,
         ),
       ],
     );

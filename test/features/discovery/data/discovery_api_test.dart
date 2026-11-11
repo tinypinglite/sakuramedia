@@ -39,7 +39,6 @@ void main() {
         body: <String, dynamic>{
           'items': [
             <String, dynamic>{
-              'javdb_id': 'abc-id',
               'movie_number': 'ABC-001',
               'title': 'Movie title',
               'cover_image': <String, dynamic>{'id': 1, 'origin': 'large.jpg'},
@@ -107,7 +106,6 @@ void main() {
                 'origin': 'thumb-large.webp',
               },
               'movie': <String, dynamic>{
-                'javdb_id': 'abc-id',
                 'movie_number': 'ABC-001',
                 'title': 'Movie title',
                 'cover_image': null,
@@ -154,7 +152,6 @@ void main() {
         body: <String, dynamic>{
           'items': [
             <String, dynamic>{
-              'javdb_id': 'hot-id',
               'movie_number': 'HOT-001',
               'title': 'Hot movie',
               'cover_image': null,
@@ -250,7 +247,6 @@ Map<String, dynamic> _actorJson({
 }) {
   return <String, dynamic>{
     'id': id,
-    'javdb_id': 'actor-$id',
     'name': name,
     'alias_name': '',
     'display_name': name,

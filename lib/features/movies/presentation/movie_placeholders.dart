@@ -23,7 +23,6 @@ List<MovieListItemDto> movieListItemPlaceholders({int count = 8}) {
       heat: 100,
       isSubscribed: false,
       canPlay: false,
-      javdbId: null,
     ),
     growable: false,
   );
@@ -33,7 +32,6 @@ List<MovieListItemDto> movieListItemPlaceholders({int count = 8}) {
 /// 一律为空，不触发网络请求；供详情页渲染真实布局后由 `AppSkeletonizer` 灰化。
 MovieDetailDto movieDetailPlaceholder() {
   return MovieDetailDto(
-    javdbId: null,
     movieNumber: 'ABC-001',
     title: BoneMock.words(3),
     seriesName: '',
@@ -42,12 +40,12 @@ MovieDetailDto movieDetailPlaceholder() {
     coverImage: null,
     releaseDate: null,
     durationMinutes: 120,
-    score: 4.5,
+    interactionStats: const <String, num>{
+      'score': 4.5,
+      'watched_count': 12,
+    },
+    statsSource: 'legacy:host',
     heat: 0,
-    watchedCount: 0,
-    wantWatchCount: 0,
-    commentCount: 0,
-    scoreNumber: 10,
     isCollection: false,
     isSubscribed: false,
     canPlay: false,
@@ -96,11 +94,7 @@ MovieInteractionFilterOptionsDto movieInteractionFilterOptionsPlaceholder() {
   return const MovieInteractionFilterOptionsDto(
     movieCount: 0,
     heat: MovieInteractionDistributionDto(p999: 10000, max: 20000),
-    score: MovieInteractionDistributionDto(p999: 4.8, max: 5),
-    scoreNumber: MovieInteractionDistributionDto(p999: 5000, max: 10000),
-    watchedCount: MovieInteractionDistributionDto(p999: 3000, max: 6000),
-    wantWatchCount: MovieInteractionDistributionDto(p999: 3000, max: 6000),
-    commentCount: MovieInteractionDistributionDto(p999: 500, max: 1000),
+    heatVersion: 'host:v6',
   );
 }
 

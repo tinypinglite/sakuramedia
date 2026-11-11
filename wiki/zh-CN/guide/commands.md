@@ -42,13 +42,6 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands migrate
 docker exec --user app -w /app sakuramedia python -m src.start.commands wait-db --timeout 60 --interval 2
 ```
 
-### 测试 JavDB 查询
-
-```bash
-docker exec --user app -w /app sakuramedia python -m src.start.commands test-javdb --movie-number ABP-001
-docker exec --user app -w /app sakuramedia python -m src.start.commands test-javdb --movie-number ABP-001 --json
-```
-
 ## 手动触发后台任务
 
 `aps` 子命令会把任务放入任务中心，任务中心可以查看进度和结果：

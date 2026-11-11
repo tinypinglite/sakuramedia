@@ -110,18 +110,22 @@ void main() {
   });
 }
 
-Future<void> _waitForViewHistoryPosts(TestApiBundle bundle, int expected) async {
-  for (var attempt = 0;
-      attempt < 100 &&
-          bundle.adapter.hitCount('POST', '/view-history') < expected;
-      attempt++) {
+Future<void> _waitForViewHistoryPosts(
+  TestApiBundle bundle,
+  int expected,
+) async {
+  for (
+    var attempt = 0;
+    attempt < 100 &&
+        bundle.adapter.hitCount('POST', '/view-history') < expected;
+    attempt++
+  ) {
     await Future<void>.delayed(const Duration(milliseconds: 1));
   }
 }
 
 Map<String, dynamic> _actorJson(String name) => <String, dynamic>{
   'id': 1,
-  'javdb_id': 'actor-1',
   'name': name,
   'alias_name': '',
   'profile_image': null,

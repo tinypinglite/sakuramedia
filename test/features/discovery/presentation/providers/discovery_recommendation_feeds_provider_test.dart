@@ -191,7 +191,6 @@ Map<String, dynamic> _dailyPage({
     'items': List<Map<String, dynamic>>.generate(count, (index) {
       final number = (start + index).toString().padLeft(3, '0');
       return <String, dynamic>{
-        'javdb_id': 'abc-id-$number',
         'movie_number': 'ABC-$number',
         'title': 'Movie title $number',
         'is_subscribed': false,
@@ -224,7 +223,6 @@ Map<String, dynamic> _momentPage({
         'offset_seconds': 360,
         'image': null,
         'movie': <String, dynamic>{
-          'javdb_id': 'abc-id-$id',
           'movie_number': 'ABC-$id',
           'title': 'Movie title $id',
           'is_subscribed': false,
@@ -250,7 +248,6 @@ Map<String, dynamic> _hotActressPage({
       final id = start + index;
       final number = id.toString().padLeft(3, '0');
       return <String, dynamic>{
-        'javdb_id': 'hot-id-$number',
         'movie_number': 'HOT-$number',
         'title': 'Hot movie $number',
         'is_subscribed': false,

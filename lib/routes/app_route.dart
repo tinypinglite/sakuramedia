@@ -257,6 +257,7 @@ enum AppRouteId {
   mobileSearchQuery,
   mobileSettingsMediaLibraries,
   mobileSettingsMediaTags,
+  mobileSettingsMetadataSources,
   mobileSettingsPlugins,
   mobileSettingsPluginMarket,
   mobileLatestMovies,

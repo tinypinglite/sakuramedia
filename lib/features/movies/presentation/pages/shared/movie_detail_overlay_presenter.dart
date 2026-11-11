@@ -12,7 +12,6 @@ import 'package:sakuramedia/features/media/presentation/widgets/shared/media_tag
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/player/movie_subtitle_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
-import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_copy.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_menu.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_plot_image_actions.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_action_result.dart';
@@ -139,37 +138,6 @@ class MovieDetailOverlayPresenter {
       message: l10n.moviePageBlacklistWarning,
       confirmLabel: l10n.moviePageBlacklistConfirm,
       danger: true,
-      variant: mobile
-          ? AppAdaptiveModalVariant.drawer
-          : AppAdaptiveModalVariant.dialog,
-    );
-  }
-
-  Future<bool> confirmRefreshMetadata({
-    required BuildContext context,
-    required bool isActorsManuallyManaged,
-  }) {
-    final l10n = AppLocalizations.of(context);
-    return showAppConfirmDialog(
-      context,
-      title: MovieDetailRefreshConfirmationCopy.title(l10n),
-      message: MovieDetailRefreshConfirmationCopy.descriptionFor(
-        l10n,
-        isActorsManuallyManaged: isActorsManuallyManaged,
-      ),
-      extraContent: Text(
-        MovieDetailRefreshConfirmationCopy.hint(l10n),
-        style: resolveAppTextStyle(
-          context,
-          size: AppTextSize.s12,
-          tone: AppTextTone.muted,
-        ),
-      ),
-      confirmLabel: MovieDetailRefreshConfirmationCopy.confirmLabel(l10n),
-      cancelLabel: MovieDetailRefreshConfirmationCopy.cancelLabel(l10n),
-      dialogKey: const Key('movie-detail-refresh-metadata-dialog'),
-      confirmKey: const Key('movie-detail-refresh-metadata-confirm'),
-      cancelKey: const Key('movie-detail-refresh-metadata-cancel'),
       variant: mobile
           ? AppAdaptiveModalVariant.drawer
           : AppAdaptiveModalVariant.dialog,
