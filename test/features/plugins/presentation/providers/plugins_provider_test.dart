@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -158,6 +159,112 @@ void main() {
     expect(refreshed, isTrue);
     expect(container.read(pluginsProvider).requireValue.plugins, hasLength(1));
     expect(container.read(pluginsProvider).requireValue.isInstalling, isFalse);
+  });
+
+  test('install can start while update check is in progress', () async {
+    api.listHandler = () async => <PluginSummaryDto>[
+      pluginSummaryDto(
+        id: 'demo_plugin',
+        releaseApiUrl:
+            'https://api.github.com/repos/example/demo_plugin/releases/latest',
+      ),
+    ];
+    await container.read(pluginsProvider.future);
+
+    final checkCompleter = Completer<PluginReleaseUpdate?>();
+    api.checkForUpdateHandler = (_) => checkCompleter.future;
+    final checkFuture = container.read(pluginsProvider.notifier).checkUpdates();
+
+    final installCompleter = Completer<void>();
+    api.installHandler = (_, __, ___) => installCompleter.future;
+    api.listHandler = () async => <PluginSummaryDto>[
+      pluginSummaryDto(id: 'demo_plugin'),
+      pluginSummaryDto(id: 'new_plugin'),
+    ];
+    final installFuture = container
+        .read(pluginsProvider.notifier)
+        .install(
+          fileBytes: Uint8List.fromList(<int>[80, 75]),
+          fileName: 'new_plugin.zip',
+        );
+    await Future<void>.delayed(Duration.zero);
+
+    var state = container.read(pluginsProvider).requireValue;
+    expect(state.isCheckingUpdates, isTrue);
+    expect(state.isInstalling, isTrue);
+
+    const update = PluginReleaseUpdate(
+      version: '1.1.0',
+      notes: '',
+      assetUrl: 'https://github.com/example/demo/download.zip',
+      assetFileName: 'demo_plugin-1.1.0.zip',
+    );
+    checkCompleter.complete(update);
+    expect(await checkFuture, isTrue);
+
+    state = container.read(pluginsProvider).requireValue;
+    expect(state.plugins.single.pluginId, 'demo_plugin');
+    expect(state.updates['demo_plugin'], update);
+    expect(state.isCheckingUpdates, isFalse);
+    expect(state.isInstalling, isTrue);
+
+    installCompleter.complete();
+    expect(await installFuture, isTrue);
+
+    state = container.read(pluginsProvider).requireValue;
+    expect(state.plugins.map((plugin) => plugin.pluginId), <String>[
+      'demo_plugin',
+      'new_plugin',
+    ]);
+    expect(state.updates['demo_plugin'], update);
+    expect(state.isInstalling, isFalse);
+  });
+
+  test('update check keeps the list refreshed during the check', () async {
+    api.listHandler = () async => <PluginSummaryDto>[
+      pluginSummaryDto(
+        id: 'demo_plugin',
+        releaseApiUrl:
+            'https://api.github.com/repos/example/demo_plugin/releases/latest',
+      ),
+    ];
+    await container.read(pluginsProvider.future);
+
+    final checkCompleter = Completer<PluginReleaseUpdate?>();
+    api.checkForUpdateHandler = (_) => checkCompleter.future;
+    final checkFuture = container.read(pluginsProvider.notifier).checkUpdates();
+
+    api.installHandler = (_, __, ___) async {};
+    api.listHandler = () async => <PluginSummaryDto>[
+      pluginSummaryDto(id: 'demo_plugin'),
+      pluginSummaryDto(id: 'new_plugin'),
+    ];
+    expect(
+      await container
+          .read(pluginsProvider.notifier)
+          .install(
+            fileBytes: Uint8List.fromList(<int>[80, 75]),
+            fileName: 'new_plugin.zip',
+          ),
+      isTrue,
+    );
+
+    const update = PluginReleaseUpdate(
+      version: '1.1.0',
+      notes: '',
+      assetUrl: 'https://github.com/example/demo/download.zip',
+      assetFileName: 'demo_plugin-1.1.0.zip',
+    );
+    checkCompleter.complete(update);
+    expect(await checkFuture, isTrue);
+
+    final state = container.read(pluginsProvider).requireValue;
+    expect(state.plugins.map((plugin) => plugin.pluginId), <String>[
+      'demo_plugin',
+      'new_plugin',
+    ]);
+    expect(state.updates['demo_plugin'], update);
+    expect(state.isCheckingUpdates, isFalse);
   });
 
   test('checks and installs an available plugin update', () async {

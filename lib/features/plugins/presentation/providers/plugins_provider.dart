@@ -49,28 +49,26 @@ class Plugins extends _$Plugins
     required String fileName,
   }) async {
     final current = state.value;
-    if (current == null || current.isInstalling || current.isCheckingUpdates) {
+    if (current == null ||
+        current.isInstalling ||
+        current.busyPluginIds.isNotEmpty) {
       return false;
     }
     state = AsyncData(current.copyWith(isInstalling: true));
     try {
       await _api.install(fileBytes: fileBytes, fileName: fileName);
     } catch (_) {
-      if (!isDisposed) {
-        state = AsyncData(current.copyWith(isInstalling: false));
-      }
+      _setInstalling(false);
       rethrow;
     }
     try {
       final next = await _fetchPlugins();
       if (!isDisposed) {
-        state = AsyncData(next);
+        _applyInstalledPlugins(next.plugins);
       }
       return true;
     } catch (_) {
-      if (!isDisposed) {
-        state = AsyncData(current.copyWith(isInstalling: false));
-      }
+      _setInstalling(false);
       return false;
     }
   }
@@ -87,27 +85,23 @@ class Plugins extends _$Plugins
       return false;
     }
     state = AsyncData(current.copyWith(isCheckingUpdates: true));
-    final updates = Map<String, PluginReleaseUpdate>.of(current.updates);
+    final checkedVersions = <String, String>{
+      for (final plugin in current.plugins) plugin.pluginId: plugin.version,
+    };
+    final results = <String, PluginReleaseUpdate?>{};
     var allChecksSucceeded = true;
     for (final plugin in current.plugins) {
       if (plugin.releaseApiUrl == null) {
         continue;
       }
       try {
-        final update = await _api.checkForUpdate(plugin);
-        if (update != null) {
-          updates[plugin.pluginId] = update;
-        } else {
-          updates.remove(plugin.pluginId);
-        }
+        results[plugin.pluginId] = await _api.checkForUpdate(plugin);
       } catch (_) {
         allChecksSucceeded = false;
       }
     }
     if (!isDisposed) {
-      state = AsyncData(
-        current.copyWith(updates: updates, isCheckingUpdates: false),
-      );
+      _applyUpdateResults(results, checkedVersions);
     }
     return allChecksSucceeded;
   }
@@ -197,6 +191,68 @@ class Plugins extends _$Plugins
       busyPluginIds.remove(pluginId);
     }
     state = AsyncData(current.copyWith(busyPluginIds: busyPluginIds));
+  }
+
+  void _setInstalling(bool installing) {
+    if (isDisposed) {
+      return;
+    }
+    final current = state.value;
+    if (current == null) {
+      return;
+    }
+    state = AsyncData(current.copyWith(isInstalling: installing));
+  }
+
+  /// 把安装后的列表合并进最新状态，避免覆盖检查更新期间得到的更新结果。
+  void _applyInstalledPlugins(List<PluginSummaryDto> plugins) {
+    final current = state.value;
+    if (current == null) {
+      return;
+    }
+    final previousVersions = <String, String>{
+      for (final plugin in current.plugins) plugin.pluginId: plugin.version,
+    };
+    final installedVersions = <String, String>{
+      for (final plugin in plugins) plugin.pluginId: plugin.version,
+    };
+    final updates = Map<String, PluginReleaseUpdate>.of(current.updates)
+      ..removeWhere(
+        (pluginId, _) =>
+            previousVersions[pluginId] != installedVersions[pluginId],
+      );
+    state = AsyncData(
+      current.copyWith(plugins: plugins, updates: updates, isInstalling: false),
+    );
+  }
+
+  /// 只应用仍对应当前已安装版本的检查结果，避免安装期间回写旧版本更新。
+  void _applyUpdateResults(
+    Map<String, PluginReleaseUpdate?> results,
+    Map<String, String> checkedVersions,
+  ) {
+    final current = state.value;
+    if (current == null) {
+      return;
+    }
+    final installedVersions = <String, String>{
+      for (final plugin in current.plugins) plugin.pluginId: plugin.version,
+    };
+    final updates = Map<String, PluginReleaseUpdate>.of(current.updates);
+    for (final entry in results.entries) {
+      if (checkedVersions[entry.key] != installedVersions[entry.key]) {
+        continue;
+      }
+      final update = entry.value;
+      if (update == null) {
+        updates.remove(entry.key);
+      } else {
+        updates[entry.key] = update;
+      }
+    }
+    state = AsyncData(
+      current.copyWith(updates: updates, isCheckingUpdates: false),
+    );
   }
 
   void _replacePlugin(PluginSummaryDto updated) {

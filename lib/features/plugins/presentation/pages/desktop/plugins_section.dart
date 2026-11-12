@@ -200,7 +200,7 @@ class _DesktopPluginsSectionState extends ConsumerState<DesktopPluginsSection>
                 size: AppButtonSize.small,
                 icon: const Icon(Icons.upload_file_outlined),
                 isLoading: state.isInstalling,
-                onPressed: state.isInstalling || state.isCheckingUpdates
+                onPressed: state.isInstalling || state.busyPluginIds.isNotEmpty
                     ? null
                     : _actions.install,
               ),

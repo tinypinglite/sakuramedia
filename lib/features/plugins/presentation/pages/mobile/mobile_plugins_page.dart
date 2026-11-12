@@ -107,6 +107,8 @@ class _MobilePluginsPageState extends ConsumerState<MobilePluginsPage> {
         state?.isInstalling == true ||
         state?.isCheckingUpdates == true ||
         state?.busyPluginIds.isNotEmpty == true;
+    final installBusy =
+        state?.isInstalling == true || state?.busyPluginIds.isNotEmpty == true;
     final colors = context.appColors;
     final spacing = context.appSpacing;
 
@@ -280,7 +282,9 @@ class _MobilePluginsPageState extends ConsumerState<MobilePluginsPage> {
                     icon: const Icon(Icons.upload_file_outlined),
                     isLoading: state?.isInstalling == true,
                     onPressed:
-                        asyncPlugins.isLoading || asyncPlugins.hasError || busy
+                        asyncPlugins.isLoading ||
+                            asyncPlugins.hasError ||
+                            installBusy
                         ? null
                         : _actions.install,
                   ),
