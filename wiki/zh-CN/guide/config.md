@@ -242,3 +242,18 @@ api_key = ""
 `url` 是 Qdrant HTTP API 地址；compose 部署时使用容器内服务名 `qdrant`。启用 Qdrant 鉴权时填写 `api_key`。
 
 `enabled` 控制相似影片与向量服务。关闭时不连接 Qdrant，推荐跳过影片相似度信号；关闭图搜不影响仅依赖 Qdrant 的相似影片。关闭 Qdrant 时应同时关闭图搜，桌面端会提示并一起保存。开关不会停止或删除 Docker 容器，释放资源需在部署端停容器。
+
+## 部署公告
+
+后端会定时拉取项目公告源
+`https://tinypinglite.github.io/sakuramedia/announcements.json`，成功响应缓存
+30 分钟；公告源暂时不可用时会继续使用上一次成功结果。
+
+可用以下容器环境变量覆盖默认行为：
+
+| 变量 | 作用 |
+|---|---|
+| `SAKURAMEDIA_ANNOUNCEMENTS_ENABLED` | 设为 `false` 时关闭公告检查。 |
+| `SAKURAMEDIA_ANNOUNCEMENTS_URL` | 使用镜像或本地公告源。 |
+
+公告可以限定客户端或后端版本范围。严重公告需要在客户端确认一次，其他等级公告显示在版本/更新菜单中。

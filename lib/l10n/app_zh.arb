@@ -5466,6 +5466,21 @@
   "shellBrowserOpenFailed": "无法打开浏览器",
   "shellSystemVersion": "系统版本",
   "shellUpdateBadge": "有更新",
+  "shellAnnouncementsTitle": "公告",
+  "shellVersionTooltipNotice": "{version} · 有新公告",
+  "@shellVersionTooltipNotice": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "announcementLevelInfo": "提示",
+  "announcementLevelWarning": "警告",
+  "announcementLevelCritical": "重要",
+  "announcementCriticalDialogTitle": "重要公告",
+  "announcementAcknowledge": "我知道了",
+  "announcementReadMore": "查看详情",
   "shellClientLabel": "客户端",
   "shellServerLabel": "服务端",
   "shellVersionTooltipUpdate": "{version} · 有更新",

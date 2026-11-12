@@ -8,6 +8,9 @@ import 'package:sakuramedia/app/providers/app_update_check_provider.dart';
 import 'package:sakuramedia/app/providers/external_url_provider.dart';
 import 'package:sakuramedia/config/app_release_channels.dart';
 import 'package:sakuramedia/core/platform/clipboard_copy.dart';
+import 'package:sakuramedia/features/announcements/data/announcement_dto.dart';
+import 'package:sakuramedia/features/announcements/presentation/providers/announcement_feed_provider.dart';
+import 'package:sakuramedia/features/announcements/presentation/widgets/announcement_detail_dialog.dart';
 import 'package:sakuramedia/features/plugins/presentation/providers/plugins_provider.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
@@ -39,11 +42,16 @@ class _SidebarVersionInfoState extends ConsumerState<SidebarVersionInfo> {
         ref.watch(appVersionInfoProvider).value ?? AppVersionInfoState.initial;
     final pluginUpdates = ref.watch(pluginsProvider).value?.updates.length ?? 0;
     final updates = ref.watch(appUpdateCheckProvider);
+    final announcements = ref.watch(announcementFeedProvider);
 
     return SidebarVersionFooter(
       version: version,
       pluginUpdates: pluginUpdates,
       updates: updates,
+      announcements: announcements.active,
+      hasUnseenAnnouncements: announcements.hasUnseen,
+      onOpenAnnouncement: (announcement) =>
+          unawaited(_openAnnouncement(context, announcement)),
       onOpenFrontendRelease: () => unawaited(
         _openRelease(context, ref, AppReleaseChannels.frontendPageUrl),
       ),
@@ -51,10 +59,23 @@ class _SidebarVersionInfoState extends ConsumerState<SidebarVersionInfo> {
         _openRelease(context, ref, AppReleaseChannels.backendPageUrl),
       ),
       onOpenPluginUpdates: widget.onOpenPluginUpdates,
-      onMenuOpened: () => _menuOpen = true,
+      onMenuOpened: () {
+        _menuOpen = true;
+        unawaited(ref.read(announcementFeedProvider.notifier).markSeen());
+      },
       onMenuClosed: () => _menuOpen = false,
     );
   }
+}
+
+Future<void> _openAnnouncement(
+  BuildContext context,
+  AnnouncementDto announcement,
+) async {
+  await showAnnouncementDetailDialog(
+    context: context,
+    announcement: announcement,
+  );
 }
 
 Future<void> _openRelease(

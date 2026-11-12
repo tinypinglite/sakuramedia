@@ -278,6 +278,11 @@ Future<TestApiBundle> createTestApiBundle(SessionStore sessionStore) async {
       'available_review_sources': <dynamic>[],
     },
   );
+  adapter.setFallbackJson(
+    method: 'GET',
+    path: '/status/announcements',
+    body: const <String, dynamic>{'items': <dynamic>[]},
+  );
 
   return TestApiBundle(
     sessionStore: sessionStore,

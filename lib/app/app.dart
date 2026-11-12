@@ -16,6 +16,10 @@ import 'package:sakuramedia/app/window_bootstrap_desktop.dart'
     show applyDesktopWindowAppearance;
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/announcements/presentation/announcement_state_store.dart';
+import 'package:sakuramedia/features/announcements/presentation/critical_announcement_host.dart';
+import 'package:sakuramedia/features/announcements/presentation/providers/announcement_feed_provider.dart';
+import 'package:sakuramedia/features/announcements/presentation/providers/announcement_state_store_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/routes/app_router.dart';
@@ -49,6 +53,7 @@ class MyApp extends StatefulWidget {
     this.appearanceStore,
     this.languageStore,
     this.onboardingStore,
+    this.announcementStateStore,
     this.observers,
   });
 
@@ -63,6 +68,9 @@ class MyApp extends StatefulWidget {
 
   /// 一次性上手提示存储；生产传 SharedPreferences 实现，测试/预览默认内存实现。
   final OnboardingStore? onboardingStore;
+
+  /// 公告已读/严重公告确认状态；生产传 SharedPreferences 实现。
+  final AnnouncementStateStore? announcementStateStore;
 
   /// 挂到组合根 [ProviderScope] 上的观察者。
   ///
@@ -81,6 +89,7 @@ class _MyAppState extends State<MyApp> {
   late AppearanceStore _activeAppearanceStore;
   late AppLanguageStore _activeLanguageStore;
   late OnboardingStore _activeOnboardingStore;
+  late AnnouncementStateStore _activeAnnouncementStateStore;
   late GoRouter _router;
   late bool _ownsSessionStore;
 
@@ -97,7 +106,8 @@ class _MyAppState extends State<MyApp> {
     if (oldWidget.platformOverride == widget.platformOverride &&
         oldWidget.sessionStore == widget.sessionStore &&
         oldWidget.languageStore == widget.languageStore &&
-        oldWidget.onboardingStore == widget.onboardingStore) {
+        oldWidget.onboardingStore == widget.onboardingStore &&
+        oldWidget.announcementStateStore == widget.announcementStateStore) {
       return;
     }
 
@@ -120,6 +130,8 @@ class _MyAppState extends State<MyApp> {
     _activeLanguageStore = widget.languageStore ?? InMemoryLanguageStore();
     _activeOnboardingStore =
         widget.onboardingStore ?? InMemoryOnboardingStore();
+    _activeAnnouncementStateStore =
+        widget.announcementStateStore ?? InMemoryAnnouncementStateStore();
     _router = buildAppRouter(_platform, _activeSessionStore);
   }
 
@@ -150,6 +162,9 @@ class _MyAppState extends State<MyApp> {
           sessionStoreProvider.overrideWithValue(_activeSessionStore),
           appearanceStoreProvider.overrideWithValue(_activeAppearanceStore),
           appLanguageStoreProvider.overrideWithValue(_activeLanguageStore),
+          announcementStateStoreProvider.overrideWithValue(
+            _activeAnnouncementStateStore,
+          ),
         ],
         observers: widget.observers,
         child: AppPlatformScope(
@@ -264,46 +279,57 @@ class _SakuraAppState extends ConsumerState<_SakuraApp>
             brightness: Brightness.dark,
           );
 
-    return FirstLoginPerformanceHintHost(
+    return CriticalAnnouncementHost(
       sessionStore: ref.read(sessionStoreProvider),
-      onboardingStore: widget.onboardingStore,
-      platform: widget.platform,
       navigatorKey: _rootNavigatorKey,
       isLoginPage: () =>
           widget.router.routerDelegate.currentConfiguration.uri.path ==
           loginPath,
-      child: MaterialApp.router(
-        onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
-        debugShowCheckedModeBanner: false,
-        locale: language.locale,
-        localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-          AppLocalizations.delegate,
-          ...GlobalMaterialLocalizations.delegates,
-        ],
-        supportedLocales: AppLocalizations.supportedLocales,
-        theme: lightTheme,
-        darkTheme: darkTheme,
-        themeMode: appearance.themeMode,
-        routerConfig: widget.router,
-        builder: (context, child) {
-          final content = AppImageFullscreenHost(
-            child: ScrollConfiguration(
-              behavior: const MaterialScrollBehavior().copyWith(
-                dragDevices: kAppScrollDragDevices,
-                scrollbars: false,
+      child: FirstLoginPerformanceHintHost(
+        sessionStore: ref.read(sessionStoreProvider),
+        onboardingStore: widget.onboardingStore,
+        platform: widget.platform,
+        navigatorKey: _rootNavigatorKey,
+        isLoginPage: () =>
+            widget.router.routerDelegate.currentConfiguration.uri.path ==
+            loginPath,
+        shouldSuppress: () => ref
+            .read(announcementFeedProvider)
+            .criticalUnacknowledged
+            .isNotEmpty,
+        child: MaterialApp.router(
+          onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
+          debugShowCheckedModeBanner: false,
+          locale: language.locale,
+          localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+            AppLocalizations.delegate,
+            ...GlobalMaterialLocalizations.delegates,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: lightTheme,
+          darkTheme: darkTheme,
+          themeMode: appearance.themeMode,
+          routerConfig: widget.router,
+          builder: (context, child) {
+            final content = AppImageFullscreenHost(
+              child: ScrollConfiguration(
+                behavior: const MaterialScrollBehavior().copyWith(
+                  dragDevices: kAppScrollDragDevices,
+                  scrollbars: false,
+                ),
+                child: child ?? const SizedBox.shrink(),
               ),
-              child: child ?? const SizedBox.shrink(),
-            ),
-          );
-          // Windows 无边框由 runner 原生实现，不需要 Dart 边缘热区。
-          // ignore: deprecated_member_use
-          return AppSurfaceStyleScope(
-            style: appearance.surfaceStyle,
-            child: MaterialUiCompatibilityBridge(
-              child: OKToast(child: content),
-            ),
-          );
-        },
+            );
+            // Windows 无边框由 runner 原生实现，不需要 Dart 边缘热区。
+            // ignore: deprecated_member_use
+            return AppSurfaceStyleScope(
+              style: appearance.surfaceStyle,
+              child: MaterialUiCompatibilityBridge(
+                child: OKToast(child: content),
+              ),
+            );
+          },
+        ),
       ),
     );
   }

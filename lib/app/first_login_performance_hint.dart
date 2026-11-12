@@ -21,6 +21,7 @@ class FirstLoginPerformanceHintHost extends StatefulWidget {
     required this.platform,
     required this.navigatorKey,
     required this.isLoginPage,
+    this.shouldSuppress,
     required this.child,
   });
 
@@ -29,6 +30,7 @@ class FirstLoginPerformanceHintHost extends StatefulWidget {
   final AppPlatform platform;
   final GlobalKey<NavigatorState> navigatorKey;
   final bool Function() isLoginPage;
+  final bool Function()? shouldSuppress;
   final Widget child;
 
   @override
@@ -100,6 +102,20 @@ class _FirstLoginPerformanceHintHostState
         !_sessionStore.hasSession ||
         widget.onboardingStore.hasSeenPerformanceHint) {
       return;
+    }
+    for (var attempt = 0; attempt < 60; attempt++) {
+      if (!mounted ||
+          !_sessionStore.hasSession ||
+          widget.onboardingStore.hasSeenPerformanceHint) {
+        return;
+      }
+      if (widget.shouldSuppress?.call() != true) {
+        break;
+      }
+      if (attempt == 59) {
+        return;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 500));
     }
     await _showHint();
   }

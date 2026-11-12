@@ -5,6 +5,7 @@ import 'package:sakuramedia/app/bootstrap.dart';
 import 'package:sakuramedia/app/language/language_store.dart';
 import 'package:sakuramedia/app/onboarding_store.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/announcements/presentation/announcement_state_store.dart';
 import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 
 export 'package:sakuramedia/app/app.dart';
@@ -15,6 +16,8 @@ Future<void> main() async {
   final appearanceStore = await SharedPreferencesAppearanceStore.create();
   final languageStore = await SharedPreferencesLanguageStore.create();
   final onboardingStore = await SharedPreferencesOnboardingStore.create();
+  final announcementStateStore =
+      await SharedPreferencesAnnouncementStateStore.create();
   await AppSurfaceRuntime.ensureInitialized(
     style: appearanceStore.read().surfaceStyle,
   );
@@ -24,6 +27,7 @@ Future<void> main() async {
       appearanceStore: appearanceStore,
       languageStore: languageStore,
       onboardingStore: onboardingStore,
+      announcementStateStore: announcementStateStore,
     ),
   );
 }

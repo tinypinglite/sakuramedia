@@ -5313,6 +5313,21 @@
   "shellBrowserOpenFailed": "Could not open the browser",
   "shellSystemVersion": "System version",
   "shellUpdateBadge": "Update",
+  "shellAnnouncementsTitle": "Announcements",
+  "shellVersionTooltipNotice": "{version} · new announcement",
+  "@shellVersionTooltipNotice": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "announcementLevelInfo": "Notice",
+  "announcementLevelWarning": "Warning",
+  "announcementLevelCritical": "Important",
+  "announcementCriticalDialogTitle": "Important announcement",
+  "announcementAcknowledge": "Got it",
+  "announcementReadMore": "View details",
   "shellClientLabel": "Client",
   "shellServerLabel": "Server",
   "shellVersionTooltipUpdate": "{version} · update available",

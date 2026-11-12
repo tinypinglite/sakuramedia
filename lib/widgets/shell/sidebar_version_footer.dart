@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/app/app_version_info_state.dart';
 import 'package:sakuramedia/app/providers/app_update_check_provider.dart'
     show AppUpdateCheckState;
+import 'package:sakuramedia/features/announcements/data/announcement_dto.dart';
+import 'package:sakuramedia/features/announcements/presentation/widgets/announcement_level_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
@@ -20,6 +22,9 @@ class SidebarVersionFooter extends StatelessWidget {
     required this.onOpenFrontendRelease,
     required this.onOpenBackendRelease,
     required this.onOpenPluginUpdates,
+    this.announcements = const <AnnouncementDto>[],
+    this.hasUnseenAnnouncements = false,
+    this.onOpenAnnouncement,
     this.onMenuOpened,
     this.onMenuClosed,
   });
@@ -30,6 +35,9 @@ class SidebarVersionFooter extends StatelessWidget {
   final VoidCallback onOpenFrontendRelease;
   final VoidCallback onOpenBackendRelease;
   final VoidCallback onOpenPluginUpdates;
+  final List<AnnouncementDto> announcements;
+  final bool hasUnseenAnnouncements;
+  final ValueChanged<AnnouncementDto>? onOpenAnnouncement;
   final VoidCallback? onMenuOpened;
   final VoidCallback? onMenuClosed;
 
@@ -40,7 +48,9 @@ class SidebarVersionFooter extends StatelessWidget {
         updates.hasBackendUpdate ||
         pluginUpdates > 0;
     final l10n = appL10n(context);
-    final tooltip = hasUpdates
+    final tooltip = hasUnseenAnnouncements
+        ? l10n.shellVersionTooltipNotice(version.tooltipLabelFor(l10n))
+        : hasUpdates
         ? l10n.shellVersionTooltipUpdate(version.tooltipLabelFor(l10n))
         : version.tooltipLabelFor(l10n);
 
@@ -68,7 +78,10 @@ class SidebarVersionFooter extends StatelessWidget {
               ),
               child: Row(
                 children: <Widget>[
-                  _VersionInfoIcon(hasUpdates: hasUpdates),
+                  _VersionInfoIcon(
+                    hasUpdates: hasUpdates,
+                    hasUnseenAnnouncements: hasUnseenAnnouncements,
+                  ),
                   SizedBox(width: context.appSpacing.sm),
                   Expanded(
                     child: Text(
@@ -175,6 +188,65 @@ class SidebarVersionFooter extends StatelessWidget {
               },
               primary: true,
             ),
+          if (announcements.isNotEmpty)
+            _announcementSection(context, close: close, l10n: l10n),
+        ],
+      ),
+    );
+  }
+
+  Widget _announcementSection(
+    BuildContext context, {
+    required VoidCallback close,
+    required AppLocalizations l10n,
+  }) {
+    final locale = Localizations.localeOf(context);
+    return Padding(
+      key: const Key('sidebar-announcements-section'),
+      padding: EdgeInsets.only(top: context.appSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              context.appSpacing.md,
+              context.appSpacing.xs,
+              context.appSpacing.md,
+              context.appSpacing.xs,
+            ),
+            child: Text(
+              l10n.shellAnnouncementsTitle,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                weight: AppTextWeight.semibold,
+                tone: AppTextTone.secondary,
+              ),
+            ),
+          ),
+          for (final announcement in announcements)
+            AppGlassMenuRow(
+              key: Key('sidebar-announcement-${announcement.id}'),
+              leading: Icon(
+                announcement.level.icon,
+                size: context.appComponentTokens.iconSizeSm,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+              title: Text(announcement.titleFor(locale)),
+              subtitle: Text(announcement.bodyFor(locale)),
+              trailing: AppBadge(
+                label: announcement.level.label(l10n),
+                tone: announcement.level.badgeTone,
+                size: AppBadgeSize.compact,
+              ),
+              minHeight: 52,
+              onTap: onOpenAnnouncement == null
+                  ? null
+                  : () {
+                      close();
+                      onOpenAnnouncement!(announcement);
+                    },
+            ),
         ],
       ),
     );
@@ -225,17 +297,23 @@ Widget _action(
 }
 
 class _VersionInfoIcon extends StatelessWidget {
-  const _VersionInfoIcon({required this.hasUpdates});
+  const _VersionInfoIcon({
+    required this.hasUpdates,
+    required this.hasUnseenAnnouncements,
+  });
 
   final bool hasUpdates;
+  final bool hasUnseenAnnouncements;
 
   @override
   Widget build(BuildContext context) {
     return Badge(
       key: const Key('sidebar-version-update-dot'),
-      isLabelVisible: hasUpdates,
+      isLabelVisible: hasUpdates || hasUnseenAnnouncements,
       smallSize: 6,
-      backgroundColor: context.appTextPalette.accent,
+      backgroundColor: hasUnseenAnnouncements
+          ? context.appTextPalette.error
+          : context.appTextPalette.accent,
       child: Icon(
         Icons.info_outline_rounded,
         size: context.appComponentTokens.iconSizeSm,
