@@ -6,9 +6,48 @@ outline: [2, 3]
 
 This page collects the explanations of behavior that come up most often in the current version. Background task frequency follows your own `config.toml`.
 
-## Proxy configuration
+## Metadata plugin networking and proxy
 
-Requests to external sites use the container environment variables `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY`. Connection settings for indexers, download providers and media providers are entered in their own configuration.
+The bundled metadata plugins access the following domains:
+
+```text
+adult.contents.fc2.com
+storage*.contents.fc2.com
+contents-thumbnail*.fc2.com
+fc2cmadb.com
+api.video.dmm.co.jp
+video.dmm.co.jp
+awsimgsrc.dmm.co.jp
+pics.dmm.co.jp
+www.javbus.com
+```
+
+The host being able to reach a site does not mean the container can reach it. Requests to external sites use the `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables of the `sakuramedia` container; setting a proxy only for the Docker daemon or the host does not pass it to the container.
+
+Troubleshooting order:
+
+1. Run "Overview → Component Diagnostics". It uses the test movie number to make a real request to every enabled metadata source inside the container. "No data" means the network works but the test movie number was not found; "Failed" means you should check the network or plugin settings next.
+2. Check DNS and connectivity for the fixed domains from the deployment host. If the host has `curl`, run:
+
+   ```bash
+   for host in adult.contents.fc2.com fc2cmadb.com api.video.dmm.co.jp video.dmm.co.jp awsimgsrc.dmm.co.jp pics.dmm.co.jp www.javbus.com; do
+     curl -sS -o /dev/null -w "$host %{http_code}\n" --max-time 10 "https://$host"
+   done
+   ```
+
+   `storage*` and `contents-thumbnail*` are wildcard subdomains; verify them through the real requests made by Component Diagnostics.
+3. Check whether a router or transparent proxy routes these domains to an unusable gateway.
+4. If a proxy is required, configure it in `sakuramedia.environment` in the compose file:
+
+   ```yaml
+   HTTP_PROXY: "http://192.168.1.1:7890"
+   HTTPS_PROXY: "http://192.168.1.1:7890"
+   NO_PROXY: "localhost,127.0.0.1,postgres,qbittorrent"
+   ```
+
+   The proxy address must be reachable from the container; inside a container, `127.0.0.1` usually points to the container itself rather than the host. Keep LAN indexers, qBittorrent, PostgreSQL, and similar services in `NO_PROXY` so internal requests do not go through the proxy. Restart the `sakuramedia` container after changing these values.
+
+Connection settings for indexers, download providers and media providers are still entered in their own configuration.
 
 ## Accounts and sign-in
 
@@ -26,13 +65,13 @@ You can also pass `--username` and `--password` directly. The command clears ref
 
 ### Search or import by movie number fails. What should I do?
 
-This release uses only installed metadata plugins, in the order configured under Settings → Metadata Sources. Every plugin must declare Host API 18; older plugins must be released again before they can load. Confirm that at least one compatible metadata plugin is installed and enabled, then check its configuration and network access.
+This release uses only enabled metadata plugins, in the order configured under Settings → Metadata Sources. The official image bundles four metadata sources: DMM / FANZA, FC2, FC2CMADB, and JavBus. Run the "Capability test" for the relevant plugin on the Plugins page, then check each source's result under "Overview → Component Diagnostics". "No data" means the plugin is reachable but did not find the test movie number; "Failed" means you should check the plugin settings and network. Every plugin must declare Host API 18; older plugins that have not been released against 18 cannot load.
 
 ### Online search for movies or actors fails
 
-First run "Component diagnostics" on the "Overview" page to confirm the media library and indexers are reachable, then check container networking, proxy rules and DNS. Plugin-specific errors appear in the manual-match source-error notice or backend logs.
+First run "Component Diagnostics" on the "Overview" page to confirm the media library, metadata sources and indexers are reachable; each metadata source shows its own test result. Then check container networking, proxy rules and DNS. Plugin-specific errors appear in the manual-match source-error notice or backend logs.
 
-Covers and stills are delivered by metadata plugins; avatars are downloaded by the backend from GFriends. If your router runs a transparent proxy, check whether the relevant domains are routed to an unusable gateway; when they cannot be reached, images will be missing.
+Covers and stills are delivered by metadata plugins; avatars are downloaded by the backend from GFriends. If your router runs a transparent proxy, check whether the relevant domains are routed to an unusable gateway; when they cannot be reached, images will be missing. See [Metadata plugin networking and proxy](#metadata-plugin-networking-and-proxy) for the domains and container proxy settings.
 
 ### Why don't I see any movies or actors right after starting?
 
@@ -40,7 +79,13 @@ Local search only queries data that has already been imported. After a first dep
 
 ### Why is "New from actors" empty?
 
-That page only shows recent local movies linked to actors you have subscribed to. This release no longer performs remote actor release sync, so new movies must first enter the local library through metadata plugins or media import. Subscribing to an actor does not subscribe to her movies; once you see a movie you want, subscribe to that movie separately.
+That page shows recent local movies linked to actors you have subscribed to. The system syncs release data through metadata plugins that declare the actor movie list capability; the bundled JavBus plugin supports it. The background task is "Subscribed actor movie sync", which runs daily at 02:00 by default. The first run scans the full list, and later runs check incrementally.
+
+Check in order: you have subscribed to actors, the sync task completed successfully, and the metadata plugin can reach the network. The list can also be empty when a subscription was just added and has not synced yet, or when there are no recent releases. Subscribing to an actor does not subscribe to her movies; once you see a movie you want, subscribe to that movie separately. See [Background Tasks](/guide/tasks#subscribed-actor-movie-sync) for details.
+
+### Why can't I see interaction stats, heat, or reviews?
+
+Movie interaction stats, heat, and reviews are all provided by plugins. The official image does not bundle such a plugin. When none is installed, or no stats/review source is bound under "Settings → Metadata Sources", the frontend hides the related sections. After installing a compatible plugin, select the source for each capability there.
 
 ### What does search by image require?
 

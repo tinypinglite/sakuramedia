@@ -105,7 +105,7 @@ Requests to external sites uniformly use the container environment variables `HT
 
 ### Metadata plugins
 
-Movie search, import by movie number and manual matching use only installed metadata plugins, in the order configured under Settings → Metadata Sources. This release requires every plugin to declare Host API 18; older plugins must be released again before they can load. Actor search uses the backend's bundled GFriends index and needs no account configuration.
+The official image bundles and enables four metadata sources: DMM / FANZA, FC2, FC2CMADB, and JavBus. Movie search, import by movie number, and manual matching use only enabled metadata plugins, in the order configured under Settings → Metadata Sources; restart the API and APS after saving the order. This release requires every plugin to declare Host API 18, and older plugins must be released again before they can load. Actor search uses the backend's bundled GFriends index and needs no account configuration. See the [FAQ](/faq#metadata-plugin-networking-and-proxy) for the domains metadata plugins need and proxy configuration.
 
 ## `[plugins]`
 
@@ -125,12 +125,12 @@ settings = {}
 | `enabled` | List of enabled plugin IDs. |
 | `job_crons` | Cron overrides for plugin background tasks, grouped by plugin ID. |
 | `settings` | Private plugin settings, grouped by plugin ID. |
-| `stats_source` | Plugin ID used for movie interaction stats and heat. Leave empty to keep existing data without syncing. |
-| `review_source` | Preferred plugin ID for movie reviews. When empty, enabled review plugins are tried in order. |
+| `stats_source` | Plugin ID used for movie interaction stats and heat. Leave empty to keep existing data without syncing; the frontend hides interaction stats and heat. |
+| `review_source` | Plugin ID used for movie reviews. When empty, no review plugin is called and the frontend hides the review entry. |
 
 The entry point for installing, enabling and configuring plugins is "System Settings → Plugins"; you can also use the `plugins` commands in [Common Commands](/guide/commands).
 
-Interaction stats and review sources are configured under "System Settings → Metadata Sources". Only one plugin can provide interaction stats at a time.
+Interaction stats and review sources are configured under "System Settings → Metadata Sources"; restart the API and APS after saving. Only one plugin can provide interaction stats at a time.
 
 ## `[scheduler]`
 
@@ -140,6 +140,7 @@ This group controls host scheduled tasks. Every value is a cron expression; the 
 [scheduler]
 enabled = true
 log_dir = "/data/logs"
+actor_subscription_sync_cron = "0 2 * * *"
 subscribed_movie_auto_download_cron = "30 2 * * *"
 download_task_sync_cron = "* * * * *"
 download_task_auto_import_cron = "* * * * *"
@@ -160,6 +161,7 @@ activity_notification_read_retention_days = 3
 |---|---|
 | `enabled` | Whether background scheduled tasks are enabled. |
 | `log_dir` | Log directory for background tasks. |
+| `actor_subscription_sync_cron` | Sync of movie lists for subscribed actors. |
 | `subscribed_movie_auto_download_cron` | Auto-download of missing subscribed movies. |
 | `download_task_sync_cron` | Sync of provider download task status. |
 | `download_task_auto_import_cron` | Hands completed provider tasks to the import flow. |
@@ -242,21 +244,3 @@ api_key = ""
 `url` is the Qdrant HTTP API address; with the compose deployment, use the in-container service name `qdrant`. Fill in `api_key` when Qdrant authentication is enabled.
 
 `enabled` controls similar movies and the vector service. When it is off, Qdrant is not contacted and recommendations skip the movie similarity signal; disabling image search does not affect similar movies, which depend on Qdrant alone. When disabling Qdrant you should disable image search as well; desktop prompts you and saves both together. The switch does not stop or remove Docker containers — to free resources, stop the containers on the deployment side.
-
-## Deployment announcements
-
-The backend polls the project announcement feed at
-`https://tinypinglite.github.io/sakuramedia/announcements.json`. It caches a
-successful response for 30 minutes and keeps the last good response when the
-feed is temporarily unavailable.
-
-These optional container environment variables override the defaults:
-
-| Variable | Purpose |
-|---|---|
-| `SAKURAMEDIA_ANNOUNCEMENTS_ENABLED` | Set to `false` to disable announcement checks. |
-| `SAKURAMEDIA_ANNOUNCEMENTS_URL` | Use a mirror or local announcement feed. |
-
-Announcements can be about the client or backend, and may be limited to an
-affected version range. Critical announcements require one acknowledgement in
-the client; other announcements appear in the version menu.

@@ -105,6 +105,21 @@ void main() {
       expect(a.matches(b), isTrue);
       expect(a.matches(c), isFalse);
     });
+
+    test('withoutStatsFeatures 清空热度排序', () {
+      final heat = PlaylistFilterState.initial.copyWith(
+        sortField: PlaylistSortField.heat,
+      );
+      final bitrate = PlaylistFilterState.initial.copyWith(
+        sortField: PlaylistSortField.bitrate,
+      );
+
+      expect(heat.withoutStatsFeatures().sortField, isNull);
+      expect(
+        bitrate.withoutStatsFeatures().sortField,
+        PlaylistSortField.bitrate,
+      );
+    });
   });
 
   group('PlaylistResolutionFilter', () {

@@ -7,6 +7,7 @@ import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_provider.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_scope.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_state.dart';
@@ -16,10 +17,12 @@ class CatalogSearchHarness {
   CatalogSearchHarness({
     required MoviesApi moviesApi,
     required ActorsApi actorsApi,
+    bool statsEnabled = true,
   }) : _container = ProviderContainer(
          overrides: [
            moviesApiProvider.overrideWithValue(moviesApi),
            actorsApiProvider.overrideWithValue(actorsApi),
+           statsFeaturesEnabledProvider.overrideWithValue(statsEnabled),
          ],
          retry: (_, __) => null,
        ) {

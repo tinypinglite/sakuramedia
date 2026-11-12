@@ -82,4 +82,45 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('mobile plugin with capabilities opens the test drawer', (
+    tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/plugins',
+      body: <Map<String, dynamic>>[
+        pluginSummaryJson(
+          enabled: true,
+          testCapabilities: <String>['metadata'],
+          testMovieNumber: 'SSIS-001',
+        ),
+      ],
+    );
+
+    await pumpPreviewApp(
+      tester,
+      home: const MobilePluginsPage(),
+      size: const Size(390, 844),
+      theme: buildSakuraMobileThemeData(),
+      platform: TargetPlatform.android,
+      appPlatform: AppPlatform.mobile,
+      bundle: bundle,
+      extraOverrides: <Override>[
+        pluginsApiProvider.overrideWithValue(
+          PluginsApi(apiClient: bundle.apiClient),
+        ),
+      ],
+    );
+
+    await tester.tap(find.byKey(const Key('mobile-plugin-more-demo_plugin')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('mobile-plugin-test-demo_plugin')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('plugin-test-drawer-demo_plugin')),
+      findsOneWidget,
+    );
+  });
 }

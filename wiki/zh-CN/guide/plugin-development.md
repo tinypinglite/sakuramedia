@@ -381,6 +381,27 @@ def register(context: PluginContext) -> PluginRegistration:
 
 回调只负责交付结果，不要在其中调用 `context.import_movie_by_number()`，否则会重新进入相同的兜底链路。
 
+完整实现可参考 [JavBus 元数据插件](https://github.com/tinypinglite/sakuramedia_javbus_metadata)。
+
+### 演员作品列表（可选）
+
+元数据插件还可以在 `PluginMetadataSource` 中提供可选的 `fetch_actor_movies` 回调，用于订阅女优作品同步。`PluginActorMovieQuery`、`PluginActorMoviePage` 和 `PluginActorRef` 均可从 `src.plugins` 导入：
+
+```python
+def fetch_actor_movies(
+    query: PluginActorMovieQuery,
+) -> PluginActorMoviePage | None:
+    # 按 query.actor 的名称/别名解析外部演员；无法识别时返回 None。
+    return PluginActorMoviePage(
+        movie_numbers=["ABC-001", "ABC-002"],
+        next_cursor=None,
+    )
+```
+
+`PluginActorMovieQuery` 包含本地 `actor` 身份、`cursor` 和 `mode`（`incremental` 或 `full`）。返回页面时，`movie_numbers` 是本页番号，`next_cursor` 指向下一页；没有下一页时设为 `None`。宿主会调用所有声明该能力的已启用元数据来源，合并去重番号，再按元数据源顺序导入本地缺失的影片并关联女优。
+
+`incremental` 的增量范围和外部演员 ID 缓存由插件自己维护，状态写入 `context.data_dir`。插件应避免返回重复游标；宿主会限制单个来源的翻页次数。
+
 ### 结果与图片交付
 
 `PluginMovieMetadata` 要求以下字段：
@@ -402,13 +423,15 @@ def register(context: PluginContext) -> PluginRegistration:
 3. 返回后让文件继续存在，交由宿主校验、复制并入库。宿主在消费结束后清理已接管的交付文件；不要在回调返回前通过临时目录上下文自动删掉图片。
 4. 插件自行清理下载失败、返回 `None` 或未通过路径交付校验时遗留的文件。不要将长期缓存文件直接作为交付文件，因为它们可能被宿主删除。
 
-宿主保存来源信息，并按本地演员主名称/别名匹配影片演员；无匹配时会创建本地演员，同级多命中时使用最早创建的记录。插件导入的影片直接成为普通本地影片，不再有 JavDB 补录任务。元数据来源交付本身不会自动取得字段归属。
+宿主保存来源信息，并按本地演员主名称/别名匹配影片演员；无匹配时会创建本地演员，同级多命中时使用最早创建的记录。插件导入的影片直接成为普通本地影片，宿主不再执行额外的外部补录任务。元数据来源交付本身不会自动取得字段归属。
+
+插件声明元数据、互动数或评论能力时，应在 `PluginRegistration` 上提供 `test_movie_number`。插件设置页会用它和当前已加载配置做只读能力测试；测试不会导入影片、写入互动数或保存评论。未声明时宿主为兼容旧插件暂时回退到 `SSIS-001`。
 
 ## 排行榜来源
 
 排行榜插件在 `extensions` 中声明 `PluginExtension(key="discovery.ranking_source", data=...)`。`PluginRankingSource` 包含全局唯一的 `source_key` 和一个或多个 `PluginRankingBoard`；每个榜单的 `fetch_numbers(period)` 返回番号列表，顺序即排名。
 
-插件负责访问外部站点并注册自己的同步任务；宿主负责榜单存储、影片详情导入和对外 API。可参考 [JavDB 排行榜插件](https://github.com/tinypinglite/sakuramedia_javdb_ranking)。
+插件负责访问外部站点并注册自己的同步任务；宿主负责榜单存储、影片详情导入和对外 API。可参考 [更多影片榜单插件](https://github.com/tinypinglite/sakuramedia_more_rank_movies)。
 
 ## 媒体 Provider
 
@@ -544,7 +567,7 @@ class Settings(BaseModel):
     )
 ```
 
-语言包读取方式可直接参考样板插件 `sakuramedia_javdb_ranking` 的 `translations.py`：`text_map(key)` 返回 `{locale: text}`，`text(key, locale, default)` 返回源文案；文件或 key 缺失时返回空字典或兜底值，不会在导入期失败。
+语言包读取方式可直接参考样板插件 `sakuramedia_more_rank_movies` 的 `translations.py`：`text_map(key)` 返回 `{locale: text}`，`text(key, locale, default)` 返回源文案；文件或 key 缺失时返回空字典或兜底值，不会在导入期失败。
 
 ### 运行时文本：`context.i18n.t()`
 
@@ -573,7 +596,7 @@ reporter.emit(
 
 请求路径上，宿主按 `Accept-Language`、其次用户的 `User.language` 偏好、最后默认 `zh-CN` 决定当前语言；后台任务没有请求上下文，执行时读取单账号的 `User.language`。插件不需要自己解析请求头。
 
-以 `sakuramedia_javdb_ranking` 为样板：manifest 与 `plugin.py` 声明展示名，`boards.py` 声明榜单名，`settings.py` 与 `sync_jobs.py` 声明字段标题，同步任务里用 `t()` 生成进度文本。
+以 `sakuramedia_more_rank_movies` 为样板：manifest 与 `plugin.py` 声明展示名，`boards.py` 声明榜单名，`sync_jobs.py` 声明任务参数和字段标题，同步任务里用 `t()` 生成进度文本。
 
 ## 版本兼容
 

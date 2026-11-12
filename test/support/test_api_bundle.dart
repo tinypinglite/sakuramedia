@@ -47,6 +47,8 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_interac
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
 import 'package:sakuramedia/features/playlists/data/api/playlists_api.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_api_provider.dart';
+import 'package:sakuramedia/features/plugins/data/dto/plugin_binding_dto.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_bindings_provider.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/rankings_api_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/collection_playback_handoff.dart';
@@ -179,6 +181,7 @@ class TestApiBundle {
     // 传 null 可让真实 provider 走 fake adapter，专门测加载/失败分支。
     MovieInteractionFilterOptionsDto? interactionFilterOptions =
         testInteractionFilterOptions,
+    PluginBindingsDto? pluginBindings,
   }) {
     return <Override>[
       apiClientProvider.overrideWithValue(apiClient),
@@ -219,6 +222,8 @@ class TestApiBundle {
       movieSubscriptionsApiProvider.overrideWithValue(movieSubscriptionsApi),
       playlistsApiProvider.overrideWithValue(playlistsApi),
       rankingsApiProvider.overrideWithValue(rankingsApi),
+      if (pluginBindings != null)
+        pluginBindingsProvider.overrideWith((ref) async => pluginBindings),
       statusApiProvider.overrideWithValue(statusApi),
       tagsApiProvider.overrideWithValue(tagsApi),
       videosApiProvider.overrideWithValue(videosApi),

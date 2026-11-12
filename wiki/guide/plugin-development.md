@@ -381,6 +381,27 @@ The host calls enabled metadata sources in `plugins.enabled` order. When a plugi
 
 The callback only delivers results; don't call `context.import_movie_by_number()` inside it, or you'll re-enter the same fallback chain.
 
+For a complete implementation, see the [JavBus metadata plugin](https://github.com/tinypinglite/sakuramedia_javbus_metadata).
+
+### Actor movie lists (optional)
+
+A metadata plugin may also provide the optional `fetch_actor_movies` callback on `PluginMetadataSource` for subscribed-actor movie sync. `PluginActorMovieQuery`, `PluginActorMoviePage`, and `PluginActorRef` can all be imported from `src.plugins`:
+
+```python
+def fetch_actor_movies(
+    query: PluginActorMovieQuery,
+) -> PluginActorMoviePage | None:
+    # Resolve the external actor by query.actor's name/aliases; return None when unknown.
+    return PluginActorMoviePage(
+        movie_numbers=["ABC-001", "ABC-002"],
+        next_cursor=None,
+    )
+```
+
+`PluginActorMovieQuery` contains the local `actor` identity, a `cursor`, and `mode` (`incremental` or `full`). When returning a page, `movie_numbers` contains the movie numbers on that page and `next_cursor` points to the next page; set it to `None` when there is no next page. The host calls every enabled metadata source that declares this capability, merges and deduplicates the numbers, then imports missing local movies through the metadata source order and links them to the actor.
+
+The plugin owns the incremental range and any cached external actor IDs for `incremental` mode, and stores that state under `context.data_dir`. Do not return duplicate cursors; the host limits the number of pages fetched from one source.
+
 ### Results and image delivery
 
 `PluginMovieMetadata` requires the following fields:
@@ -402,13 +423,15 @@ Image delivery follows these rules:
 3. Leave the files in place after returning; the host validates, copies, and ingests them. The host cleans up delivery files it has taken over after consumption; don't let a temporary directory context delete the images before the callback returns.
 4. Plugins clean up files left behind by download failures, `None` returns, or failed path delivery validation. Don't use long-term cache files directly as delivery files, because the host may delete them.
 
-The host stores source information and matches actors by local primary name or alias. If there is no match, it creates a local actor; when several records match at the same priority, the oldest record wins. Imported movies are ordinary local movies and there is no JavDB backfill job. Metadata source delivery itself does not automatically claim field ownership.
+The host stores source information and matches actors by local primary name or alias. If there is no match, it creates a local actor; when several records match at the same priority, the oldest record wins. Imported movies are ordinary local movies, and the host does not run an additional external backfill job. Metadata source delivery itself does not automatically claim field ownership.
+
+Declare `test_movie_number` on `PluginRegistration` when the plugin exposes metadata, stats, or review capabilities. The plugin settings page uses it for a read-only capability test against the currently loaded configuration; the test does not import a movie, persist stats, or store reviews. If omitted, the host currently falls back to `SSIS-001` for compatibility.
 
 ## Ranking sources
 
 Ranking plugins declare `PluginExtension(key="discovery.ranking_source", data=...)` in `extensions`. `PluginRankingSource` contains a globally unique `source_key` and one or more `PluginRankingBoard`; each board's `fetch_numbers(period)` returns a list of movie numbers, and the order is the ranking.
 
-The plugin is responsible for accessing external sites and registering its own sync job; the host handles board storage, movie detail import, and the public API. See the [JavDB ranking plugin](https://github.com/tinypinglite/sakuramedia_javdb_ranking).
+The plugin is responsible for accessing external sites and registering its own sync job; the host handles board storage, movie detail import, and the public API. See the [More Movie Rankings plugin](https://github.com/tinypinglite/sakuramedia_more_rank_movies).
 
 ## Media providers
 
@@ -546,7 +569,7 @@ class Settings(BaseModel):
     )
 ```
 
-For how to read catalogs, follow the sample plugin `sakuramedia_javdb_ranking`'s `translations.py`: `text_map(key)` returns `{locale: text}`, and `text(key, locale, default)` returns the source text; when a file or key is missing they return an empty dict or a fallback value instead of failing at import time.
+For how to read catalogs, follow the sample plugin `sakuramedia_more_rank_movies`'s `translations.py`: `text_map(key)` returns `{locale: text}`, and `text(key, locale, default)` returns the source text; when a file or key is missing they return an empty dict or a fallback value instead of failing at import time.
 
 ### Runtime text: `context.i18n.t()`
 
@@ -575,7 +598,7 @@ New plugins should declare the manifest's `host_api_version` as `18`, and keep u
 
 On request paths, the host determines the current language from `Accept-Language`, then the user's `User.language` preference, and finally the default `zh-CN`; background jobs have no request context and read the single account's `User.language` when they run. Plugins do not need to parse request headers themselves.
 
-Use `sakuramedia_javdb_ranking` as the sample: the manifest and `plugin.py` declare the display name, `boards.py` declares board names, `settings.py` and `sync_jobs.py` declare field titles, and the sync job uses `t()` to generate progress text.
+Use `sakuramedia_more_rank_movies` as the sample: the manifest and `plugin.py` declare the display name, `boards.py` declares board names, `sync_jobs.py` declares task parameters and field titles, and the sync job uses `t()` to generate progress text.
 
 ## Version compatibility
 

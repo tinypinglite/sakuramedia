@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/movies/presentation/controllers/listing/mov
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/mutation_events_provider.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/features/search/data/catalog_search_stream_stats.dart';
 import 'package:sakuramedia/features/search/presentation/catalog_search_stream_status.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_scope.dart';
@@ -56,6 +57,19 @@ class CatalogSearch extends _$CatalogSearch {
       if (change != null) {
         applyActorSubscriptionChange(change);
       }
+    });
+    ref.listen(statsFeaturesEnabledProvider, (_, enabled) {
+      if (enabled) return;
+      final filter = state.movieFilter.withoutStatsFeatures();
+      final sortField = state.movieSortField == MovieSortField.heat
+          ? null
+          : state.movieSortField;
+      if (filter.matches(state.movieFilter) &&
+          sortField == state.movieSortField) {
+        return;
+      }
+      state = state.copyWith(movieFilter: filter, movieSortField: sortField);
+      unawaited(_refreshLocalMovies());
     });
     return CatalogSearchState.initial;
   }
@@ -218,10 +232,13 @@ class CatalogSearch extends _$CatalogSearch {
   }
 
   Future<void> applyMovieFilter(MovieFilterState filter) async {
-    if (state.movieFilter.matches(filter)) {
+    final effective = ref.read(statsFeaturesEnabledProvider)
+        ? filter
+        : filter.withoutStatsFeatures();
+    if (state.movieFilter.matches(effective)) {
       return;
     }
-    state = state.copyWith(movieFilter: filter);
+    state = state.copyWith(movieFilter: effective);
     await _refreshLocalMovies();
   }
 
@@ -229,12 +246,16 @@ class CatalogSearch extends _$CatalogSearch {
     required MovieSortField? field,
     required SortDirection direction,
   }) async {
-    if (state.movieSortField == field &&
+    final effectiveField =
+        !ref.read(statsFeaturesEnabledProvider) && field == MovieSortField.heat
+        ? null
+        : field;
+    if (state.movieSortField == effectiveField &&
         state.movieSortDirection == direction) {
       return;
     }
     state = state.copyWith(
-      movieSortField: field,
+      movieSortField: effectiveField,
       movieSortDirection: direction,
     );
     await _refreshLocalMovies();
@@ -243,7 +264,13 @@ class CatalogSearch extends _$CatalogSearch {
   Future<PaginatedResponseDto<MovieListItemDto>> _fetchLocalMovies(
     String query,
   ) {
-    final filter = state.movieFilter;
+    final statsEnabled = ref.read(statsFeaturesEnabledProvider);
+    final filter = statsEnabled
+        ? state.movieFilter
+        : state.movieFilter.withoutStatsFeatures();
+    final sort = !statsEnabled && state.movieSortField == MovieSortField.heat
+        ? null
+        : state.movieSortExpression;
     return ref
         .read(moviesApiProvider)
         .getMovies(
@@ -252,7 +279,7 @@ class CatalogSearch extends _$CatalogSearch {
           status: filter.status,
           collectionType: filter.collectionType,
           numberSource: filter.numberSource,
-          sort: state.movieSortExpression,
+          sort: sort,
           years: filter.years.toList(growable: false),
           interaction: filter.interaction,
           actorAgeMin: filter.actorAgeMin,

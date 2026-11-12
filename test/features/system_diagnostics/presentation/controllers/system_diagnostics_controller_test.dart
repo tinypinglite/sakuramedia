@@ -2,9 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/configuration/data/api/metadata_sources_api.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/indexer_settings_api_provider.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/metadata_sources_api_provider.dart';
 import 'package:sakuramedia/features/downloads/presentation/providers/downloads_api_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
+import 'package:sakuramedia/features/plugins/data/plugins_api.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugins_api_provider.dart';
 import 'package:sakuramedia/features/status/presentation/providers/status_api_provider.dart';
 import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_category_state.dart';
 import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_item_kind.dart';
@@ -32,6 +36,12 @@ _SystemDiagnosticsHarness _newController() {
   _container = ProviderContainer(
     overrides: [
       mediaLibrariesApiProvider.overrideWithValue(_bundle.mediaLibrariesApi),
+      metadataSourcesApiProvider.overrideWithValue(
+        MetadataSourcesApi(apiClient: _bundle.apiClient),
+      ),
+      pluginsApiProvider.overrideWithValue(
+        PluginsApi(apiClient: _bundle.apiClient),
+      ),
       downloadClientsApiProvider.overrideWithValue(_bundle.downloadClientsApi),
       indexerSettingsApiProvider.overrideWithValue(_bundle.indexerSettingsApi),
       statusApiProvider.overrideWithValue(_bundle.statusApi),
@@ -147,6 +157,43 @@ Map<String, dynamic> _imageSearchStatus({
   };
 }
 
+Map<String, dynamic> _metadataSource({
+  required String pluginId,
+  required String displayName,
+}) {
+  return <String, dynamic>{'plugin_id': pluginId, 'display_name': displayName};
+}
+
+Map<String, dynamic> _metadataTestResult({
+  String status = 'ok',
+  String movieNumber = 'SSIS-001',
+  int durationMs = 25,
+  String title = '测试影片',
+  int actorCount = 2,
+  int tagCount = 6,
+  int imageCount = 4,
+  String? errorMessage,
+  bool includeMetadata = true,
+}) {
+  return <String, dynamic>{
+    'capability': 'metadata',
+    'status': status,
+    'movie_number': movieNumber,
+    'duration_ms': durationMs,
+    if (status == 'ok' && includeMetadata)
+      'metadata': <String, dynamic>{
+        'movie_number': movieNumber,
+        'title': title,
+        'release_date': '2024-01-01',
+        'duration_minutes': 120,
+        'actor_count': actorCount,
+        'tag_count': tagCount,
+        'image_count': imageCount,
+      },
+    'error_message': ?errorMessage,
+  };
+}
+
 // 独立探针的响应：一次性 enqueue 好，媒体库/索引器分支是否继续都不影响
 // 嵌入服务探针执行。
 void _enqueueIndependentProbes({
@@ -163,6 +210,42 @@ void _enqueueIndependentProbes({
   );
 }
 
+/// 除元数据源外全部健康的底座，便于单独断言元数据分支。
+void _enqueueHealthyBase() {
+  _bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/media-libraries',
+    body: <Map<String, dynamic>>[_library()],
+  );
+  _bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/download-clients',
+    body: <Map<String, dynamic>>[_clientDto()],
+  );
+  _bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/indexer-settings',
+    body: _indexerSettings(
+      entries: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 1,
+          'name': 'e1',
+          'url': 'https://torznab.example/api',
+          'kind': 'pt',
+          'download_client_id': 1,
+          'download_client_name': 'qb',
+        },
+      ],
+    ),
+  );
+  _bundle.adapter.enqueueJson(
+    method: 'POST',
+    path: '/indexer-settings/test',
+    body: _indexerConnectionTest(healthy: true),
+  );
+  _enqueueIndependentProbes();
+}
+
 DiagnosticItemState _find(
   _SystemDiagnosticsHarness c,
   bool Function(DiagnosticItemState) predicate,
@@ -175,6 +258,17 @@ DiagnosticItemState _find(
   fail('未找到满足条件的诊断项');
 }
 
+List<DiagnosticItemState> _findAll(
+  _SystemDiagnosticsHarness c,
+  bool Function(DiagnosticItemState) predicate,
+) {
+  return <DiagnosticItemState>[
+    for (final cat in c.categories)
+      for (final item in cat.items)
+        if (predicate(item)) item,
+  ];
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -182,6 +276,18 @@ void main() {
     SharedPreferences.setMockInitialValues(<String, Object>{});
     final store = await _buildLoggedInSessionStore();
     _bundle = await createTestApiBundle(store);
+    _bundle.adapter.setFallbackJson(
+      method: 'GET',
+      path: '/system/metadata-sources',
+      body: <Map<String, dynamic>>[
+        _metadataSource(pluginId: 'meta_default', displayName: '默认元数据源'),
+      ],
+    );
+    _bundle.adapter.setFallbackJson(
+      method: 'POST',
+      path: '/system/plugins/meta_default/test',
+      body: _metadataTestResult(title: '默认测试影片'),
+    );
   });
 
   tearDown(() {
@@ -367,6 +473,11 @@ void main() {
     await Future.wait<void>([first, second]);
 
     expect(_bundle.adapter.hitCount('GET', '/media-libraries'), 1);
+    expect(_bundle.adapter.hitCount('GET', '/system/metadata-sources'), 1);
+    expect(
+      _bundle.adapter.hitCount('POST', '/system/plugins/meta_default/test'),
+      1,
+    );
   });
 
   // 独立探针场景的最小骨架：媒体库有 1 个，索引器配置列表为空，
@@ -435,5 +546,238 @@ void main() {
     expect(ml.summary, '数据库连接失败');
     // 这一条不该给"去建媒体库"的跳转。
     expect(ml.fixTarget, isNull);
+  });
+
+  test('元数据源逐个调用真实插件测试接口并按顺序展示', () async {
+    _enqueueHealthyBase();
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/metadata-sources',
+      body: <Map<String, dynamic>>[
+        _metadataSource(pluginId: 'meta_a', displayName: '元数据 A'),
+        _metadataSource(pluginId: 'meta_b', displayName: '元数据 B'),
+      ],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/system/plugins/meta_a/test',
+      body: _metadataTestResult(title: '影片 A'),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/system/plugins/meta_b/test',
+      body: _metadataTestResult(
+        title: '影片 B',
+        actorCount: 3,
+        tagCount: 7,
+        imageCount: 5,
+      ),
+    );
+
+    final c = _newController();
+    await c.runAll();
+
+    final items = _findAll(
+      c,
+      (i) => i.kind == DiagnosticItemKind.metadataSource,
+    );
+    expect(items.map((i) => i.displayName), <String>['元数据 A', '元数据 B']);
+    expect(items.map((i) => i.status), <DiagnosticItemStatus>[
+      DiagnosticItemStatus.healthy,
+      DiagnosticItemStatus.healthy,
+    ]);
+    expect(items.first.summary, contains('影片 A'));
+    expect(items.last.summary, contains('影片 B'));
+    expect(c.overallStatus, DiagnosticItemStatus.healthy);
+
+    final requests = _bundle.adapter.requests
+        .where(
+          (request) =>
+              request.method == 'POST' &&
+              request.path.startsWith('/system/plugins/meta_'),
+        )
+        .toList(growable: false);
+    expect(requests.length, 2);
+    expect(
+      requests.map((request) => request.body),
+      everyElement(equals(<String, dynamic>{'capability': 'metadata'})),
+    );
+  });
+
+  test('元数据源 ok/empty/failed 分别映射为 healthy/warning/unhealthy', () async {
+    _enqueueHealthyBase();
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/metadata-sources',
+      body: <Map<String, dynamic>>[
+        _metadataSource(pluginId: 'meta_ok', displayName: '正常源'),
+        _metadataSource(pluginId: 'meta_empty', displayName: '空结果源'),
+        _metadataSource(pluginId: 'meta_failed', displayName: '失败源'),
+      ],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/system/plugins/meta_ok/test',
+      body: _metadataTestResult(title: '正常影片'),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/system/plugins/meta_empty/test',
+      body: _metadataTestResult(
+        status: 'empty',
+        movieNumber: 'FC2-PPV-4972378',
+        includeMetadata: false,
+      ),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/system/plugins/meta_failed/test',
+      body: _metadataTestResult(
+        status: 'failed',
+        includeMetadata: false,
+        errorMessage: 'upstream unavailable',
+      ),
+    );
+
+    final c = _newController();
+    await c.runAll();
+
+    final items = _findAll(
+      c,
+      (i) => i.kind == DiagnosticItemKind.metadataSource,
+    );
+    expect(items.map((i) => i.status), <DiagnosticItemStatus>[
+      DiagnosticItemStatus.healthy,
+      DiagnosticItemStatus.warning,
+      DiagnosticItemStatus.unhealthy,
+    ]);
+    expect(items[1].summary, contains('FC2-PPV-4972378'));
+    expect(items[1].fixTarget, isNotNull);
+    expect(items[2].summary, 'upstream unavailable');
+    expect(items[2].fixTarget, isNotNull);
+    expect(c.overallStatus, DiagnosticItemStatus.unhealthy);
+  });
+
+  test('元数据源单次请求失败不影响其他源', () async {
+    _enqueueHealthyBase();
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/metadata-sources',
+      body: <Map<String, dynamic>>[
+        _metadataSource(pluginId: 'meta_ok', displayName: '正常源'),
+        _metadataSource(pluginId: 'meta_error', displayName: '请求失败源'),
+      ],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/system/plugins/meta_ok/test',
+      body: _metadataTestResult(title: '正常影片'),
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/system/plugins/meta_error/test',
+      statusCode: 500,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'internal_error',
+          'message': '插件测试崩溃',
+        },
+      },
+    );
+
+    final c = _newController();
+    await c.runAll();
+
+    final items = _findAll(
+      c,
+      (i) => i.kind == DiagnosticItemKind.metadataSource,
+    );
+    expect(items[0].status, DiagnosticItemStatus.healthy);
+    expect(items[1].status, DiagnosticItemStatus.unhealthy);
+    expect(items[1].summary, '插件测试崩溃');
+    expect(items[1].fixTarget, isNull);
+  });
+
+  test('元数据源列表读取失败 → 单项 unhealthy，其他诊断继续', () async {
+    _enqueueHealthyBase();
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/metadata-sources',
+      statusCode: 500,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'internal_error',
+          'message': '数据库连接失败',
+        },
+      },
+    );
+
+    final c = _newController();
+    await c.runAll();
+
+    final items = _findAll(
+      c,
+      (i) => i.kind == DiagnosticItemKind.metadataSource,
+    );
+    expect(items, hasLength(1));
+    expect(items.single.status, DiagnosticItemStatus.unhealthy);
+    expect(items.single.summary, '数据库连接失败');
+    expect(items.single.cause, contains('后端没有正常响应'));
+    expect(
+      _find(c, (i) => i.kind == DiagnosticItemKind.mediaLibrary).status,
+      DiagnosticItemStatus.healthy,
+    );
+  });
+
+  test('没有启用元数据源 → warning，且不发插件测试请求', () async {
+    _enqueueHealthyBase();
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/metadata-sources',
+      body: <Map<String, dynamic>>[],
+    );
+
+    final c = _newController();
+    await c.runAll();
+
+    final items = _findAll(
+      c,
+      (i) => i.kind == DiagnosticItemKind.metadataSource,
+    );
+    expect(items, hasLength(1));
+    expect(items.single.status, DiagnosticItemStatus.warning);
+    expect(items.single.summary, '未启用元数据插件');
+    expect(items.single.fixTarget, isNotNull);
+    expect(
+      _bundle.adapter.requests.where(
+        (request) =>
+            request.method == 'POST' &&
+            request.path.startsWith('/system/plugins/'),
+      ),
+      isEmpty,
+    );
+  });
+
+  test('ok 但没有 metadata 载荷 → unhealthy', () async {
+    _enqueueHealthyBase();
+    _bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/metadata-sources',
+      body: <Map<String, dynamic>>[
+        _metadataSource(pluginId: 'meta_bad', displayName: '坏返回源'),
+      ],
+    );
+    _bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/system/plugins/meta_bad/test',
+      body: _metadataTestResult(includeMetadata: false),
+    );
+
+    final c = _newController();
+    await c.runAll();
+
+    final item = _find(c, (i) => i.kind == DiagnosticItemKind.metadataSource);
+    expect(item.status, DiagnosticItemStatus.unhealthy);
+    expect(item.summary, '插件测试失败');
   });
 }

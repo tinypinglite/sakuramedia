@@ -39,6 +39,7 @@ Map<String, dynamic> actorSchema() =>
 Future<TestApiBundle> openSettings(
   WidgetTester tester, {
   required bool mobile,
+  String pluginId = 'demo_plugin',
   Map<String, dynamic>? schema,
   Map<String, dynamic> settings = const {},
   Map<String, dynamic> defaults = const {},
@@ -53,7 +54,7 @@ Future<TestApiBundle> openSettings(
   addTearDown(bundle.dispose);
   bundle.adapter.enqueueJson(
     method: 'GET',
-    path: '/system/plugins/demo_plugin/settings',
+    path: '/system/plugins/$pluginId/settings',
     body: {
       'settings': settings,
       'defaults': defaults,
@@ -86,13 +87,13 @@ Future<TestApiBundle> openSettings(
                   ? showAppBottomDrawer<bool>(
                       context: context,
                       builder: (_) => PluginSettingsContent(
-                        plugin: pluginSummaryDto(),
+                        plugin: pluginSummaryDto(id: pluginId),
                         mobile: true,
                       ),
                     )
                   : showPluginSettingsDialog(
                       context,
-                      plugin: pluginSummaryDto(),
+                      plugin: pluginSummaryDto(id: pluginId),
                     ),
             ),
           ),
@@ -157,6 +158,28 @@ Map<String, dynamic> genericSchema() => {
 };
 
 void main() {
+  for (final mobile in [false, true]) {
+    for (final pluginId in ['sakuramedia_javdb_metadata', 'demo_plugin']) {
+      testWidgets(
+        'JavDB risk notice is scoped to metadata plugin (mobile=$mobile, plugin=$pluginId)',
+        (tester) async {
+          await openSettings(
+            tester,
+            mobile: mobile,
+            pluginId: pluginId,
+            schema: genericSchema(),
+          );
+          expect(
+            find.byKey(const Key('plugin-settings-javdb-account-risk-notice')),
+            pluginId == 'sakuramedia_javdb_metadata'
+                ? findsOneWidget
+                : findsNothing,
+          );
+        },
+      );
+    }
+  }
+
   test('unsupported unions and recursive refs fall back to JSON', () {
     expect(
       pluginFormSchema({

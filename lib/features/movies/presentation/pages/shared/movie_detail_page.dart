@@ -31,6 +31,7 @@ import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_ac
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_inspector_panel.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/rating/movie_rating_inline_panel.dart';
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/features/status/presentation/providers/server_capabilities_provider.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -551,6 +552,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     MovieMediaItemDto? selectedMedia,
     MovieDetailInspectorPane pane,
   ) async {
+    if (pane == MovieDetailInspectorPane.review &&
+        !ref.read(reviewFeaturesEnabledProvider)) {
+      return;
+    }
     await _overlays.openInspector(
       context: context,
       movie: movie,

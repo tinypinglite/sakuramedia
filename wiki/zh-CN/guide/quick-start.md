@@ -79,10 +79,10 @@ services:
       PGID: 0
       # 不使用中国时区时修改为宿主机所在时区。
       TZ: "Asia/Shanghai"
-      # 若部署机器无法直连 GFriends，取消下方三行注释并填入代理地址。
+      # 若部署机器无法直连 GFriends 或元数据站点，取消下方三行注释并填入代理地址。
       # HTTP_PROXY: "http://192.168.1.1:7890"
       # HTTPS_PROXY: "http://192.168.1.1:7890"
-      # NO_PROXY: "localhost,127.0.0.1"
+      # NO_PROXY: "localhost,127.0.0.1,postgres,qbittorrent"
       MALLOC_TRIM_THRESHOLD_: "131072"
     volumes:
       - ./sakuramedia-data:/data # 这行一般不需要动
@@ -120,12 +120,30 @@ http://你的IP:38000
 默认用户名和密码是 `account` 和 `account`。登录后建议立即修改密码。
 
 ::: tip 元数据插件
-当前版本要求所有插件声明 Host API 18。安装兼容的元数据插件后，在「设置 → 元数据源」调整调用顺序即可按番号搜索和导入影片。演员搜索使用后端内置的 GFriends 索引。
+当前版本要求所有插件声明 Host API 18。官方镜像已内置并启用 DMM / FANZA、FC2、FC2CMADB 和 JavBus 四个元数据插件，首次部署不需要安装。可在「设置 → 元数据源」调整调用顺序，保存后重启后端。JavBus 还支持订阅女优作品列表同步；演员搜索使用后端内置的 GFriends 索引。
+:::
+
+::: warning 元数据插件网络要求
+这些插件在查询元数据和下载封面时需要容器能解析并访问以下域名：
+
+```text
+adult.contents.fc2.com
+storage*.contents.fc2.com
+contents-thumbnail*.fc2.com
+fc2cmadb.com
+api.video.dmm.co.jp
+video.dmm.co.jp
+awsimgsrc.dmm.co.jp
+pics.dmm.co.jp
+www.javbus.com
+```
+
+启动后在「概览 → 组件诊断」运行检测，它会用测试番号实际请求每个已启用的元数据源。若失败，先确认部署机器网络和 DNS；仍不通时，为 `sakuramedia` 容器配置 `HTTP_PROXY` / `HTTPS_PROXY`（compose 示例已留出注释），重启后再测。透明代理分流与 `NO_PROXY` 说明见[常见问题](/zh-CN/faq#元数据插件网络与代理)。
 :::
 
 ## 阶段 2：创建媒体库并导入已有影片
 
-官方镜像已经预装并启用「本地存储与 qBittorrent」，不需要再上传插件。
+官方镜像已经预装并启用「本地存储与 qBittorrent」，以及常用元数据、榜单、合集判定和字幕插件，不需要再上传插件。
 
 ### 1. 创建媒体库
 
@@ -202,7 +220,7 @@ http://你的IP:38000
 
 ### 4. 验证
 
-1. 在「概览」页运行「组件诊断」，确认媒体库和索引器的连通性；下载器用下载器页的「测试配置」单独检查。
+1. 在「概览」页运行「组件诊断」，确认媒体库、元数据源和索引器的连通性；元数据源会逐个显示「通过 / 无数据 / 失败」，下载器用下载器页的「测试配置」单独检查。
 2. 订阅一部影片，等待后台任务查询资源。
 3. 想主动验证自动流程时，在任务中心手动触发「已订阅缺失影片自动下载」，然后查看运行结果。没有合适资源时，任务运行完成也不代表成功下载。
 

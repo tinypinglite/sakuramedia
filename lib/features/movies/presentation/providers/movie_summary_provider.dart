@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/app/language/providers/app_localizations_provider.dart';
@@ -14,6 +16,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/mutation_even
 import 'package:sakuramedia/features/media/presentation/providers/media_tag_assignment_events_provider.dart';
 import 'package:sakuramedia/features/playlists/presentation/controllers/playlist_filter_state.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_api_provider.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/optimistic_patch_mixin.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 
@@ -56,11 +59,16 @@ class MovieSummary extends _$MovieSummary
       ref.read(appLocalizationsProvider).errorLoadMoreFailed;
 
   @override
-  MovieSummaryFilter get initialFilter => MovieSummaryFilter(
-    movie: scope.initialMovieFilter ?? MovieFilterState.initial,
-    tagIds: scope.initialTagIds,
-    tagMatch: scope.initialTagMatch,
-  );
+  MovieSummaryFilter get initialFilter {
+    final filter = MovieSummaryFilter(
+      movie: scope.initialMovieFilter ?? MovieFilterState.initial,
+      tagIds: scope.initialTagIds,
+      tagMatch: scope.initialTagMatch,
+    );
+    return ref.read(statsFeaturesEnabledProvider)
+        ? filter
+        : filter.withoutStatsFeatures();
+  }
 
   @override
   PagedListState<MovieListItemDto> pagedOf(MovieSummaryState state) =>
@@ -83,7 +91,9 @@ class MovieSummary extends _$MovieSummary
     int page,
     int pageSize,
   ) {
-    final filter = activeFilter;
+    final filter = ref.read(statsFeaturesEnabledProvider)
+        ? activeFilter
+        : activeFilter.withoutStatsFeatures();
     final moviesApi = ref.read(moviesApiProvider);
     return switch (scope.source) {
       MovieSummarySource.latest => moviesApi.getLatestMovies(
@@ -227,6 +237,13 @@ class MovieSummary extends _$MovieSummary
         _scheduleBroadcastRefresh();
       }
     });
+    ref.listen(statsFeaturesEnabledProvider, (_, enabled) {
+      if (enabled) return;
+      final sanitized = activeFilter.withoutStatsFeatures();
+      if (sanitized != activeFilter) {
+        unawaited(applyFilterState(sanitized));
+      }
+    });
     if (scope.source == MovieSummarySource.tags &&
         activeFilter.tagIds.isEmpty) {
       return MovieSummaryState(
@@ -294,11 +311,17 @@ class MovieSummary extends _$MovieSummary
   }
 
   Future<void> applyMovieFilter(MovieFilterState filter) {
-    return applyFilterState(activeFilter.copyWith(movie: filter));
+    final effective = ref.read(statsFeaturesEnabledProvider)
+        ? filter
+        : filter.withoutStatsFeatures();
+    return applyFilterState(activeFilter.copyWith(movie: effective));
   }
 
   Future<void> applyPlaylistFilter(PlaylistFilterState filter) {
-    return applyFilterState(activeFilter.copyWith(playlist: filter));
+    final effective = ref.read(statsFeaturesEnabledProvider)
+        ? filter
+        : filter.withoutStatsFeatures();
+    return applyFilterState(activeFilter.copyWith(playlist: effective));
   }
 
   Future<void> applyTagFilter({

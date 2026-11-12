@@ -105,7 +105,7 @@ import_metadata_max_workers = 3
 
 ### 元数据插件
 
-影片搜索、按番号导入和手动匹配只使用已安装的元数据插件，并按「设置 → 元数据源」中的顺序调用。当前版本要求所有插件声明 Host API 18；旧插件需要重新发版后才能加载。演员搜索使用后端内置的 GFriends 索引，不需要单独配置账号。
+官方镜像内置并启用 DMM / FANZA、FC2、FC2CMADB 和 JavBus 四个元数据源。影片搜索、按番号导入和手动匹配只使用已启用的元数据插件，并按「设置 → 元数据源」中的顺序调用；保存顺序后需要重启 API 和 APS。当前版本要求所有插件声明 Host API 18，旧插件需要重新发版后才能加载。演员搜索使用后端内置的 GFriends 索引，不需要单独配置账号。元数据插件需要访问的域名和代理配置见[常见问题](/zh-CN/faq#元数据插件网络与代理)。
 
 ## `[plugins]`
 
@@ -125,12 +125,12 @@ settings = {}
 | `enabled` | 已启用的插件 ID 列表。 |
 | `job_crons` | 插件后台任务的 cron 覆盖值，按插件 ID 分组。 |
 | `settings` | 插件私有配置，按插件 ID 分组。 |
-| `stats_source` | 影片互动数与热度的来源插件 ID。留空时保留现有数据且不自动同步。 |
-| `review_source` | 优先使用的影片评论插件 ID。留空时按已启用评论插件的顺序回退。 |
+| `stats_source` | 影片互动数与热度的来源插件 ID。留空时保留现有数据且不自动同步，前端不展示互动数和热度。 |
+| `review_source` | 影片评论来源插件 ID。留空时不调用评论插件，前端不显示评论入口。 |
 
 插件安装、启用和配置入口是「系统设置 → 插件」；也可以使用[常用命令](/zh-CN/guide/commands)中的 `plugins` 命令。
 
-互动数与评论来源在「系统设置 → 元数据源」中配置。互动数同一时间只能绑定一个插件。
+互动数与评论来源在「系统设置 → 元数据源」中配置，保存后重启 API 和 APS 才会生效。互动数同一时间只能绑定一个插件。
 
 ## `[scheduler]`
 
@@ -140,6 +140,7 @@ settings = {}
 [scheduler]
 enabled = true
 log_dir = "/data/logs"
+actor_subscription_sync_cron = "0 2 * * *"
 subscribed_movie_auto_download_cron = "30 2 * * *"
 download_task_sync_cron = "* * * * *"
 download_task_auto_import_cron = "* * * * *"
@@ -160,6 +161,7 @@ activity_notification_read_retention_days = 3
 |---|---|
 | `enabled` | 是否启用后台定时任务。 |
 | `log_dir` | 后台任务日志目录。 |
+| `actor_subscription_sync_cron` | 同步已订阅女优的作品列表。 |
 | `subscribed_movie_auto_download_cron` | 已订阅缺失影片自动下载。 |
 | `download_task_sync_cron` | 同步 provider 下载任务状态。 |
 | `download_task_auto_import_cron` | 将 provider 已完成任务交给导入流程。 |
@@ -242,18 +244,3 @@ api_key = ""
 `url` 是 Qdrant HTTP API 地址；compose 部署时使用容器内服务名 `qdrant`。启用 Qdrant 鉴权时填写 `api_key`。
 
 `enabled` 控制相似影片与向量服务。关闭时不连接 Qdrant，推荐跳过影片相似度信号；关闭图搜不影响仅依赖 Qdrant 的相似影片。关闭 Qdrant 时应同时关闭图搜，桌面端会提示并一起保存。开关不会停止或删除 Docker 容器，释放资源需在部署端停容器。
-
-## 部署公告
-
-后端会定时拉取项目公告源
-`https://tinypinglite.github.io/sakuramedia/announcements.json`，成功响应缓存
-30 分钟；公告源暂时不可用时会继续使用上一次成功结果。
-
-可用以下容器环境变量覆盖默认行为：
-
-| 变量 | 作用 |
-|---|---|
-| `SAKURAMEDIA_ANNOUNCEMENTS_ENABLED` | 设为 `false` 时关闭公告检查。 |
-| `SAKURAMEDIA_ANNOUNCEMENTS_URL` | 使用镜像或本地公告源。 |
-
-公告可以限定客户端或后端版本范围。严重公告需要在客户端确认一次，其他等级公告显示在版本/更新菜单中。

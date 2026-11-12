@@ -180,6 +180,56 @@ void main() {
     expect(parameters['sort'], 'heat:desc');
   });
 
+  test(
+    'stats disabled strips heat filter and sort from the movie query',
+    () async {
+      final local = CatalogSearchHarness(
+        moviesApi: bundle.moviesApi,
+        actorsApi: bundle.actorsApi,
+        statsEnabled: false,
+      );
+      addTearDown(local.dispose);
+      _enqueueLocalSearch(bundle, movies: <Map<String, dynamic>>[_movieItem()]);
+      await local.submit('abp123', useOnlineSearch: false);
+
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies',
+        body: _page(<Map<String, dynamic>>[_movieItem()]),
+      );
+      await local.applyMovieFilter(
+        MovieFilterState.initial.copyWith(
+          status: MovieStatusFilter.playable,
+          interaction: MovieInteractionFilter.initial.withRange(
+            MovieInteractionMetric.heat,
+            min: 100,
+          ),
+        ),
+      );
+      expect(
+        bundle.adapter.requests.last.uri.queryParameters.containsKey(
+          'heat_min',
+        ),
+        isFalse,
+      );
+
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies',
+        body: _page(<Map<String, dynamic>>[_movieItem()]),
+      );
+      await local.setMovieSort(
+        field: MovieSortField.heat,
+        direction: SortDirection.asc,
+      );
+
+      final parameters = bundle.adapter.requests.last.uri.queryParameters;
+      expect(parameters['status'], 'playable');
+      expect(parameters.containsKey('heat_min'), isFalse);
+      expect(parameters.containsKey('sort'), isFalse);
+    },
+  );
+
   test('setActiveKind only switches visible tab state', () async {
     _enqueueLocalSearch(bundle);
 

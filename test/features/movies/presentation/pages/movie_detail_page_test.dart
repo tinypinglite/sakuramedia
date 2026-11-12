@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_page_content.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 
@@ -125,6 +127,78 @@ void main() {
     expect(find.byType(MovieDetailErrorState), findsNothing);
     expect(find.byKey(const Key('movie-detail-page')), findsOneWidget);
   });
+
+  testWidgets('without a review source the review action is hidden', (
+    tester,
+  ) async {
+    _primeContentRequests(bundle);
+    await _pumpPage(tester, bundle, mobile: false, settle: false);
+    await _pumpFrames(tester);
+
+    expect(
+      find.byKey(const Key('movie-detail-hero-review-icon')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('movie-detail-hero-thumbnail-icon')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('bound review source shows the review action', (tester) async {
+    _primeContentRequests(bundle);
+    await _pumpPage(
+      tester,
+      bundle,
+      mobile: false,
+      settle: false,
+      extraOverrides: [reviewFeaturesEnabledProvider.overrideWithValue(true)],
+    );
+    await _pumpFrames(tester);
+
+    expect(
+      find.byKey(const Key('movie-detail-hero-review-icon')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('stats and comment count follow their source capabilities', (
+    tester,
+  ) async {
+    _primeContentRequests(bundle);
+    await _pumpPage(
+      tester,
+      bundle,
+      mobile: false,
+      settle: false,
+      extraOverrides: [
+        statsFeaturesEnabledProvider.overrideWithValue(true),
+        reviewFeaturesEnabledProvider.overrideWithValue(false),
+      ],
+    );
+    await _pumpFrames(tester);
+
+    expect(find.byKey(const Key('movie-detail-meta-heat')), findsOneWidget);
+    expect(
+      find.byKey(const Key('movie-detail-meta-stat-score')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movie-detail-meta-stat-comment_count')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('without a stats source heat and interaction stats are hidden', (
+    tester,
+  ) async {
+    _primeContentRequests(bundle);
+    await _pumpPage(tester, bundle, mobile: false, settle: false);
+    await _pumpFrames(tester);
+
+    expect(find.byKey(const Key('movie-detail-meta-heat')), findsNothing);
+    expect(find.byKey(const Key('movie-detail-meta-stat-score')), findsNothing);
+  });
 }
 
 Future<void> _pumpPage(
@@ -132,6 +206,7 @@ Future<void> _pumpPage(
   TestApiBundle bundle, {
   required bool mobile,
   required bool settle,
+  List<Override> extraOverrides = const <Override>[],
 }) {
   return pumpPreviewApp(
     tester,
@@ -144,6 +219,7 @@ Future<void> _pumpPage(
     appPlatform: mobile ? AppPlatform.mobile : AppPlatform.desktop,
     bundle: bundle,
     settle: settle,
+    extraOverrides: extraOverrides,
   );
 }
 
@@ -236,6 +312,9 @@ Map<String, dynamic> _movieJson() {
     'is_subscribed': true,
     'can_play': true,
     'summary': '',
+    'heat': 123,
+    'stats_source': 'legacy:host',
+    'interaction_stats': <String, dynamic>{'score': 4.5, 'comment_count': 3},
     'actors': const <Map<String, dynamic>>[],
     'tags': const <Map<String, dynamic>>[],
     'plot_images': const <Map<String, dynamic>>[],

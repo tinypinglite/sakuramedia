@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/playlists/presentation/controllers/playlist_filter_state.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_sort_menu_button.dart';
 
@@ -7,7 +9,7 @@ import 'package:sakuramedia/widgets/base/navigation/app_sort_menu_button.dart';
 ///
 /// `sortField == null` 表示走后端默认顺序，摘要显示「最近触达」；只有选了字段
 /// 才显示升降序。
-class PlaylistSortMenuButton extends StatelessWidget {
+class PlaylistSortMenuButton extends ConsumerWidget {
   const PlaylistSortMenuButton({
     super.key,
     required this.filterState,
@@ -36,16 +38,20 @@ class PlaylistSortMenuButton extends StatelessWidget {
   final Key? directionControlKey;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statsEnabled = ref.watch(statsFeaturesEnabledProvider);
+    final effectiveState = statsEnabled
+        ? filterState
+        : filterState.withoutStatsFeatures();
     return AppSortMenuButton<PlaylistSortField>(
-      fields: PlaylistSortField.values,
-      selectedField: filterState.sortField,
+      fields: visiblePlaylistSortFields(statsEnabled: statsEnabled),
+      selectedField: effectiveState.sortField,
       fieldLabelBuilder: (value) => value.label(AppLocalizations.of(context)),
       onFieldChanged: (value) =>
-          onChanged(filterState.copyWith(sortField: value)),
-      selectedDirection: filterState.sortDirection,
+          onChanged(effectiveState.copyWith(sortField: value)),
+      selectedDirection: effectiveState.sortDirection,
       onDirectionChanged: (value) =>
-          onChanged(filterState.copyWith(sortDirection: value)),
+          onChanged(effectiveState.copyWith(sortDirection: value)),
       allowDefaultOption: true,
       defaultOptionLabel: AppLocalizations.of(context).playlistSortDefault,
       directionVisibleWhen: (field) => field != null,

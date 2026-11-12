@@ -46,5 +46,18 @@ void main() {
       expect(reset.sortField, MediaBrowseSortField.fileSize);
       expect(reset.sortDirection, SortDirection.asc);
     });
+
+    test('withoutStatsFeatures 清空热度排序', () {
+      const heat = MediaBrowseFilterState(sortField: MediaBrowseSortField.heat);
+      const fileSize = MediaBrowseFilterState(
+        sortField: MediaBrowseSortField.fileSize,
+      );
+
+      expect(heat.withoutStatsFeatures().sortField, isNull);
+      expect(
+        fileSize.withoutStatsFeatures().sortField,
+        MediaBrowseSortField.fileSize,
+      );
+    });
   });
 }

@@ -40,7 +40,7 @@ Generated clips remain after you delete the source media; moments depend on the 
 
 Connect local or NAS-mounted directories, qBittorrent, the 115 cloud drive and offline downloads through plugins. Existing files can be imported directly; when a media library needs to move to different storage, you can migrate between supported sources and targets while keeping the original media records, playback progress and other associations.
 
-Rankings, subtitle fetching and actor metadata completion can also be extended through plugins as needed. Storage, download and migration capabilities depend on what the installed plugins support.
+The official image also bundles common metadata, ranking, and subtitle plugins; install actor metadata completion and other optional plugins from the plugin market when you need them. Storage, download and migration capabilities depend on what the installed plugins support.
 
 [View plugins](/guide/plugins) · [Learn about media storage migration](/guide/media-storage-transfer)
 
@@ -72,14 +72,14 @@ Movie metadata and video files are also different things: finding a cover, cast 
 | Backend service | Stores metadata and state, and runs background tasks such as downloads and imports |
 | Client app | Browses movies, starts actions, plays and manages media |
 | Storage and download plugins | Connect actual storage and download tools, and provide capabilities to the media library |
-| On-demand extensions | Provide rankings, subtitles and more; image search also needs companion services and an index |
+| Bundled and extensible | The official image bundles common metadata, ranking, and subtitle plugins; other capabilities can be installed as needed. Image search also needs companion services and an index |
 
 In normal use you deploy the backend first, then connect a client and configure a media library. This guide focuses on the complete desktop management flow; mobile entry points and available features differ.
 
 ## Where to start
 
 1. **Not deployed yet**: read [Quick Start](/guide/quick-start) to deploy and do the initial configuration.
-2. **Choosing a storage approach**: the official image ships with "Local Storage & qBittorrent" preinstalled, so on a first deployment you can create a media library right away; if you need the 115 cloud drive or Guangyapan cloud drive, install the corresponding plugin from [Recommended Plugins](/guide/plugins).
+2. **Choosing a storage approach**: the official image bundles "Local Storage & qBittorrent", 115, Guangyapan, four metadata sources, and other common plugins, so on a first deployment you can create a media library right away and adjust the metadata source order as needed; browse [Recommended Plugins](/guide/plugins) when you need other plugins.
 3. **Already deployed**: go to the [User Manual](/manual/) and start with "Import existing assets" to bring in movies you already have; look at "Get your first movie" when you want automatic downloads.
 4. **Want to understand the product's design thinking**: read [Why SakuraMedia](/guide/collection-strategy) and the articles under "Design philosophy".
 

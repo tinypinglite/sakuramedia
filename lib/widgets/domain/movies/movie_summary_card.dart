@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/core/format/app_date_format.dart';
@@ -7,6 +8,7 @@ import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/core/platform/haptic_feedback.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_cover_hover_info.dart';
@@ -30,7 +32,7 @@ import 'package:sakuramedia/widgets/domain/movies/subscription_heart_badge.dart'
 ///   卡片阴影；按下反馈与 [AppInteractiveSurface] 一致（整体变淡 0.7）。
 ///
 /// 右键与长按打开影片操作菜单。
-class MovieSummaryCard extends StatelessWidget {
+class MovieSummaryCard extends ConsumerWidget {
   const MovieSummaryCard({
     super.key,
     required this.movie,
@@ -74,7 +76,7 @@ class MovieSummaryCard extends StatelessWidget {
   final ValueChanged<bool>? onSelectedChanged;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = context.appColors;
     final componentTokens = context.appComponentTokens;
     final spacing = context.appSpacing;
@@ -83,7 +85,7 @@ class MovieSummaryCard extends StatelessWidget {
         onSubscriptionTap != null &&
         (onTap != null || onRequestMenu != null);
     final showCluster = !selectionMode;
-    final showHeat = movie.heat > 0;
+    final showHeat = ref.watch(statsFeaturesEnabledProvider) && movie.heat > 0;
 
     final card = AppCoverCard(
       key: Key('movie-summary-card-${movie.movieNumber}'),

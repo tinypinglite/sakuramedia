@@ -37,6 +37,11 @@ class MovieSummaryFilter {
     );
   }
 
+  MovieSummaryFilter withoutStatsFeatures() => copyWith(
+    movie: movie.withoutStatsFeatures(),
+    playlist: playlist.withoutStatsFeatures(),
+  );
+
   @override
   bool operator ==(Object other) {
     return other is MovieSummaryFilter &&

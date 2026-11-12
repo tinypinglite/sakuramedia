@@ -10,6 +10,7 @@ The SakuraMedia host includes built-in scheduled tasks, and plugins can register
 
 | Task | Purpose | Default schedule |
 |---|---|---|
+| Subscribed actor movie sync | Syncs movie lists for subscribed actors and imports missing movie records | Daily at 02:00 |
 | Auto-download missing subscribed movies | Searches for and submits matching resources | Daily at 02:30 |
 | Movie stats and heat sync | Refreshes interaction stats and heat through the bound plugin | Daily at 05:00 |
 | Download task status sync | Syncs task status from each provider's download client | Every minute |
@@ -26,6 +27,14 @@ The SakuraMedia host includes built-in scheduled tasks, and plugins can register
 Tasks registered by plugins appear in the same Task Center and use the plugin's own settings and cron.
 
 When "Image & Text Search" is off, the image search indexing task is not scheduled; when "Similar Movies & Vector Service" is off, similarity recalculation and the index build at startup do not run. The Task Center shows them as "Not enabled" and they cannot be run manually; related tasks already queued before the restart are skipped. Thumbnail generation and recommendation tasks remain, and recommendations skip the disabled signal.
+
+## Subscription sync tasks
+
+### Subscribed actor movie sync
+
+The system walks through subscribed actors, calls every enabled metadata plugin that declares the actor movie list capability, merges and deduplicates movie numbers, imports missing movies into the local library, and links them to the actor. The first sync scans the full list, and later runs check incrementally; the task is skipped when no capable plugin is enabled. The bundled JavBus plugin supports this capability.
+
+Subscribing to an actor only syncs release data. It does not subscribe to her movies or download them automatically.
 
 ## Download pipeline tasks
 
@@ -58,6 +67,7 @@ Once a download client returns `completed` with a `completed_source_ref`, the ta
 enabled = true
 log_dir = "/data/logs"
 
+actor_subscription_sync_cron = "0 2 * * *"
 subscribed_movie_auto_download_cron = "30 2 * * *"
 download_task_sync_cron = "* * * * *"
 download_task_auto_import_cron = "* * * * *"

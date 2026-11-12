@@ -11,6 +11,7 @@ import 'package:sakuramedia/features/movies/presentation/controllers/listing/mov
 import 'package:sakuramedia/features/movies/presentation/pages/mobile/movie_filter_drawer.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
 import 'package:sakuramedia/features/actors/presentation/actor_placeholders.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_provider.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_scope.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_state.dart';
@@ -468,9 +469,14 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
     CatalogSearchState state,
   ) {
     final notifier = ref.read(catalogSearchProvider(_scope).notifier);
+    final statsEnabled = ref.watch(statsFeaturesEnabledProvider);
+    final selectedField = visibleMovieSortField(
+      state.movieSortField ?? MovieSortField.releaseDate,
+      statsEnabled: statsEnabled,
+    );
     return AppSortMenuButton<MovieSortField>(
-      fields: MovieSortField.values,
-      selectedField: state.movieSortField,
+      fields: visibleMovieSortFields(statsEnabled: statsEnabled),
+      selectedField: state.movieSortField == null ? null : selectedField,
       allowDefaultOption: true,
       defaultOptionLabel: l10n.searchSortRelevance,
       fieldLabelBuilder: (value) => value.labelWith(l10n),
@@ -482,7 +488,10 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
       ),
       selectedDirection: state.movieSortDirection,
       onDirectionChanged: (value) => unawaited(
-        notifier.setMovieSort(field: state.movieSortField, direction: value),
+        notifier.setMovieSort(
+          field: state.movieSortField == null ? null : selectedField,
+          direction: value,
+        ),
       ),
       directionVisibleWhen: (value) => value != null,
       useDrawer: widget.mobile,

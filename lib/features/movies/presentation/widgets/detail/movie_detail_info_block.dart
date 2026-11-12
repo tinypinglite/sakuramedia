@@ -34,6 +34,7 @@ class MovieDetailInfoBlock extends StatelessWidget {
     this.onMergePlaybackTap,
     this.isMergePlaybackLoading = false,
     this.onInspectorPaneTap,
+    this.showReviewAction = true,
     this.ratingPanel,
   });
 
@@ -80,6 +81,9 @@ class MovieDetailInfoBlock extends StatelessWidget {
   /// 评论 / 缩略图入口：打开对应功能弹窗；null 时两个键不渲染。
   final ValueChanged<MovieDetailInspectorPane>? onInspectorPaneTap;
 
+  /// 评论入口是否可见；缩略图入口不受影响。
+  final bool showReviewAction;
+
   /// 展开在元信息行下方的内联评分面板；null 时不渲染。
   final Widget? ratingPanel;
 
@@ -125,6 +129,7 @@ class MovieDetailInfoBlock extends StatelessWidget {
           onMergePlaybackTap: onMergePlaybackTap,
           isMergePlaybackLoading: isMergePlaybackLoading,
           onInspectorPaneTap: onInspectorPaneTap,
+          showReviewAction: showReviewAction,
         );
         final hasActions = actions.isVisible;
         final title = overlayTitle?.trim() ?? '';
@@ -206,8 +211,14 @@ class MovieDetailInfoBlock extends StatelessWidget {
 /// 元信息段：有合适图标的用图标 + 数值（如评分/热度），没有的用文字
 ///（如 `厂商 · DAHLIA`）。
 class MovieDetailMetaItem {
-  const MovieDetailMetaItem({this.icon, this.iconColor, required this.text});
+  const MovieDetailMetaItem({
+    this.key,
+    this.icon,
+    this.iconColor,
+    required this.text,
+  });
 
+  final Key? key;
   final IconData? icon;
   final Color? iconColor;
   final String text;
@@ -262,6 +273,11 @@ class _MetaSegment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final content = _buildContent(context);
+    return KeyedSubtree(key: item.key, child: content);
+  }
+
+  Widget _buildContent(BuildContext context) {
     final icon = item.icon;
     if (icon == null) {
       return Text(
@@ -409,6 +425,7 @@ class _InfoActionsColumn extends StatelessWidget {
     required this.onMergePlaybackTap,
     required this.isMergePlaybackLoading,
     required this.onInspectorPaneTap,
+    required this.showReviewAction,
   });
 
   final VoidCallback? onPlayTap;
@@ -427,6 +444,7 @@ class _InfoActionsColumn extends StatelessWidget {
   final VoidCallback? onMergePlaybackTap;
   final bool isMergePlaybackLoading;
   final ValueChanged<MovieDetailInspectorPane>? onInspectorPaneTap;
+  final bool showReviewAction;
 
   bool get _hasMerge => mergePlaybackLabel?.trim().isNotEmpty == true;
 
@@ -505,16 +523,17 @@ class _InfoActionsColumn extends StatelessWidget {
       // 内容入口：评论 / 缩略图，与左侧动作键同排同形，
       // 只靠 tooltip 区分；不藏进区块标题或媒体行图标。
       if (inspectorPaneTap != null) ...<Widget>[
-        _InfoActionKey(
-          key: const Key('movie-detail-hero-review-icon'),
-          tooltip: l10n.movieWidgetReview,
-          onTap: () => inspectorPaneTap(MovieDetailInspectorPane.review),
-          child: Icon(
-            Icons.chat_bubble_outline_rounded,
-            size: tokens.iconSizeSm,
-            color: context.appTextPalette.secondary,
+        if (showReviewAction)
+          _InfoActionKey(
+            key: const Key('movie-detail-hero-review-icon'),
+            tooltip: l10n.movieWidgetReview,
+            onTap: () => inspectorPaneTap(MovieDetailInspectorPane.review),
+            child: Icon(
+              Icons.chat_bubble_outline_rounded,
+              size: tokens.iconSizeSm,
+              color: context.appTextPalette.secondary,
+            ),
           ),
-        ),
         _InfoActionKey(
           key: const Key('movie-detail-hero-thumbnail-icon'),
           tooltip: l10n.movieWidgetThumbnail,

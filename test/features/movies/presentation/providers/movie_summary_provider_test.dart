@@ -12,6 +12,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/movie_summary
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
 import 'package:sakuramedia/features/playlists/data/api/playlists_api.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_api_provider.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 
 import '../../../../support/fake_http_client_adapter.dart';
 import '../../../../support/riverpod_test_helpers.dart';
@@ -45,6 +46,7 @@ void main() {
         playlistsApiProvider.overrideWithValue(
           PlaylistsApi(apiClient: apiClient),
         ),
+        statsFeaturesEnabledProvider.overrideWithValue(true),
       ],
       retry: (_, __) => null,
     );
@@ -273,8 +275,11 @@ void main() {
           MovieFilterState(
             status: MovieStatusFilter.subscribed,
             years: const <int>{2023, 2024},
-            interaction: MovieInteractionFilter.initial
-                .withRange(MovieInteractionMetric.heat, min: 1000, max: 20000),
+            interaction: MovieInteractionFilter.initial.withRange(
+              MovieInteractionMetric.heat,
+              min: 1000,
+              max: 20000,
+            ),
           ),
         );
 
@@ -1075,6 +1080,47 @@ void main() {
     subscription.close();
     await container.pump();
     expect(container.exists(movieSummaryProvider(scope)), isFalse);
+  });
+
+  test('互动数来源不可用时请求不携带热度排序和范围', () async {
+    final local = ProviderContainer(
+      overrides: [
+        moviesApiProvider.overrideWithValue(MoviesApi(apiClient: apiClient)),
+        statsFeaturesEnabledProvider.overrideWithValue(false),
+      ],
+      retry: (_, __) => null,
+    );
+    addTearDown(local.dispose);
+    const scope = MovieSummaryScope.movies(cacheKey: 'disabled-stats');
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _page(items: [_movie('ABC-001')], total: 1),
+    );
+    local.listen(movieSummaryProvider(scope), (_, __) {});
+    await local.read(movieSummaryProvider(scope).future);
+
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      body: _page(items: [_movie('ABC-002')], total: 1),
+    );
+    await local
+        .read(movieSummaryProvider(scope).notifier)
+        .applyMovieFilter(
+          MovieFilterState.initial.copyWith(
+            sortField: MovieSortField.heat,
+            interaction: MovieInteractionFilter.initial.withRange(
+              MovieInteractionMetric.heat,
+              min: 1000,
+            ),
+          ),
+        );
+
+    final parameters = adapter.requests.last.uri.queryParameters;
+    expect(parameters['sort'], 'release_date:desc');
+    expect(parameters.containsKey('heat_min'), isFalse);
+    expect(parameters.containsKey('heat_max'), isFalse);
   });
 
   test('我的评分状态与单体筛选收到批量变更后就地移除', () async {

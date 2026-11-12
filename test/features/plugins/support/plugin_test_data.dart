@@ -5,6 +5,8 @@ Map<String, dynamic> pluginSummaryJson({
   bool enabled = true,
   String? releaseApiUrl,
   String version = '1.0.0',
+  List<String> testCapabilities = const <String>[],
+  String? testMovieNumber,
 }) {
   return <String, dynamic>{
     'plugin_id': 'demo_plugin',
@@ -15,6 +17,8 @@ Map<String, dynamic> pluginSummaryJson({
     'load_status': 'ok',
     'load_error': null,
     'release_api_url': releaseApiUrl,
+    'test_capabilities': testCapabilities,
+    'test_movie_number': testMovieNumber,
   };
 }
 
@@ -24,6 +28,8 @@ PluginSummaryDto pluginSummaryDto({
   String version = '1.0.0',
   bool enabled = false,
   String? releaseApiUrl,
+  List<PluginTestCapability> testCapabilities = const <PluginTestCapability>[],
+  String? testMovieNumber,
 }) {
   return PluginSummaryDto(
     pluginId: id,
@@ -33,5 +39,7 @@ PluginSummaryDto pluginSummaryDto({
     enabled: enabled,
     loadStatus: 'ok',
     releaseApiUrl: releaseApiUrl,
+    testCapabilities: testCapabilities,
+    testMovieNumber: testMovieNumber,
   );
 }

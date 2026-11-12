@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/activity/presentation/activity_plugin_names
 import 'package:sakuramedia/features/activity/presentation/providers/activity_center_provider.dart';
 import 'package:sakuramedia/features/activity/presentation/widgets/activity_job_overview_card.dart';
 import 'package:sakuramedia/features/plugins/presentation/providers/plugins_provider.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
@@ -45,7 +46,9 @@ class ActivityExecutableJobsSliver extends ConsumerWidget {
     );
     final controller = ref.read(activityCenterProvider.notifier);
     final isLoading = isInitialLoading || view.isLoading;
-    final pluginNames = view.jobs.any(_isPluginJob)
+    final statsEnabled = ref.watch(statsFeaturesEnabledProvider);
+    final jobs = visibleActivityJobs(view.jobs, statsEnabled: statsEnabled);
+    final pluginNames = jobs.any(_isPluginJob)
         ? activityPluginDisplayNames(
             ref.watch(pluginsProvider).value?.plugins ?? const [],
           )
@@ -58,7 +61,7 @@ class ActivityExecutableJobsSliver extends ConsumerWidget {
           child: _ExecutableJobsHeader(
             countLabel: _jobsCountLabel(
               l10n,
-              jobs: view.jobs,
+              jobs: jobs,
               isLoading: isLoading,
               errorMessage: view.errorMessage,
             ),
@@ -68,7 +71,7 @@ class ActivityExecutableJobsSliver extends ConsumerWidget {
         ..._buildBody(
           context,
           l10n: l10n,
-          jobs: view.jobs,
+          jobs: jobs,
           errorMessage: view.errorMessage,
           triggeringTaskKeys: view.triggeringTaskKeys,
           isLoading: isLoading,

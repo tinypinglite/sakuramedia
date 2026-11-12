@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/misc.dart' show KeepAliveLink;
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/app/language/providers/app_localizations_provider.dart';
@@ -11,6 +13,7 @@ import 'package:sakuramedia/features/rankings/data/ranking_source_dto.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_scope.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_state.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/rankings_api_provider.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/features/shared/data/movie_interaction_filter.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/async_notifier_dispose_guard.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/optimistic_patch_mixin.dart';
@@ -89,15 +92,26 @@ class RankingSummary extends _$RankingSummary
         state = AsyncData(current.copyWith(paged: paged));
       }
     });
+    ref.listen(statsFeaturesEnabledProvider, (_, enabled) {
+      if (enabled) return;
+      final current = state.value;
+      if (current == null) return;
+      final sanitized = current.filters.withoutStatsFeatures();
+      if (!identical(sanitized, current.filters)) {
+        unawaited(_applyFiltersAndReload(current, sanitized));
+      }
+    });
     final filters = await _loadInitialFilters();
-    _activeFilters = filters;
-    if (filters.errorMessage != null || filters.sources.isEmpty) {
+    _activeFilters = ref.read(statsFeaturesEnabledProvider)
+        ? filters
+        : filters.withoutStatsFeatures();
+    if (_activeFilters.errorMessage != null || _activeFilters.sources.isEmpty) {
       return RankingSummaryState(
         paged: const PagedListState<RankedMovieListItemDto>(),
-        filters: filters,
+        filters: _activeFilters,
       );
     }
-    return _loadFirstPageForBuild(filters);
+    return _loadFirstPageForBuild(_activeFilters);
   }
 
   @override
@@ -118,6 +132,9 @@ class RankingSummary extends _$RankingSummary
         ),
       );
     }
+    final filters = ref.read(statsFeaturesEnabledProvider)
+        ? _activeFilters
+        : _activeFilters.withoutStatsFeatures();
     return ref
         .read(rankingsApiProvider)
         .getRankingItems(
@@ -126,8 +143,8 @@ class RankingSummary extends _$RankingSummary
           period: period,
           page: page,
           pageSize: pageSize,
-          sort: _activeFilters.sortExpression,
-          interaction: _activeFilters.interaction,
+          sort: filters.sortExpression,
+          interaction: filters.interaction,
         );
   }
 
@@ -151,27 +168,32 @@ class RankingSummary extends _$RankingSummary
     if (isDisposed || generation != _filterGeneration) {
       return;
     }
-    _activeFilters = filters;
-    if (filters.errorMessage != null || filters.sources.isEmpty) {
+    final sanitizedFilters = ref.read(statsFeaturesEnabledProvider)
+        ? filters
+        : filters.withoutStatsFeatures();
+    _activeFilters = sanitizedFilters;
+    if (sanitizedFilters.errorMessage != null ||
+        sanitizedFilters.sources.isEmpty) {
       state = AsyncData(
         (state.value ?? current).copyWith(
-          filters: filters,
+          filters: sanitizedFilters,
           initialErrorMessage: null,
           paged: current.paged.copyWith(
             filterUpdate: FilterUpdateState.failed(
-              filters.errorMessage ??
-                  ref.read(appLocalizationsProvider).errorRankingFilterLoadFailed,
+              sanitizedFilters.errorMessage ??
+                  ref
+                      .read(appLocalizationsProvider)
+                      .errorRankingFilterLoadFailed,
             ),
           ),
         ),
       );
       return;
     }
-    _activeFilters = filters;
     final now = state.value ?? current;
     state = AsyncData(
       now.copyWith(
-        filters: filters,
+        filters: sanitizedFilters,
         paged: now.paged.copyWith(
           filterUpdate: const FilterUpdateState.loading(),
         ),
@@ -305,9 +327,12 @@ class RankingSummary extends _$RankingSummary
         interaction.matches(current.filters.interaction)) {
       return Future<void>.value();
     }
+    final effective = ref.read(statsFeaturesEnabledProvider)
+        ? interaction
+        : MovieInteractionFilter.initial;
     return _applyFiltersAndReload(
       current,
-      current.filters.copyWith(errorMessage: null, interaction: interaction),
+      current.filters.copyWith(errorMessage: null, interaction: effective),
     );
   }
 
@@ -319,11 +344,16 @@ class RankingSummary extends _$RankingSummary
             direction == current.filters.selectedSortDirection)) {
       return Future<void>.value();
     }
+    final effectiveField =
+        !ref.read(statsFeaturesEnabledProvider) &&
+            field == RankingSortField.heat
+        ? null
+        : field;
     return _applyFiltersAndReload(
       current,
       current.filters.copyWith(
         errorMessage: null,
-        selectedSortField: field,
+        selectedSortField: effectiveField,
         selectedSortDirection: direction,
       ),
     );

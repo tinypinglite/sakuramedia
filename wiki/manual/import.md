@@ -6,7 +6,7 @@ When movies already live on your NAS or cloud drive, you can import them directl
 
 Create the target media library under "System settings → Media library" and confirm the matching storage plugin is enabled. The browsable sources come from that media library's storage configuration, such as the manual import root directory of local storage.
 
-**Start with a small directory to verify the flow**. JAV import needs to detect the movie number and scrape metadata and covers (it does not rely on local NFO files; all metadata and covers come from built-in data sources), so a clear movie number helps detection; network or metadata source failures can also affect the import.
+**Start with a small directory to verify the flow**. JAV import needs to detect the movie number and scrape metadata and covers (it does not rely on local NFO files; all metadata and covers come from the enabled metadata plugins), so a clear movie number helps detection; network or metadata source failures can also affect the import.
 
 ## Submit an import
 

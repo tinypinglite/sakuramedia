@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_sort_menu_button.dart';
 
@@ -7,7 +9,7 @@ import 'package:sakuramedia/widgets/base/navigation/app_sort_menu_button.dart';
 ///
 /// 影片库、标签结果、女优详情作品共用同一套字段与「切字段时清空个人评分维度」
 /// 规则；外层交互完全交给 [AppSortMenuButton]。
-class MovieSortMenuButton extends StatelessWidget {
+class MovieSortMenuButton extends ConsumerWidget {
   const MovieSortMenuButton({
     super.key,
     required this.filterState,
@@ -30,11 +32,15 @@ class MovieSortMenuButton extends StatelessWidget {
   final Key? drawerKey;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final statsEnabled = ref.watch(statsFeaturesEnabledProvider);
     return AppSortMenuButton<MovieSortField>(
-      fields: MovieSortField.values,
-      selectedField: filterState.sortField,
+      fields: visibleMovieSortFields(statsEnabled: statsEnabled),
+      selectedField: visibleMovieSortField(
+        filterState.sortField,
+        statsEnabled: statsEnabled,
+      ),
       fieldLabelBuilder: (value) => value.labelWith(l10n),
       onFieldChanged: (value) => onChanged(
         filterState.copyWith(sortField: value!, dimensionSortId: null),

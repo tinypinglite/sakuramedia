@@ -6,6 +6,7 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/plugins/data/dto/plugin_dto.dart';
 import 'package:sakuramedia/features/plugins/presentation/pages/desktop/plugin_market_section.dart';
 import 'package:sakuramedia/features/plugins/presentation/pages/desktop/plugin_settings_dialog.dart';
+import 'package:sakuramedia/features/plugins/presentation/pages/shared/plugin_test_dialog.dart';
 import 'package:sakuramedia/features/plugins/presentation/plugin_management_actions.dart';
 import 'package:sakuramedia/features/plugins/presentation/plugin_placeholders.dart';
 import 'package:sakuramedia/features/plugins/presentation/providers/plugins_provider.dart';
@@ -60,6 +61,10 @@ class _DesktopPluginsSectionState extends ConsumerState<DesktopPluginsSection>
 
   void _openSettings(PluginSummaryDto plugin) {
     unawaited(showPluginSettingsDialog(context, plugin: plugin));
+  }
+
+  void _openTest(PluginSummaryDto plugin) {
+    unawaited(showPluginTestDialog(context, plugin: plugin));
   }
 
   Future<void> _onRefresh() {
@@ -149,6 +154,12 @@ class _DesktopPluginsSectionState extends ConsumerState<DesktopPluginsSection>
           installing: state.isInstalling,
           checkingUpdates: state.isCheckingUpdates,
           onTap: () => _openSettings(plugin),
+          onTest:
+              plugin.enabled &&
+                  plugin.loadStatus == 'ok' &&
+                  plugin.testCapabilities.isNotEmpty
+              ? () => _openTest(plugin)
+              : null,
           onToggle: (enabled) => _actions.toggle(plugin, enabled),
           onUpgrade: (update) => _actions.upgrade(plugin, update),
           onRemove: () => _actions.remove(plugin),
@@ -238,6 +249,7 @@ class _PluginRow extends StatelessWidget {
     required this.installing,
     required this.checkingUpdates,
     required this.onTap,
+    required this.onTest,
     required this.onToggle,
     required this.onUpgrade,
     required this.onRemove,
@@ -249,6 +261,7 @@ class _PluginRow extends StatelessWidget {
   final bool installing;
   final bool checkingUpdates;
   final VoidCallback onTap;
+  final VoidCallback? onTest;
   final ValueChanged<bool> onToggle;
   final ValueChanged<PluginReleaseUpdate> onUpgrade;
   final VoidCallback onRemove;
@@ -341,6 +354,15 @@ class _PluginRow extends StatelessWidget {
                 onChanged: disabled ? null : onToggle,
               ),
             SizedBox(width: spacing.xs),
+            if (onTest != null)
+              AppIconButton(
+                key: Key('plugin-test-button-${plugin.pluginId}'),
+                tooltip: l10n.pluginsTestCapabilities,
+                semanticLabel: l10n.pluginsTestCapabilities,
+                icon: const Icon(Icons.science_outlined),
+                onPressed: disabled ? null : onTest,
+              ),
+            if (onTest != null) SizedBox(width: spacing.xs),
             AppIconButton(
               key: Key('plugin-remove-button-${plugin.pluginId}'),
               tooltip: l10n.pluginDeleteTitle,

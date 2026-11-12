@@ -11,7 +11,9 @@ import 'package:sakuramedia/features/rankings/data/ranking_source_dto.dart';
 import 'package:sakuramedia/features/rankings/data/rankings_api.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_provider.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_scope.dart';
+import 'package:sakuramedia/features/rankings/presentation/providers/ranking_summary_state.dart';
 import 'package:sakuramedia/features/rankings/presentation/providers/rankings_api_provider.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/features/shared/data/movie_interaction_filter.dart';
 
 import '../../../../support/fake_http_client_adapter.dart';
@@ -44,6 +46,7 @@ void main() {
           RankingsApi(apiClient: apiClient),
         ),
         moviesApiProvider.overrideWithValue(MoviesApi(apiClient: apiClient)),
+        statsFeaturesEnabledProvider.overrideWithValue(true),
       ],
       retry: (_, __) => null,
     );
@@ -216,6 +219,57 @@ void main() {
     expect(adapter.requests.last.uri.queryParameters['sort'], 'heat:asc');
   });
 
+  test('互动数来源不可用时忽略热度排序和范围', () async {
+    final local = ProviderContainer(
+      overrides: [
+        rankingsApiProvider.overrideWithValue(
+          RankingsApi(apiClient: apiClient),
+        ),
+        moviesApiProvider.overrideWithValue(MoviesApi(apiClient: apiClient)),
+        statsFeaturesEnabledProvider.overrideWithValue(false),
+      ],
+      retry: (_, __) => null,
+    );
+    addTearDown(local.dispose);
+    const scope = RankingSummaryScope.desktop();
+    enqueueMetadata();
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/ranking-sources/javdb/boards/censored/items',
+      body: _page(items: <Map<String, dynamic>>[_rankedMovie(1)], total: 1),
+    );
+    local.listen(rankingSummaryProvider(scope), (_, __) {});
+    await local.read(rankingSummaryProvider(scope).future);
+
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/ranking-sources/javdb/boards/censored/items',
+      body: _page(items: <Map<String, dynamic>>[_rankedMovie(1)], total: 1),
+    );
+    await local
+        .read(rankingSummaryProvider(scope).notifier)
+        .selectSort(RankingSortField.heat, SortDirection.desc);
+
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/ranking-sources/javdb/boards/censored/items',
+      body: _page(items: <Map<String, dynamic>>[_rankedMovie(1)], total: 1),
+    );
+    await local
+        .read(rankingSummaryProvider(scope).notifier)
+        .selectInteraction(
+          MovieInteractionFilter.initial.withRange(
+            MovieInteractionMetric.heat,
+            min: 100,
+          ),
+        );
+
+    final parameters = adapter.requests.last.uri.queryParameters;
+    expect(parameters.containsKey('sort'), isFalse);
+    expect(parameters.containsKey('heat_min'), isFalse);
+    expect(parameters.containsKey('heat_max'), isFalse);
+  });
+
   test('互动数范围筛选防抖后写入请求参数', () async {
     const scope = RankingSummaryScope.desktop();
     await prime(scope);
@@ -224,8 +278,10 @@ void main() {
       path: '/ranking-sources/javdb/boards/censored/items',
       body: _page(items: <Map<String, dynamic>>[_rankedMovie(2)], total: 1),
     );
-    final interaction = MovieInteractionFilter.initial
-        .withRange(MovieInteractionMetric.heat, min: 100);
+    final interaction = MovieInteractionFilter.initial.withRange(
+      MovieInteractionMetric.heat,
+      min: 100,
+    );
 
     final update = container
         .read(rankingSummaryProvider(scope).notifier)
@@ -360,6 +416,21 @@ void main() {
         .cacheLink;
     expect(link, isNotNull);
     cache.obtain(key: desktop.cacheKey, resolveLinks: () => [link!]);
+  });
+
+  test('withoutStatsFeatures 清空热度排序和范围', () {
+    final filters = RankingFilterState.initial.copyWith(
+      selectedSortField: RankingSortField.heat,
+      interaction: MovieInteractionFilter.initial.withRange(
+        MovieInteractionMetric.heat,
+        min: 100,
+      ),
+    );
+
+    final sanitized = filters.withoutStatsFeatures();
+
+    expect(sanitized.selectedSortField, isNull);
+    expect(sanitized.interaction.isDefault, isTrue);
   });
 }
 

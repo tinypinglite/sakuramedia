@@ -37,7 +37,13 @@ void main() {
       adapter.enqueueJson(
         method: 'GET',
         path: '/system/plugins',
-        body: <Map<String, dynamic>>[pluginSummaryJson(enabled: true)],
+        body: <Map<String, dynamic>>[
+          pluginSummaryJson(
+            enabled: true,
+            testCapabilities: <String>['metadata', 'reviews'],
+            testMovieNumber: 'SSIS-001',
+          ),
+        ],
       );
 
       final plugins = await api.list();
@@ -47,7 +53,43 @@ void main() {
       expect(plugins.single.version, '1.0.0');
       expect(plugins.single.enabled, isTrue);
       expect(plugins.single.loadStatus, 'ok');
+      expect(plugins.single.testCapabilities, <PluginTestCapability>[
+        PluginTestCapability.metadata,
+        PluginTestCapability.reviews,
+      ]);
+      expect(plugins.single.testMovieNumber, 'SSIS-001');
       expect(adapter.hitCount('GET', '/system/plugins'), 1);
+    });
+
+    test('tests one declared plugin capability', () async {
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/system/plugins/demo_plugin/test',
+        body: <String, dynamic>{
+          'capability': 'reviews',
+          'status': 'ok',
+          'movie_number': 'SSIS-001',
+          'duration_ms': 123,
+          'reviews': <String, dynamic>{
+            'item_count': 5,
+            'first_username': 'tester',
+            'first_excerpt': '第一页评论',
+          },
+        },
+      );
+
+      final result = await api.testCapability(
+        'demo_plugin',
+        PluginTestCapability.reviews,
+      );
+
+      expect(result.capability, PluginTestCapability.reviews);
+      expect(result.status, PluginTestStatus.ok);
+      expect(result.reviews?.itemCount, 5);
+      final request = adapter.requests.single;
+      expect(request.path, '/system/plugins/demo_plugin/test');
+      expect(request.body, <String, dynamic>{'capability': 'reviews'});
+      expect(request.receiveTimeout, const Duration(seconds: 90));
     });
 
     test('reads and updates stats/review source bindings', () async {

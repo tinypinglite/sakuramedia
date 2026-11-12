@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/movies/data/dto/listing/movie_interaction_f
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_interaction_filter_options_provider.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
@@ -18,7 +19,7 @@ import 'package:sakuramedia/widgets/base/forms/app_filter_range_section.dart';
 ///
 /// 桌面玻璃筛选浮层和移动 `MobileMovieFilterDrawer` 都用它，
 /// 避免双份维护。底栏/重置按钮由调用方自己附加。
-class MovieFilterSectionGroup extends StatelessWidget {
+class MovieFilterSectionGroup extends ConsumerWidget {
   const MovieFilterSectionGroup({
     super.key,
     required this.filterState,
@@ -59,8 +60,9 @@ class MovieFilterSectionGroup extends StatelessWidget {
       filterState.years.isNotEmpty;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final statsEnabled = ref.watch(statsFeaturesEnabledProvider);
     final resolvedYearOptions =
         yearOptions ?? buildDefaultMovieFilterYearOptions();
     return Column(
@@ -102,12 +104,14 @@ class MovieFilterSectionGroup extends StatelessWidget {
           onSelected: (value) =>
               onChanged(filterState.copyWith(numberSource: value)),
         ),
-        SizedBox(height: context.appSpacing.lg),
-        MovieInteractionRangeFilterSectionGroup(
-          filter: filterState.interaction,
-          onChanged: (interaction) =>
-              onChanged(filterState.copyWith(interaction: interaction)),
-        ),
+        if (statsEnabled) ...[
+          SizedBox(height: context.appSpacing.lg),
+          MovieInteractionRangeFilterSectionGroup(
+            filter: filterState.interaction,
+            onChanged: (interaction) =>
+                onChanged(filterState.copyWith(interaction: interaction)),
+          ),
+        ],
         if (showActorAgeSection) ...[
           SizedBox(height: context.appSpacing.lg),
           MovieActorAgeRangeFilterSection(

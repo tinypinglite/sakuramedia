@@ -1,6 +1,20 @@
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/features/activity/data/job_metadata_dto.dart';
 
+/// 互动数同步任务；未绑定互动数来源时不在可执行任务里展示。
+const String movieStatsSyncTaskKey = 'movie_stats_sync';
+
+List<JobMetadataDto> visibleActivityJobs(
+  List<JobMetadataDto> jobs, {
+  required bool statsEnabled,
+}) {
+  if (statsEnabled) return jobs;
+  return <JobMetadataDto>[
+    for (final job in jobs)
+      if (job.taskKey != movieStatsSyncTaskKey) job,
+  ];
+}
+
 /// 概览固定展示的常用任务；顺序即卡片顺序。
 const List<String> activityCommonJobKeys = <String>[
   'actor_subscription_sync',

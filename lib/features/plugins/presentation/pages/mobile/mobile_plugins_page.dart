@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/format/app_number_format.dart';
 import 'package:sakuramedia/features/plugins/data/dto/plugin_dto.dart';
 import 'package:sakuramedia/features/plugins/presentation/pages/shared/plugin_settings_content.dart';
+import 'package:sakuramedia/features/plugins/presentation/pages/shared/plugin_test_dialog.dart';
 import 'package:sakuramedia/features/plugins/presentation/plugin_management_actions.dart';
 import 'package:sakuramedia/features/plugins/presentation/plugin_placeholders.dart';
 import 'package:sakuramedia/features/plugins/presentation/providers/plugins_provider.dart';
@@ -58,6 +61,10 @@ class _MobilePluginsPageState extends ConsumerState<MobilePluginsPage> {
     }
   }
 
+  void _openTest(PluginSummaryDto plugin) {
+    unawaited(showPluginTestDialog(context, plugin: plugin));
+  }
+
   Future<void> _showActions(PluginSummaryDto plugin) async {
     final state = ref.read(pluginsProvider).value;
     final action = await _showMobilePluginActionsDrawer(
@@ -84,6 +91,8 @@ class _MobilePluginsPageState extends ConsumerState<MobilePluginsPage> {
         if (update != null) {
           await _actions.upgrade(plugin, update);
         }
+      case _MobilePluginAction.test:
+        _openTest(plugin);
       case _MobilePluginAction.delete:
         await _actions.remove(plugin);
     }
@@ -468,7 +477,7 @@ class _MobilePluginCard extends StatelessWidget {
   }
 }
 
-enum _MobilePluginAction { toggle, update, delete }
+enum _MobilePluginAction { toggle, update, test, delete }
 
 Future<_MobilePluginAction?> _showMobilePluginActionsDrawer(
   BuildContext context, {
@@ -550,6 +559,16 @@ class _MobilePluginActionsSheet extends StatelessWidget {
               label: l10n.pluginsUpdateTo(update!.version),
               disabled: disabled,
               onTap: () => _select(context, _MobilePluginAction.update),
+            ),
+          if (plugin.enabled &&
+              plugin.loadStatus == 'ok' &&
+              plugin.testCapabilities.isNotEmpty)
+            _MobilePluginActionRow(
+              key: Key('mobile-plugin-test-${plugin.pluginId}'),
+              icon: Icons.science_outlined,
+              label: l10n.pluginsTestCapabilities,
+              disabled: disabled,
+              onTap: () => _select(context, _MobilePluginAction.test),
             ),
           _MobilePluginActionRow(
             key: Key('mobile-plugin-delete-${plugin.pluginId}'),

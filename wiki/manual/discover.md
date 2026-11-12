@@ -22,7 +22,7 @@ If an external query fails, check the metadata source connection on the "Overvie
 1. Open her details from search results or the "Actors" list.
 2. Check the name, avatar and releases to confirm the target.
 3. Click the subscribe action.
-4. Wait for the "Fetch subscribed actor releases" background task to sync her release records.
+4. Wait for the "Subscribed actor movie sync" background task to sync her release records.
 5. Check updates under "New from actors" in "Discover", or go back to her details to browse releases.
 
 The first sync fetches the release list and may take a while. Later syncs check incrementally for new releases, and you can follow the runs in the task center. Task schedules follow the server configuration.
@@ -49,6 +49,6 @@ Whichever entry point you find a movie through, you can open the details first a
 
 ## When new from actors is empty
 
-Check in order whether you have subscribed to actors, whether the sync tasks succeeded, and whether any release meets the display conditions. An empty list can simply mean a subscription was just added and has not synced yet, or that there are no recent releases.
+Check in order whether you have subscribed to actors, whether "Subscribed actor movie sync" succeeded, whether the metadata plugins can reach the network, and whether any release meets the display conditions. An empty list can simply mean a subscription was just added and has not synced yet, or that there are no recent releases.
 
 Next: [Subscriptions and download progress](./subscriptions).

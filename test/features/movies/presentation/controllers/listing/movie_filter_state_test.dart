@@ -53,7 +53,6 @@ void main() {
       );
       expect(MovieInteractionMetric.heat.maxFromSlider(5000, maxValue), 5000);
     });
-
   });
 
   group('movieInteractionRangeLabel', () {
@@ -388,6 +387,26 @@ void main() {
         filter.copyWith(dimensionSortId: null).sortExpression,
         'my_score:asc',
       );
+    });
+  });
+
+  group('互动数来源关闭时的状态清理', () {
+    test('清空热度范围并把热度排序回退到默认排序', () {
+      final filter = MovieFilterState.initial.copyWith(
+        sortField: MovieSortField.heat,
+        interaction: _range(MovieInteractionMetric.heat, min: 1000),
+      );
+
+      final sanitized = filter.withoutStatsFeatures();
+
+      expect(sanitized.sortField, MovieSortField.releaseDate);
+      expect(sanitized.interaction.isDefault, isTrue);
+    });
+
+    test('非热度排序保持原样', () {
+      const filter = MovieFilterState(sortField: MovieSortField.myScore);
+
+      expect(filter.withoutStatsFeatures(), same(filter));
     });
   });
 }

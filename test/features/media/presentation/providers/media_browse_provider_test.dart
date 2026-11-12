@@ -12,6 +12,7 @@ import 'package:sakuramedia/features/media/data/media_list_item_dto.dart';
 import 'package:sakuramedia/features/media/presentation/media_browse_filter_state.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_browse_provider.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/features/shared/data/sort_direction.dart';
 
 import '../../../../support/fake_http_client_adapter.dart';
@@ -40,6 +41,7 @@ void main() {
       overrides: [
         sessionStoreProvider.overrideWithValue(sessionStore),
         mediaApiProvider.overrideWithValue(mediaApi),
+        statsFeaturesEnabledProvider.overrideWithValue(true),
       ],
       retry: (_, __) => null,
     );
@@ -112,6 +114,40 @@ void main() {
     expect(
       adapter.requests.last.uri.queryParameters,
       containsPair('sort', 'heat:desc'),
+    );
+  });
+
+  test('interaction source unavailable strips heat sort', () async {
+    final local = ProviderContainer(
+      overrides: [
+        sessionStoreProvider.overrideWithValue(sessionStore),
+        mediaApiProvider.overrideWithValue(mediaApi),
+        statsFeaturesEnabledProvider.overrideWithValue(false),
+      ],
+      retry: (_, __) => null,
+    );
+    addTearDown(local.dispose);
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _mediaPage(items: [_javItemJson(id: 1)], total: 1, page: 1),
+    );
+    await local.read(mediaBrowseProvider.future);
+
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media',
+      body: _mediaPage(items: const [], total: 0, page: 1),
+    );
+    await local
+        .read(mediaBrowseProvider.notifier)
+        .applyFilterState(
+          const MediaBrowseFilterState(sortField: MediaBrowseSortField.heat),
+        );
+
+    expect(
+      adapter.requests.last.uri.queryParameters.containsKey('sort'),
+      isFalse,
     );
   });
 

@@ -80,13 +80,7 @@ extension TagMatchModeX on TagMatchMode {
   };
 }
 
-enum MovieSortField {
-  releaseDate,
-  addedAt,
-  subscribedAt,
-  heat,
-  myScore,
-}
+enum MovieSortField { releaseDate, addedAt, subscribedAt, heat, myScore }
 
 extension MovieSortFieldX on MovieSortField {
   String get apiValue => switch (this) {
@@ -105,6 +99,22 @@ extension MovieSortFieldX on MovieSortField {
     MovieSortField.heat => l10n.sharedInteractionHeat,
     MovieSortField.myScore => l10n.movieSortMyScore,
   };
+}
+
+List<MovieSortField> visibleMovieSortFields({required bool statsEnabled}) {
+  return <MovieSortField>[
+    for (final field in MovieSortField.values)
+      if (statsEnabled || field != MovieSortField.heat) field,
+  ];
+}
+
+MovieSortField visibleMovieSortField(
+  MovieSortField field, {
+  required bool statsEnabled,
+}) {
+  return !statsEnabled && field == MovieSortField.heat
+      ? MovieSortField.releaseDate
+      : field;
 }
 
 const Object _movieFilterUnset = Object();
@@ -248,6 +258,17 @@ class MovieFilterState {
   bool get hasInteractionRange => !interaction.isDefault;
 
   bool get hasActorAgeRange => actorAgeMin != null || actorAgeMax != null;
+
+  /// 互动数来源不可用时，热度排序和热度范围都不参与请求。
+  MovieFilterState withoutStatsFeatures() {
+    if (sortField != MovieSortField.heat && interaction.isDefault) {
+      return this;
+    }
+    return copyWith(
+      sortField: visibleMovieSortField(sortField, statsEnabled: false),
+      interaction: MovieInteractionFilter.initial,
+    );
+  }
 
   String get sortExpression => dimensionSortId == null
       ? '${sortField.apiValue}:${sortDirection.apiValue}'

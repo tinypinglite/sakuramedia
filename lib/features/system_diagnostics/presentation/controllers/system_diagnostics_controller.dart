@@ -7,8 +7,14 @@ import 'package:sakuramedia/app/language/providers/app_localizations_provider.da
 import 'package:sakuramedia/features/configuration/data/api/download_clients_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/indexer_settings_api.dart';
 import 'package:sakuramedia/features/configuration/data/api/media_libraries_api.dart';
+import 'package:sakuramedia/features/configuration/data/api/metadata_sources_api.dart';
 import 'package:sakuramedia/features/configuration/data/dto/indexer_settings_dto.dart';
 import 'package:sakuramedia/features/configuration/data/dto/media_library_dto.dart';
+import 'package:sakuramedia/features/configuration/data/dto/metadata_source_dto.dart';
+import 'package:sakuramedia/features/configuration/presentation/providers/metadata_sources_api_provider.dart';
+import 'package:sakuramedia/features/plugins/data/dto/plugin_dto.dart';
+import 'package:sakuramedia/features/plugins/data/plugins_api.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugins_api_provider.dart';
 import 'package:sakuramedia/features/status/data/status_api.dart';
 import 'package:sakuramedia/features/status/data/status_dto.dart';
 import 'package:sakuramedia/features/configuration/presentation/providers/indexer_settings_api_provider.dart';
@@ -23,6 +29,7 @@ import 'package:sakuramedia/features/system_diagnostics/presentation/hints/diagn
 import 'package:sakuramedia/features/system_diagnostics/presentation/hints/indexer_hints.dart';
 import 'package:sakuramedia/features/system_diagnostics/presentation/hints/joytag_hints.dart';
 import 'package:sakuramedia/features/system_diagnostics/presentation/hints/media_library_hints.dart';
+import 'package:sakuramedia/features/system_diagnostics/presentation/hints/metadata_source_hints.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 
 part 'system_diagnostics_controller.g.dart';
@@ -64,13 +71,15 @@ class SystemDiagnosticsState {
 ///
 /// 调度算法（[runAll]）：
 ///   Stage A（基础资源）：媒体库。空 → 后置全部 blocked。
-///   Stage B（独立探针，与 A 并行）：嵌入服务。
+///   Stage B（独立探针，与 A 并行）：元数据源、嵌入服务。
 ///   Stage C（依赖 A）：索引器 —— 静态校验、绑定核对和真实搜索测试。
 ///
 /// 单项 try/catch 隔离，任何一项抛异常不影响整体流水推进。
 @riverpod
 class SystemDiagnostics extends _$SystemDiagnostics {
   late final MediaLibrariesApi _mediaLibrariesApi;
+  late final MetadataSourcesApi _metadataSourcesApi;
+  late final PluginsApi _pluginsApi;
   late final DownloadClientsApi _downloadClientsApi;
   late final IndexerSettingsApi _indexerSettingsApi;
   late final StatusApi _statusApi;
@@ -79,6 +88,8 @@ class SystemDiagnostics extends _$SystemDiagnostics {
   @override
   SystemDiagnosticsState build(SystemDiagnosticsHost host) {
     _mediaLibrariesApi = ref.read(mediaLibrariesApiProvider);
+    _metadataSourcesApi = ref.read(metadataSourcesApiProvider);
+    _pluginsApi = ref.read(pluginsApiProvider);
     _downloadClientsApi = ref.read(downloadClientsApiProvider);
     _indexerSettingsApi = ref.read(indexerSettingsApiProvider);
     _statusApi = ref.read(statusApiProvider);
@@ -90,6 +101,7 @@ class SystemDiagnostics extends _$SystemDiagnostics {
   }
 
   static const String _mediaLibraryItemKey = 'media-library';
+  static const String _metadataSourcesItemKey = 'metadata-sources';
   static const String _indexerItemKey = 'indexer';
   static const String _joyTagItemKey = 'joytag';
 
@@ -120,6 +132,7 @@ class SystemDiagnostics extends _$SystemDiagnostics {
 
     // Stage A + Stage B 完全并发（独立项互不依赖）。
     final mediaLibraryFuture = _probeMediaLibrary(l10n);
+    final metadataSourcesFuture = _probeMetadataSources(l10n);
     final joyTagFuture = _probeJoyTag(l10n);
 
     final mediaLibrary = await mediaLibraryFuture;
@@ -152,6 +165,7 @@ class SystemDiagnostics extends _$SystemDiagnostics {
     _publish();
 
     // 收 stage B。
+    await metadataSourcesFuture;
     final joyTag = await joyTagFuture;
     _replaceCategoryItems(
       l10n.diagnosticCategoryIntelligence,
@@ -204,6 +218,175 @@ class SystemDiagnostics extends _$SystemDiagnostics {
         ),
       );
     }
+  }
+
+  /// 元数据源列表决定本次要跑哪些插件；列表本身失败和“没有启用插件”是
+  /// 两种不同状态，不能混成同一个错误。
+  Future<void> _probeMetadataSources(AppLocalizations l10n) async {
+    final started = DateTime.now();
+    final List<MetadataSourceDto> sources;
+    try {
+      sources = await _metadataSourcesApi.list();
+    } catch (error) {
+      _replaceCategoryItems(
+        l10n.diagnosticCategoryMetadataSources,
+        <DiagnosticItemState>[
+          _fromHint(
+            kind: DiagnosticItemKind.metadataSource,
+            itemKey: _metadataSourcesItemKey,
+            displayName: l10n.diagnosticItemMetadataSources,
+            status: DiagnosticItemStatus.unhealthy,
+            hint: metadataSourcesProbeFailedHint(l10n),
+            elapsedMs: DateTime.now().difference(started).inMilliseconds,
+            summary: _shortenError(
+              ref.apiErrorMessage(
+                error,
+                fallback: l10n.diagnosticErrorMetadataSourcesLoadFailed,
+              ),
+            ),
+          ),
+        ],
+      );
+      _publish();
+      return;
+    }
+
+    final usableSources = sources
+        .where((source) => source.pluginId.trim().isNotEmpty)
+        .toList(growable: false);
+    if (usableSources.isEmpty) {
+      _replaceCategoryItems(
+        l10n.diagnosticCategoryMetadataSources,
+        <DiagnosticItemState>[
+          _fromHint(
+            kind: DiagnosticItemKind.metadataSource,
+            itemKey: _metadataSourcesItemKey,
+            displayName: l10n.diagnosticItemMetadataSources,
+            status: DiagnosticItemStatus.warning,
+            hint: metadataSourcesEmptyHint(l10n),
+            summary: l10n.diagnosticMetadataSourcesEmptySummary,
+          ),
+        ],
+      );
+      _publish();
+      return;
+    }
+
+    _replaceCategoryItems(
+      l10n.diagnosticCategoryMetadataSources,
+      <DiagnosticItemState>[
+        for (final source in usableSources)
+          DiagnosticItemState.probing(
+            kind: DiagnosticItemKind.metadataSource,
+            itemKey: _metadataSourceItemKey(source),
+            displayName: _metadataSourceName(source),
+          ),
+      ],
+    );
+    _publish();
+
+    await Future.wait<void>(
+      usableSources.map((source) async {
+        final item = await _probeMetadataSource(source, l10n);
+        _replaceItem(l10n.diagnosticCategoryMetadataSources, item);
+        _publish();
+      }),
+    );
+  }
+
+  Future<DiagnosticItemState> _probeMetadataSource(
+    MetadataSourceDto source,
+    AppLocalizations l10n,
+  ) async {
+    final started = DateTime.now();
+    final itemKey = _metadataSourceItemKey(source);
+    final displayName = _metadataSourceName(source);
+    try {
+      final result = await _pluginsApi.testCapability(
+        source.pluginId,
+        PluginTestCapability.metadata,
+      );
+      final elapsedMs = result.durationMs > 0
+          ? result.durationMs
+          : DateTime.now().difference(started).inMilliseconds;
+      switch (result.status) {
+        case PluginTestStatus.ok:
+          final metadata = result.metadata;
+          if (metadata == null) {
+            return _fromHint(
+              kind: DiagnosticItemKind.metadataSource,
+              itemKey: itemKey,
+              displayName: displayName,
+              status: DiagnosticItemStatus.unhealthy,
+              hint: metadataSourceFailedHint(l10n),
+              elapsedMs: elapsedMs,
+              summary: l10n.diagnosticMetadataSourceFailedSummary,
+            );
+          }
+          return DiagnosticItemState.healthy(
+            kind: DiagnosticItemKind.metadataSource,
+            itemKey: itemKey,
+            displayName: displayName,
+            elapsedMs: elapsedMs,
+            summary: l10n.diagnosticMetadataSourceSummary(
+              metadata.title.trim().isEmpty ? displayName : metadata.title,
+              metadata.actorCount,
+              metadata.tagCount,
+              metadata.imageCount,
+            ),
+          );
+        case PluginTestStatus.empty:
+          return _fromHint(
+            kind: DiagnosticItemKind.metadataSource,
+            itemKey: itemKey,
+            displayName: displayName,
+            status: DiagnosticItemStatus.warning,
+            hint: metadataSourceEmptyHint(l10n),
+            elapsedMs: elapsedMs,
+            summary: l10n.diagnosticMetadataSourceEmptySummary(
+              result.movieNumber.trim().isEmpty
+                  ? l10n.diagnosticItemMetadataSources
+                  : result.movieNumber,
+            ),
+          );
+        case PluginTestStatus.failed:
+          final message = result.errorMessage?.trim() ?? '';
+          return _fromHint(
+            kind: DiagnosticItemKind.metadataSource,
+            itemKey: itemKey,
+            displayName: displayName,
+            status: DiagnosticItemStatus.unhealthy,
+            hint: metadataSourceFailedHint(l10n),
+            elapsedMs: elapsedMs,
+            summary: message.isEmpty
+                ? l10n.diagnosticMetadataSourceFailedSummary
+                : _shortenError(message),
+          );
+      }
+    } catch (error) {
+      return _fromHint(
+        kind: DiagnosticItemKind.metadataSource,
+        itemKey: itemKey,
+        displayName: displayName,
+        status: DiagnosticItemStatus.unhealthy,
+        hint: metadataSourceRequestFailedHint(l10n),
+        elapsedMs: DateTime.now().difference(started).inMilliseconds,
+        summary: _shortenError(
+          ref.apiErrorMessage(
+            error,
+            fallback: l10n.diagnosticCheckRequestFailed,
+          ),
+        ),
+      );
+    }
+  }
+
+  String _metadataSourceItemKey(MetadataSourceDto source) =>
+      'metadata-source-${source.pluginId.trim()}';
+
+  String _metadataSourceName(MetadataSourceDto source) {
+    final displayName = source.displayName.trim();
+    return displayName.isEmpty ? source.pluginId.trim() : displayName;
   }
 
   Future<DiagnosticItemState> _probeIndexer(AppLocalizations l10n) async {
@@ -402,6 +585,17 @@ class SystemDiagnostics extends _$SystemDiagnostics {
             DiagnosticItemKind.mediaLibrary,
             _mediaLibraryItemKey,
             l10n.diagnosticItemMediaLibrary,
+          ),
+        ],
+      ),
+      DiagnosticCategoryState(
+        label: l10n.diagnosticCategoryMetadataSources,
+        icon: Icons.travel_explore_rounded,
+        items: <DiagnosticItemState>[
+          make(
+            DiagnosticItemKind.metadataSource,
+            _metadataSourcesItemKey,
+            l10n.diagnosticItemMetadataSources,
           ),
         ],
       ),

@@ -79,10 +79,10 @@ services:
       PGID: 0
       # Change this to the host time zone if you are not on China time.
       TZ: "Asia/Shanghai"
-      # If the host cannot reach GFriends directly, uncomment the next three lines and fill in your proxy address.
+      # If the host cannot reach GFriends or the metadata sites directly, uncomment the next three lines and fill in your proxy address.
       # HTTP_PROXY: "http://192.168.1.1:7890"
       # HTTPS_PROXY: "http://192.168.1.1:7890"
-      # NO_PROXY: "localhost,127.0.0.1"
+      # NO_PROXY: "localhost,127.0.0.1,postgres,qbittorrent"
       MALLOC_TRIM_THRESHOLD_: "131072"
     volumes:
       - ./sakuramedia-data:/data # This line usually does not need to change.
@@ -120,12 +120,30 @@ http://your-ip:38000
 The default username and password are `account` and `account`. Change the password right after logging in.
 
 ::: tip Metadata plugins
-This release requires every plugin to declare Host API 18. After installing compatible metadata plugins, set their order under Settings → Metadata Sources to search and import movies by number. Actor search uses the backend's bundled GFriends index.
+This release requires every plugin to declare Host API 18. The official image already bundles and enables four metadata plugins: DMM / FANZA, FC2, FC2CMADB, and JavBus, so no installation is needed on a first deployment. You can adjust their order under Settings → Metadata Sources; restart the backend after saving. JavBus also supports syncing subscribed-actor movie lists. Actor search uses the backend's bundled GFriends index.
+:::
+
+::: warning Metadata plugin networking
+These plugins need the container to resolve and reach the following domains when querying metadata and downloading covers:
+
+```text
+adult.contents.fc2.com
+storage*.contents.fc2.com
+contents-thumbnail*.fc2.com
+fc2cmadb.com
+api.video.dmm.co.jp
+video.dmm.co.jp
+awsimgsrc.dmm.co.jp
+pics.dmm.co.jp
+www.javbus.com
+```
+
+After startup, run "Overview → Component Diagnostics"; it uses the test movie number to make a real request to every enabled metadata source. If it fails, check the host network and DNS first. If the container still cannot connect, configure `HTTP_PROXY` / `HTTPS_PROXY` for the `sakuramedia` service (the compose example has commented lines ready) and restart the container before testing again. See the [FAQ](/faq#metadata-plugin-networking-and-proxy) for transparent-proxy routing and `NO_PROXY` guidance.
 :::
 
 ## Stage 2: Create a media library and import your existing movies
 
-The official image already has "Local Storage & qBittorrent" installed and enabled, so there is no need to upload a plugin.
+The official image already has "Local Storage & qBittorrent" installed and enabled, along with common metadata, ranking, collection detection, and subtitle plugins, so there is no need to upload a plugin.
 
 ### 1. Create a media library
 
@@ -202,7 +220,7 @@ After saving, bind one or more download clients (the first one becomes the defau
 
 ### 4. Verify
 
-1. On the "Overview" page, run "Component Diagnostics" to confirm connectivity to the media library and indexers; check the download client separately with "Test Configuration" on the download clients page.
+1. On the "Overview" page, run "Component Diagnostics" to confirm connectivity to the media library, metadata sources, and indexers. Each metadata source shows "Passed / No data / Failed"; check the download client separately with "Test Configuration" on the download clients page.
 2. Subscribe to a movie and wait for the background task to look for resources.
 3. To actively verify the automatic flow, manually trigger "Auto-download missing subscribed movies" in the Task Center and check the run result. When no suitable resource exists, a completed run does not mean a successful download.
 

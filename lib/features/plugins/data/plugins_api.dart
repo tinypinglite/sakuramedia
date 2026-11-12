@@ -176,6 +176,18 @@ class PluginsApi {
     );
     return PluginSettingsDto.fromJson(response);
   }
+
+  Future<PluginTestResultDto> testCapability(
+    String pluginId,
+    PluginTestCapability capability,
+  ) async {
+    final response = await _apiClient.post(
+      '/system/plugins/$pluginId/test',
+      data: <String, dynamic>{'capability': capability.wireValue},
+      receiveTimeout: const Duration(seconds: 90),
+    );
+    return PluginTestResultDto.fromJson(response);
+  }
 }
 
 Map<String, dynamic>? _findZipAsset(dynamic value) {

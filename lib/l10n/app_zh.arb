@@ -936,7 +936,7 @@
   "metadataSourcesLoadFailed": "元数据源加载失败",
   "metadataSourcesSaveFailed": "元数据源顺序保存失败",
   "pluginBindingsTitle": "互动数与评论来源",
-  "pluginBindingsDescription": "互动数只使用一个绑定插件；评论未绑定时按插件启用顺序自动选择。元数据来源仍按上方顺序 fallback。",
+  "pluginBindingsDescription": "互动数只使用一个绑定插件；评论也只使用一个绑定插件，未绑定时不显示评论入口。元数据来源仍按上方顺序 fallback。",
   "pluginBindingsStatsLabel": "互动数来源",
   "pluginBindingsReviewLabel": "评论来源",
   "pluginBindingsUnbound": "不绑定",
@@ -1370,6 +1370,7 @@
   "pluginSettingsInvalidJson": "不是合法的 JSON",
   "pluginSettingsSaveFailed": "插件配置保存失败",
   "pluginSettingsTitle": "插件配置",
+  "pluginSettingsJavdbAccountRisk": "JavDB 账号存在封禁风险，建议使用小号，以免影响主账号。",
   "pluginSettingsJsonLabel": "配置内容（JSON）",
   "pluginSettingsPlaceholderEndpoint": "服务地址",
   "pluginSettingsPlaceholderEnabled": "启用",
@@ -1438,6 +1439,81 @@
     "placeholders": {
       "version": {
         "type": "String"
+      }
+    }
+  },
+  "pluginsTestCapabilities": "能力测试",
+  "pluginTestTitle": "能力测试",
+  "pluginTestConfigNotice": "测试番号 {movieNumber}。使用当前已加载的配置；修改配置后需保存并重启后端再测试。",
+  "@pluginTestConfigNotice": {
+    "placeholders": {
+      "movieNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginTestConfigNoticeWithoutNumber": "该插件未声明默认测试番号，暂时无法测试。",
+  "pluginTestCapabilitiesTitle": "可测试能力",
+  "pluginTestNoCapabilities": "该插件没有可测试的能力。",
+  "pluginTestRun": "测试",
+  "pluginTestRunAll": "全部测试",
+  "pluginTestCapabilityMetadata": "元数据",
+  "pluginTestCapabilityStats": "互动数",
+  "pluginTestCapabilityReviews": "评论",
+  "pluginTestCapabilityMetadataDescription": "按测试番号抓取标题、演员、标签与图片",
+  "pluginTestCapabilityStatsDescription": "按测试番号抓取互动数与热度",
+  "pluginTestCapabilityReviewsDescription": "按测试番号拉取第一页评论",
+  "pluginTestStatusPending": "未测试",
+  "pluginTestStatusTesting": "测试中",
+  "pluginTestStatusOk": "通过",
+  "pluginTestStatusEmpty": "无数据",
+  "pluginTestStatusFailed": "失败",
+  "pluginTestEmptyMetadata": "插件正常响应，但测试番号未找到",
+  "pluginTestEmptyStats": "插件正常响应，但没有互动数数据",
+  "pluginTestEmptyReviews": "接口正常，但该番号没有评论",
+  "pluginTestFailedGeneric": "插件测试失败",
+  "pluginTestRequestFailed": "插件测试请求失败",
+  "pluginTestMetadataSummary": "{title} · 演员 {actors} · 标签 {tags} · 图片 {images}",
+  "@pluginTestMetadataSummary": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "actors": {
+        "type": "int"
+      },
+      "tags": {
+        "type": "int"
+      },
+      "images": {
+        "type": "int"
+      }
+    }
+  },
+  "pluginTestStatsSummary": "热度 {heat} · {fields} 个字段",
+  "@pluginTestStatsSummary": {
+    "placeholders": {
+      "heat": {
+        "type": "String"
+      },
+      "fields": {
+        "type": "int"
+      }
+    }
+  },
+  "pluginTestReviewsSummary": "本页 {count} 条评论",
+  "@pluginTestReviewsSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pluginTestElapsed": "耗时 {ms} ms",
+  "@pluginTestElapsed": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
       }
     }
   },
@@ -1840,9 +1916,11 @@
   "videoEpisodeDeleteSubtitle": "删除视频及全部关联媒体",
   "videoEpisodeActionsTooltip": "选集操作",
   "diagnosticCategoryBasicResources": "基础资源",
+  "diagnosticCategoryMetadataSources": "元数据源",
   "diagnosticCategoryDownloadAndIndexing": "下载与检索链",
   "diagnosticCategoryIntelligence": "智能能力",
   "diagnosticItemMediaLibrary": "媒体库",
+  "diagnosticItemMetadataSources": "元数据源",
   "diagnosticItemIndexer": "索引器",
   "diagnosticItemEmbeddingService": "嵌入服务",
   "diagnosticStatusProbing": "检测中",
@@ -1876,6 +1954,34 @@
   },
   "diagnosticMediaLibraryNoneConfigured": "尚未配置任何媒体库",
   "diagnosticErrorMediaLibraryLoadFailed": "读取媒体库列表失败",
+  "diagnosticErrorMetadataSourcesLoadFailed": "读取元数据源失败",
+  "diagnosticMetadataSourcesEmptySummary": "未启用元数据插件",
+  "diagnosticMetadataSourceSummary": "{title} · 演员 {actors} · 标签 {tags} · 图片 {images}",
+  "@diagnosticMetadataSourceSummary": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "actors": {
+        "type": "int"
+      },
+      "tags": {
+        "type": "int"
+      },
+      "images": {
+        "type": "int"
+      }
+    }
+  },
+  "diagnosticMetadataSourceEmptySummary": "未找到测试番号 {movieNumber}",
+  "@diagnosticMetadataSourceEmptySummary": {
+    "placeholders": {
+      "movieNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "diagnosticMetadataSourceFailedSummary": "插件测试失败",
   "diagnosticIndexerConfigOrConnectionFailed": "索引器配置或连通性检测失败",
   "diagnosticEmbeddingDisabledSummary": "未启用，可在高级设置中开启",
   "diagnosticEmbeddingHealthySummary": "嵌入模型加载正常",
@@ -1958,6 +2064,13 @@
   "diagnosticHintIndexerTestFailedFix": "确认索引器服务能访问，然后在「索引器」页核对各站点地址与 API Key。",
   "diagnosticHintJoyTagUnhealthyCause": "JoyTag 推理服务没有响应。",
   "diagnosticHintJoyTagUnhealthyFix": "在部署后端的机器上查看嵌入服务日志。",
+  "diagnosticHintMetadataSourcesEmptyCause": "没有启用任何元数据插件。",
+  "diagnosticHintMetadataSourcesEmptyFix": "在「插件」页安装并启用元数据插件，再重新检测。",
+  "diagnosticHintMetadataSourcesProbeFailedCause": "读取元数据源失败，后端没有正常响应。",
+  "diagnosticHintMetadataSourceEmptyCause": "插件有响应，但测试番号没有返回元数据。",
+  "diagnosticHintMetadataSourceEmptyFix": "在「插件」页检查这个插件的配置，再重新检测。",
+  "diagnosticHintMetadataSourceFailedCause": "这个元数据插件没有通过测试。",
+  "diagnosticHintMetadataSourceFailedFix": "在「插件」页检查这个插件的配置和账号状态，再重新检测。",
   "diagnosticHintProbeRequestFailedCause": "检测请求没完成，后端没有响应。",
   "overviewStatusUnavailable": "不可用",
   "overviewStatusHealthy": "正常",
@@ -2151,7 +2264,7 @@
   "routeMomentCollectionsTitle": "时刻合集",
   "routeVideoCollectionsTitle": "视频合集",
   "routePlaylistDetailsTitle": "播放列表详情",
-  "routeNewActorReleasesTitle": "订阅女优影片",
+  "routeNewActorReleasesTitle": "女优上新",
   "routeRecommendedMoviesTitle": "推荐影片",
   "routeRecommendedMomentsTitle": "推荐时刻",
   "routePopularNewReleasesTitle": "热门新片",
@@ -4734,7 +4847,7 @@
   "subscriptionImportSubmitFailed": "提交导入失败，请稍后重试",
   "subscriptionDownloadTaskMissing": "下载任务已不存在",
   "subscriptionFollowEmpty": "暂无关注影片",
-  "subscriptionFollowLoadFailed": "订阅女优影片加载失败，请稍后重试",
+  "subscriptionFollowLoadFailed": "女优上新加载失败，请稍后重试",
   "subscriptionFollowEmptyDescription": "暂无已订阅演员的近期影片。订阅演员并等待同步后，作品会展示在这里。",
   "subscriptionRefreshFailed": "刷新失败",
   "actorSubscriptionStatusAll": "全部",
@@ -4897,9 +5010,9 @@
   "actorTasteRecommendedTitle": "你可能想关注",
   "actorTastePanelTitle": "常看女优",
   "actorRefreshFailed": "刷新失败",
-  "discoveryActressReleaseTitle": "订阅女优影片",
+  "discoveryActressReleaseTitle": "女优上新",
   "@discoveryActressReleaseTitle": {},
-  "discoveryActressReleaseLoadFailed": "订阅女优影片加载失败，请稍后重试",
+  "discoveryActressReleaseLoadFailed": "女优上新加载失败，请稍后重试",
   "@discoveryActressReleaseLoadFailed": {},
   "discoveryActressReleaseEmpty": "暂无已订阅演员的近期影片。订阅演员并等待同步后，作品会展示在这里。",
   "@discoveryActressReleaseEmpty": {},

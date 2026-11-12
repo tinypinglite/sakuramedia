@@ -1,7 +1,9 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_board_dto.dart';
 import 'package:sakuramedia/features/rankings/data/ranking_source_dto.dart';
 import 'package:sakuramedia/features/rankings/presentation/rankings_placeholders.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/features/shared/data/movie_interaction_filter.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
@@ -35,7 +37,7 @@ class RankingFilterSectionKeys {
 ///
 /// 每个 section 外层 Container 挂有 [sectionKeys] 对应 GlobalKey，
 /// 调用方可 `Scrollable.ensureVisible(sectionKeys.forAnchor(anchor).currentContext!)` 滚动定位。
-class RankingFilterSectionGroup extends StatelessWidget {
+class RankingFilterSectionGroup extends ConsumerWidget {
   const RankingFilterSectionGroup({
     super.key,
     required this.sources,
@@ -69,8 +71,9 @@ class RankingFilterSectionGroup extends StatelessWidget {
   final bool isBoardLoading;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final statsEnabled = ref.watch(statsFeaturesEnabledProvider);
     final boardOptions = isBoardLoading ? rankingBoardPlaceholders() : boards;
     final periodOptions = isBoardLoading
         ? rankingPeriodPlaceholders()
@@ -119,11 +122,13 @@ class RankingFilterSectionGroup extends StatelessWidget {
             onSelected: onPeriodChanged,
           ),
         ),
-        SizedBox(height: context.appSpacing.lg),
-        MovieInteractionRangeFilterSectionGroup(
-          filter: interaction,
-          onChanged: onInteractionChanged,
-        ),
+        if (statsEnabled) ...[
+          SizedBox(height: context.appSpacing.lg),
+          MovieInteractionRangeFilterSectionGroup(
+            filter: interaction,
+            onChanged: onInteractionChanged,
+          ),
+        ],
       ],
     );
   }

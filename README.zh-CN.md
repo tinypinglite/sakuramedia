@@ -11,7 +11,7 @@
 </p>
 
 > [!WARNING]
-> **由于上游 JavDB 接口发生变动，SakuraMedia 目前暂无法正常使用。我们正在跟进适配，恢复后会更新说明。**
+> **请将前后端同步升级至 v0.15.0 才能正常使用；v0.15.0 之前的版本已无法正常使用。**
 
 <p align="center">
   <a href="https://github.com/tinypinglite/sakuramedia/releases/latest"><strong>下载客户端</strong></a>

@@ -1,5 +1,7 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/media/presentation/media_browse_filter_state.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_sort_menu_button.dart';
 
@@ -7,7 +9,7 @@ import 'package:sakuramedia/widgets/base/navigation/app_sort_menu_button.dart';
 ///
 /// `sortField == null` 表示走后端默认（入库时间倒序），摘要显示「默认排序」；
 /// 只有选了字段才显示升降序。
-class MediaSortMenuButton extends StatelessWidget {
+class MediaSortMenuButton extends ConsumerWidget {
   const MediaSortMenuButton({
     super.key,
     required this.filterState,
@@ -32,17 +34,21 @@ class MediaSortMenuButton extends StatelessWidget {
   final Key? drawerKey;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context);
+    final statsEnabled = ref.watch(statsFeaturesEnabledProvider);
+    final effectiveState = statsEnabled
+        ? filterState
+        : filterState.withoutStatsFeatures();
     return AppSortMenuButton<MediaBrowseSortField>(
-      fields: MediaBrowseSortField.values,
-      selectedField: filterState.sortField,
+      fields: visibleMediaBrowseSortFields(statsEnabled: statsEnabled),
+      selectedField: effectiveState.sortField,
       fieldLabelBuilder: (value) => value.labelWith(l10n: l10n),
       onFieldChanged: (value) =>
-          onChanged(filterState.copyWith(sortField: value)),
-      selectedDirection: filterState.sortDirection,
+          onChanged(effectiveState.copyWith(sortField: value)),
+      selectedDirection: effectiveState.sortDirection,
       onDirectionChanged: (value) =>
-          onChanged(filterState.copyWith(sortDirection: value)),
+          onChanged(effectiveState.copyWith(sortDirection: value)),
       allowDefaultOption: true,
       defaultOptionLabel: l10n.widgetMediaSortDefault,
       directionVisibleWhen: (field) => field != null,

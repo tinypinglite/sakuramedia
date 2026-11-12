@@ -6,6 +6,15 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 /// `created_at:desc`（入库时间倒序）作为默认视图。
 enum MediaBrowseSortField { fileSize, heat }
 
+List<MediaBrowseSortField> visibleMediaBrowseSortFields({
+  required bool statsEnabled,
+}) {
+  return <MediaBrowseSortField>[
+    for (final field in MediaBrowseSortField.values)
+      if (statsEnabled || field != MediaBrowseSortField.heat) field,
+  ];
+}
+
 extension MediaBrowseSortFieldX on MediaBrowseSortField {
   String get apiValue => switch (this) {
     MediaBrowseSortField.fileSize => 'file_size_bytes',
@@ -100,6 +109,9 @@ class MediaBrowseFilterState {
     }
     return '${field.apiValue}:${sortDirection.apiValue}';
   }
+
+  MediaBrowseFilterState withoutStatsFeatures() =>
+      sortField == MediaBrowseSortField.heat ? copyWith(sortField: null) : this;
 
   /// 触发按钮上显示的当前筛选摘要。只反映「归属」维度——库和排序有独立分节，
   /// 不再堆在 trigger 上避免文字变长。归属为 null 时用「全部媒体」占位。

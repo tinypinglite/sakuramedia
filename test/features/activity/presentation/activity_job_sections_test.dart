@@ -68,6 +68,22 @@ void main() {
     expect(activityPluginDisplayName('plugin_b', names), 'plugin_b');
     expect(activityPluginDisplayName('plugin_c', names), 'plugin_c');
   });
+
+  test('hides the stats sync job when stats are disabled', () {
+    final jobs = <JobMetadataDto>[
+      _job(movieStatsSyncTaskKey),
+      _job('download_task_sync'),
+    ];
+
+    expect(
+      visibleActivityJobs(jobs, statsEnabled: false).map((job) => job.taskKey),
+      <String>['download_task_sync'],
+    );
+    expect(
+      visibleActivityJobs(jobs, statsEnabled: true).map((job) => job.taskKey),
+      <String>[movieStatsSyncTaskKey, 'download_task_sync'],
+    );
+  });
 }
 
 JobMetadataDto _job(String taskKey, {String? pluginId}) {

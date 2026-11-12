@@ -45,6 +45,19 @@ class RankingFilterState {
         : '${field.apiValue}:${selectedSortDirection.apiValue}';
   }
 
+  RankingFilterState withoutStatsFeatures() {
+    final nextSortField = selectedSortField == RankingSortField.heat
+        ? null
+        : selectedSortField;
+    if (nextSortField == selectedSortField && interaction.isDefault) {
+      return this;
+    }
+    return copyWith(
+      selectedSortField: nextSortField,
+      interaction: MovieInteractionFilter.initial,
+    );
+  }
+
   RankingFilterState copyWith({
     bool? isLoading,
     Object? errorMessage = _sentinel,
@@ -59,28 +72,23 @@ class RankingFilterState {
   }) {
     return RankingFilterState(
       isLoading: isLoading ?? this.isLoading,
-      errorMessage:
-          identical(errorMessage, _sentinel)
-              ? this.errorMessage
-              : errorMessage as String?,
+      errorMessage: identical(errorMessage, _sentinel)
+          ? this.errorMessage
+          : errorMessage as String?,
       sources: List<RankingSourceDto>.unmodifiable(sources ?? this.sources),
       boards: List<RankingBoardDto>.unmodifiable(boards ?? this.boards),
-      selectedSource:
-          identical(selectedSource, _sentinel)
-              ? this.selectedSource
-              : selectedSource as RankingSourceDto?,
-      selectedBoard:
-          identical(selectedBoard, _sentinel)
-              ? this.selectedBoard
-              : selectedBoard as RankingBoardDto?,
-      selectedPeriod:
-          identical(selectedPeriod, _sentinel)
-              ? this.selectedPeriod
-              : selectedPeriod as String?,
-      selectedSortField:
-          identical(selectedSortField, _sentinel)
-              ? this.selectedSortField
-              : selectedSortField as RankingSortField?,
+      selectedSource: identical(selectedSource, _sentinel)
+          ? this.selectedSource
+          : selectedSource as RankingSourceDto?,
+      selectedBoard: identical(selectedBoard, _sentinel)
+          ? this.selectedBoard
+          : selectedBoard as RankingBoardDto?,
+      selectedPeriod: identical(selectedPeriod, _sentinel)
+          ? this.selectedPeriod
+          : selectedPeriod as String?,
+      selectedSortField: identical(selectedSortField, _sentinel)
+          ? this.selectedSortField
+          : selectedSortField as RankingSortField?,
       selectedSortDirection:
           selectedSortDirection ?? this.selectedSortDirection,
       interaction: interaction ?? this.interaction,
@@ -128,10 +136,9 @@ class RankingSummaryState
     return RankingSummaryState(
       paged: paged ?? this.paged,
       filters: filters ?? this.filters,
-      initialErrorMessage:
-          identical(initialErrorMessage, _sentinel)
-              ? this.initialErrorMessage
-              : initialErrorMessage as String?,
+      initialErrorMessage: identical(initialErrorMessage, _sentinel)
+          ? this.initialErrorMessage
+          : initialErrorMessage as String?,
       subscriptionUpdatingMovieNumbers: Set<String>.unmodifiable(
         subscriptionUpdatingMovieNumbers ??
             this.subscriptionUpdatingMovieNumbers,

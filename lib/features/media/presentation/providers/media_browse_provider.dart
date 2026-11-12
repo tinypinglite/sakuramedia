@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:sakuramedia/app/language/providers/app_localizations_provider.dart';
 import 'package:sakuramedia/core/network/paginated_response_dto.dart';
@@ -6,6 +8,7 @@ import 'package:sakuramedia/features/media/data/media_tag_dto.dart';
 import 'package:sakuramedia/features/media/presentation/media_browse_filter_state.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_browse_state.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/async_notifier_dispose_guard.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/session_scoped_invalidation.dart';
@@ -54,7 +57,9 @@ class MediaBrowse extends _$MediaBrowse
     int page,
     int pageSize,
   ) {
-    final filter = activeFilter;
+    final filter = ref.read(statsFeaturesEnabledProvider)
+        ? activeFilter
+        : activeFilter.withoutStatsFeatures();
     return ref
         .read(mediaApiProvider)
         .getMediaList(
@@ -72,8 +77,22 @@ class MediaBrowse extends _$MediaBrowse
   Future<MediaBrowseState> build() async {
     invalidateOnSignOut(ref);
     attachDisposeGuard();
+    ref.listen(statsFeaturesEnabledProvider, (_, enabled) {
+      if (enabled) return;
+      final sanitized = activeFilter.withoutStatsFeatures();
+      if (identical(sanitized, activeFilter)) return;
+      unawaited(applyFilterState(sanitized));
+    });
     final paged = await loadInitialPage();
     return MediaBrowseState(paged: paged, filter: activeFilter);
+  }
+
+  @override
+  Future<void> applyFilterState(MediaBrowseFilterState next) {
+    final effective = ref.read(statsFeaturesEnabledProvider)
+        ? next
+        : next.withoutStatsFeatures();
+    return super.applyFilterState(effective);
   }
 
   @override

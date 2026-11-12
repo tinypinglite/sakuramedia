@@ -10,6 +10,15 @@ export 'package:sakuramedia/features/shared/data/sort_direction.dart'
 /// 播放列表影片的排序字段，对齐后端 `sort` 参数的 `field:direction`。
 enum PlaylistSortField { heat, bitrate, addedAt, releaseDate }
 
+List<PlaylistSortField> visiblePlaylistSortFields({
+  required bool statsEnabled,
+}) {
+  return <PlaylistSortField>[
+    for (final field in PlaylistSortField.values)
+      if (statsEnabled || field != PlaylistSortField.heat) field,
+  ];
+}
+
 extension PlaylistSortFieldX on PlaylistSortField {
   String get apiValue => switch (this) {
     PlaylistSortField.heat => 'heat',
@@ -53,9 +62,12 @@ class PlaylistFilterState {
       ? null
       : '${sortField!.apiValue}:${sortDirection.apiValue}';
 
+  PlaylistFilterState withoutStatsFeatures() =>
+      sortField == PlaylistSortField.heat ? copyWith(sortField: null) : this;
+
   /// 筛选入口只反映分辨率，不再混入排序。
   String triggerLabel(AppLocalizations l10n) =>
-        resolution?.label ?? l10n.playlistFilterAll;
+      resolution?.label ?? l10n.playlistFilterAll;
 
   /// 重置筛选条件但保留当前排序。
   PlaylistFilterState resetFilters() => PlaylistFilterState.initial.copyWith(

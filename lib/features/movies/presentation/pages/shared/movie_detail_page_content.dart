@@ -25,6 +25,7 @@ import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_su
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_tag_wrap.dart';
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
 import 'package:sakuramedia/features/plugins/data/dto/plugin_binding_dto.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/features/plugins/presentation/providers/plugin_bindings_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 
@@ -52,7 +53,11 @@ class MovieDetailPageContent extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final statsFields = ref.watch(pluginBindingsProvider).value?.statsFields;
+    final statsEnabled = ref.watch(statsFeaturesEnabledProvider);
+    final reviewEnabled = ref.watch(reviewFeaturesEnabledProvider);
+    final statsFields = statsEnabled
+        ? ref.watch(pluginBindingsProvider).value?.statsFields
+        : null;
     return Stack(
       children: [
         // 整页模糊背景：封面高斯模糊铺底 + 底色罩一层，保证下方文字可读。
@@ -91,6 +96,8 @@ class MovieDetailPageContent extends ConsumerWidget {
                       heroHeight: heroHeight,
                       heroFit: heroFit,
                       statsFields: statsFields,
+                      statsEnabled: statsEnabled,
+                      reviewEnabled: reviewEnabled,
                     ),
                   ),
                   ...bottomSafeAreaSliver(context),
@@ -181,6 +188,8 @@ class MovieDetailPageContent extends ConsumerWidget {
     required double heroHeight,
     required BoxFit heroFit,
     required List<PluginStatsFieldDto>? statsFields,
+    required bool statsEnabled,
+    required bool reviewEnabled,
   }) {
     final hoverActions = movieCardHoverFeatureActions(context);
     final l10n = AppLocalizations.of(context);
@@ -239,6 +248,9 @@ class MovieDetailPageContent extends ConsumerWidget {
                     context,
                     data.movie,
                     statsFields,
+                    showStats: statsEnabled,
+                    showHeat: statsEnabled,
+                    showReview: reviewEnabled,
                   ),
                   fileSizeLabel: _resolveFileSizeLabel(
                     mediaItems,
@@ -273,6 +285,7 @@ class MovieDetailPageContent extends ConsumerWidget {
                   onMergePlaybackTap: actions.onMergePlaybackTap,
                   isMergePlaybackLoading: state.isMergePlaybackLoading,
                   onInspectorPaneTap: actions.onInspectorPaneTap,
+                  showReviewAction: reviewEnabled,
                   ratingPanel: config.ratingPanel,
                 ),
               ),
@@ -625,37 +638,46 @@ String _resolveOverlayTitle(MovieDetailDto movie) {
 List<MovieDetailMetaItem> _resolveMetaItems(
   BuildContext context,
   MovieDetailDto movie,
-  List<PluginStatsFieldDto>? statsFields,
-) {
+  List<PluginStatsFieldDto>? statsFields, {
+  required bool showStats,
+  required bool showHeat,
+  required bool showReview,
+}) {
   final colors = context.appColors;
   final l10n = AppLocalizations.of(context);
   final fields = <String, PluginStatsFieldDto>{
     for (final field in statsFields ?? const <PluginStatsFieldDto>[])
       if (field.key.isNotEmpty) field.key: field,
   };
-  final interactionItems =
-      _orderedInteractionEntries(movie.interactionStats, fields)
-          .map((entry) {
-            final field = fields[entry.key];
-            final label = (field?.label.isNotEmpty ?? false)
-                ? field!.label
-                : _fallbackInteractionLabel(entry.key, l10n);
-            final value = entry.value;
-            final isFloat =
-                field?.valueType == 'float' ||
-                (field == null && value is double);
-            final formatted = isFloat
-                ? value.toDouble().toStringAsFixed(1)
-                : formatAppCompactCount(value.round());
-            final unit = field?.unit?.trim() ?? '';
-            final displayValue = unit.isEmpty ? formatted : '$formatted$unit';
-            return MovieDetailMetaItem(text: '$label $displayValue');
-          })
-          .where((item) => item.text.isNotEmpty);
+  final interactionItems = showStats
+      ? _orderedInteractionEntries(movie.interactionStats, fields)
+            .where((entry) => showReview || entry.key != 'comment_count')
+            .map((entry) {
+              final field = fields[entry.key];
+              final label = (field?.label.isNotEmpty ?? false)
+                  ? field!.label
+                  : _fallbackInteractionLabel(entry.key, l10n);
+              final value = entry.value;
+              final isFloat =
+                  field?.valueType == 'float' ||
+                  (field == null && value is double);
+              final formatted = isFloat
+                  ? value.toDouble().toStringAsFixed(1)
+                  : formatAppCompactCount(value.round());
+              final unit = field?.unit?.trim() ?? '';
+              final displayValue = unit.isEmpty ? formatted : '$formatted$unit';
+              return MovieDetailMetaItem(
+                key: Key('movie-detail-meta-stat-${entry.key}'),
+                text: '$label $displayValue',
+              );
+            })
+            .where((item) => item.text.isNotEmpty)
+      : const <MovieDetailMetaItem>[];
   return [
     ...interactionItems,
-    if (movie.heat > 0)
+    if (showHeat && movie.heat > 0)
       MovieDetailMetaItem(
+        key: const Key('movie-detail-meta-heat'),
         icon: Icons.local_fire_department_rounded,
         iconColor: colors.movieDetailHeatIcon,
         text: formatAppCompactCount(movie.heat),

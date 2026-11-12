@@ -11,10 +11,10 @@
 </p>
 
 > [!WARNING]
-> **SakuraMedia is currently unavailable due to changes to the upstream JavDB API.**
+> **Please upgrade both the client and backend to v0.15.0 to keep using SakuraMedia. Versions before v0.15.0 no longer work.**
 
-
-> **由于上游 JavDB 接口发生变动，SakuraMedia 目前无法正常使用。**
+> [!WARNING]
+> **请将前后端同步升级至 v0.15.0 才能正常使用；v0.15.0 之前的版本已无法正常使用。**
 
 <p align="center">
   <a href="https://github.com/tinypinglite/sakuramedia/releases/latest"><strong>Download the client</strong></a>

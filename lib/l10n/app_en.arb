@@ -936,7 +936,7 @@
   "metadataSourcesLoadFailed": "Failed to load metadata sources",
   "metadataSourcesSaveFailed": "Failed to save metadata source order",
   "pluginBindingsTitle": "Stats and review sources",
-  "pluginBindingsDescription": "Stats use one bound plugin. When no review source is bound, enabled plugins are tried in order. Metadata sources still fall back in the order above.",
+  "pluginBindingsDescription": "Stats use one bound plugin. Reviews use one bound plugin too; the review entry is hidden when none is bound. Metadata sources still fall back in the order above.",
   "pluginBindingsStatsLabel": "Stats source",
   "pluginBindingsReviewLabel": "Review source",
   "pluginBindingsUnbound": "Not bound",
@@ -1370,6 +1370,7 @@
   "pluginSettingsInvalidJson": "Invalid JSON",
   "pluginSettingsSaveFailed": "Failed to save plugin settings",
   "pluginSettingsTitle": "Plugin settings",
+  "pluginSettingsJavdbAccountRisk": "JavDB accounts carry a ban risk. Use a secondary account to avoid risking your main account.",
   "pluginSettingsJsonLabel": "Configuration (JSON)",
   "pluginSettingsPlaceholderEndpoint": "Service URL",
   "pluginSettingsPlaceholderEnabled": "Enabled",
@@ -1438,6 +1439,81 @@
     "placeholders": {
       "version": {
         "type": "String"
+      }
+    }
+  },
+  "pluginsTestCapabilities": "Capability test",
+  "pluginTestTitle": "Capability test",
+  "pluginTestConfigNotice": "Test movie {movieNumber}. The currently loaded configuration is used; save and restart the backend after changing settings before testing again.",
+  "@pluginTestConfigNotice": {
+    "placeholders": {
+      "movieNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginTestConfigNoticeWithoutNumber": "This plugin has not declared a default test movie, so it cannot be tested yet.",
+  "pluginTestCapabilitiesTitle": "Testable capabilities",
+  "pluginTestNoCapabilities": "This plugin has no testable capabilities.",
+  "pluginTestRun": "Test",
+  "pluginTestRunAll": "Test all",
+  "pluginTestCapabilityMetadata": "Metadata",
+  "pluginTestCapabilityStats": "Stats",
+  "pluginTestCapabilityReviews": "Reviews",
+  "pluginTestCapabilityMetadataDescription": "Fetch title, actors, tags and images for the test movie",
+  "pluginTestCapabilityStatsDescription": "Fetch stats and heat for the test movie",
+  "pluginTestCapabilityReviewsDescription": "Fetch the first review page for the test movie",
+  "pluginTestStatusPending": "Not tested",
+  "pluginTestStatusTesting": "Testing",
+  "pluginTestStatusOk": "Passed",
+  "pluginTestStatusEmpty": "No data",
+  "pluginTestStatusFailed": "Failed",
+  "pluginTestEmptyMetadata": "The plugin responded, but the test movie was not found",
+  "pluginTestEmptyStats": "The plugin responded, but returned no stats",
+  "pluginTestEmptyReviews": "The API works, but the test movie has no reviews",
+  "pluginTestFailedGeneric": "Plugin test failed",
+  "pluginTestRequestFailed": "Plugin test request failed",
+  "pluginTestMetadataSummary": "{title} · {actors} actors · {tags} tags · {images} images",
+  "@pluginTestMetadataSummary": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "actors": {
+        "type": "int"
+      },
+      "tags": {
+        "type": "int"
+      },
+      "images": {
+        "type": "int"
+      }
+    }
+  },
+  "pluginTestStatsSummary": "Heat {heat} · {fields} fields",
+  "@pluginTestStatsSummary": {
+    "placeholders": {
+      "heat": {
+        "type": "String"
+      },
+      "fields": {
+        "type": "int"
+      }
+    }
+  },
+  "pluginTestReviewsSummary": "{count} reviews on this page",
+  "@pluginTestReviewsSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pluginTestElapsed": "{ms} ms",
+  "@pluginTestElapsed": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
       }
     }
   },
@@ -1840,9 +1916,11 @@
   "videoEpisodeDeleteSubtitle": "Deletes the video and all related media",
   "videoEpisodeActionsTooltip": "Episode actions",
   "diagnosticCategoryBasicResources": "Core resources",
+  "diagnosticCategoryMetadataSources": "Metadata sources",
   "diagnosticCategoryDownloadAndIndexing": "Downloads & indexing",
   "diagnosticCategoryIntelligence": "Intelligence",
   "diagnosticItemMediaLibrary": "Media library",
+  "diagnosticItemMetadataSources": "Metadata sources",
   "diagnosticItemIndexer": "Indexer",
   "diagnosticItemEmbeddingService": "Embedding service",
   "diagnosticStatusProbing": "Checking",
@@ -1876,6 +1954,34 @@
   },
   "diagnosticMediaLibraryNoneConfigured": "No media libraries configured yet",
   "diagnosticErrorMediaLibraryLoadFailed": "Failed to load media libraries",
+  "diagnosticErrorMetadataSourcesLoadFailed": "Failed to load metadata sources",
+  "diagnosticMetadataSourcesEmptySummary": "No metadata plugins enabled",
+  "diagnosticMetadataSourceSummary": "{title} · {actors} actors · {tags} tags · {images} images",
+  "@diagnosticMetadataSourceSummary": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "actors": {
+        "type": "int"
+      },
+      "tags": {
+        "type": "int"
+      },
+      "images": {
+        "type": "int"
+      }
+    }
+  },
+  "diagnosticMetadataSourceEmptySummary": "Test number {movieNumber} returned no metadata",
+  "@diagnosticMetadataSourceEmptySummary": {
+    "placeholders": {
+      "movieNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "diagnosticMetadataSourceFailedSummary": "Plugin test failed",
   "diagnosticIndexerConfigOrConnectionFailed": "Indexer configuration or connectivity check failed",
   "diagnosticEmbeddingDisabledSummary": "Disabled. You can enable it in advanced settings.",
   "diagnosticEmbeddingHealthySummary": "Embedding model loaded",
@@ -1958,6 +2064,13 @@
   "diagnosticHintIndexerTestFailedFix": "Make sure the indexer service is reachable, then verify each site's URL and API key on the Indexers page.",
   "diagnosticHintJoyTagUnhealthyCause": "The JoyTag inference service is not responding.",
   "diagnosticHintJoyTagUnhealthyFix": "Check the embedding service logs on the machine running the backend.",
+  "diagnosticHintMetadataSourcesEmptyCause": "No metadata plugins are enabled.",
+  "diagnosticHintMetadataSourcesEmptyFix": "Install and enable a metadata plugin on the Plugins page, then run the check again.",
+  "diagnosticHintMetadataSourcesProbeFailedCause": "Failed to load metadata sources; the backend did not respond correctly.",
+  "diagnosticHintMetadataSourceEmptyCause": "The plugin responded, but the test number returned no metadata.",
+  "diagnosticHintMetadataSourceEmptyFix": "Check this plugin's settings on the Plugins page, then run the check again.",
+  "diagnosticHintMetadataSourceFailedCause": "This metadata plugin failed its test.",
+  "diagnosticHintMetadataSourceFailedFix": "Check the plugin's settings and sign-in status on the Plugins page, then run the check again.",
   "diagnosticHintProbeRequestFailedCause": "The check request did not complete; the backend did not respond.",
   "overviewStatusUnavailable": "Unavailable",
   "overviewStatusHealthy": "Healthy",
@@ -1987,7 +2100,7 @@
   "overviewTabDiscover": "Discover",
   "overviewTabMoments": "Moments",
   "overviewLatestMoviesLoadFailed": "Failed to load recently added movies. Please try again later.",
-  "overviewSearchHint": "e.g. SSNI-888, Yua Mikami",
+  "overviewSearchHint": "e.g. SSNI-888, Saika Kawakita",
   "overviewPlaylists": "Playlists",
   "overviewPlaylistsLoadFailed": "Playlists are temporarily unavailable. Please try again later.",
   "overviewNoPlaylists": "No playlists yet",
@@ -4058,7 +4171,7 @@
   "widgetClipSelectionHintRange": "Start {start} · End {end} · Duration {duration}",
   "widgetClipSelectionClear": "Clear",
   "widgetClipSelectionCreate": "Create",
-  "widgetSearchHint": "e.g. SSNI-888, Yua Mikami",
+  "widgetSearchHint": "e.g. SSNI-888, Saika Kawakita",
   "widgetSearchTabMovies": "Movies",
   "widgetSearchTabActors": "Actors",
   "searchSortRelevance": "Relevance",
