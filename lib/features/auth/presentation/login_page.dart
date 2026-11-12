@@ -369,6 +369,9 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     largeText ||
                     constraints.maxHeight < _scrollFallbackMinHeight ||
                     _submitError != null;
+                final centerCompactForm =
+                    !scrollFallback &&
+                    constraints.maxHeight > constraints.maxWidth;
                 final horizontalPadding = wideLayout
                     ? spacing.xxxl + spacing.xl
                     : spacing.lg;
@@ -400,6 +403,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                             context,
                             l10n,
                             currentLanguage: currentLanguage,
+                            centerVertically: centerCompactForm,
                           ),
                   ),
                 );
@@ -434,28 +438,39 @@ class _LoginPageState extends ConsumerState<LoginPage> {
     BuildContext context,
     AppLocalizations l10n, {
     required AppLanguage currentLanguage,
+    required bool centerVertically,
   }) {
     final spacing = context.appSpacing;
+    final formContent = ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 480),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: <Widget>[
+          if (_showFirstRunNotice) ...<Widget>[
+            _buildCompactFirstRunEntry(context, l10n),
+            SizedBox(height: spacing.md),
+          ],
+          _buildCompactFormPanel(context, l10n),
+        ],
+      ),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
         _buildTopBar(context, currentLanguage: currentLanguage),
-        SizedBox(height: spacing.lg),
-        if (_showFirstRunNotice) ...<Widget>[
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: _buildCompactFirstRunEntry(context, l10n),
+        if (centerVertically)
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(top: spacing.lg),
+              child: Center(child: formContent),
             ),
           ),
-          SizedBox(height: spacing.md),
+        if (!centerVertically) ...<Widget>[
+          SizedBox(height: spacing.lg),
+          Center(child: formContent),
         ],
-        Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: _buildCompactFormPanel(context, l10n),
-          ),
-        ),
       ],
     );
   }
