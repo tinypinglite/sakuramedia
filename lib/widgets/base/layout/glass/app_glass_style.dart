@@ -95,9 +95,7 @@ abstract final class AppGlassStyle {
         quality: GlassQuality.standard,
       ),
       AppGlassRole.popover => AppGlassRecipe(
-        tint: dark
-            ? whiteTint.withValues(alpha: 0.28)
-            : colors.surfaceElevated.withValues(alpha: 0.88),
+        tint: colors.surfaceElevated.withValues(alpha: dark ? 0.76 : 0.88),
         thickness: 24,
         blur: 2.5,
         saturation: 1.55,
