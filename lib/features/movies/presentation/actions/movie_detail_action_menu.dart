@@ -10,6 +10,7 @@ enum MovieDetailActionType {
   openMagnetSearch,
   toggleCollectionType,
   toggleBlacklist,
+  refreshMetadata,
 }
 
 class MovieDetailActionDescriptor {
@@ -77,6 +78,11 @@ List<MovieDetailActionDescriptor> buildMovieDetailActionDescriptors({
         icon: isBlacklisted ? Icons.undo_rounded : Icons.block_rounded,
         tone: isBlacklisted ? AppTextTone.primary : AppTextTone.error,
       ),
+    MovieDetailActionDescriptor(
+      type: MovieDetailActionType.refreshMetadata,
+      label: l10n.movieActionRefreshMetadata,
+      icon: Icons.sync_rounded,
+    ),
   ];
 }
 

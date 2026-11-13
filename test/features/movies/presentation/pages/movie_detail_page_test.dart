@@ -199,6 +199,45 @@ void main() {
     expect(find.byKey(const Key('movie-detail-meta-heat')), findsNothing);
     expect(find.byKey(const Key('movie-detail-meta-stat-score')), findsNothing);
   });
+
+  testWidgets('refresh metadata action confirms and applies returned detail', (
+    tester,
+  ) async {
+    _primeContentRequests(bundle);
+    _enqueue(
+      bundle,
+      method: 'POST',
+      path: '/movies/ABC-001/metadata-refresh',
+      body: _movieJson(title: 'Refreshed movie'),
+    );
+    await _pumpPage(tester, bundle, mobile: false, settle: false);
+    await _pumpFrames(tester);
+
+    await tester.tap(
+      find.byKey(const Key('movie-detail-hero-more-actions-button')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('movie-detail-hero-action-refreshMetadata')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('movie-detail-refresh-metadata-confirm')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const Key('movie-detail-refresh-metadata-confirm')),
+    );
+    await _pumpFrames(tester);
+
+    expect(
+      bundle.adapter.hitCount('POST', '/movies/ABC-001/metadata-refresh'),
+      1,
+    );
+    expect(find.text('Refreshed movie'), findsWidgets);
+    await tester.pump(const Duration(seconds: 4));
+    await tester.pumpAndSettle();
+  });
 }
 
 Future<void> _pumpPage(
@@ -301,11 +340,11 @@ ResponseBody _jsonResponse(Object body, {int statusCode = 200}) {
   );
 }
 
-Map<String, dynamic> _movieJson() {
+Map<String, dynamic> _movieJson({String title = 'Movie 1'}) {
   return <String, dynamic>{
     'id': 5,
     'movie_number': 'ABC-001',
-    'title': 'Movie 1',
+    'title': title,
     'release_date': '2024-01-02',
     'duration_minutes': 120,
     'is_collection': false,

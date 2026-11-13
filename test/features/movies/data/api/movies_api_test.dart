@@ -77,8 +77,11 @@ void main() {
       status: MovieStatusFilter.unsubscribed,
       collectionType: MovieCollectionTypeFilter.single,
       sort: 'release_date:desc',
-      interaction: MovieInteractionFilter.initial
-          .withRange(MovieInteractionMetric.heat, min: 1000, max: 5000),
+      interaction: MovieInteractionFilter.initial.withRange(
+        MovieInteractionMetric.heat,
+        min: 1000,
+        max: 5000,
+      ),
       actorAgeMin: 20,
       actorAgeMax: 30,
       query: '温泉 三上',
@@ -1825,5 +1828,60 @@ void main() {
     expect(adapter.requests[0].path, '/movies/ABC-001/actors/7');
     expect(adapter.requests[1].method, 'DELETE');
     expect(adapter.requests[1].path, '/movies/ABC-001/actors/7');
+  });
+
+  test('refreshMovieMetadata posts to the refresh endpoint', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/ABC-001/metadata-refresh',
+      body: <String, dynamic>{
+        'id': 77,
+        'movie_number': 'ABC-001',
+        'title': 'Refreshed movie',
+        'release_date': '2024-01-02',
+        'duration_minutes': 120,
+        'is_collection': false,
+        'is_subscribed': false,
+        'is_blacklisted': false,
+        'can_play': false,
+        'summary': '',
+        'actors': <Map<String, dynamic>>[],
+        'tags': <Map<String, dynamic>>[],
+        'plot_images': <Map<String, dynamic>>[],
+        'media_items': <Map<String, dynamic>>[],
+        'playlists': <Map<String, dynamic>>[],
+      },
+    );
+
+    final detail = await moviesApi.refreshMovieMetadata(movieNumber: 'ABC-001');
+
+    expect(adapter.requests.single.method, 'POST');
+    expect(adapter.requests.single.path, '/movies/ABC-001/metadata-refresh');
+    expect(detail.title, 'Refreshed movie');
+  });
+
+  test('refreshMovieMetadata preserves backend ApiException payload', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/ABC-001/metadata-refresh',
+      statusCode: 502,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'movie_metadata_refresh_failed',
+          'message': '刷新失败',
+        },
+      },
+    );
+
+    expect(
+      () => moviesApi.refreshMovieMetadata(movieNumber: 'ABC-001'),
+      throwsA(
+        isA<ApiException>().having(
+          (ApiException error) => error.error?.code,
+          'error.code',
+          'movie_metadata_refresh_failed',
+        ),
+      ),
+    );
   });
 }

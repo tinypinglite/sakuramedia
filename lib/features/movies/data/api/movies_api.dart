@@ -173,6 +173,16 @@ class MoviesApi {
     return MovieDetailDto.fromJson(response);
   }
 
+  Future<MovieDetailDto> refreshMovieMetadata({
+    required String movieNumber,
+  }) async {
+    final response = await _apiClient.post(
+      '/movies/$movieNumber/metadata-refresh',
+      receiveTimeout: const Duration(minutes: 2),
+    );
+    return MovieDetailDto.fromJson(response);
+  }
+
   /// 幂等加入演员；首次编辑后影片演员表转为人工管理。
   Future<void> addMovieActor({
     required String movieNumber,

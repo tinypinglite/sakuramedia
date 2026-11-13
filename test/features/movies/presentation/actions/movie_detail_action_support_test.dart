@@ -39,6 +39,7 @@ void main() {
         MovieDetailActionType.openMagnetSearch,
         MovieDetailActionType.toggleCollectionType,
         MovieDetailActionType.toggleBlacklist,
+        MovieDetailActionType.refreshMetadata,
       ]);
       expect(
         actions

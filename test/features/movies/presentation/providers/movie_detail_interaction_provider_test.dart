@@ -171,6 +171,90 @@ void main() {
     expect(bundle.adapter.hitCount('GET', '/movies/ABC-001'), 1);
   });
 
+  test(
+    'refresh metadata applies the returned detail and keeps media selection',
+    () async {
+      final detail = container.read(movieDetailProvider('ABC-001').notifier);
+      final movie = _movie();
+      detail.applyMovie(movie);
+      notifier.selectMedia(movie.mediaItems[1]);
+      _enqueue(
+        bundle,
+        method: 'POST',
+        path: '/movies/ABC-001/metadata-refresh',
+        body: _movieJson(title: 'Refreshed movie'),
+      );
+
+      final result = await notifier.refreshMetadata();
+
+      expect(result.status, MovieDetailActionResultStatus.success);
+      expect(
+        container.read(movieDetailProvider('ABC-001')).movie?.title,
+        'Refreshed movie',
+      );
+      expect(state().selectedMediaId, 20);
+      expect(state().isActionLocked, isFalse);
+      expect(
+        bundle.adapter.hitCount('POST', '/movies/ABC-001/metadata-refresh'),
+        1,
+      );
+    },
+  );
+
+  test('refresh metadata locks actions until the request finishes', () async {
+    final requestGate = Completer<void>();
+    bundle.adapter.enqueueResponder(
+      method: 'POST',
+      path: '/movies/ABC-001/metadata-refresh',
+      responder: (_, _) async {
+        await requestGate.future;
+        return ResponseBody.fromString(
+          jsonEncode(_movieJson(title: 'Refreshed movie')),
+          200,
+          headers: const <String, List<String>>{
+            Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+          },
+        );
+      },
+    );
+
+    final refresh = notifier.refreshMetadata();
+    await Future<void>.delayed(Duration.zero);
+    expect(state().isActionLocked, isTrue);
+    final blacklist = await notifier.setBlacklisted(isBlacklisted: true);
+    expect(blacklist.status, MovieDetailActionResultStatus.ignored);
+
+    requestGate.complete();
+    final result = await refresh;
+
+    expect(result.status, MovieDetailActionResultStatus.success);
+    expect(state().isActionLocked, isFalse);
+  });
+
+  test('refresh metadata failure keeps the existing detail', () async {
+    final detail = container.read(movieDetailProvider('ABC-001').notifier);
+    detail.applyMovie(_movie());
+    bundle.adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/ABC-001/metadata-refresh',
+      statusCode: 502,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'movie_metadata_refresh_failed',
+          'message': '刷新失败',
+        },
+      },
+    );
+
+    final result = await notifier.refreshMetadata();
+
+    expect(result.status, MovieDetailActionResultStatus.error);
+    expect(
+      container.read(movieDetailProvider('ABC-001')).movie?.title,
+      'Movie 1',
+    );
+    expect(state().isActionLocked, isFalse);
+  });
 }
 
 MovieDetailDto _movie({List<int> mediaIds = const <int>[10, 20]}) {
@@ -186,11 +270,14 @@ MovieMediaPointDto _point(int id, {int offsetSeconds = 0}) {
   );
 }
 
-Map<String, dynamic> _movieJson({List<int> mediaIds = const <int>[10, 20]}) {
+Map<String, dynamic> _movieJson({
+  List<int> mediaIds = const <int>[10, 20],
+  String title = 'Movie 1',
+}) {
   return <String, dynamic>{
     'id': 5,
     'movie_number': 'ABC-001',
-    'title': 'Movie 1',
+    'title': title,
     'release_date': '2024-01-02',
     'duration_minutes': 120,
     'is_collection': false,

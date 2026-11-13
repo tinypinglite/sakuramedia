@@ -366,6 +366,13 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         _showActionFeedback(
           await _interaction.setBlacklisted(isBlacklisted: blacklist),
         );
+      case MovieDetailActionType.refreshMetadata:
+        final confirmed = await _overlays.confirmRefreshMetadata(
+          context: context,
+          isActorsManuallyManaged: movie.isActorsManuallyManaged,
+        );
+        if (!mounted || !confirmed) return;
+        _showActionFeedback(await _interaction.refreshMetadata());
       case MovieDetailActionType.toggleCollectionType:
         _showActionFeedback(
           await _interaction.toggleCollection(

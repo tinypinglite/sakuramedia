@@ -76,6 +76,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(await actionFuture, MovieDetailActionType.toggleSubscription);
 
+    final refreshCancel = presenter.confirmRefreshMetadata(
+      context: context,
+      isActorsManuallyManaged: false,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('movie-detail-refresh-metadata-cancel')),
+    );
+    await tester.pumpAndSettle();
+    expect(await refreshCancel, isFalse);
+
     final deleteFuture = presenter.confirmDeleteMedia(
       context: context,
       mediaItem: media,
@@ -151,6 +162,17 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(await actionFuture, MovieDetailActionType.toggleSubscription);
+
+    final refreshConfirm = presenter.confirmRefreshMetadata(
+      context: context,
+      isActorsManuallyManaged: true,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('movie-detail-refresh-metadata-confirm')),
+    );
+    await tester.pumpAndSettle();
+    expect(await refreshConfirm, isTrue);
 
     final deleteFuture = presenter.confirmDeleteMedia(
       context: context,

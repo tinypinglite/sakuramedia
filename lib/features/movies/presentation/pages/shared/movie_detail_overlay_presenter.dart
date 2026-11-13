@@ -144,6 +144,36 @@ class MovieDetailOverlayPresenter {
     );
   }
 
+  Future<bool> confirmRefreshMetadata({
+    required BuildContext context,
+    required bool isActorsManuallyManaged,
+  }) {
+    final l10n = AppLocalizations.of(context);
+    return showAppConfirmDialog(
+      context,
+      title: l10n.movieActionRefreshMetadata,
+      message: isActorsManuallyManaged
+          ? l10n.movieActionRefreshMetadataDescriptionManualActors
+          : l10n.movieActionRefreshMetadataDescription,
+      confirmLabel: l10n.movieActionRefreshMetadataConfirm,
+      cancelLabel: l10n.commonCancel,
+      dialogKey: const Key('movie-detail-refresh-metadata-dialog'),
+      confirmKey: const Key('movie-detail-refresh-metadata-confirm'),
+      cancelKey: const Key('movie-detail-refresh-metadata-cancel'),
+      extraContent: Text(
+        l10n.movieActionRefreshMetadataHint,
+        style: resolveAppTextStyle(
+          context,
+          size: AppTextSize.s12,
+          tone: AppTextTone.muted,
+        ),
+      ),
+      variant: mobile
+          ? AppAdaptiveModalVariant.drawer
+          : AppAdaptiveModalVariant.dialog,
+    );
+  }
+
   Future<void> openInspector({
     required BuildContext context,
     required MovieDetailDto movie,

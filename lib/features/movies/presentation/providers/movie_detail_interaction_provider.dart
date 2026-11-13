@@ -538,6 +538,39 @@ class MovieDetailInteraction extends _$MovieDetailInteraction {
     }
   }
 
+  Future<MovieDetailActionResult> refreshMetadata() async {
+    if (state.isActionLocked) {
+      return const MovieDetailActionResult.ignored();
+    }
+    state = state.copyWith(
+      activeMovieAction: MovieDetailActionType.refreshMetadata,
+    );
+    try {
+      final movie = await ref
+          .read(moviesApiProvider)
+          .refreshMovieMetadata(movieNumber: _movieNumber);
+      if (_disposed) return const MovieDetailActionResult.ignored();
+      ref
+          .read(movieDetailProvider(_movieNumber).notifier)
+          .applyMovie(movie, resetPreview: true);
+      ref.invalidate(movieSummaryProvider);
+      return MovieDetailActionResult.success(
+        _l10n.movieActionMovieMetadataRefreshed,
+      );
+    } catch (error) {
+      return MovieDetailActionResult.error(
+        ref.apiErrorMessage(
+          error,
+          fallback: _l10n.movieActionRefreshMovieMetadataFailed,
+        ),
+      );
+    } finally {
+      if (!_disposed) {
+        state = state.copyWith(activeMovieAction: null);
+      }
+    }
+  }
+
   void setPlaybackLaunching(bool value) {
     if (_disposed) return;
     state = state.copyWith(isLaunchingPlayback: value);
