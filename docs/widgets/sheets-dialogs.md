@@ -2,7 +2,7 @@
 
 ## 桌面对话框
 
-- `showAppDialog<T>`：`lib/widgets/base/overlays/app_dialog.dart`，桌面弹窗统一入口。转场使用 `250ms` 整树淡出，内容和玻璃一起退场。不要使用玻璃层的入场动画能力做弹窗转场，否则退场会先抽掉内容、只留下短暂的空玻璃骨架。业务弹窗必须走这个入口，不再直接调用 `showDialog`。
+- `showAppDialog<T>`：`lib/widgets/base/overlays/app_dialog.dart`，桌面弹窗统一入口。转场由 `AppGlassEntrance` 驱动（250ms 入场、200ms 出场）：玻璃框架只能靠 `LiquidGlassSettings.visibility` 淡入，实色弹窗等纯绘制表面走 `Opacity`，两者共用同一个进度，正向和反向对称。不要在玻璃外层套 `Opacity` / `FadeTransition`——那会把玻璃和真实 backdrop 隔离，淡入期间框架画不出来，只剩内容先出现。扁平样式和高对比度没有 backdrop，仍走整树淡入。业务弹窗必须走这个入口，不再直接调用 `showDialog`。
   异步内容的首帧必须直接进入骨架 / loading；不要把 provider 初始态设为“未加载且非 loading”，否则会先闪空态，下一帧才切骨架。
 - 资源导入弹窗在桌面端于打开时确定高度：媒体库和目录列表异步加载时，玻璃面不会在入场动画中改变尺寸；移动端仍由底部抽屉的固定高度承载。
 - `AppDesktopDialog`：`lib/widgets/base/overlays/app_desktop_dialog.dart`，统一桌面弹窗宽度、标题区、内容区和动作区。默认整块使用全站统一的液态玻璃，正文直接铺在玻璃上，输入框和按钮各自负责局部可读性；显式传 `backgroundColor` 或 `shape` 时保留实色弹窗，供图片预览等特殊内容使用。

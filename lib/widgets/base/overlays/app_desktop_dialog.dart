@@ -2,6 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_entrance.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_modal_glass_surface.dart';
 
 class AppDesktopDialog extends StatelessWidget {
@@ -54,6 +55,9 @@ class AppDesktopDialog extends StatelessWidget {
     final l10n = appL10n(context);
     final spacing = context.appSpacing;
     final useGlass = backgroundColor == null && shape == null;
+    // 玻璃路径的淡入由 AppGlassSurface 自己走 visibility；实色弹窗没有 backdrop，
+    // 整块用 Opacity 跟随同一个入场进度，避免框架比内容先出现。
+    final entrance = AppGlassEntrance.progressOf(context);
     final closeInset = closeButtonInset ?? EdgeInsets.all(spacing.sm);
     final resolvedContentPadding = EdgeInsets.all(spacing.xl);
 
@@ -84,7 +88,7 @@ class AppDesktopDialog extends StatelessWidget {
           ),
       ],
     );
-    return Dialog(
+    final dialog = Dialog(
       key: dialogKey,
       insetPadding: insetPadding,
       backgroundColor: useGlass
@@ -105,5 +109,6 @@ class AppDesktopDialog extends StatelessWidget {
           ? AppModalGlassSurface(child: dialogContent)
           : dialogContent,
     );
+    return useGlass ? dialog : Opacity(opacity: entrance, child: dialog);
   }
 }

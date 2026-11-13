@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_entrance.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_flat_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_style.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_types.dart';
@@ -54,6 +55,8 @@ class AppGlassSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final radius = borderRadius ?? context.appRadius.mdBorder;
     final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
+    // 弹层转场进度：玻璃只能靠 visibility 淡入，不能靠祖先 Opacity。
+    final entrance = AppGlassEntrance.progressOf(context);
 
     if (AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat) {
       return AppGlassFlatSurface(
@@ -71,7 +74,7 @@ class AppGlassSurface extends StatelessWidget {
     }
 
     if (blur && !highContrast) {
-      final packageSurface = _buildPackageSurface(context, radius);
+      final packageSurface = _buildPackageSurface(context, radius, entrance);
       if (packageSurface != null) {
         return packageSurface;
       }
@@ -82,20 +85,32 @@ class AppGlassSurface extends StatelessWidget {
       radius,
       highContrast: highContrast,
       useFilter: blur && !highContrast,
+      entrance: entrance,
     );
   }
 
-  Widget? _buildPackageSurface(BuildContext context, BorderRadius radius) {
+  Widget? _buildPackageSurface(
+    BuildContext context,
+    BorderRadius radius,
+    double entrance,
+  ) {
     final shape = _resolvePackageShape(radius);
     if (shape == null) {
       return null;
     }
 
-    final settings = AppGlassStyle.settingsFor(
+    final baseSettings = AppGlassStyle.settingsFor(
       context,
       role,
       tintOverride: tintOverride,
     );
+    // visibility 是所有 shader uniform 的淡入通道：着色、边缘光、模糊、折射
+    // 都乘它，到 0 时渲染对象直接跳过 backdrop pass。
+    final settings = entrance >= 1.0
+        ? baseSettings
+        : baseSettings.copyWith(
+            visibility: baseSettings.visibility * entrance,
+          );
     final quality = AppGlassStyle.qualityFor(role);
 
     if (!shape.isLeftOnly && !shape.isRightOnly) {
@@ -220,13 +235,16 @@ class AppGlassSurface extends StatelessWidget {
     BorderRadius radius, {
     required bool highContrast,
     required bool useFilter,
+    required double entrance,
   }) {
     final recipe = AppGlassStyle.fallbackRecipe(context, role);
     final highlight = context.appTextPalette.onMedia;
     final tint = tintOverride ?? recipe.tint;
-    final tintAlpha = highContrast
-        ? math.min(1.0, recipe.tintAlpha + 0.40)
-        : recipe.tintAlpha;
+    final tintAlpha =
+        (highContrast
+            ? math.min(1.0, recipe.tintAlpha + 0.40)
+            : recipe.tintAlpha) *
+        entrance;
 
     final surface = Container(
       decoration: BoxDecoration(
@@ -253,7 +271,9 @@ class AppGlassSurface extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: <Color>[
-                      highlight.withValues(alpha: recipe.topSheenAlpha),
+                      highlight.withValues(
+                        alpha: recipe.topSheenAlpha * entrance,
+                      ),
                       highlight.withValues(alpha: 0),
                     ],
                   ),
@@ -275,7 +295,7 @@ class AppGlassSurface extends StatelessWidget {
                     colors: <Color>[
                       highlight.withValues(alpha: 0),
                       context.appShadows.color.withValues(
-                        alpha: recipe.innerBottomShadowAlpha,
+                        alpha: recipe.innerBottomShadowAlpha * entrance,
                       ),
                       highlight.withValues(alpha: 0),
                     ],
@@ -291,11 +311,14 @@ class AppGlassSurface extends StatelessWidget {
     );
 
     final glass = Container(
-      decoration: BoxDecoration(borderRadius: radius, boxShadow: recipe.shadow),
+      decoration: BoxDecoration(
+        borderRadius: radius,
+        boxShadow: _scaleShadowAlpha(recipe.shadow, entrance),
+      ),
       child: CustomPaint(
         painter: _GlassRimPainter(
           radius: radius,
-          gradient: _rimGradient(highlight, recipe),
+          gradient: _rimGradient(highlight, recipe, entrance),
           strokeWidth: _borderWidth,
         ),
         child: Padding(
@@ -304,7 +327,7 @@ class AppGlassSurface extends StatelessWidget {
             borderRadius: _deflateRadius(radius, _borderWidth),
             child: useFilter
                 ? BackdropFilter(
-                    filter: _backdropFilter(recipe),
+                    filter: _backdropFilter(recipe, entrance),
                     child: surface,
                   )
                 : surface,
@@ -372,11 +395,17 @@ class _PackageShape {
 ///
 /// 从 topCenter 开始顺时针扫一圈：0.0 顶部最亮，0.25 / 0.75 两侧，
 /// 0.5 底部反射。宽扁矩形不会再退化成「左边亮、右边灭」。
-SweepGradient _rimGradient(Color highlight, AppGlassFallbackRecipe recipe) {
-  final top = highlight.withValues(alpha: recipe.topRimAlpha);
-  final side = highlight.withValues(alpha: recipe.sideRimAlpha);
-  final low = highlight.withValues(alpha: recipe.lowRimAlpha);
-  final bottom = highlight.withValues(alpha: recipe.bottomRimAlpha);
+SweepGradient _rimGradient(
+  Color highlight,
+  AppGlassFallbackRecipe recipe,
+  double entrance,
+) {
+  final top = highlight.withValues(alpha: recipe.topRimAlpha * entrance);
+  final side = highlight.withValues(alpha: recipe.sideRimAlpha * entrance);
+  final low = highlight.withValues(alpha: recipe.lowRimAlpha * entrance);
+  final bottom = highlight.withValues(
+    alpha: recipe.bottomRimAlpha * entrance,
+  );
   return SweepGradient(
     center: Alignment.topCenter,
     startAngle: -math.pi / 2,
@@ -386,16 +415,37 @@ SweepGradient _rimGradient(Color highlight, AppGlassFallbackRecipe recipe) {
   );
 }
 
-ui.ImageFilter _backdropFilter(AppGlassFallbackRecipe recipe) {
-  final blur = ui.ImageFilter.blur(
-    sigmaX: recipe.blurSigma,
-    sigmaY: recipe.blurSigma,
-  );
-  if (recipe.saturation <= 1.0) {
+/// 入场时按进度衰减阴影，避免静止前提前出现一圈投影。
+List<BoxShadow>? _scaleShadowAlpha(List<BoxShadow>? shadows, double entrance) {
+  if (shadows == null || entrance >= 1.0) {
+    return shadows;
+  }
+  return <BoxShadow>[
+    for (final shadow in shadows)
+      BoxShadow(
+        color: shadow.color.withValues(
+          alpha: shadow.color.a * entrance,
+        ),
+        offset: shadow.offset,
+        blurRadius: shadow.blurRadius,
+        spreadRadius: shadow.spreadRadius,
+      ),
+  ];
+}
+
+/// 模糊和饱和度同时随入场进度增长：只衰减染色会留下「透明但有模糊」的方块。
+ui.ImageFilter _backdropFilter(
+  AppGlassFallbackRecipe recipe,
+  double entrance,
+) {
+  final sigma = recipe.blurSigma * entrance;
+  final blur = ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma);
+  final saturation = 1.0 + (recipe.saturation - 1.0) * entrance;
+  if (saturation <= 1.0) {
     return blur;
   }
   return ui.ImageFilter.compose(
-    outer: _saturationFilter(recipe.saturation),
+    outer: _saturationFilter(saturation),
     inner: blur,
   );
 }
