@@ -45,13 +45,13 @@ class ThrottlingPlayer extends Player {
     this.playbackProxy,
   });
 
-  /// 本地流式代理已经接住网络字节，关闭 libmpv 自己的磁盘缓存并缩短预读，
-  /// 避免第二次落盘和大段无用上游读取。
+  /// 本地流式代理已经接住网络字节，关闭 libmpv 自己的磁盘缓存，并为高码率
+  /// 网络播放保留足够的流式缓冲。
   static const _proxiedPlaybackProperties = <String, String>{
     'cache-on-disk': 'no',
-    'cache-secs': '2',
-    'demuxer-max-bytes': '8388608',
-    'demuxer-max-back-bytes': '8388608',
+    'cache-secs': '20',
+    'demuxer-max-bytes': '134217728',
+    'demuxer-max-back-bytes': '67108864',
   };
 
   Duration? _pendingSeek;
