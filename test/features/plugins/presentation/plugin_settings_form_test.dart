@@ -159,9 +159,9 @@ Map<String, dynamic> genericSchema() => {
 
 void main() {
   for (final mobile in [false, true]) {
-    for (final pluginId in ['sakuramedia_javdb_metadata', 'demo_plugin']) {
+    for (final pluginId in ['sakuramedia_javdb_comment', 'demo_plugin']) {
       testWidgets(
-        'JavDB risk notice is scoped to metadata plugin (mobile=$mobile, plugin=$pluginId)',
+        'JavDB risk notice is scoped to comment plugin (mobile=$mobile, plugin=$pluginId)',
         (tester) async {
           await openSettings(
             tester,
@@ -171,7 +171,7 @@ void main() {
           );
           expect(
             find.byKey(const Key('plugin-settings-javdb-account-risk-notice')),
-            pluginId == 'sakuramedia_javdb_metadata'
+            pluginId == 'sakuramedia_javdb_comment'
                 ? findsOneWidget
                 : findsNothing,
           );

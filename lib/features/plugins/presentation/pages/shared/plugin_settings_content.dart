@@ -22,7 +22,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
 
 const _jsonEncoder = JsonEncoder.withIndent('  ');
-const _javdbMetadataPluginId = 'sakuramedia_javdb_metadata';
+const _javdbCommentPluginId = 'sakuramedia_javdb_comment';
 
 /// 插件私有配置的共享内容。
 ///
@@ -398,7 +398,7 @@ class _PluginSettingsContentState extends ConsumerState<PluginSettingsContent> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (widget.plugin.pluginId == _javdbMetadataPluginId) ...[
+        if (widget.plugin.pluginId == _javdbCommentPluginId) ...[
           AppNoticeCard(
             key: const Key('plugin-settings-javdb-account-risk-notice'),
             leadingIcon: Icons.warning_amber_rounded,
