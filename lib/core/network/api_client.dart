@@ -64,6 +64,13 @@ class ApiClient {
   final AppLocalizations Function()? _localizationsProvider;
   final Dio _dio;
   final Dio _refreshDio;
+  final StreamController<ApiException> _connectionFailures =
+      StreamController<ApiException>.broadcast(sync: true);
+
+  /// 连接层失败事件，供应用级提示统一订阅。
+  ///
+  /// 只包含 [ApiTransportFailureKind.connection]，超时和服务端错误不进入这里。
+  Stream<ApiException> get connectionFailures => _connectionFailures.stream;
 
   InterceptorsWrapper _languageInterceptor() {
     return InterceptorsWrapper(
@@ -509,11 +516,16 @@ class ApiClient {
     final statusCode = error.response?.statusCode;
     final transportFailureKind = _transportFailureKind(error);
     if (statusCode == null && transportFailureKind != null) {
-      return ApiException(
+      final exception = ApiException(
         message: _transportFailureMessage(transportFailureKind),
         transportFailureKind: transportFailureKind,
         baseUrl: _requestTarget(error.requestOptions),
       );
+      if (transportFailureKind == ApiTransportFailureKind.connection &&
+          !_connectionFailures.isClosed) {
+        _connectionFailures.add(exception);
+      }
+      return exception;
     }
     final parsedData = _decodeResponseData(error.response?.data);
     final errorPayload = ApiErrorDto.tryFromEnvelope(parsedData);
@@ -647,5 +659,6 @@ class ApiClient {
   void dispose() {
     _dio.close(force: true);
     _refreshDio.close(force: true);
+    unawaited(_connectionFailures.close());
   }
 }

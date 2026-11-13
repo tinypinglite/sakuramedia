@@ -27,6 +27,10 @@ void main() {
   });
 
   test('maps connection failures to transport metadata with base url', () async {
+    final failures = <ApiException>[];
+    final subscription = apiClient.connectionFailures.listen(failures.add);
+    addTearDown(subscription.cancel);
+
     adapter.enqueueResponder(
       method: 'GET',
       path: '/status',
@@ -56,9 +60,15 @@ void main() {
             ),
       ),
     );
+    expect(failures, hasLength(1));
+    expect(failures.single.baseUrl, 'https://api.example.com');
   });
 
   test('maps timeout failures to transport metadata with base url', () async {
+    final failures = <ApiException>[];
+    final subscription = apiClient.connectionFailures.listen(failures.add);
+    addTearDown(subscription.cancel);
+
     adapter.enqueueResponder(
       method: 'GET',
       path: '/status',
@@ -87,6 +97,7 @@ void main() {
             ),
       ),
     );
+    expect(failures, isEmpty);
   });
 
   test('reports the request target for absolute url failures', () async {

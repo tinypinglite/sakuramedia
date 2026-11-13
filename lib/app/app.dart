@@ -10,6 +10,7 @@ import 'package:sakuramedia/app/appearance_store.dart';
 import 'package:sakuramedia/app/first_login_performance_hint.dart';
 import 'package:sakuramedia/app/language/language_store.dart';
 import 'package:sakuramedia/app/language/providers/language_providers.dart';
+import 'package:sakuramedia/app/network_permission_hint.dart';
 import 'package:sakuramedia/app/onboarding_store.dart';
 import 'package:sakuramedia/app/providers/appearance_providers.dart';
 import 'package:sakuramedia/app/window_bootstrap_desktop.dart'
@@ -279,56 +280,60 @@ class _SakuraAppState extends ConsumerState<_SakuraApp>
             brightness: Brightness.dark,
           );
 
-    return CriticalAnnouncementHost(
-      sessionStore: ref.read(sessionStoreProvider),
+    return NetworkPermissionHintHost(
+      platform: widget.platform,
       navigatorKey: _rootNavigatorKey,
-      isLoginPage: () =>
-          widget.router.routerDelegate.currentConfiguration.uri.path ==
-          loginPath,
-      child: FirstLoginPerformanceHintHost(
+      child: CriticalAnnouncementHost(
         sessionStore: ref.read(sessionStoreProvider),
-        onboardingStore: widget.onboardingStore,
-        platform: widget.platform,
         navigatorKey: _rootNavigatorKey,
         isLoginPage: () =>
             widget.router.routerDelegate.currentConfiguration.uri.path ==
             loginPath,
-        shouldSuppress: () => ref
-            .read(announcementFeedProvider)
-            .criticalUnacknowledged
-            .isNotEmpty,
-        child: MaterialApp.router(
-          onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
-          debugShowCheckedModeBanner: false,
-          locale: language.locale,
-          localizationsDelegates: <LocalizationsDelegate<dynamic>>[
-            AppLocalizations.delegate,
-            ...GlobalMaterialLocalizations.delegates,
-          ],
-          supportedLocales: AppLocalizations.supportedLocales,
-          theme: lightTheme,
-          darkTheme: darkTheme,
-          themeMode: appearance.themeMode,
-          routerConfig: widget.router,
-          builder: (context, child) {
-            final content = AppImageFullscreenHost(
-              child: ScrollConfiguration(
-                behavior: const MaterialScrollBehavior().copyWith(
-                  dragDevices: kAppScrollDragDevices,
-                  scrollbars: false,
+        child: FirstLoginPerformanceHintHost(
+          sessionStore: ref.read(sessionStoreProvider),
+          onboardingStore: widget.onboardingStore,
+          platform: widget.platform,
+          navigatorKey: _rootNavigatorKey,
+          isLoginPage: () =>
+              widget.router.routerDelegate.currentConfiguration.uri.path ==
+              loginPath,
+          shouldSuppress: () => ref
+              .read(announcementFeedProvider)
+              .criticalUnacknowledged
+              .isNotEmpty,
+          child: MaterialApp.router(
+            onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
+            debugShowCheckedModeBanner: false,
+            locale: language.locale,
+            localizationsDelegates: <LocalizationsDelegate<dynamic>>[
+              AppLocalizations.delegate,
+              ...GlobalMaterialLocalizations.delegates,
+            ],
+            supportedLocales: AppLocalizations.supportedLocales,
+            theme: lightTheme,
+            darkTheme: darkTheme,
+            themeMode: appearance.themeMode,
+            routerConfig: widget.router,
+            builder: (context, child) {
+              final content = AppImageFullscreenHost(
+                child: ScrollConfiguration(
+                  behavior: const MaterialScrollBehavior().copyWith(
+                    dragDevices: kAppScrollDragDevices,
+                    scrollbars: false,
+                  ),
+                  child: child ?? const SizedBox.shrink(),
                 ),
-                child: child ?? const SizedBox.shrink(),
-              ),
-            );
-            // Windows 无边框由 runner 原生实现，不需要 Dart 边缘热区。
-            // ignore: deprecated_member_use
-            return AppSurfaceStyleScope(
-              style: appearance.surfaceStyle,
-              child: MaterialUiCompatibilityBridge(
-                child: OKToast(child: content),
-              ),
-            );
-          },
+              );
+              // Windows 无边框由 runner 原生实现，不需要 Dart 边缘热区。
+              // ignore: deprecated_member_use
+              return AppSurfaceStyleScope(
+                style: appearance.surfaceStyle,
+                child: MaterialUiCompatibilityBridge(
+                  child: OKToast(child: content),
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
