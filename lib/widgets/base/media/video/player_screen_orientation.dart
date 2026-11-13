@@ -29,13 +29,3 @@ Future<void> lockPlayerPageLandscape() async {
     DeviceOrientation.landscapeRight,
   ]);
 }
-
-/// 播放页竖屏方向：仅锁正向竖屏。
-///
-/// 移动端播放器默认横屏；用户点旋转按钮后切到竖屏。倒置竖屏不在支持范围，
-/// 避免手机平放时被系统判成上下颠倒。
-Future<void> lockPlayerPagePortrait() async {
-  await SystemChrome.setPreferredOrientations(const <DeviceOrientation>[
-    DeviceOrientation.portraitUp,
-  ]);
-}

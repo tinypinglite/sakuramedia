@@ -319,9 +319,10 @@ class _ClipCollectionPlayContentState
         ...buildMoviePlayerTopControls(
           movieNumber: _currentClipTitle(),
           onBackPressed: _handleBack,
+          trailingControls: <Widget>[
+            MediaPlaybackInfoButton(player: videoController.player),
+          ],
         ),
-        const Spacer(),
-        MediaPlaybackInfoButton(player: videoController.player),
       ],
       bottomControls: buildCollectionPlayBottomControls(
         useTouchOptimizedControls: widget.useTouchOptimizedControls,

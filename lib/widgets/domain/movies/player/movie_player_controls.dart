@@ -2,67 +2,57 @@ import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
-import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_app_fullscreen.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_mobile_drawers.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_speed_button.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_subtitle_button.dart';
 
-/// 播放器窗口态顶栏:左「返回 + 番号」、右「视频信息」按钮。
-/// 也被切片/视频单播与合集连播页复用(只传 onBackPressed)。
+/// 播放器窗口态顶栏：左「返回 + 番号」，右「视频信息」。
+/// 也被切片/视频单播与合集连播页复用。
 List<Widget> buildMoviePlayerTopControls({
   required String movieNumber,
   required VoidCallback? onBackPressed,
   VoidCallback? onInfoPressed,
-  VoidCallback? onScreenRotated,
-  bool? isPortrait,
   bool compact = false,
+  List<Widget> trailingControls = const <Widget>[],
 }) {
   if (onBackPressed == null &&
       onInfoPressed == null &&
-      onScreenRotated == null) {
+      trailingControls.isEmpty) {
     return const <Widget>[];
   }
-  final controls = <Widget>[];
-  if (onBackPressed != null) {
-    controls.add(
-      MoviePlayerBackWithNumberControl(
-        onPressed: onBackPressed,
-        movieNumber: movieNumber,
-        compact: compact,
-      ),
-    );
+  final resolvedTrailing = <Widget>[];
+  if (onInfoPressed != null) {
+    resolvedTrailing.add(MoviePlayerInfoButton(onPressed: onInfoPressed));
   }
-  if (onScreenRotated != null || onInfoPressed != null) {
-    if (controls.isNotEmpty) {
-      controls.add(const Spacer());
-    }
-    if (onScreenRotated != null) {
-      controls.add(
-        MoviePlayerScreenRotationButton(
-          isPortrait: isPortrait,
-          onRotated: onScreenRotated,
+  resolvedTrailing.addAll(trailingControls);
+
+  if (resolvedTrailing.isEmpty) {
+    return <Widget>[
+      if (onBackPressed != null)
+        MoviePlayerBackWithNumberControl(
+          onPressed: onBackPressed,
+          movieNumber: movieNumber,
+          compact: compact,
         ),
-      );
-      if (onInfoPressed != null) {
-        controls.add(const _MoviePlayerTopControlGap());
-      }
-    }
-    if (onInfoPressed != null) {
-      controls.add(MoviePlayerInfoButton(onPressed: onInfoPressed));
-    }
+    ];
   }
-  return controls;
-}
 
-class _MoviePlayerTopControlGap extends StatelessWidget {
-  const _MoviePlayerTopControlGap();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(width: context.appSpacing.sm);
-  }
+  return <Widget>[
+    if (onBackPressed != null)
+      Expanded(
+        child: MoviePlayerBackWithNumberControl(
+          onPressed: onBackPressed,
+          movieNumber: movieNumber,
+          compact: compact,
+          flexibleNumber: true,
+        ),
+      )
+    else
+      const Spacer(),
+    ...resolvedTrailing,
+  ];
 }
 
 List<Widget> buildMoviePlayerMobileBottomControls({

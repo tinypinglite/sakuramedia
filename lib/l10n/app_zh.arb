@@ -5409,8 +5409,6 @@
   "widgetTagNoMatch": "未找到匹配的标签",
   "widgetTagEmpty": "暂无标签",
   "widgetMoviePlayerInfoTooltip": "播放信息",
-  "widgetMoviePlayerRotateToPortrait": "切换到竖屏",
-  "widgetMoviePlayerRotateToLandscape": "切换到横屏",
   "widgetMoviePlayerPlaybackUnavailable": "暂时无法播放此媒体。",
   "widgetMoviePlayerPlaybackFailed": "播放失败",
   "widgetMoviePlayerNoSubtitle": "无可用字幕",

@@ -17,7 +17,6 @@ class CollectionPlaySplitLayout extends StatefulWidget {
     required this.right,
     this.collapsible = false,
     this.panelAvailable = true,
-    this.collapseRequest = 0,
   });
 
   /// 区分两个合集页的 Key 前缀（如 `clip-collection` / `video-collection`）。
@@ -30,9 +29,6 @@ class CollectionPlaySplitLayout extends StatefulWidget {
 
   /// 右侧面板是否有内容可展示；无内容时不显示开关。
   final bool panelAvailable;
-
-  /// 值变化时收起右侧面板，用于移动端旋转屏幕后隐藏面板。
-  final int collapseRequest;
 
   @override
   State<CollectionPlaySplitLayout> createState() =>
@@ -62,7 +58,6 @@ class _CollectionPlaySplitLayoutState extends State<CollectionPlaySplitLayout> {
       controller: _controller,
       collapsible: widget.collapsible,
       panelAvailable: widget.panelAvailable,
-      collapseRequest: widget.collapseRequest,
       handleKey: Key('${widget.keyPrefix}-panel-handle'),
       leftBuilder: (context) =>
           _PlayerPanel(keyPrefix: widget.keyPrefix, child: widget.left),

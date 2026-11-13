@@ -97,15 +97,6 @@ void main() {
         'DeviceOrientation.landscapeRight',
       ]);
     });
-
-    test('播放页旋转按钮可锁竖屏', () async {
-      await lockPlayerPagePortrait();
-
-      expect(
-        systemCallFor('SystemChrome.setPreferredOrientations').arguments,
-        <String>['DeviceOrientation.portraitUp'],
-      );
-    });
   });
 
   group('iOS', () {

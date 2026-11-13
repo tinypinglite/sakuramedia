@@ -135,9 +135,10 @@ class _MobileClipPlayerPageState extends ConsumerState<MobileClipPlayerPage> {
               ? AppLocalizations.of(context).clipFallbackTitle
               : title,
           onBackPressed: _handleBack,
+          trailingControls: <Widget>[
+            MediaPlaybackInfoButton(player: videoController.player),
+          ],
         ),
-        const Spacer(),
-        MediaPlaybackInfoButton(player: videoController.player),
       ],
       bottomControls: const <Widget>[
         MaterialPlayOrPauseButton(),

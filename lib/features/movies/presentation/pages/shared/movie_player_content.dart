@@ -84,7 +84,6 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
   late final MoviePlayer _controller;
   late final MultiSplitViewController _splitController;
   late final MoviePlayerSurfaceController _surfaceController;
-  int _panelCollapseRequest = 0;
 
   MoviePlayerState get _playerState => ref.read(moviePlayerProvider(_scope));
 
@@ -154,7 +153,6 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
             dividerHandleBuffer: widget.dividerHandleBuffer,
             collapsible: true,
             panelAvailable: playerState.selectedMedia != null,
-            panelCollapseRequest: _panelCollapseRequest,
             leftChild: const MoviePlayerEmptyState(),
             rightChild: playerState.selectedMedia == null
                 ? const SizedBox.expand()
@@ -167,7 +165,6 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
           dividerHandleBuffer: widget.dividerHandleBuffer,
           collapsible: true,
           panelAvailable: playerState.selectedMedia != null,
-          panelCollapseRequest: _panelCollapseRequest,
           leftChild: PlayerAppFullscreenDoubleTap(
             enabled: !widget.useTouchOptimizedControls,
             child: LayoutBuilder(
@@ -179,7 +176,6 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
                   isPortrait: isPortrait,
                   compactTopControls: shouldUseCompactPlayerControls(
                     constraints: constraints,
-                    windowWidth: MediaQuery.sizeOf(context).width,
                   ),
                 );
               },
@@ -245,9 +241,6 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
       onSubtitleSelectionChanged: _controller.setSelectedSubtitleId,
       onSubtitleReloadRequested: _controller.loadSubtitles,
       onBackPressed: _handleBack,
-      onScreenRotated: widget.useTouchOptimizedControls
-          ? _handleScreenRotated
-          : null,
       isPortraitOverride: isPortrait,
       compactTopControlsOverride: compactTopControls,
       useTouchOptimizedControls: widget.useTouchOptimizedControls,
@@ -255,10 +248,6 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
       mediaInfo: _buildMediaInfo(),
       thumbnails: _playerState.thumbnails,
     );
-  }
-
-  void _handleScreenRotated() {
-    setState(() => _panelCollapseRequest++);
   }
 
   MoviePlayerMediaInfo? _buildMediaInfo() {
@@ -645,7 +634,6 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
     this.onSubtitleSelectionChanged,
     this.onSubtitleReloadRequested,
     this.onBackPressed,
-    this.onScreenRotated,
     this.isPortraitOverride,
     this.compactTopControlsOverride,
     this.useTouchOptimizedControls = false,
@@ -674,9 +662,6 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
   final ValueChanged<int?>? onSubtitleSelectionChanged;
   final Future<void> Function()? onSubtitleReloadRequested;
   final VoidCallback? onBackPressed;
-
-  /// 移动端旋转按钮点击后回调；方向切换由按钮自身完成。
-  final VoidCallback? onScreenRotated;
 
   /// 播放区实际布局方向。iOS 旋转后 MediaQuery 可能滞后，由宿主按播放区
   /// 约束传入；为空时回退到 MediaQuery。
@@ -1197,8 +1182,6 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       movieNumber: widget.movieNumber,
       onBackPressed: widget.onBackPressed,
       onInfoPressed: _toggleInfoSideDrawer,
-      onScreenRotated: widget.onScreenRotated,
-      isPortrait: isPortrait,
       compact: compactTopControls,
     );
     // 全屏路由内拿不到页面级浮层（信息侧栏 / 倍速 / 字幕抽屉都挂在页面 Stack 上），

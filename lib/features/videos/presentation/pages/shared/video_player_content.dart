@@ -77,7 +77,6 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
   int _thumbnailRequestVersion = 0;
   Duration? _resumePosition;
   bool _isResumeDecisionPending = false;
-  int _panelCollapseRequest = 0;
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<bool>? _playingSubscription;
 
@@ -461,7 +460,6 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
     return CollectionPlaySplitLayout(
       keyPrefix: 'video-single',
       collapsible: true,
-      collapseRequest: _panelCollapseRequest,
       left: PlayerAppFullscreenDoubleTap(
         enabled: !widget.useTouchOptimizedControls,
         child: LayoutBuilder(
@@ -471,7 +469,6 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
             isPortrait: isPortraitPlayerViewport(constraints),
             compactTopControls: shouldUseCompactPlayerControls(
               constraints: constraints,
-              windowWidth: MediaQuery.sizeOf(context).width,
             ),
           ),
         ),
@@ -512,21 +509,13 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
           movieNumber: title.isEmpty ? l10n.videoFallbackTitle : title,
           onBackPressed: _handleBack,
           compact: compactTopControls,
+          trailingControls: <Widget>[
+            MediaPlaybackInfoButton(player: videoController.player),
+          ],
         ),
-        const Spacer(),
-        if (widget.useTouchOptimizedControls)
-          MoviePlayerScreenRotationButton(
-            isPortrait: isPortrait,
-            onRotated: _handleScreenRotated,
-          ),
-        MediaPlaybackInfoButton(player: videoController.player),
       ],
       bottomControls: bottomControls,
     );
-  }
-
-  void _handleScreenRotated() {
-    setState(() => _panelCollapseRequest++);
   }
 
   Widget _buildThumbnailPanel() {
