@@ -10,7 +10,7 @@ void main() {
 
     expect(policy.enabled, isTrue);
     expect(policy.maxConcurrentUpstreamRequests, 1);
-    expect(policy.upstreamWindowBytes, 32 * 1024 * 1024);
+    expect(policy.upstreamWindowBytes, 128 * 1024 * 1024);
     expect(policy.keepAlive, isTrue);
     expect(policy.idleConnectionTimeout, const Duration(seconds: 1));
     expect(policy.defaultUpstreamHeaders['Referer'], 'https://115.com/');

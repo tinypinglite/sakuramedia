@@ -12,7 +12,7 @@ class PlaybackProxyPolicy {
     required this.providerKey,
     required this.enabled,
     this.maxConcurrentUpstreamRequests = 1,
-    this.upstreamWindowBytes = 32 * 1024 * 1024,
+    this.upstreamWindowBytes = 128 * 1024 * 1024,
     this.upstreamTimeout = const Duration(seconds: 30),
     this.downstreamFlushTimeout = const Duration(minutes: 5),
     this.retryDelay = const Duration(milliseconds: 400),

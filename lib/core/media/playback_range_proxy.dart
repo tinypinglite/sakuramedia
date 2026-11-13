@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math' as math;
 
 import 'package:sakuramedia/core/media/playback_proxy_policy.dart';
@@ -19,21 +20,34 @@ abstract interface class PlaybackRangeProxy {
 
 /// A process-local Range proxy for providers that explicitly opt in.
 ///
-/// The player sees one continuous loopback response. Upstream is read in
-/// bounded windows: each window is streamed to the player as soon as bytes
-/// arrive, and the next window starts only after the previous one is fully
-/// consumed. This keeps the number of concurrent provider connections bounded
-/// without splitting the player-visible stream into blocking cache chunks.
+/// The HTTP server and all byte forwarding run in a worker isolate. The main
+/// isolate only exchanges control messages (origin URL/header registration and
+/// disposal); media bytes never cross an isolate boundary. This keeps the
+/// proxy's socket and buffer work off the Flutter UI event loop.
 class LoopbackRangePlaybackProxy implements PlaybackRangeProxy {
-  LoopbackRangePlaybackProxy._(this.policy, this._server, this._onLog)
-    : _gate = _UpstreamGate(policy.maxConcurrentUpstreamRequests);
+  LoopbackRangePlaybackProxy._(
+    this.policy,
+    this._isolate,
+    this._controlPort,
+    this._responsePort,
+    this._exitPort,
+    this._onLog,
+  ) {
+    _responseSubscription = _responsePort.listen(_handleResponse);
+    _exitSubscription = _exitPort.listen((_) => _handleWorkerExit());
+  }
 
   final PlaybackProxyPolicy policy;
-  final HttpServer _server;
+  final Isolate _isolate;
+  final SendPort _controlPort;
+  final ReceivePort _responsePort;
+  final ReceivePort _exitPort;
   final void Function(String message)? _onLog;
-  final _UpstreamGate _gate;
-  final Map<String, _PlaybackOrigin> _origins = <String, _PlaybackOrigin>{};
-  final Set<_StreamSession> _sessions = <_StreamSession>{};
+  final Map<int, Completer<Uri>> _pendingLocalUrls = <int, Completer<Uri>>{};
+  late final StreamSubscription<Object?> _responseSubscription;
+  late final StreamSubscription<Object?> _exitSubscription;
+  Completer<void>? _disposeCompleter;
+  int _nextRequestId = 0;
   bool _disposed = false;
 
   static final Map<String, Future<PlaybackRangeProxy>> _shared =
@@ -62,8 +76,183 @@ class LoopbackRangePlaybackProxy implements PlaybackRangeProxy {
     void Function(String message)? onLog,
   }) async {
     assert(policy.enabled);
+    final readyPort = ReceivePort();
+    final responsePort = ReceivePort();
+    final exitPort = ReceivePort();
+    final isolate = await Isolate.spawn(_proxyIsolateMain, <Object?>[
+      readyPort.sendPort,
+      responsePort.sendPort,
+      _policyToMap(policy),
+      onLog != null,
+    ], debugName: 'sakuramedia-playback-range-proxy');
+    isolate.addOnExitListener(exitPort.sendPort);
+
+    Object? ready;
+    try {
+      ready = await readyPort.first.timeout(const Duration(seconds: 10));
+    } catch (_) {
+      isolate.kill(priority: Isolate.immediate);
+      responsePort.close();
+      exitPort.close();
+      rethrow;
+    } finally {
+      readyPort.close();
+    }
+
+    if (ready is! Map || ready['type'] != 'ready') {
+      isolate.kill(priority: Isolate.immediate);
+      responsePort.close();
+      exitPort.close();
+      throw StateError('playback proxy isolate failed to start: $ready');
+    }
+    final controlPort = ready['controlPort'];
+    if (controlPort is! SendPort) {
+      isolate.kill(priority: Isolate.immediate);
+      responsePort.close();
+      exitPort.close();
+      throw StateError('playback proxy isolate returned no control port');
+    }
+    return LoopbackRangePlaybackProxy._(
+      policy,
+      isolate,
+      controlPort,
+      responsePort,
+      exitPort,
+      onLog,
+    );
+  }
+
+  void _handleResponse(Object? message) {
+    if (message is! Map) {
+      return;
+    }
+    switch (message['type']) {
+      case 'log':
+        final text = message['message'];
+        if (text is String) {
+          _onLog?.call(text);
+        }
+        break;
+      case 'localUrlResult':
+        final id = message['id'];
+        final uri = message['uri'];
+        if (id is int && uri is String) {
+          _pendingLocalUrls.remove(id)?.complete(Uri.parse(uri));
+        }
+        break;
+      case 'localUrlError':
+        final id = message['id'];
+        final error = message['error'];
+        if (id is int) {
+          _pendingLocalUrls
+              .remove(id)
+              ?.completeError(StateError(error?.toString() ?? 'proxy failed'));
+        }
+        break;
+      case 'disposed':
+        _disposeCompleter?.complete();
+        break;
+    }
+  }
+
+  void _handleWorkerExit() {
+    if (_disposed) {
+      return;
+    }
+    _disposed = true;
+    for (final completer in _pendingLocalUrls.values) {
+      if (!completer.isCompleted) {
+        completer.completeError(
+          StateError('playback proxy isolate exited unexpectedly'),
+        );
+      }
+    }
+    _pendingLocalUrls.clear();
+    _disposeCompleter?.complete();
+    unawaited(_responseSubscription.cancel());
+    unawaited(_exitSubscription.cancel());
+    _responsePort.close();
+    _exitPort.close();
+  }
+
+  @override
+  Future<Uri> localUrlFor(
+    String originUrl, {
+    required Map<String, String> headers,
+    required String cacheKey,
+  }) async {
+    if (_disposed) {
+      throw StateError('playback proxy has been disposed');
+    }
+    final id = _nextRequestId++;
+    final completer = Completer<Uri>();
+    _pendingLocalUrls[id] = completer;
+    _controlPort.send(<String, Object?>{
+      'type': 'localUrl',
+      'id': id,
+      'originUrl': originUrl,
+      'headers': Map<String, String>.from(headers),
+      'cacheKey': cacheKey,
+    });
+    try {
+      return await completer.future.timeout(const Duration(seconds: 10));
+    } finally {
+      _pendingLocalUrls.remove(id);
+    }
+  }
+
+  @override
+  Future<void> dispose() async {
+    if (_disposed) {
+      return;
+    }
+    _disposed = true;
+    final completer = Completer<void>();
+    _disposeCompleter = completer;
+    try {
+      _controlPort.send(const <String, Object?>{'type': 'dispose'});
+      await completer.future.timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // The isolate is killed below even if graceful shutdown timed out.
+    } finally {
+      await _responseSubscription.cancel();
+      await _exitSubscription.cancel();
+      _responsePort.close();
+      _exitPort.close();
+      _isolate.kill(priority: Isolate.immediate);
+      _disposeCompleter = null;
+      for (final pending in _pendingLocalUrls.values) {
+        if (!pending.isCompleted) {
+          pending.completeError(StateError('playback proxy has been disposed'));
+        }
+      }
+      _pendingLocalUrls.clear();
+    }
+  }
+}
+
+class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
+  static const int _downstreamFlushBytes = 256 * 1024;
+  static const Duration _downstreamFlushInterval = Duration(milliseconds: 16);
+
+  _LoopbackRangePlaybackProxyWorker._(this.policy, this._server, this._onLog)
+    : _gate = _UpstreamGate(policy.maxConcurrentUpstreamRequests);
+
+  final PlaybackProxyPolicy policy;
+  final HttpServer _server;
+  final void Function(String message)? _onLog;
+  final _UpstreamGate _gate;
+  final Map<String, _PlaybackOrigin> _origins = <String, _PlaybackOrigin>{};
+  final Set<_StreamSession> _sessions = <_StreamSession>{};
+  bool _disposed = false;
+
+  static Future<_LoopbackRangePlaybackProxyWorker> create({
+    required PlaybackProxyPolicy policy,
+    void Function(String message)? onLog,
+  }) async {
+    assert(policy.enabled);
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    final proxy = LoopbackRangePlaybackProxy._(policy, server, onLog);
+    final proxy = _LoopbackRangePlaybackProxyWorker._(policy, server, onLog);
     server.listen(proxy._handle, onError: (_) {});
     return proxy;
   }
@@ -461,6 +650,8 @@ class LoopbackRangePlaybackProxy implements PlaybackRangeProxy {
     }
 
     var received = 0;
+    var bytesSinceFlush = 0;
+    final flushStopwatch = Stopwatch()..start();
     try {
       await for (final data in upstream.timeout(policy.upstreamTimeout)) {
         if (session.cancelled) {
@@ -477,7 +668,17 @@ class LoopbackRangePlaybackProxy implements PlaybackRangeProxy {
         try {
           session.responseStarted = true;
           response.add(bytes);
-          await response.flush().timeout(policy.downstreamFlushTimeout);
+          received += take;
+          bytesSinceFlush += take;
+          final shouldFlush =
+              received == take ||
+              bytesSinceFlush >= _downstreamFlushBytes ||
+              flushStopwatch.elapsed >= _downstreamFlushInterval;
+          if (shouldFlush) {
+            await response.flush().timeout(policy.downstreamFlushTimeout);
+            bytesSinceFlush = 0;
+            flushStopwatch.reset();
+          }
           if (session.cancelled) {
             return;
           }
@@ -485,7 +686,6 @@ class LoopbackRangePlaybackProxy implements PlaybackRangeProxy {
           session.cancelled = true;
           return;
         }
-        received += take;
       }
     } on TimeoutException {
       throw const _ProxyTimeout('upstream response body timed out');
@@ -494,6 +694,14 @@ class LoopbackRangePlaybackProxy implements PlaybackRangeProxy {
       throw const HttpException('upstream range ended early');
     }
     if (!session.cancelled) {
+      if (bytesSinceFlush > 0) {
+        try {
+          await response.flush().timeout(policy.downstreamFlushTimeout);
+        } catch (_) {
+          session.cancelled = true;
+          return;
+        }
+      }
       _log('↓ window $start-$end ${received}B');
     }
   }
@@ -590,6 +798,136 @@ class LoopbackRangePlaybackProxy implements PlaybackRangeProxy {
     } catch (_) {}
   }
 }
+
+Future<void> _proxyIsolateMain(List<Object?> args) async {
+  final readyPort = args[0] as SendPort;
+  final responsePort = args[1] as SendPort;
+  final policy = _policyFromMap(args[2] as Map<Object?, Object?>);
+  final logEnabled = args[3] as bool;
+  final controlPort = ReceivePort();
+  _LoopbackRangePlaybackProxyWorker? worker;
+  var disposed = false;
+
+  try {
+    final activeWorker = await _LoopbackRangePlaybackProxyWorker.create(
+      policy: policy,
+      onLog: logEnabled
+          ? (message) => responsePort.send(<String, Object?>{
+              'type': 'log',
+              'message': message,
+            })
+          : null,
+    );
+    worker = activeWorker;
+    readyPort.send(<String, Object?>{
+      'type': 'ready',
+      'controlPort': controlPort.sendPort,
+    });
+
+    await for (final message in controlPort) {
+      if (message is! Map) {
+        continue;
+      }
+      final type = message['type'];
+      if (type == 'localUrl') {
+        final id = message['id'];
+        final originUrl = message['originUrl'];
+        final cacheKey = message['cacheKey'];
+        final headers = message['headers'];
+        if (id is! int ||
+            originUrl is! String ||
+            cacheKey is! String ||
+            headers is! Map) {
+          if (id is int) {
+            responsePort.send(<String, Object?>{
+              'type': 'localUrlError',
+              'id': id,
+              'error': 'invalid local URL request',
+            });
+          }
+          continue;
+        }
+        try {
+          final uri = await activeWorker.localUrlFor(
+            originUrl,
+            headers: Map<String, String>.from(headers),
+            cacheKey: cacheKey,
+          );
+          responsePort.send(<String, Object?>{
+            'type': 'localUrlResult',
+            'id': id,
+            'uri': uri.toString(),
+          });
+        } catch (error) {
+          responsePort.send(<String, Object?>{
+            'type': 'localUrlError',
+            'id': id,
+            'error': error.toString(),
+          });
+        }
+      } else if (type == 'dispose') {
+        disposed = true;
+        await activeWorker.dispose();
+        responsePort.send(const <String, Object?>{'type': 'disposed'});
+        controlPort.close();
+        return;
+      }
+    }
+  } catch (error) {
+    readyPort.send(<String, Object?>{
+      'type': 'error',
+      'error': error.toString(),
+    });
+  } finally {
+    controlPort.close();
+    if (!disposed) {
+      await worker?.dispose();
+    }
+  }
+}
+
+Map<String, Object?> _policyToMap(PlaybackProxyPolicy policy) =>
+    <String, Object?>{
+      'providerKey': policy.providerKey,
+      'enabled': policy.enabled,
+      'maxConcurrentUpstreamRequests': policy.maxConcurrentUpstreamRequests,
+      'upstreamWindowBytes': policy.upstreamWindowBytes,
+      'upstreamTimeout': policy.upstreamTimeout.inMicroseconds,
+      'downstreamFlushTimeout': policy.downstreamFlushTimeout.inMicroseconds,
+      'retryDelay': policy.retryDelay.inMicroseconds,
+      'maxAttempts': policy.maxAttempts,
+      'cooldown': policy.cooldown.inMicroseconds,
+      'keepAlive': policy.keepAlive,
+      'idleConnectionTimeout': policy.idleConnectionTimeout.inMicroseconds,
+      'defaultUpstreamHeaders': Map<String, String>.from(
+        policy.defaultUpstreamHeaders,
+      ),
+      'volatileQueryKeys': policy.volatileQueryKeys.toList(growable: false),
+    };
+
+PlaybackProxyPolicy _policyFromMap(Map<Object?, Object?> map) =>
+    PlaybackProxyPolicy(
+      providerKey: map['providerKey'] as String,
+      enabled: map['enabled'] as bool,
+      maxConcurrentUpstreamRequests:
+          map['maxConcurrentUpstreamRequests'] as int,
+      upstreamWindowBytes: map['upstreamWindowBytes'] as int,
+      upstreamTimeout: Duration(microseconds: map['upstreamTimeout'] as int),
+      downstreamFlushTimeout: Duration(
+        microseconds: map['downstreamFlushTimeout'] as int,
+      ),
+      retryDelay: Duration(microseconds: map['retryDelay'] as int),
+      maxAttempts: map['maxAttempts'] as int,
+      cooldown: Duration(microseconds: map['cooldown'] as int),
+      keepAlive: map['keepAlive'] as bool,
+      idleConnectionTimeout: Duration(
+        microseconds: map['idleConnectionTimeout'] as int,
+      ),
+      defaultUpstreamHeaders: Map<String, String>.from(
+        map['defaultUpstreamHeaders'] as Map,
+      ),
+      volatileQueryKeys: Set<String>.from(map['volatileQueryKeys'] as List),
+    );
 
 class _PlaybackOrigin {
   _PlaybackOrigin(this.url, this.headers);
