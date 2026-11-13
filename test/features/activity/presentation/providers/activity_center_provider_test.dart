@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sakuramedia/app/language/app_language.dart';
+import 'package:sakuramedia/app/language/providers/language_providers.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/activity/presentation/providers/activity_center_provider.dart';
 
@@ -482,6 +484,43 @@ void main() {
       7,
     );
   });
+
+  test(
+    'refreshes job definitions when the interface language changes',
+    () async {
+      final subscription = container.listen(activityCenterProvider, (_, __) {});
+      addTearDown(subscription.close);
+      _enqueueJobs(bundle);
+      _enqueueBootstrap(bundle, activeTaskId: 8, historyTaskId: 9);
+      await container.read(activityCenterProvider.future);
+
+      bundle.adapter.enqueueJson(
+        method: 'GET',
+        path: '/system/jobs',
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'task_key': 'movie_stats_sync',
+            'cli_help': 'Movie stats and heat sync',
+            'manual_trigger_allowed': true,
+          },
+        ],
+      );
+
+      await container
+          .read(appLanguageControllerProvider.notifier)
+          .setLanguage(AppLanguage.en);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+
+      final jobsRequests = bundle.adapter.requests
+          .where((request) => request.path == '/system/jobs')
+          .toList();
+      expect(jobsRequests, hasLength(2));
+      expect(
+        container.read(activityCenterProvider).requireValue.jobs.single.cliHelp,
+        'Movie stats and heat sync',
+      );
+    },
+  );
 }
 
 void _enqueueTaskHistory(TestApiBundle bundle, {required int id}) {

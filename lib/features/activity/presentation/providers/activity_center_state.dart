@@ -65,10 +65,10 @@ class ActivityCenterState {
 
   bool isTriggeringJob(String taskKey) => triggeringTaskKeys.contains(taskKey);
 
-  /// 任务 key 到中文展示名的映射（按 key 排序），原始 key 仍用于接口过滤。
+  /// 任务 key 到展示名的映射（按 key 排序），原始 key 仍用于接口过滤。
   ///
-  /// 展示名优先取任务运行里后端解析好的中文名，其次用任务定义的 cli_help，
-  /// 都没有时回退 key 本身。
+  /// 展示名优先取任务运行里后端返回的名称（写时快照），其次用任务定义的
+  /// cli_help（按请求语言读时解析），都没有时回退 key 本身。
   Map<String, String> get knownTaskKeyLabels {
     final keys = <String>{};
     final names = <String, String>{};

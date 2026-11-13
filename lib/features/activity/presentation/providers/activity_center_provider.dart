@@ -10,6 +10,7 @@ import 'package:sakuramedia/features/activity/presentation/providers/activity_ce
 import 'package:sakuramedia/features/shared/presentation/providers/async_notifier_dispose_guard.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/app/language/providers/app_localizations_provider.dart';
+import 'package:sakuramedia/app/language/providers/language_providers.dart';
 
 part 'activity_center_provider.g.dart';
 
@@ -36,6 +37,11 @@ class ActivityCenter extends _$ActivityCenter
   @override
   Future<ActivityCenterState> build() async {
     attachDisposeGuard();
+    // 任务定义展示名按请求语言读时解析；切语言后立即重拉，不等 30 秒慢轮询。
+    ref.listen(appLanguageControllerProvider, (previous, next) {
+      if (previous == next || state.value == null) return;
+      unawaited(refreshJobs());
+    });
     ref.onDispose(() {
       _pollTimer?.cancel();
       _slowPollTimer?.cancel();
