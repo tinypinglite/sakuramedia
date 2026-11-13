@@ -23,13 +23,16 @@ void main() {
     expect(nativePlayer.calls, ['seek:15']);
   });
 
-  test('打开媒体前启用 FFmpeg HTTP 连接复用', () async {
+  test('打开媒体前应用统一的网络读取策略', () async {
     await player.open(Playlist([Media('https://example.test/video.mp4')]));
 
-    expect(nativePlayer.properties['stream-lavf-o'], 'multiple_requests=1');
-    expect(nativePlayer.calls, [
-      'property:stream-lavf-o=multiple_requests=1',
-      'open',
-    ]);
+    expect(nativePlayer.properties, <String, String>{
+      'cache': 'yes',
+      'cache-on-disk': 'no',
+      'cache-secs': '4',
+      'demuxer-readahead-secs': '4',
+      'stream-lavf-o': 'multiple_requests=0',
+    });
+    expect(nativePlayer.calls.last, 'open');
   });
 }

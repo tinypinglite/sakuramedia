@@ -45,6 +45,7 @@ void main() {
             'position': 0,
             'play_url': '/media/9/play/?expires=1777777777&signature=abc',
             'first_media_id': 9,
+            'play_provider_key': 'cloud115',
             'video': <String, dynamic>{
               'id': 1,
               'title': '第一段',
@@ -84,10 +85,12 @@ void main() {
       '/media/9/play/?expires=1777777777&signature=abc',
     );
     expect(result.items.first.firstMediaId, 9);
+    expect(result.items.first.playProviderKey, 'cloud115');
     expect(result.items.last.video.id, 2);
-    // 后端未内联（无媒体）的成员 playUrl / firstMediaId 为 null。
+    // 后端未内联（无媒体）的成员 playUrl / firstMediaId / provider 为 null。
     expect(result.items.last.playUrl, isNull);
     expect(result.items.last.firstMediaId, isNull);
+    expect(result.items.last.playProviderKey, isNull);
 
     // 分页与 include_play_url 查询参数正确下发。
     final query = adapter.requests.single.uri.queryParameters;

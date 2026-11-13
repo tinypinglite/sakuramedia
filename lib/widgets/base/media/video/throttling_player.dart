@@ -1,4 +1,5 @@
 import 'package:media_kit/media_kit.dart';
+import 'package:sakuramedia/core/network/debug_capture_proxy.dart';
 
 /// `Player` 的薄包装，在 `seek()` 上做 **in-flight coalescing**：任意时刻至多
 /// 1 次 seek 在飞，期间的新 seek 请求**覆盖** pending 目标（不排队追加）。
@@ -32,24 +33,48 @@ import 'package:media_kit/media_kit.dart';
 class ThrottlingPlayer extends Player {
   ThrottlingPlayer({super.configuration, super.platformPlayer});
 
+  /// 所有播放器共用的网络读取策略。
+  ///
+  /// `cache-secs` / `demuxer-readahead-secs` 限制预读窗口，避免 seek 后
+  /// libmpv 仍抓着旧 Range 连接不放；`multiple_requests=0` 关闭 HTTP
+  /// Keep-Alive，让 115 侧及时释放并发槽。
+  static const _playbackNetworkProperties = <String, String>{
+    'cache': 'yes',
+    'cache-on-disk': 'no',
+    'cache-secs': '4',
+    'demuxer-readahead-secs': '4',
+  };
+
   Duration? _pendingSeek;
   bool _seekInFlight = false;
 
   @override
   Future<void> open(Playable playable, {bool play = true}) async {
-    await _configureHttpConnectionReuse();
+    await _configurePlaybackNetwork();
     await super.open(playable, play: play);
   }
 
-  /// FFmpeg 的 HTTP 协议默认不复用连接；打开媒体前开启 Keep-Alive。
-  Future<void> _configureHttpConnectionReuse() async {
+  Future<void> _configurePlaybackNetwork() async {
     final platformPlayer = platform;
     if (platformPlayer == null) {
       return;
     }
     try {
       final dynamic nativePlayer = platformPlayer;
-      await nativePlayer.setProperty('stream-lavf-o', 'multiple_requests=1');
+      for (final property in _playbackNetworkProperties.entries) {
+        await nativePlayer.setProperty(property.key, property.value);
+      }
+      await nativePlayer.setProperty(
+        'stream-lavf-o',
+        'multiple_requests=0$debugCaptureStreamLavfProxyOptions',
+      );
+      if (debugCaptureProxyActive) {
+        try {
+          await nativePlayer.setProperty('tls-verify', 'no');
+        } catch (_) {
+          // 某些 mpv 构建没有该属性；抓包时继续让请求走代理即可。
+        }
+      }
     } on NoSuchMethodError {
       // Web 或不支持原生属性的测试替身保持原有行为。
     }

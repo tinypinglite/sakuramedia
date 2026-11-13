@@ -13,6 +13,7 @@ import 'package:sakuramedia/features/videos/presentation/providers/videos_api_pr
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
+import 'package:sakuramedia/core/media/playback_user_agent.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -88,6 +89,7 @@ class _VideoCollectionPlayContentState
         PlayerAppFullscreenStateMixin<VideoCollectionPlayContent> {
   List<VideoItemListItemDto> _videos = const <VideoItemListItemDto>[];
   List<String> _playUrls = <String>[];
+  List<String?> _playProviderKeys = <String?>[];
   final _queueRevision = ValueNotifier<int>(0);
   final _videoKey = GlobalKey<VideoState>();
   OverlayEntry? _playerOverlayEntry;
@@ -140,6 +142,7 @@ class _VideoCollectionPlayContentState
             includePlayUrl: true,
           );
       final playUrls = <String>[];
+      final playProviderKeys = <String?>[];
       final playableVideos = <VideoItemListItemDto>[];
       // 与 playableVideos 平行：每集「首个媒体」id（可空），供右侧关键帧面板逐集拉缩略图。
       final playableFirstMediaIds = <int?>[];
@@ -162,6 +165,7 @@ class _VideoCollectionPlayContentState
           continue;
         }
         playUrls.add(playUrl);
+        playProviderKeys.add(items[i].playProviderKey);
         playableVideos.add(items[i].video);
         playableFirstMediaIds.add(items[i].firstMediaId);
         playableDurations.add(items[i].video.durationSeconds);
@@ -226,6 +230,7 @@ class _VideoCollectionPlayContentState
       setState(() {
         _videos = playableVideos;
         _playUrls = playUrls;
+        _playProviderKeys = playProviderKeys;
         _playbackInfoController?.dispose();
         _playbackInfoController = playbackInfoController;
         attachPlayback(
@@ -262,12 +267,13 @@ class _VideoCollectionPlayContentState
     final sourceUrl = _playUrls[index];
     try {
       await activePlayer.open(
-        Playlist(
-          _playUrls
-              .map((url) => Media(withPlaybackAttemptId(url)))
-              .toList(growable: false),
-          index: index,
-        ),
+        Playlist(<Media>[
+          for (var i = 0; i < _playUrls.length; i++)
+            Media(
+              withPlaybackAttemptId(_playUrls[i]),
+              httpHeaders: playbackHttpHeadersForProvider(_playProviderKeys[i]),
+            ),
+        ], index: index),
       );
     } catch (error) {
       if (index >= _playUrls.length || _playUrls[index] != sourceUrl) {
@@ -468,6 +474,7 @@ class _VideoCollectionPlayContentState
           if (!mounted) return;
           _videos.removeAt(index);
           _playUrls.removeAt(index);
+          _playProviderKeys.removeAt(index);
         },
       );
       if (mounted) {

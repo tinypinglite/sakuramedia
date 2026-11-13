@@ -44,8 +44,9 @@ Future<void> launchClipPlayback(
       fallbackTitle: AppLocalizations.of(context).clipFallbackTitle,
       videoKey: const Key('clip-player-video'),
       noPlayableMessage: AppLocalizations.of(context).clipInvalidPlaybackUrl,
-      resolvePlayUrl: (innerContext) async {
-        return _resolveClipPlaybackUrl(innerContext, streamUrl: streamUrl);
+      resolveMedia: (innerContext) async {
+        final url = _resolveClipPlaybackUrl(innerContext, streamUrl: streamUrl);
+        return url == null ? null : QuickPlayMedia(url);
       },
     ),
   );

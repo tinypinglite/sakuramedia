@@ -8,6 +8,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/core/media/media_playback_progress_controller.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
+import 'package:sakuramedia/core/media/playback_user_agent.dart';
 import 'package:sakuramedia/core/media/playback_resume_policy.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
@@ -178,7 +179,11 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
         _controller = controller;
       });
       unawaited(_loadThumbnails(mediaApi, playable.media.mediaId));
-      await _openMedia(player, playable.url);
+      await _openMedia(
+        player,
+        playable.url,
+        providerKey: playable.media.providerKey,
+      );
     } catch (error) {
       if (!mounted) {
         return;
@@ -194,9 +199,18 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
     }
   }
 
-  Future<void> _openMedia(Player player, String url) async {
+  Future<void> _openMedia(
+    Player player,
+    String url, {
+    String? providerKey,
+  }) async {
     try {
-      await player.open(Media(withPlaybackAttemptId(url)));
+      await player.open(
+        Media(
+          withPlaybackAttemptId(url),
+          httpHeaders: playbackHttpHeadersForProvider(providerKey),
+        ),
+      );
       final initialPositionSeconds = widget.initialPositionSeconds;
       if (initialPositionSeconds != null && initialPositionSeconds > 0) {
         await player.seek(Duration(seconds: initialPositionSeconds));

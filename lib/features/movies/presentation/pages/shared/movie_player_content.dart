@@ -13,6 +13,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
+import 'package:sakuramedia/core/media/playback_user_agent.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
@@ -260,6 +261,9 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
       orientationLock: widget.orientationLock,
       mediaInfo: _buildMediaInfo(),
       thumbnails: _playerState.thumbnails,
+      playerUserAgent: playbackUserAgentForProvider(
+        _playerState.selectedMedia?.providerKey,
+      ),
     );
   }
 
@@ -425,17 +429,17 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
   }
 }
 
-const String moviePlayerUserAgent =
-    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-    'AppleWebKit/537.36 (KHTML, like Gecko) '
-    'Chrome/125.0.0.0 Safari/537.36';
+const String moviePlayerUserAgent = defaultPlaybackUserAgent;
 
-Media buildMoviePlayerMedia(String resolvedUrl, {Duration? startPosition}) =>
-    Media(
-      resolvedUrl,
-      start: startPosition,
-      httpHeaders: const <String, String>{'User-Agent': moviePlayerUserAgent},
-    );
+Media buildMoviePlayerMedia(
+  String resolvedUrl, {
+  Duration? startPosition,
+  String userAgent = moviePlayerUserAgent,
+}) => Media(
+  resolvedUrl,
+  start: startPosition,
+  httpHeaders: <String, String>{'User-Agent': userAgent},
+);
 
 PlayerConfiguration buildMoviePlayerConfiguration({TargetPlatform? platform}) =>
     switch (platform ?? defaultTargetPlatform) {
@@ -655,11 +659,13 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
     this.thumbnails = const <MovieMediaThumbnailDto>[],
     this.disableNativeFullscreen = false,
     this.orientationLock,
+    this.playerUserAgent = moviePlayerUserAgent,
   });
 
   final String movieNumber;
   final String resolvedUrl;
   final MoviePlayerSurfaceController surfaceController;
+  final String playerUserAgent;
 
   /// 调用方明确指定的起播位置（如从时刻/缩略图进入），不显示续播提示。
   final Duration? initialPosition;
@@ -840,7 +846,8 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
         unawaited(_player.play());
       });
     }
-    if (oldWidget.resolvedUrl != widget.resolvedUrl) {
+    if (oldWidget.resolvedUrl != widget.resolvedUrl ||
+        oldWidget.playerUserAgent != widget.playerUserAgent) {
       _statsSampler.updateContext(originalUrl: widget.resolvedUrl);
       _playbackRate.resetMobileDisplayForNewMedia(_player.state.rate);
       _closeAllMobileDrawers();
@@ -930,7 +937,11 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     try {
       await openMoviePlayerSurface(
         open: (url, {required startPosition, required play}) => _player.open(
-          buildMoviePlayerMedia(url, startPosition: startPosition),
+          buildMoviePlayerMedia(
+            url,
+            startPosition: startPosition,
+            userAgent: widget.playerUserAgent,
+          ),
           play: play,
         ),
         play: _player.play,

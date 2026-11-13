@@ -30,4 +30,5 @@ VideoCollectionItemDto _$VideoCollectionItemDtoFromJson(
   firstMediaId: const NullableIntJsonConverter().fromJson(
     json['first_media_id'],
   ),
+  playProviderKey: asStringOrNull(json['play_provider_key']),
 );

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
+import 'package:sakuramedia/core/media/playback_user_agent.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
@@ -108,7 +109,10 @@ class _MovieMergedPlayContentState extends ConsumerState<MovieMergedPlayContent>
       }
       final playlist = Playlist([
         for (final media in medias)
-          Media(resolveMediaUrl(rawUrl: media.playUrl, baseUrl: baseUrl)!),
+          Media(
+            resolveMediaUrl(rawUrl: media.playUrl, baseUrl: baseUrl)!,
+            httpHeaders: playbackHttpHeadersForProvider(media.providerKey),
+          ),
       ]);
       final playback = ref.read(mergedPlaybackFactoryProvider)();
       final frames = CollectionFilmstripController(

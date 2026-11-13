@@ -44,6 +44,9 @@ class VideoCollectionDto {
 /// [firstMediaId]：「首个媒体」（Media.id 升序）的 id，与 [playUrl] 同源但**恒返回**
 /// （不依赖 `include_play_url`），成员无媒体时为 `null`。连播页右侧「整部合集」关键帧
 /// 面板据此调 `GET /media/{id}/thumbnails` 拉该集关键帧。
+///
+/// [playProviderKey]：与 [playUrl] 同源的首个媒体 provider；连播页据此为每一集选择
+/// 播放请求头（例如 115 必须使用官方 iOS User-Agent 才能拿到高并发直链）。
 @JsonSerializable(converters: dtoJsonConverters, createToJson: false)
 class VideoCollectionItemDto {
   const VideoCollectionItemDto({
@@ -51,6 +54,7 @@ class VideoCollectionItemDto {
     required this.video,
     this.playUrl,
     this.firstMediaId,
+    this.playProviderKey,
   });
 
   final int position;
@@ -62,6 +66,9 @@ class VideoCollectionItemDto {
   final String? playUrl;
 
   final int? firstMediaId;
+
+  @JsonKey(name: 'play_provider_key', fromJson: asStringOrNull)
+  final String? playProviderKey;
 
   factory VideoCollectionItemDto.fromJson(Map<String, dynamic> json) =>
       _$VideoCollectionItemDtoFromJson(json);

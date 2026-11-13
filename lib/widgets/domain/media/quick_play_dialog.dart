@@ -16,6 +16,13 @@ import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dar
 import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
+class QuickPlayMedia {
+  const QuickPlayMedia(this.url, {this.httpHeaders});
+
+  final String url;
+  final Map<String, String>? httpHeaders;
+}
+
 /// 「点小图 → 弹小窗立刻播」的桌面轻量播放弹窗。
 ///
 /// 切片、时刻缩略图等轻量入口都走它——不同入口只负责提供各自的播放地址，
@@ -28,7 +35,7 @@ class QuickPlayDialog extends StatefulWidget {
     required this.title,
     required this.fallbackTitle,
     required this.videoKey,
-    required this.resolvePlayUrl,
+    required this.resolveMedia,
     required this.noPlayableMessage,
     this.errorFallback,
     this.guardInitialSeek = false,
@@ -43,13 +50,13 @@ class QuickPlayDialog extends StatefulWidget {
   /// 内部 [ThemedVideoPlayer] 的 videoKey——测试锚点,原两 dialog 各有各的值。
   final Key videoKey;
 
-  /// 拿到实际播放地址;返回 null / 空 = 无可播,弹 [AppEmptyState]。
-  final Future<String?> Function(BuildContext context) resolvePlayUrl;
+  /// 拿到实际播放地址与请求头；返回 null / 空地址 = 无可播，弹 [AppEmptyState]。
+  final Future<QuickPlayMedia?> Function(BuildContext context) resolveMedia;
 
-  /// resolvePlayUrl 返回 null / 空时的空态文案。
+  /// [resolveMedia] 返回 null / 空地址时的空态文案。
   final String noPlayableMessage;
 
-  /// resolvePlayUrl throw 时的兜底错误文案；为空时用通用加载失败文案。
+  /// [resolveMedia] throw 时的兜底错误文案；为空时用通用加载失败文案。
   final String? errorFallback;
 
   /// 完整媒体启用初始化 seek 保护；切片是本地产物，保持关闭。
@@ -76,11 +83,11 @@ class _QuickPlayDialogState extends State<QuickPlayDialog> {
 
   Future<void> _load() async {
     try {
-      final resolvedUrl = await widget.resolvePlayUrl(context);
+      final media = await widget.resolveMedia(context);
       if (!mounted) {
         return;
       }
-      if (resolvedUrl == null || resolvedUrl.isEmpty) {
+      if (media == null || media.url.isEmpty) {
         setState(() {
           _loading = false;
           _errorMessage = widget.noPlayableMessage;
@@ -97,7 +104,7 @@ class _QuickPlayDialogState extends State<QuickPlayDialog> {
         _player = player;
         _controller = controller;
       });
-      await _openMedia(player, resolvedUrl);
+      await _openMedia(player, media);
     } catch (error) {
       if (!mounted) {
         return;
@@ -129,9 +136,9 @@ class _QuickPlayDialogState extends State<QuickPlayDialog> {
       widget.errorFallback ??
       AppLocalizations.of(context).widgetMediaLoadFailed;
 
-  Future<void> _openMedia(Player player, String url) async {
+  Future<void> _openMedia(Player player, QuickPlayMedia media) async {
     try {
-      await player.open(Media(url));
+      await player.open(Media(media.url, httpHeaders: media.httpHeaders));
     } catch (error) {
       _showPlaybackError(error);
     }
@@ -267,12 +274,18 @@ Future<void> showVideoQuickPlayDialog(
       noPlayableMessage: l10n.widgetMediaNoPlayableMedia,
       guardInitialSeek: true,
       subtitle: subtitle,
-      resolvePlayUrl: (innerContext) async {
-        final url = await resolveVideoPlaybackUrl(
+      resolveMedia: (innerContext) async {
+        final source = await resolveVideoPlaybackMedia(
           innerContext,
           videoId: videoId,
         );
-        return url == null ? null : withPlaybackAttemptId(url);
+        if (source == null) {
+          return null;
+        }
+        return QuickPlayMedia(
+          withPlaybackAttemptId(source.url),
+          httpHeaders: source.httpHeaders,
+        );
       },
     ),
   );
