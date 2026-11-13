@@ -33,14 +33,15 @@ bool get debugCaptureProxyActive {
 
 String get debugCaptureProxyUrl => _captureProxyUrl;
 
-/// 追加到 `stream-lavf-o` 的抓包代理选项；未开启代理时为空。
+/// 供 `stream-lavf-o` 使用的抓包代理选项；未开启代理时为空。
 ///
-/// 生产侧的 HTTP 连接策略由 `ThrottlingPlayer` 统一设置，不放在这里。
+/// 仅用于 libmpv 仍直连网络的媒体；Cloud115 loopback 流量由 Dart 侧
+/// `HttpOverrides` 抓取，不能再把本地地址送进 `http_proxy`。
 String get debugCaptureStreamLavfProxyOptions {
   if (!debugCaptureProxyActive) {
     return '';
   }
-  return ',http_proxy=$_captureProxyUrl';
+  return 'http_proxy=$_captureProxyUrl';
 }
 
 /// 让 Dio、NetworkImage、cached_network_image 等 Dart HTTP 客户端统一走代理。

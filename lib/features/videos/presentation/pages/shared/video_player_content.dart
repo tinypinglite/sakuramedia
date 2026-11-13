@@ -9,6 +9,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/core/media/media_playback_progress_controller.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/media/playback_user_agent.dart';
+import 'package:sakuramedia/core/media/playback_source.dart';
 import 'package:sakuramedia/core/media/playback_resume_policy.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
@@ -208,6 +209,7 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
       await player.open(
         Media(
           withPlaybackAttemptId(url),
+          extras: playbackExtrasForProvider(providerKey),
           httpHeaders: playbackHttpHeadersForProvider(providerKey),
         ),
       );

@@ -8,6 +8,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/media/playback_user_agent.dart';
+import 'package:sakuramedia/core/media/playback_source.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
@@ -111,6 +112,7 @@ class _MovieMergedPlayContentState extends ConsumerState<MovieMergedPlayContent>
         for (final media in medias)
           Media(
             resolveMediaUrl(rawUrl: media.playUrl, baseUrl: baseUrl)!,
+            extras: playbackExtrasForProvider(media.providerKey),
             httpHeaders: playbackHttpHeadersForProvider(media.providerKey),
           ),
       ]);

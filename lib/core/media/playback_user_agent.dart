@@ -1,3 +1,5 @@
+import 'package:sakuramedia/core/media/playback_source.dart';
+
 const String defaultPlaybackUserAgent =
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
     'AppleWebKit/537.36 (KHTML, like Gecko) '
@@ -8,12 +10,12 @@ const String cloud115PlaybackUserAgent =
     'Mozilla/5.0; Darwin/10.0; UDown/39.1.0';
 
 String playbackUserAgentForProvider(String? providerKey) =>
-    providerKey == 'cloud115'
+    providerKey == cloud115PlaybackProviderKey
     ? cloud115PlaybackUserAgent
     : defaultPlaybackUserAgent;
 
 Map<String, String>? playbackHttpHeadersForProvider(String? providerKey) {
-  if (providerKey != 'cloud115') {
+  if (providerKey != cloud115PlaybackProviderKey) {
     return null;
   }
   return const <String, String>{'User-Agent': cloud115PlaybackUserAgent};

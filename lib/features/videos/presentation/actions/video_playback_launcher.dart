@@ -33,10 +33,10 @@ Future<String?> resolveVideoPlaybackUrl(
   return source?.url;
 }
 
-/// 与 [resolveVideoPlaybackUrl] 同源，额外返回播放请求头。
+/// 与 [resolveVideoPlaybackUrl] 同源，额外返回播放来源与请求头。
 ///
 /// 115 官方直链与 User-Agent 绑定，快播弹窗必须把 URL 和请求头一起交给播放器。
-Future<({String url, Map<String, String>? httpHeaders})?>
+Future<({String url, Map<String, String>? httpHeaders, String? providerKey})?>
 resolveVideoPlaybackMedia(BuildContext context, {required int videoId}) async {
   final container = ProviderScope.containerOf(context, listen: false);
   final detail = await container
@@ -52,6 +52,7 @@ resolveVideoPlaybackMedia(BuildContext context, {required int videoId}) async {
       return (
         url: resolved,
         httpHeaders: playbackHttpHeadersForProvider(media.providerKey),
+        providerKey: media.providerKey,
       );
     }
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sakuramedia/core/media/playback_source.dart';
 import 'package:sakuramedia/core/media/playback_user_agent.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_player_content.dart';
 
@@ -22,11 +23,16 @@ void main() {
       final media = buildMoviePlayerMedia(
         'https://example.com/media/1/play/?expires=1777777777&signature=abc',
         userAgent: cloud115PlaybackUserAgent,
+        providerKey: cloud115PlaybackProviderKey,
       );
 
       expect(media.httpHeaders, <String, String>{
         'User-Agent': cloud115PlaybackUserAgent,
       });
+      expect(
+        playbackProviderKeyFromExtras(media.extras),
+        cloud115PlaybackProviderKey,
+      );
     });
 
     test('desktop configuration enables libass subtitles', () {

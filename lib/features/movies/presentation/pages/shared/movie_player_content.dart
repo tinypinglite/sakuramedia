@@ -14,6 +14,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/media/playback_user_agent.dart';
+import 'package:sakuramedia/core/media/playback_source.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
@@ -264,6 +265,7 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
       playerUserAgent: playbackUserAgentForProvider(
         _playerState.selectedMedia?.providerKey,
       ),
+      playerProviderKey: _playerState.selectedMedia?.providerKey,
     );
   }
 
@@ -435,9 +437,11 @@ Media buildMoviePlayerMedia(
   String resolvedUrl, {
   Duration? startPosition,
   String userAgent = moviePlayerUserAgent,
+  String? providerKey,
 }) => Media(
   resolvedUrl,
   start: startPosition,
+  extras: playbackExtrasForProvider(providerKey),
   httpHeaders: <String, String>{'User-Agent': userAgent},
 );
 
@@ -660,12 +664,14 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
     this.disableNativeFullscreen = false,
     this.orientationLock,
     this.playerUserAgent = moviePlayerUserAgent,
+    this.playerProviderKey,
   });
 
   final String movieNumber;
   final String resolvedUrl;
   final MoviePlayerSurfaceController surfaceController;
   final String playerUserAgent;
+  final String? playerProviderKey;
 
   /// 调用方明确指定的起播位置（如从时刻/缩略图进入），不显示续播提示。
   final Duration? initialPosition;
@@ -847,7 +853,8 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       });
     }
     if (oldWidget.resolvedUrl != widget.resolvedUrl ||
-        oldWidget.playerUserAgent != widget.playerUserAgent) {
+        oldWidget.playerUserAgent != widget.playerUserAgent ||
+        oldWidget.playerProviderKey != widget.playerProviderKey) {
       _statsSampler.updateContext(originalUrl: widget.resolvedUrl);
       _playbackRate.resetMobileDisplayForNewMedia(_player.state.rate);
       _closeAllMobileDrawers();
@@ -941,6 +948,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
             url,
             startPosition: startPosition,
             userAgent: widget.playerUserAgent,
+            providerKey: widget.playerProviderKey,
           ),
           play: play,
         ),

@@ -60,6 +60,7 @@ dependencies:
   media_kit_video: 2.0.1
   media_kit_libs_video: 1.0.7
   media_kit_libs_macos_video: 1.1.4   # 其他平台 iOS/macOS/Windows 还没做，先保留 pub 版
+  streaming_video_cache: 1.20260615.1070036
   screen_brightness: ^2.1.11
   multi_split_view: ^3.6.2
   file_picker: ^13.0.0

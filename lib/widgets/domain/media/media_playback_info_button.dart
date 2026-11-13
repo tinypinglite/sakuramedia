@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:sakuramedia/core/media/media_source_metadata.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -63,9 +64,10 @@ class MediaPlaybackInfoController {
   void _syncMedia(Playlist playlist) {
     if (_isDisposed) return;
     final index = playlist.index;
-    final url = index >= 0 && index < playlist.medias.length
-        ? playlist.medias[index].uri
-        : '';
+    final media = index >= 0 && index < playlist.medias.length
+        ? playlist.medias[index]
+        : null;
+    final url = originalMediaUriFromExtras(media?.extras) ?? media?.uri ?? '';
     if (_activeIndex == index && _activeUrl == url) return;
     _activeIndex = index;
     _activeUrl = url;
@@ -167,7 +169,9 @@ class MediaPlaybackInfoButton extends StatelessWidget {
     onPressed: () => unawaited(
       showGeneralDialog<void>(
         context: context,
-        barrierLabel: AppLocalizations.of(context).widgetMediaPlaybackInfoDismiss,
+        barrierLabel: AppLocalizations.of(
+          context,
+        ).widgetMediaPlaybackInfoDismiss,
         barrierDismissible: true,
         barrierColor: Colors.transparent,
         pageBuilder: (_, __, ___) => _MediaPlaybackInfoDialog(player: player),

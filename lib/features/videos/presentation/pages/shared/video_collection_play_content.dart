@@ -14,6 +14,7 @@ import 'package:sakuramedia/features/media/presentation/providers/media_api_prov
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/media/playback_user_agent.dart';
+import 'package:sakuramedia/core/media/playback_source.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -271,6 +272,7 @@ class _VideoCollectionPlayContentState
           for (var i = 0; i < _playUrls.length; i++)
             Media(
               withPlaybackAttemptId(_playUrls[i]),
+              extras: playbackExtrasForProvider(_playProviderKeys[i]),
               httpHeaders: playbackHttpHeadersForProvider(_playProviderKeys[i]),
             ),
         ], index: index),

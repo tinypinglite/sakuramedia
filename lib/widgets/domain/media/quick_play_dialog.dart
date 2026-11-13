@@ -5,6 +5,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/widgets/domain/media/media_playback_info_button.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
+import 'package:sakuramedia/core/media/playback_source.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/videos/presentation/actions/video_playback_launcher.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -17,10 +18,11 @@ import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 
 class QuickPlayMedia {
-  const QuickPlayMedia(this.url, {this.httpHeaders});
+  const QuickPlayMedia(this.url, {this.httpHeaders, this.providerKey});
 
   final String url;
   final Map<String, String>? httpHeaders;
+  final String? providerKey;
 }
 
 /// 「点小图 → 弹小窗立刻播」的桌面轻量播放弹窗。
@@ -138,7 +140,13 @@ class _QuickPlayDialogState extends State<QuickPlayDialog> {
 
   Future<void> _openMedia(Player player, QuickPlayMedia media) async {
     try {
-      await player.open(Media(media.url, httpHeaders: media.httpHeaders));
+      await player.open(
+        Media(
+          media.url,
+          extras: playbackExtrasForProvider(media.providerKey),
+          httpHeaders: media.httpHeaders,
+        ),
+      );
     } catch (error) {
       _showPlaybackError(error);
     }
@@ -285,6 +293,7 @@ Future<void> showVideoQuickPlayDialog(
         return QuickPlayMedia(
           withPlaybackAttemptId(source.url),
           httpHeaders: source.httpHeaders,
+          providerKey: source.providerKey,
         );
       },
     ),
