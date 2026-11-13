@@ -1,13 +1,15 @@
 import 'dart:math' as math;
-import 'dart:ui' show SemanticsRole;
+import 'dart:ui' show ImageFilter, SemanticsRole;
 
 import 'package:flutter/services.dart' show LogicalKeyboardKey;
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_entrance.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_surface.dart';
 import 'package:sakuramedia/widgets/base/layout/glass/app_glass_types.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 
@@ -302,15 +304,24 @@ class _AppContextMenuRoute<T> extends PopupRoute<T> {
     Animation<double> secondaryAnimation,
     Widget child,
   ) {
+    final curved = animation.drive(CurveTween(curve: Curves.easeOutCubic));
+    // 玻璃面板不能靠祖先 Opacity 淡入：那会把 backdrop pass 和真实背景隔离，
+    // 面板框架会等到淡入结束才出现。Impeller 下改为把进度传给表面自己。
+    // 扁平样式、高对比度和非 Impeller 后端没有可用的 backdrop pass，保持整树淡入。
+    final fadeWithEntrance =
+        AppSurfaceStyleScope.of(context) != AppSurfaceStyle.flat &&
+        !(MediaQuery.maybeHighContrastOf(context) ?? false) &&
+        ImageFilter.isShaderFilterSupported;
+
     return AnimatedBuilder(
-      animation: animation,
+      animation: curved,
       child: child,
       builder: (context, child) {
-        final t = Curves.easeOutCubic.transform(animation.value);
-        return Opacity(
-          opacity: t,
-          child: Transform.scale(scale: 0.96 + 0.04 * t, child: child!),
-        );
+        final t = curved.value;
+        final scaled = Transform.scale(scale: 0.96 + 0.04 * t, child: child!);
+        return fadeWithEntrance
+            ? AppGlassEntrance(progress: t, child: scaled)
+            : Opacity(opacity: t, child: scaled);
       },
     );
   }
