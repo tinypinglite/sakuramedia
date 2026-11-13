@@ -1,5 +1,6 @@
-import 'dart:convert';
+import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -9,41 +10,22 @@ import 'package:sakuramedia/core/media/playback_range_proxy.dart';
 const _cloud115UserAgent = 'Mozilla/5.0; Darwin/10.0; UDown/39.1.0';
 
 void main() {
-  late Directory cacheDirectory;
   HttpOverrides? previousHttpOverrides;
 
-  setUpAll(() {
+  setUp(() {
     previousHttpOverrides = HttpOverrides.current;
     HttpOverrides.global = null;
   });
 
-  tearDownAll(() {
+  tearDown(() {
     HttpOverrides.global = previousHttpOverrides;
-  });
-
-  setUp(() async {
-    cacheDirectory = await Directory.systemTemp.createTemp(
-      'cloud115_proxy_test',
-    );
-  });
-
-  tearDown(() async {
-    if (await cacheDirectory.exists()) {
-      await cacheDirectory.delete(recursive: true);
-    }
   });
 
   test('follows redirect, forwards UA and retries one 403', () async {
     final origin = await _RangeOrigin.start(failFirstVideoRequest: true);
     final proxy = await LoopbackRangePlaybackProxy.create(
       policy: cloud115PlaybackProxyPolicy.copyWith(
-        maxCacheBytes: 2 * 1024 * 1024,
-        maxEntryBytes: 1024 * 1024,
-        chunkSize: 64 * 1024,
-      ),
-      cacheDirectory: cacheDirectory,
-      upstream: BoundedConcurrencyUpstream(
-        maxConcurrentRequests: 1,
+        upstreamWindowBytes: 64 * 1024,
         retryDelay: const Duration(milliseconds: 20),
         cooldown: Duration.zero,
       ),
@@ -62,23 +44,15 @@ void main() {
 
     expect(response.statusCode, HttpStatus.partialContent);
     expect(response.body, origin.bytes.sublist(0, 64 * 1024));
-    expect(origin.videoRequestCount, greaterThanOrEqualTo(3));
+    expect(origin.videoRequestCount, greaterThanOrEqualTo(2));
     expect(origin.userAgents, everyElement(_cloud115UserAgent));
   });
 
-  test('serializes different seek ranges to one upstream request', () async {
-    final origin = await _RangeOrigin.start(
-      responseDelay: const Duration(milliseconds: 80),
-    );
+  test('new seek cancels the previous local request', () async {
+    final origin = await _RangeOrigin.start(stallFirstVideoAfterHeaders: true);
     final proxy = await LoopbackRangePlaybackProxy.create(
       policy: cloud115PlaybackProxyPolicy.copyWith(
-        maxCacheBytes: 2 * 1024 * 1024,
-        maxEntryBytes: 1024 * 1024,
-        chunkSize: 64 * 1024,
-      ),
-      cacheDirectory: cacheDirectory,
-      upstream: BoundedConcurrencyUpstream(
-        maxConcurrentRequests: 1,
+        upstreamWindowBytes: 64 * 1024,
         cooldown: Duration.zero,
       ),
     );
@@ -90,36 +64,67 @@ void main() {
     final localUrl = await proxy.localUrlFor(
       origin.startUrl,
       headers: const <String, String>{'User-Agent': _cloud115UserAgent},
-      cacheKey: 'serialized-seeks',
+      cacheKey: 'latest-seek-wins',
+    );
+    final first = _get(
+      localUrl,
+      range: 'bytes=0-65535',
+    ).catchError((_) => _RangeResponse(0, Uint8List(0)));
+    await _waitUntil(() => origin.videoRequestCount >= 1);
+
+    final second = await _get(localUrl, range: 'bytes=131072-196607');
+    await first;
+
+    expect(second.statusCode, HttpStatus.partialContent);
+    expect(second.body, origin.bytes.sublist(128 * 1024, 192 * 1024));
+    expect(origin.videoRequestCount, greaterThanOrEqualTo(2));
+  });
+
+  test('one gate slot serializes different media', () async {
+    final origin = await _RangeOrigin.start(
+      responseDelay: const Duration(milliseconds: 80),
+    );
+    final proxy = await LoopbackRangePlaybackProxy.create(
+      policy: cloud115PlaybackProxyPolicy.copyWith(
+        upstreamWindowBytes: 64 * 1024,
+        cooldown: Duration.zero,
+      ),
+    );
+    addTearDown(() async {
+      await proxy.dispose();
+      await origin.stop();
+    });
+
+    final firstUrl = await proxy.localUrlFor(
+      origin.startUrl,
+      headers: const <String, String>{'User-Agent': _cloud115UserAgent},
+      cacheKey: 'serialized-a',
+    );
+    final secondUrl = await proxy.localUrlFor(
+      origin.startUrl,
+      headers: const <String, String>{'User-Agent': _cloud115UserAgent},
+      cacheKey: 'serialized-b',
     );
     final responses = await Future.wait([
-      _get(localUrl, range: 'bytes=0-65535'),
-      _get(localUrl, range: 'bytes=131072-196607'),
+      _get(firstUrl, range: 'bytes=0-65535'),
+      _get(secondUrl, range: 'bytes=131072-196607'),
     ]);
 
     expect(
       responses.map((response) => response.statusCode),
       everyElement(HttpStatus.partialContent),
     );
-    expect(responses[0].body, origin.bytes.sublist(0, 64 * 1024));
-    expect(responses[1].body, origin.bytes.sublist(128 * 1024, 192 * 1024));
     expect(origin.maxActiveVideoRequests, 1);
   });
 
-  test('policy concurrency can allow more than one upstream request', () async {
+  test('policy concurrency can allow two upstream streams', () async {
     final origin = await _RangeOrigin.start(
       responseDelay: const Duration(milliseconds: 80),
     );
     final proxy = await LoopbackRangePlaybackProxy.create(
       policy: cloud115PlaybackProxyPolicy.copyWith(
         maxConcurrentUpstreamRequests: 2,
-        maxCacheBytes: 2 * 1024 * 1024,
-        maxEntryBytes: 1024 * 1024,
-        chunkSize: 64 * 1024,
-      ),
-      cacheDirectory: cacheDirectory,
-      upstream: BoundedConcurrencyUpstream(
-        maxConcurrentRequests: 2,
+        upstreamWindowBytes: 64 * 1024,
         cooldown: Duration.zero,
       ),
     );
@@ -128,14 +133,19 @@ void main() {
       await origin.stop();
     });
 
-    final localUrl = await proxy.localUrlFor(
+    final firstUrl = await proxy.localUrlFor(
       origin.startUrl,
       headers: const <String, String>{'User-Agent': _cloud115UserAgent},
-      cacheKey: 'concurrency-two',
+      cacheKey: 'concurrency-two-a',
+    );
+    final secondUrl = await proxy.localUrlFor(
+      origin.startUrl,
+      headers: const <String, String>{'User-Agent': _cloud115UserAgent},
+      cacheKey: 'concurrency-two-b',
     );
     final responses = await Future.wait([
-      _get(localUrl, range: 'bytes=0-65535'),
-      _get(localUrl, range: 'bytes=131072-196607'),
+      _get(firstUrl, range: 'bytes=0-65535'),
+      _get(secondUrl, range: 'bytes=131072-196607'),
     ]);
 
     expect(
@@ -145,48 +155,162 @@ void main() {
     expect(origin.maxActiveVideoRequests, 2);
   });
 
-  test('times out a stalled response body and releases the queue', () async {
-    final origin = await _RangeOrigin.start(stallVideoBody: true);
+  test('reuses one upstream connection across sequential windows', () async {
+    final origin = await _RangeOrigin.start();
     final proxy = await LoopbackRangePlaybackProxy.create(
       policy: cloud115PlaybackProxyPolicy.copyWith(
-        maxCacheBytes: 2 * 1024 * 1024,
-        maxEntryBytes: 1024 * 1024,
-        chunkSize: 64 * 1024,
-      ),
-      cacheDirectory: cacheDirectory,
-      upstream: BoundedConcurrencyUpstream(
-        maxConcurrentRequests: 1,
-        timeout: const Duration(milliseconds: 100),
-        retryDelay: const Duration(milliseconds: 10),
+        upstreamWindowBytes: 64 * 1024,
         cooldown: Duration.zero,
-        maxAttempts: 1,
       ),
     );
     addTearDown(() async {
       await proxy.dispose();
       await origin.stop();
     });
+
+    final localUrl = await proxy.localUrlFor(
+      origin.startUrl,
+      headers: const <String, String>{'User-Agent': _cloud115UserAgent},
+      cacheKey: 'keep-alive',
+    );
+    final response = await _get(localUrl, range: 'bytes=0-${192 * 1024 - 1}');
+
+    expect(response.statusCode, HttpStatus.partialContent);
+    expect(response.body, origin.bytes.sublist(0, 192 * 1024));
+    expect(origin.requestedRanges, hasLength(3));
+    expect(origin.activeUpstreamPorts, hasLength(1));
+  });
+
+  test('streams first bytes before the full upstream window arrives', () async {
+    final origin = await _RangeOrigin.start(
+      initialBodyBytes: 16 * 1024,
+      bodyChunkDelay: const Duration(milliseconds: 600),
+    );
+    final proxy = await LoopbackRangePlaybackProxy.create(
+      policy: cloud115PlaybackProxyPolicy.copyWith(
+        upstreamWindowBytes: 256 * 1024,
+        cooldown: Duration.zero,
+      ),
+    );
+    addTearDown(() async {
+      await proxy.dispose();
+      await origin.stop();
+    });
+
+    final localUrl = await proxy.localUrlFor(
+      origin.startUrl,
+      headers: const <String, String>{'User-Agent': _cloud115UserAgent},
+      cacheKey: 'streaming-first-byte',
+    );
+    final client = HttpClient();
+    addTearDown(() => client.close(force: true));
+    final stopwatch = Stopwatch()..start();
+    final request = await client.getUrl(localUrl);
+    request.headers.set(HttpHeaders.rangeHeader, 'bytes=0-${256 * 1024 - 1}');
+    final response = await request.close();
+    final firstChunkAt = Completer<int>();
+    final body = BytesBuilder(copy: false);
+    final subscription = response.listen((data) {
+      if (!firstChunkAt.isCompleted) {
+        firstChunkAt.complete(stopwatch.elapsedMilliseconds);
+      }
+      body.add(data);
+    });
+
+    final firstChunkMs = await firstChunkAt.future.timeout(
+      const Duration(seconds: 2),
+    );
+    await subscription.asFuture<void>();
+
+    expect(firstChunkMs, lessThan(400));
+    expect(stopwatch.elapsedMilliseconds, greaterThan(500));
+    expect(body.takeBytes(), origin.bytes.sublist(0, 256 * 1024));
+  });
+
+  test('times out a stalled upstream and releases the queue', () async {
+    final origin = await _RangeOrigin.start(stallFirstVideoBody: true);
+    final proxy = await LoopbackRangePlaybackProxy.create(
+      policy: cloud115PlaybackProxyPolicy.copyWith(
+        upstreamWindowBytes: 64 * 1024,
+        upstreamTimeout: const Duration(milliseconds: 100),
+        retryDelay: const Duration(milliseconds: 10),
+        maxAttempts: 1,
+        cooldown: Duration.zero,
+      ),
+    );
+    addTearDown(() async {
+      await proxy.dispose();
+      await origin.stop();
+    });
+
     final localUrl = await proxy.localUrlFor(
       origin.startUrl,
       headers: const <String, String>{'User-Agent': _cloud115UserAgent},
       cacheKey: 'stalled-body',
     );
     final stopwatch = Stopwatch()..start();
+    final stalled = await _get(localUrl, range: 'bytes=0-65535');
 
-    await expectLater(
-      _get(localUrl, range: 'bytes=0-65535'),
-      throwsA(isA<HttpException>()),
-    );
-
+    expect(stalled.statusCode, HttpStatus.gatewayTimeout);
     expect(stopwatch.elapsed, lessThan(const Duration(seconds: 1)));
-    await _waitUntilAsync(
-      () async => await _hasEstablishedConnectionTo(origin.port) == false,
-    );
+
     final nextStopwatch = Stopwatch()..start();
     final next = await _get(localUrl, range: 'bytes=65536-131071');
     expect(nextStopwatch.elapsed, lessThan(const Duration(seconds: 1)));
     expect(next.statusCode, HttpStatus.partialContent);
     expect(next.body, origin.bytes.sublist(64 * 1024, 128 * 1024));
+  });
+
+  test('open-ended range streams across windows and ends at total', () async {
+    final origin = await _RangeOrigin.start();
+    final proxy = await LoopbackRangePlaybackProxy.create(
+      policy: cloud115PlaybackProxyPolicy.copyWith(
+        upstreamWindowBytes: 64 * 1024,
+        cooldown: Duration.zero,
+      ),
+    );
+    addTearDown(() async {
+      await proxy.dispose();
+      await origin.stop();
+    });
+
+    final localUrl = await proxy.localUrlFor(
+      origin.startUrl,
+      headers: const <String, String>{'User-Agent': _cloud115UserAgent},
+      cacheKey: 'open-ended',
+    );
+    const start = 128 * 1024;
+    final response = await _get(localUrl, range: 'bytes=$start-');
+
+    expect(response.statusCode, HttpStatus.partialContent);
+    expect(response.body, origin.bytes.sublist(start));
+    expect(origin.requestedRanges.first, 'bytes=$start-${start + 65536 - 1}');
+    expect(origin.activeUpstreamPorts, hasLength(1));
+  });
+
+  test('suffix range probes total length and returns the tail', () async {
+    final origin = await _RangeOrigin.start();
+    final proxy = await LoopbackRangePlaybackProxy.create(
+      policy: cloud115PlaybackProxyPolicy.copyWith(
+        upstreamWindowBytes: 64 * 1024,
+        cooldown: Duration.zero,
+      ),
+    );
+    addTearDown(() async {
+      await proxy.dispose();
+      await origin.stop();
+    });
+
+    final localUrl = await proxy.localUrlFor(
+      origin.startUrl,
+      headers: const <String, String>{'User-Agent': _cloud115UserAgent},
+      cacheKey: 'suffix',
+    );
+    final response = await _get(localUrl, range: 'bytes=-65536');
+
+    expect(response.statusCode, HttpStatus.partialContent);
+    expect(response.body, origin.bytes.sublist(origin.bytes.length - 65536));
+    expect(origin.requestedRanges.first, 'bytes=0-0');
   });
 }
 
@@ -213,30 +337,12 @@ Future<_RangeResponse> _get(Uri url, {required String range}) async {
   }
 }
 
-Future<void> _waitUntilAsync(Future<bool> Function() condition) async {
+Future<void> _waitUntil(bool Function() condition) async {
   final deadline = DateTime.now().add(const Duration(seconds: 2));
-  while (!await condition() && DateTime.now().isBefore(deadline)) {
+  while (!condition() && DateTime.now().isBefore(deadline)) {
     await Future<void>.delayed(const Duration(milliseconds: 10));
   }
-  expect(await condition(), isTrue);
-}
-
-Future<bool> _hasEstablishedConnectionTo(int port) async {
-  final process = await Process.run('/usr/sbin/lsof', <String>[
-    '-nP',
-    '-a',
-    '-p',
-    '$pid',
-    '-iTCP',
-    '-sTCP:ESTABLISHED',
-    '-Fn',
-  ]);
-  for (final line in const LineSplitter().convert(process.stdout as String)) {
-    if (line.startsWith('n') && line.contains(':$port')) {
-      return true;
-    }
-  }
-  return false;
+  expect(condition(), isTrue);
 }
 
 class _RangeOrigin {
@@ -245,29 +351,39 @@ class _RangeOrigin {
     this.bytes, {
     required this.failFirstVideoRequest,
     required this.responseDelay,
-    required this.stallVideoBody,
+    required this.stallFirstVideoBody,
+    required this.stallFirstVideoAfterHeaders,
+    required this.initialBodyBytes,
+    required this.bodyChunkDelay,
   });
 
   final HttpServer _server;
   final Uint8List bytes;
   final bool failFirstVideoRequest;
   final Duration responseDelay;
-  final bool stallVideoBody;
+  final bool stallFirstVideoBody;
+  final bool stallFirstVideoAfterHeaders;
+  final int initialBodyBytes;
+  final Duration bodyChunkDelay;
   final List<String> userAgents = <String>[];
+  final Set<int> activeUpstreamPorts = <int>{};
+  final List<String> requestedRanges = <String>[];
   int videoRequestCount = 0;
   int activeVideoRequests = 0;
   int maxActiveVideoRequests = 0;
-  int get port => _server.port;
 
   String get startUrl => 'http://127.0.0.1:${_server.port}/start';
 
   static Future<_RangeOrigin> start({
     bool failFirstVideoRequest = false,
     Duration responseDelay = Duration.zero,
-    bool stallVideoBody = false,
+    bool stallFirstVideoBody = false,
+    bool stallFirstVideoAfterHeaders = false,
+    int initialBodyBytes = 0,
+    Duration bodyChunkDelay = Duration.zero,
   }) async {
     final bytes = Uint8List.fromList(
-      List<int>.generate(256 * 1024, (index) => index % 251),
+      List<int>.generate(2 * 1024 * 1024, (index) => index % 251),
     );
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     final origin = _RangeOrigin._(
@@ -275,7 +391,10 @@ class _RangeOrigin {
       bytes,
       failFirstVideoRequest: failFirstVideoRequest,
       responseDelay: responseDelay,
-      stallVideoBody: stallVideoBody,
+      stallFirstVideoBody: stallFirstVideoBody,
+      stallFirstVideoAfterHeaders: stallFirstVideoAfterHeaders,
+      initialBodyBytes: initialBodyBytes,
+      bodyChunkDelay: bodyChunkDelay,
     );
     server.listen(origin._handle);
     return origin;
@@ -299,6 +418,14 @@ class _RangeOrigin {
     }
 
     videoRequestCount++;
+    final range = request.headers.value(HttpHeaders.rangeHeader);
+    if (range != null) {
+      requestedRanges.add(range);
+    }
+    final remotePort = request.connectionInfo?.remotePort;
+    if (remotePort != null) {
+      activeUpstreamPorts.add(remotePort);
+    }
     final userAgent = request.headers.value(HttpHeaders.userAgentHeader);
     if (userAgent != null) {
       userAgents.add(userAgent);
@@ -318,34 +445,11 @@ class _RangeOrigin {
       if (responseDelay > Duration.zero) {
         await Future<void>.delayed(responseDelay);
       }
-      final range = request.headers.value(HttpHeaders.rangeHeader);
       final match = RegExp(r'bytes=(\d+)-(\d*)').firstMatch(range ?? '');
       final start = match == null ? 0 : int.parse(match.group(1)!);
       final endText = match?.group(2) ?? '';
       final end = endText.isEmpty ? bytes.length - 1 : int.parse(endText);
       final slice = bytes.sublist(start, end + 1);
-      if (stallVideoBody && videoRequestCount == 2) {
-        response
-          ..statusCode = HttpStatus.partialContent
-          ..headers.set(
-            HttpHeaders.contentRangeHeader,
-            'bytes $start-$end/${bytes.length}',
-          )
-          ..headers.contentLength = slice.length
-          ..headers.contentType = ContentType('video', 'mp4')
-          ..bufferOutput = false;
-        await response.flush();
-        for (var attempt = 0; attempt < 10; attempt++) {
-          await Future<void>.delayed(const Duration(milliseconds: 50));
-          try {
-            response.add(<int>[0]);
-            await response.flush();
-          } catch (_) {
-            break;
-          }
-        }
-        return;
-      }
       response
         ..statusCode = HttpStatus.partialContent
         ..headers.set(
@@ -354,7 +458,33 @@ class _RangeOrigin {
         )
         ..headers.contentLength = slice.length
         ..headers.contentType = ContentType('video', 'mp4')
-        ..add(slice);
+        ..bufferOutput = false;
+
+      if (stallFirstVideoBody && videoRequestCount == 1) {
+        response.add(const <int>[]);
+        await response.flush();
+        await Future<void>.delayed(const Duration(seconds: 2));
+        return;
+      }
+
+      if (stallFirstVideoAfterHeaders && videoRequestCount == 1) {
+        response.add(slice.sublist(0, 1));
+        await response.flush();
+        await Future<void>.delayed(const Duration(seconds: 2));
+        return;
+      }
+
+      if (bodyChunkDelay > Duration.zero && initialBodyBytes > 0) {
+        final first = math.min(initialBodyBytes, slice.length);
+        response.add(slice.sublist(0, first));
+        await response.flush();
+        await Future<void>.delayed(bodyChunkDelay);
+        response.add(slice.sublist(first));
+      } else {
+        response.add(slice);
+      }
+      await response.close();
+    } catch (_) {
       await response.close();
     } finally {
       activeVideoRequests--;

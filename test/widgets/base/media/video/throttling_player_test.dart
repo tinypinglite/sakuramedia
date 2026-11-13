@@ -43,7 +43,9 @@ void main() {
 
     expect(nativePlayer.properties, <String, String>{
       'cache-on-disk': 'no',
-      'cache-secs': '4',
+      'cache-secs': '2',
+      'demuxer-max-bytes': '8388608',
+      'demuxer-max-back-bytes': '8388608',
     });
     expect(nativePlayer.calls.last, 'open');
   });
@@ -199,6 +201,8 @@ void main() {
     expect(nativePlayer.properties, <String, String>{
       'cache-on-disk': 'yes',
       'cache-secs': '3600000',
+      'demuxer-max-bytes': '33554432',
+      'demuxer-max-back-bytes': '33554432',
     });
   });
 }

@@ -45,11 +45,13 @@ class ThrottlingPlayer extends Player {
     this.playbackProxy,
   });
 
-  /// 本地 Range 缓存已经接住网络字节，关闭 libmpv 自己的磁盘缓存并缩短
-  /// 预读，避免第二次落盘和大段无用上游读取。
+  /// 本地流式代理已经接住网络字节，关闭 libmpv 自己的磁盘缓存并缩短预读，
+  /// 避免第二次落盘和大段无用上游读取。
   static const _proxiedPlaybackProperties = <String, String>{
     'cache-on-disk': 'no',
-    'cache-secs': '4',
+    'cache-secs': '2',
+    'demuxer-max-bytes': '8388608',
+    'demuxer-max-back-bytes': '8388608',
   };
 
   Duration? _pendingSeek;
@@ -174,6 +176,8 @@ class ThrottlingPlayer extends Player {
         // 恢复 media_kit 初始化时使用的普通媒体缓存默认值。
         await nativePlayer.setProperty('cache-on-disk', 'yes');
         await nativePlayer.setProperty('cache-secs', '3600000');
+        await nativePlayer.setProperty('demuxer-max-bytes', '33554432');
+        await nativePlayer.setProperty('demuxer-max-back-bytes', '33554432');
         _proxiedProfileApplied = false;
       }
       if (debugCaptureProxyActive) {

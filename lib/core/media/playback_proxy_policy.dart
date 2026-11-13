@@ -6,52 +6,65 @@ import 'package:sakuramedia/core/media/playback_user_agent.dart';
 ///
 /// Being able to proxy every source does not mean every source should be
 /// proxied. Providers opt in only when their playback endpoint needs the
-/// proxy's concurrency, caching, or header behavior.
+/// proxy's concurrency or header behavior.
 class PlaybackProxyPolicy {
   const PlaybackProxyPolicy({
     required this.providerKey,
     required this.enabled,
     this.maxConcurrentUpstreamRequests = 1,
-    this.maxCacheBytes = 512 * 1024 * 1024,
-    this.maxEntryBytes = 256 * 1024 * 1024,
-    this.chunkSize = 1024 * 1024,
+    this.upstreamWindowBytes = 32 * 1024 * 1024,
+    this.upstreamTimeout = const Duration(seconds: 30),
+    this.downstreamFlushTimeout = const Duration(minutes: 5),
+    this.retryDelay = const Duration(milliseconds: 400),
+    this.maxAttempts = 3,
     this.cooldown = const Duration(milliseconds: 20),
+    this.keepAlive = true,
+    this.idleConnectionTimeout = const Duration(seconds: 1),
     this.defaultUpstreamHeaders = const <String, String>{},
     this.volatileQueryKeys = const <String>{},
   }) : assert(maxConcurrentUpstreamRequests > 0),
-       assert(maxCacheBytes > 0),
-       assert(maxEntryBytes > 0),
-       assert(maxEntryBytes <= maxCacheBytes),
-       assert(chunkSize > 0),
-       assert(maxCacheBytes >= chunkSize);
+       assert(upstreamWindowBytes > 0),
+       assert(maxAttempts > 0);
 
   const PlaybackProxyPolicy.disabled(this.providerKey)
     : enabled = false,
       maxConcurrentUpstreamRequests = 1,
-      maxCacheBytes = 0,
-      maxEntryBytes = 0,
-      chunkSize = 1,
+      upstreamWindowBytes = 1,
+      upstreamTimeout = const Duration(seconds: 30),
+      downstreamFlushTimeout = const Duration(minutes: 5),
+      retryDelay = Duration.zero,
+      maxAttempts = 1,
       cooldown = Duration.zero,
+      keepAlive = false,
+      idleConnectionTimeout = Duration.zero,
       defaultUpstreamHeaders = const <String, String>{},
       volatileQueryKeys = const <String>{};
 
   final String providerKey;
   final bool enabled;
   final int maxConcurrentUpstreamRequests;
-  final int maxCacheBytes;
-  final int maxEntryBytes;
-  final int chunkSize;
+  final int upstreamWindowBytes;
+  final Duration upstreamTimeout;
+  final Duration downstreamFlushTimeout;
+  final Duration retryDelay;
+  final int maxAttempts;
   final Duration cooldown;
+  final bool keepAlive;
+  final Duration idleConnectionTimeout;
   final Map<String, String> defaultUpstreamHeaders;
   final Set<String> volatileQueryKeys;
 
   PlaybackProxyPolicy copyWith({
     bool? enabled,
     int? maxConcurrentUpstreamRequests,
-    int? maxCacheBytes,
-    int? maxEntryBytes,
-    int? chunkSize,
+    int? upstreamWindowBytes,
+    Duration? upstreamTimeout,
+    Duration? downstreamFlushTimeout,
+    Duration? retryDelay,
+    int? maxAttempts,
     Duration? cooldown,
+    bool? keepAlive,
+    Duration? idleConnectionTimeout,
     Map<String, String>? defaultUpstreamHeaders,
     Set<String>? volatileQueryKeys,
   }) => PlaybackProxyPolicy(
@@ -59,10 +72,15 @@ class PlaybackProxyPolicy {
     enabled: enabled ?? this.enabled,
     maxConcurrentUpstreamRequests:
         maxConcurrentUpstreamRequests ?? this.maxConcurrentUpstreamRequests,
-    maxCacheBytes: maxCacheBytes ?? this.maxCacheBytes,
-    maxEntryBytes: maxEntryBytes ?? this.maxEntryBytes,
-    chunkSize: chunkSize ?? this.chunkSize,
+    upstreamWindowBytes: upstreamWindowBytes ?? this.upstreamWindowBytes,
+    upstreamTimeout: upstreamTimeout ?? this.upstreamTimeout,
+    downstreamFlushTimeout:
+        downstreamFlushTimeout ?? this.downstreamFlushTimeout,
+    retryDelay: retryDelay ?? this.retryDelay,
+    maxAttempts: maxAttempts ?? this.maxAttempts,
     cooldown: cooldown ?? this.cooldown,
+    keepAlive: keepAlive ?? this.keepAlive,
+    idleConnectionTimeout: idleConnectionTimeout ?? this.idleConnectionTimeout,
     defaultUpstreamHeaders:
         defaultUpstreamHeaders ?? this.defaultUpstreamHeaders,
     volatileQueryKeys: volatileQueryKeys ?? this.volatileQueryKeys,

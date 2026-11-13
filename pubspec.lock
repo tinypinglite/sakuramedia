@@ -1418,14 +1418,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.2"
-  streaming_video_cache:
-    dependency: "direct main"
-    description:
-      name: streaming_video_cache
-      sha256: ef5071f8bc426ee0a2d866d14dead3a7d9813960398d1e5606ccd351c6c44e2a
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.20260615.1070036"
   string_scanner:
     dependency: transitive
     description:

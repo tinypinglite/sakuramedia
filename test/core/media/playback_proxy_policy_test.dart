@@ -5,11 +5,14 @@ import 'package:sakuramedia/core/media/playback_source.dart';
 import 'package:sakuramedia/core/media/playback_user_agent.dart';
 
 void main() {
-  test('cloud115 opts in with one upstream slot and its default headers', () {
+  test('cloud115 opts in with one streaming window and default headers', () {
     final policy = playbackProxyPolicyForProvider(cloud115PlaybackProviderKey);
 
     expect(policy.enabled, isTrue);
     expect(policy.maxConcurrentUpstreamRequests, 1);
+    expect(policy.upstreamWindowBytes, 32 * 1024 * 1024);
+    expect(policy.keepAlive, isTrue);
+    expect(policy.idleConnectionTimeout, const Duration(seconds: 1));
     expect(policy.defaultUpstreamHeaders['Referer'], 'https://115.com/');
   });
 
