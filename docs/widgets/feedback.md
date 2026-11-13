@@ -49,6 +49,8 @@
 
 骨架只描述布局轮廓：占位数据是 `BoneMock` 文案而非真实业务数据；首屏骨架必须与数据到位后的布局同形，避免列表整片跳变。
 
+弹层 / 抽屉的首次异步加载必须显式区分“首次请求未完成”和“已加载出空结果”：`AsyncValue` 走 `loading` 分支；自写状态用 `hasLoaded` / `hasLoadedOnce` 或初始 `isLoading = true`，首帧直接渲染骨架，不能先落入空态再切骨架。
+
 ## 胶囊和徽章
 
 - `AppPill`：`lib/widgets/base/layout/cards/app_pill.dart`，纯展示的胶囊/徽章容器。统一 tone（neutral / muted / primary / info / warning / error / success / selected）、尺寸（compact / regular / prominent）、圆角、内边距和文字层级；业务侧不要再写 `Container + BoxDecoration + Border.all`。需要多段文字或图标时用 `AppPill.custom`。

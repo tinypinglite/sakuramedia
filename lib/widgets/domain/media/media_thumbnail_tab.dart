@@ -65,7 +65,7 @@ class MediaThumbnailTab extends ConsumerWidget {
       gridGap: context.appSpacing.md,
       keyPrefix: keyPrefix,
       thumbnails: thumbnails,
-      isLoading: state.isLoading,
+      isLoading: state.shouldShowInitialSkeleton,
       errorMessage: state.errorMessage,
       columns: state.columns,
       usesAutoColumns: state.usesAutoColumns,

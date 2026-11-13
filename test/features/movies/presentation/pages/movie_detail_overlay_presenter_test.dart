@@ -215,6 +215,88 @@ void main() {
     await tester.pumpAndSettle();
     await inspectorFuture;
   });
+
+  testWidgets('desktop review inspector paints skeletons on the first frame', (
+    tester,
+  ) async {
+    await _pumpHost(
+      tester,
+      bundle,
+      size: const Size(1100, 760),
+      theme: buildSakuraDesktopThemeData(),
+      platform: TargetPlatform.macOS,
+      appPlatform: AppPlatform.desktop,
+    );
+    final context = tester.element(find.byType(Scaffold));
+    const presenter = MovieDetailOverlayPresenter(mobile: false);
+
+    final inspectorFuture = presenter.openInspector(
+      context: context,
+      movie: movie,
+      selectedMedia: media,
+      pane: MovieDetailInspectorPane.review,
+      onSearchSimilar: (_, _, _) async {},
+      onPlay: (_) {},
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('movie-detail-inspector-dialog')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movie-detail-review-skeleton-0')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('movie-detail-review-list')), findsNothing);
+
+    final inspector = find.byKey(const Key('movie-detail-inspector-dialog'));
+    Navigator.of(tester.element(inspector)).pop();
+    await tester.pumpAndSettle();
+    await inspectorFuture;
+  });
+
+  testWidgets('mobile review inspector paints skeletons on the first frame', (
+    tester,
+  ) async {
+    await _pumpHost(
+      tester,
+      bundle,
+      size: const Size(390, 844),
+      theme: buildSakuraMobileThemeData(),
+      platform: TargetPlatform.android,
+      appPlatform: AppPlatform.mobile,
+    );
+    final context = tester.element(find.byType(Scaffold));
+    const presenter = MovieDetailOverlayPresenter(mobile: true);
+
+    final inspectorFuture = presenter.openInspector(
+      context: context,
+      movie: movie,
+      selectedMedia: media,
+      pane: MovieDetailInspectorPane.review,
+      onSearchSimilar: (_, _, _) async {},
+      onPlay: (_) {},
+    );
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('movie-detail-inspector-bottom-sheet')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('movie-detail-review-skeleton-0')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('movie-detail-review-list')), findsNothing);
+
+    final inspector = find.byKey(
+      const Key('movie-detail-inspector-bottom-sheet'),
+    );
+    Navigator.of(tester.element(inspector)).pop();
+    await tester.pumpAndSettle();
+    await inspectorFuture;
+  });
 }
 
 Future<void> _pumpHost(

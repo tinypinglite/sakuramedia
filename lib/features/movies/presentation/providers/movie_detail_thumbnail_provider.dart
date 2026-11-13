@@ -45,6 +45,9 @@ class MovieDetailThumbnailState {
 
   bool get usesAutoColumns => !hasManualColumnOverride;
 
+  /// 首次缩略图请求尚未完成时，空列表不是“暂无缩略图”，而是骨架。
+  bool get shouldShowInitialSkeleton => isLoading || !hasLoaded;
+
   MovieMediaThumbnailDto? get clipStartThumbnail =>
       _thumbnailAt(clipStartIndex);
   MovieMediaThumbnailDto? get clipEndThumbnail => _thumbnailAt(clipEndIndex);

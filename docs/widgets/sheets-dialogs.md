@@ -3,6 +3,7 @@
 ## 桌面对话框
 
 - `showAppDialog<T>`：`lib/widgets/base/overlays/app_dialog.dart`，桌面弹窗统一入口。转场使用 `250ms` 整树淡出，内容和玻璃一起退场。不要使用玻璃层的入场动画能力做弹窗转场，否则退场会先抽掉内容、只留下短暂的空玻璃骨架。业务弹窗必须走这个入口，不再直接调用 `showDialog`。
+  异步内容的首帧必须直接进入骨架 / loading；不要把 provider 初始态设为“未加载且非 loading”，否则会先闪空态，下一帧才切骨架。
 - 资源导入弹窗在桌面端于打开时确定高度：媒体库和目录列表异步加载时，玻璃面不会在入场动画中改变尺寸；移动端仍由底部抽屉的固定高度承载。
 - `AppDesktopDialog`：`lib/widgets/base/overlays/app_desktop_dialog.dart`，统一桌面弹窗宽度、标题区、内容区和动作区。默认整块使用全站统一的液态玻璃，正文直接铺在玻璃上，输入框和按钮各自负责局部可读性；显式传 `backgroundColor` 或 `shape` 时保留实色弹窗，供图片预览等特殊内容使用。
 - `showAppAdaptiveModal<T>`：`app_adaptive_modal.dart`，需要按平台选择弹层形态时使用；`dialogKey` / `drawerKey` 可分别指定两端测试锚点，`builder` 会被 `AppAdaptiveModalShellScope` 包住，body 可用 `maybeIsDrawer(context)` 感知壳体。

@@ -18,6 +18,7 @@ class MovieDetailReviewState {
     this.sort = MovieReviewSort.hotly,
     this.items = const <MovieReviewDto>[],
     this.isInitialLoading = false,
+    this.hasLoaded = false,
     this.isLoadingMore = false,
     this.hasNextPage = true,
     this.loadedPage = 0,
@@ -31,12 +32,19 @@ class MovieDetailReviewState {
   final MovieReviewSort sort;
   final List<MovieReviewDto> items;
   final bool isInitialLoading;
+  final bool hasLoaded;
   final bool isLoadingMore;
   final bool hasNextPage;
   final int loadedPage;
   final String? initialErrorMessage;
   final String? loadMoreErrorMessage;
   final FilterUpdateState filterUpdate;
+
+  /// 首次请求尚未完成（或失败后重试中）时，空列表不是“暂无评论”，而是骨架。
+  bool get shouldShowInitialSkeleton =>
+      items.isEmpty &&
+      initialErrorMessage == null &&
+      (isInitialLoading || !hasLoaded);
 
   /// 当前是否允许自动请求下一页；失败后只保留页脚重试。
   bool get canAutoLoadMore =>
@@ -52,6 +60,7 @@ class MovieDetailReviewState {
     MovieReviewSort? sort,
     List<MovieReviewDto>? items,
     bool? isInitialLoading,
+    bool? hasLoaded,
     bool? isLoadingMore,
     bool? hasNextPage,
     int? loadedPage,
@@ -63,6 +72,7 @@ class MovieDetailReviewState {
       sort: sort ?? this.sort,
       items: items ?? this.items,
       isInitialLoading: isInitialLoading ?? this.isInitialLoading,
+      hasLoaded: hasLoaded ?? this.hasLoaded,
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       hasNextPage: hasNextPage ?? this.hasNextPage,
       loadedPage: loadedPage ?? this.loadedPage,
@@ -149,7 +159,7 @@ class MovieDetailReview extends _$MovieDetailReview {
       );
     } finally {
       if (!_isDisposed && generation == _contentGeneration) {
-        state = state.copyWith(isInitialLoading: false);
+        state = state.copyWith(isInitialLoading: false, hasLoaded: true);
       }
     }
   }
@@ -197,6 +207,7 @@ class MovieDetailReview extends _$MovieDetailReview {
       }
       state = state.copyWith(
         items: reviews,
+        hasLoaded: true,
         isInitialLoading: false,
         loadedPage: 1,
         hasNextPage: reviews.length >= _pageSize,
@@ -207,6 +218,7 @@ class MovieDetailReview extends _$MovieDetailReview {
     } catch (error) {
       if (_isDisposed || !_filterRequests.isCurrent(requestId)) return;
       state = state.copyWith(
+        hasLoaded: true,
         isInitialLoading: false,
         filterUpdate: FilterUpdateState.failed(
           ref.apiErrorMessage(

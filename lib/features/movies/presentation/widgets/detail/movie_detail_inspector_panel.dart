@@ -419,7 +419,7 @@ class _MovieDetailReviewTabState extends ConsumerState<_MovieDetailReviewTab> {
       return const SizedBox.shrink();
     }
 
-    if (state.isInitialLoading && state.items.isEmpty) {
+    if (state.shouldShowInitialSkeleton) {
       return const _MovieDetailReviewLoadingList();
     }
 
