@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_orientation_lock.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_back_button.dart';
 
 class _MoviePlayerOverlayIconButton extends StatelessWidget {
@@ -66,6 +69,37 @@ class MoviePlayerInfoButton extends StatelessWidget {
       icon: Icons.info_outline_rounded,
       onPressed: onPressed,
       tooltip: AppLocalizations.of(context).widgetMoviePlayerInfoTooltip,
+    );
+  }
+}
+
+/// 移动端播放页的方向锁开关：锁定横屏 ↔ 跟随系统方向。
+///
+/// 锁定状态由页面持有的 [PlayerOrientationLock] 提供，按钮只负责展示和切换。
+/// 锁定时允许两个横屏方向（翻转 180° 仍跟随），解锁后横竖屏都可用。
+class MoviePlayerOrientationLockButton extends StatelessWidget {
+  const MoviePlayerOrientationLockButton({super.key, required this.lock});
+
+  final PlayerOrientationLock lock;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return ListenableBuilder(
+      listenable: lock,
+      builder: (context, _) {
+        final isLocked = lock.isLocked;
+        return _MoviePlayerOverlayIconButton(
+          buttonKey: const Key('movie-player-orientation-lock-button'),
+          icon: isLocked
+              ? Icons.screen_lock_rotation_rounded
+              : Icons.screen_rotation_rounded,
+          tooltip: isLocked
+              ? l10n.widgetMoviePlayerUnlockOrientation
+              : l10n.widgetMoviePlayerLockOrientation,
+          onPressed: () => unawaited(lock.toggle()),
+        );
+      },
     );
   }
 }

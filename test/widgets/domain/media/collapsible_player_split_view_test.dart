@@ -43,4 +43,71 @@ void main() {
     expect(find.byKey(const Key('right-panel')), findsOneWidget);
     expect(controller.areas[1].flex, greaterThan(0));
   });
+
+  testWidgets('横屏转竖屏自动收起面板，开关仍可手动展开', (tester) async {
+    final controller = MultiSplitViewController(
+      areas: <Area>[Area(flex: 0.72), Area(flex: 0.28)],
+    );
+    addTearDown(controller.dispose);
+
+    await pumpWithProviders(
+      tester,
+      theme: buildSakuraMobileThemeData(),
+      physicalSize: const Size(844, 390),
+      home: CollapsiblePlayerSplitView(
+        controller: controller,
+        collapsible: true,
+        collapseWhenPortrait: true,
+        handleKey: const Key('panel-handle'),
+        leftBuilder: (context) => const SizedBox.expand(key: Key('left-panel')),
+        rightBuilder: (context) =>
+            const SizedBox.expand(key: Key('right-panel')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('right-panel')), findsOneWidget);
+    expect(controller.areas[1].flex, closeTo(0.28, 0.001));
+
+    tester.view.physicalSize = const Size(390, 844);
+    await tester.pumpAndSettle();
+
+    expect(controller.areas[1].flex, closeTo(0, 0.0001));
+    expect(find.byKey(const Key('right-panel')), findsNothing);
+    expect(find.byKey(const Key('panel-handle')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('panel-handle')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('right-panel')), findsOneWidget);
+    expect(controller.areas[1].flex, greaterThan(0));
+  });
+
+  testWidgets('未开启 collapseWhenPortrait 时竖屏不收起面板', (tester) async {
+    final controller = MultiSplitViewController(
+      areas: <Area>[Area(flex: 0.72), Area(flex: 0.28)],
+    );
+    addTearDown(controller.dispose);
+
+    await pumpWithProviders(
+      tester,
+      theme: buildSakuraMobileThemeData(),
+      physicalSize: const Size(844, 390),
+      home: CollapsiblePlayerSplitView(
+        controller: controller,
+        collapsible: true,
+        handleKey: const Key('panel-handle'),
+        leftBuilder: (context) => const SizedBox.expand(key: Key('left-panel')),
+        rightBuilder: (context) =>
+            const SizedBox.expand(key: Key('right-panel')),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    tester.view.physicalSize = const Size(390, 844);
+    await tester.pumpAndSettle();
+
+    expect(controller.areas[1].flex, closeTo(0.28, 0.001));
+    expect(find.byKey(const Key('right-panel')), findsOneWidget);
+  });
 }

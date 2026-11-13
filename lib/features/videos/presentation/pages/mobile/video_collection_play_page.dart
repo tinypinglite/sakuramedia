@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/videos/presentation/pages/shared/video_collection_play_content.dart';
 import 'package:sakuramedia/routes/app_route_paths.dart';
@@ -27,27 +25,19 @@ class MobileVideoCollectionPlayPage extends StatefulWidget {
 }
 
 class _MobileVideoCollectionPlayPageState
-    extends State<MobileVideoCollectionPlayPage> {
-  @override
-  void initState() {
-    super.initState();
-    unawaited(enterLandscapePlayerSystemUi());
-  }
-
-  @override
-  void dispose() {
-    unawaited(restoreSystemUiAfterLandscapePlayer());
-    super.dispose();
-  }
-
+    extends State<MobileVideoCollectionPlayPage>
+    with PlayerOrientationLockStateMixin<MobileVideoCollectionPlayPage> {
   @override
   Widget build(BuildContext context) {
-    return VideoCollectionPlayContent(
-      collectionId: widget.collectionId,
-      startIndex: widget.startIndex,
-      sort: widget.sort,
-      imageSearchRoutePath: mobileImageSearchPath,
-      useTouchOptimizedControls: true,
+    return wrapWithPlayerImmersiveOverlay(
+      VideoCollectionPlayContent(
+        collectionId: widget.collectionId,
+        startIndex: widget.startIndex,
+        sort: widget.sort,
+        imageSearchRoutePath: mobileImageSearchPath,
+        useTouchOptimizedControls: true,
+        orientationLock: orientationLock,
+      ),
     );
   }
 }

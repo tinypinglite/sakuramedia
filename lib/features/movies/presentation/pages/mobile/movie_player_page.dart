@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_player_content.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_merged_play_content.dart';
@@ -30,45 +28,45 @@ class MobileMoviePlayerPage extends StatefulWidget {
   State<MobileMoviePlayerPage> createState() => _MobileMoviePlayerPageState();
 }
 
-class _MobileMoviePlayerPageState extends State<MobileMoviePlayerPage> {
+class _MobileMoviePlayerPageState extends State<MobileMoviePlayerPage>
+    with PlayerOrientationLockStateMixin<MobileMoviePlayerPage> {
   @override
   void initState() {
     super.initState();
     debugPrint(
       '[player-debug] mobile_player_page_init movie=${widget.movieNumber} initialMediaId=${widget.initialMediaId} initialPositionSeconds=${widget.initialPositionSeconds}',
     );
-    unawaited(enterLandscapePlayerSystemUi());
-  }
-
-  @override
-  void dispose() {
-    unawaited(restoreSystemUiAfterLandscapePlayer());
-    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     if (widget.mergedLibraryId != null) {
-      return MovieMergedPlayContent(
+      return wrapWithPlayerImmersiveOverlay(
+        MovieMergedPlayContent(
+          movieNumber: widget.movieNumber,
+          libraryId: widget.mergedLibraryId!,
+          fallbackPath: MobileRoutes.movieDetail(
+            movieNumber: widget.movieNumber,
+          ).location,
+          useTouchOptimizedControls: true,
+          imageSearchRoutePath: mobileImageSearchPath,
+          orientationLock: orientationLock,
+        ),
+      );
+    }
+    return wrapWithPlayerImmersiveOverlay(
+      MoviePlayerContent(
         movieNumber: widget.movieNumber,
-        libraryId: widget.mergedLibraryId!,
+        initialMediaId: widget.initialMediaId,
+        initialPositionSeconds: widget.initialPositionSeconds,
         fallbackPath: MobileRoutes.movieDetail(
           movieNumber: widget.movieNumber,
         ).location,
-        useTouchOptimizedControls: true,
         imageSearchRoutePath: mobileImageSearchPath,
-      );
-    }
-    return MoviePlayerContent(
-      movieNumber: widget.movieNumber,
-      initialMediaId: widget.initialMediaId,
-      initialPositionSeconds: widget.initialPositionSeconds,
-      fallbackPath: MobileRoutes.movieDetail(
-        movieNumber: widget.movieNumber,
-      ).location,
-      imageSearchRoutePath: mobileImageSearchPath,
-      useTouchOptimizedControls: true,
-      dividerHandleBuffer: _mobilePlayerDividerHandleBuffer,
+        useTouchOptimizedControls: true,
+        dividerHandleBuffer: _mobilePlayerDividerHandleBuffer,
+        orientationLock: orientationLock,
+      ),
     );
   }
 }

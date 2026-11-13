@@ -1,7 +1,9 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_orientation_lock.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_controls_theme.dart';
 import 'package:sakuramedia/widgets/domain/media/collapsible_player_split_view.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_controls.dart';
@@ -161,6 +163,81 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('方向锁按钮切换图标并应用锁定/解锁方向', (tester) async {
+    final systemCalls = <MethodCall>[];
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      systemCalls.add(call);
+      return null;
+    });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+
+    final lock = PlayerOrientationLock();
+    addTearDown(lock.dispose);
+
+    await pumpWithProviders(
+      tester,
+      theme: buildSakuraMobileThemeData(),
+      home: Scaffold(
+        body: Center(
+          child: SizedBox(
+            width: 360,
+            height: 56,
+            child: Row(
+              children: buildMoviePlayerTopControls(
+                movieNumber: 'EBWH-356',
+                onBackPressed: () {},
+                compact: true,
+                orientationLock: lock,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(lock.isLocked, isTrue);
+    expect(find.byIcon(Icons.screen_lock_rotation_rounded), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const Key('movie-player-orientation-lock-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(lock.isLocked, isFalse);
+    expect(find.byIcon(Icons.screen_rotation_rounded), findsOneWidget);
+    expect(
+      systemCalls
+          .singleWhere(
+            (call) => call.method == 'SystemChrome.setPreferredOrientations',
+          )
+          .arguments,
+      isEmpty,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('movie-player-orientation-lock-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(lock.isLocked, isTrue);
+    expect(
+      systemCalls
+          .lastWhere(
+            (call) => call.method == 'SystemChrome.setPreferredOrientations',
+          )
+          .arguments,
+      <String>[
+        'DeviceOrientation.landscapeLeft',
+        'DeviceOrientation.landscapeRight',
+      ],
+    );
   });
 }
 

@@ -592,7 +592,7 @@ class MoviePlayerPlaybackInfoPanel extends StatelessWidget {
                 context,
                 size: AppTextSize.s18,
                 weight: AppTextWeight.semibold,
-                tone: AppTextTone.onMedia,
+                tone: AppTextTone.primary,
               ),
             ),
             SizedBox(height: context.appSpacing.md),
@@ -766,7 +766,7 @@ class _MoviePlayerPlaybackInfoSection extends StatelessWidget {
             style: resolveAppTextStyle(
               context,
               size: AppTextSize.s14,
-              tone: AppTextTone.onMedia,
+              tone: AppTextTone.primary,
             ),
           ),
           SizedBox(height: spacing.sm),
@@ -775,7 +775,7 @@ class _MoviePlayerPlaybackInfoSection extends StatelessWidget {
             if (i != rows.length - 1) SizedBox(height: spacing.xs),
           ],
           SizedBox(height: spacing.sm),
-          Divider(height: 1, color: Colors.white.withValues(alpha: 0.18)),
+          Divider(height: 1, color: context.appColors.borderSubtle),
           SizedBox(height: spacing.sm),
         ],
       ),
@@ -823,17 +823,11 @@ class _MoviePlayerPlaybackInfoRow extends StatelessWidget {
           width: _kLabelColumnWidth,
           child: Text(
             data.label,
-            style:
-                resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  tone: AppTextTone.onMedia,
-                ).copyWith(
-                  // 面板是深色玻璃底，label 用降透明度的白色保持次级层级。
-                  color: context.appTextPalette.onMedia.withValues(
-                    alpha: context.appOverlayTokens.mutedLabelAlpha,
-                  ),
-                ),
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              tone: AppTextTone.secondary,
+            ),
           ),
         ),
         SizedBox(width: context.appSpacing.sm),
@@ -844,7 +838,7 @@ class _MoviePlayerPlaybackInfoRow extends StatelessWidget {
             style: resolveAppTextStyle(
               context,
               size: AppTextSize.s12,
-              tone: AppTextTone.onMedia,
+              tone: AppTextTone.primary,
             ),
           ),
         ),
@@ -855,7 +849,8 @@ class _MoviePlayerPlaybackInfoRow extends StatelessWidget {
             size: AppIconButtonSize.mini,
             tooltip: AppLocalizations.of(context).commonCopy,
             onPressed: () => _handleCopy(context),
-            icon: const Icon(Icons.copy, color: Colors.white70),
+            iconColor: context.appTextPalette.secondary,
+            icon: const Icon(Icons.copy),
           ),
         ],
       ],

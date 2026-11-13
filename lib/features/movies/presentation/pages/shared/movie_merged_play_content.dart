@@ -24,6 +24,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 import 'package:sakuramedia/widgets/domain/media/media_thumbnail_action_support.dart';
 import 'package:sakuramedia/widgets/base/media/video/themed_video_player.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_app_fullscreen.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_orientation_lock.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_filmstrip_controller.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_play_split_layout.dart';
 import 'package:sakuramedia/widgets/domain/collections/playback/collection_playback_page_mixin.dart';
@@ -40,6 +41,7 @@ class MovieMergedPlayContent extends ConsumerStatefulWidget {
     required this.fallbackPath,
     this.useTouchOptimizedControls = false,
     this.imageSearchRoutePath = desktopImageSearchPath,
+    this.orientationLock,
   });
 
   final String movieNumber;
@@ -47,6 +49,9 @@ class MovieMergedPlayContent extends ConsumerStatefulWidget {
   final String fallbackPath;
   final bool useTouchOptimizedControls;
   final String imageSearchRoutePath;
+
+  /// 移动壳传入的方向锁状态；桌面壳不传，顶栏不显示锁定按钮。
+  final PlayerOrientationLock? orientationLock;
 
   @override
   ConsumerState<MovieMergedPlayContent> createState() =>
@@ -300,6 +305,7 @@ class _MovieMergedPlayContentState extends ConsumerState<MovieMergedPlayContent>
         keyPrefix: 'movie-merged',
         collapsible: true,
         panelAvailable: filmstrip != null,
+        collapseWhenPortrait: widget.useTouchOptimizedControls,
         left: PlayerAppFullscreenDoubleTap(
           enabled: !widget.useTouchOptimizedControls,
           child: ThemedVideoPlayer(
@@ -308,38 +314,42 @@ class _MovieMergedPlayContentState extends ConsumerState<MovieMergedPlayContent>
             useTouchOptimizedControls: widget.useTouchOptimizedControls,
             guardInitialSeek: true,
             disableNativeFullscreen: true,
-          playbackSessionKey: _medias[currentIndex].mediaId,
-          displaySeekBar: false,
-          topControls: [
-            ...buildMoviePlayerTopControls(
-              movieNumber: '',
-              onBackPressed: _handleBack,
-            ),
-            Expanded(
-              child: StreamBuilder<Playlist>(
-                stream: player!.stream.playlist,
-                builder: (context, snapshot) => Text(
-                  '${widget.movieNumber} · ${_medias[player!.state.playlist.index].fileName}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s14,
-                    tone: AppTextTone.onMedia,
+            orientationLock: widget.orientationLock,
+            reservePanelToggleSpace: true,
+            playbackSessionKey: _medias[currentIndex].mediaId,
+            displaySeekBar: false,
+            topControls: [
+              ...buildMoviePlayerTopControls(
+                movieNumber: '',
+                onBackPressed: _handleBack,
+              ),
+              Expanded(
+                child: StreamBuilder<Playlist>(
+                  stream: player!.stream.playlist,
+                  builder: (context, snapshot) => Text(
+                    '${widget.movieNumber} · ${_medias[player!.state.playlist.index].fileName}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s14,
+                      tone: AppTextTone.onMedia,
+                    ),
                   ),
                 ),
               ),
+              if (widget.orientationLock != null)
+                MoviePlayerOrientationLockButton(lock: widget.orientationLock!),
+            ],
+            bottomControls: buildCollectionPlayBottomControls(
+              useTouchOptimizedControls: widget.useTouchOptimizedControls,
+              onOpenEpisodes: _showEpisodes,
+              progressIndicator: MergedPositionIndicator(
+                player: player!,
+                episodeDurationsSeconds: episodeDurationsSeconds,
+                onSeekGlobalSeconds: seekToGlobalSeconds,
+              ),
             ),
-          ],
-          bottomControls: buildCollectionPlayBottomControls(
-            useTouchOptimizedControls: widget.useTouchOptimizedControls,
-            onOpenEpisodes: _showEpisodes,
-            progressIndicator: MergedPositionIndicator(
-              player: player!,
-              episodeDurationsSeconds: episodeDurationsSeconds,
-              onSeekGlobalSeconds: seekToGlobalSeconds,
-            ),
-          ),
           ),
         ),
         right: buildFilmstripPanel(

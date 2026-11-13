@@ -3,12 +3,13 @@ import 'package:material_ui/material_ui.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_app_fullscreen.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_orientation_lock.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_mobile_drawers.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_speed_button.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_subtitle_button.dart';
 
-/// 播放器窗口态顶栏：左「返回 + 番号」，右「视频信息」。
+/// 播放器窗口态顶栏：左「返回 + 番号」，右「视频信息」/方向锁。
 /// 也被切片/视频单播与合集连播页复用。
 List<Widget> buildMoviePlayerTopControls({
   required String movieNumber,
@@ -16,10 +17,12 @@ List<Widget> buildMoviePlayerTopControls({
   VoidCallback? onInfoPressed,
   bool compact = false,
   List<Widget> trailingControls = const <Widget>[],
+  PlayerOrientationLock? orientationLock,
 }) {
   if (onBackPressed == null &&
       onInfoPressed == null &&
-      trailingControls.isEmpty) {
+      trailingControls.isEmpty &&
+      orientationLock == null) {
     return const <Widget>[];
   }
   final resolvedTrailing = <Widget>[];
@@ -27,6 +30,11 @@ List<Widget> buildMoviePlayerTopControls({
     resolvedTrailing.add(MoviePlayerInfoButton(onPressed: onInfoPressed));
   }
   resolvedTrailing.addAll(trailingControls);
+  if (orientationLock != null) {
+    resolvedTrailing.add(
+      MoviePlayerOrientationLockButton(lock: orientationLock),
+    );
+  }
 
   if (resolvedTrailing.isEmpty) {
     return <Widget>[

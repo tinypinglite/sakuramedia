@@ -48,6 +48,9 @@ class LoginPage extends ConsumerStatefulWidget {
 
 class _LoginPageState extends ConsumerState<LoginPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GlobalKey _compactFormContentKey = GlobalKey(
+    debugLabel: 'login-compact-form-content',
+  );
   final TextEditingController _baseUrlController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -442,6 +445,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }) {
     final spacing = context.appSpacing;
     final formContent = ConstrainedBox(
+      key: _compactFormContentKey,
       constraints: const BoxConstraints(maxWidth: 480),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -848,7 +852,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           size: context.appComponentTokens.iconSizeSm,
         ),
       ),
-      fillColor: _fieldFillColor(context),
       borderRadius: context.appRadius.mdBorder,
       height: _fieldHeight(context),
     );
@@ -870,7 +873,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         size: context.appComponentTokens.iconSizeSm,
         color: context.appTextPalette.muted,
       ),
-      fillColor: _fieldFillColor(context),
       borderRadius: context.appRadius.mdBorder,
       height: _fieldHeight(context),
     );
@@ -913,7 +915,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           size: context.appComponentTokens.iconSizeSm,
         ),
       ),
-      fillColor: _fieldFillColor(context),
       borderRadius: context.appRadius.mdBorder,
       height: _fieldHeight(context),
     );
@@ -1056,14 +1057,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           ),
         ),
       ],
-    );
-  }
-
-  Color _fieldFillColor(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
-    return context.appColors.surfaceElevated.withValues(
-      alpha: highContrast ? 0.96 : (dark ? 0.28 : 0.74),
     );
   }
 }

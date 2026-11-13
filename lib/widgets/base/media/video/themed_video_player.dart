@@ -5,6 +5,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/media/video/initial_seek_guard.dart';
 import 'package:sakuramedia/widgets/base/media/video/playback_resume_prompt.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_orientation_lock.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_screen_orientation.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_system_controls.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_controls_theme.dart';
@@ -44,6 +45,7 @@ class ThemedVideoPlayer extends StatefulWidget {
     this.playbackSessionKey,
     this.reservePanelToggleSpace = false,
     this.disableNativeFullscreen = false,
+    this.orientationLock,
   });
 
   final VideoController videoController;
@@ -94,6 +96,10 @@ class ThemedVideoPlayer extends StatefulWidget {
   /// （该路由只含 Video，会丢右侧面板），全屏改由应用内状态接管。
   /// 无面板场景保持 `false`，行为不变。
   final bool disableNativeFullscreen;
+
+  /// 移动播放页的方向锁状态；传值时全屏进出按当前锁定状态应用方向
+  /// （锁定 → 横屏，解锁 → 跟随系统），不传按锁定横屏处理。
+  final PlayerOrientationLock? orientationLock;
 
   @override
   State<ThemedVideoPlayer> createState() => _ThemedVideoPlayerState();
@@ -289,6 +295,12 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
     }());
   }
 
+  Future<void> _applyOrientationLock() {
+    return applyPlayerOrientationLock(
+      locked: widget.orientationLock?.isLocked ?? true,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = appL10n(context);
@@ -353,13 +365,14 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
                   useTouchOptimizedControls: widget.useTouchOptimizedControls,
                   mobileControlsReady: _systemControlsReady,
                 ),
-                // 移动端全屏方向由播放页自己管：进入跟随系统传感器、退出恢复
-                // 页面横屏+沉浸；桌面保持 media_kit 默认（原生窗口全屏）。
+                // 移动端全屏方向跟随页面方向锁：锁定则保持横屏，解锁则跟随系统；
+                // 退出全屏同样按当前锁定状态恢复，避免解锁后被重新锁回横屏。
+                // 桌面保持 media_kit 默认（原生窗口全屏）。
                 onEnterFullscreen: widget.useTouchOptimizedControls
-                    ? enterPlayerFullscreenOrientation
+                    ? _applyOrientationLock
                     : defaultEnterNativeFullscreen,
                 onExitFullscreen: widget.useTouchOptimizedControls
-                    ? lockPlayerPageLandscape
+                    ? _applyOrientationLock
                     : defaultExitNativeFullscreen,
               ),
             ),

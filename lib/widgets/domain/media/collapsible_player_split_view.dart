@@ -28,6 +28,7 @@ class CollapsiblePlayerSplitView extends StatefulWidget {
     this.panelAvailable = true,
     this.handleKey,
     this.defaultPanelFlex = 0.28,
+    this.collapseWhenPortrait = false,
   });
 
   final MultiSplitViewController controller;
@@ -44,6 +45,11 @@ class CollapsiblePlayerSplitView extends StatefulWidget {
 
   /// 首次展开时使用的面板 flex，也是记忆宽度的兜底值。
   final double defaultPanelFlex;
+
+  /// 传 true：播放区进入竖屏时自动收起右侧面板。
+  ///
+  /// 右上角开关仍然保留，用户可在竖屏下手动重新展开；转回横屏不会自动展开。
+  final bool collapseWhenPortrait;
 
   @override
   State<CollapsiblePlayerSplitView> createState() =>
@@ -66,6 +72,10 @@ class _CollapsiblePlayerSplitViewState extends State<CollapsiblePlayerSplitView>
   double _animationEndFlex = 0;
   double _rememberedPanelFlex = 0.28;
   bool _expanded = true;
+
+  /// 上一次布局约束是否为竖屏；只在横→竖跳变时收起一次，避免用户手动展开后
+  /// 每次重建又被收起。
+  bool? _lastPortraitViewport;
 
   MultiSplitViewController get _controller => widget.controller;
   double get _panelFlex => _controller.areas[1].flex ?? 0;
@@ -92,6 +102,9 @@ class _CollapsiblePlayerSplitViewState extends State<CollapsiblePlayerSplitView>
     super.didUpdateWidget(oldWidget);
     if (!widget.panelAvailable && _expanded) {
       _animatePanelFlexTo(0);
+    }
+    if (!widget.collapseWhenPortrait) {
+      _lastPortraitViewport = null;
     }
   }
 
@@ -138,6 +151,39 @@ class _CollapsiblePlayerSplitViewState extends State<CollapsiblePlayerSplitView>
     _animationController.forward(from: 0);
   }
 
+  /// 屏幕旋转等外部请求不做滑出动画：旋转本身就是一次布局跳变，直接收口更稳，
+  /// 避免常显开关在动画中从中间滑过、短暂压住顶栏按钮。
+  void _collapseImmediately() {
+    if (!_expanded) {
+      return;
+    }
+    _animationController.stop();
+    _animationBeginFlex = 0;
+    _animationEndFlex = 0;
+    _controller.areas[1].flex = 0;
+  }
+
+  /// 横屏 → 竖屏时收起面板；竖屏下用户手动展开后不会被重复收起。
+  void _handleViewportConstraints(BoxConstraints constraints) {
+    if (!widget.collapseWhenPortrait) {
+      return;
+    }
+    final isPortrait = constraints.maxHeight > constraints.maxWidth;
+    final wasPortrait = _lastPortraitViewport;
+    _lastPortraitViewport = isPortrait;
+    // 只响应当前已经处于横屏后的竖屏跳变：页面首次构建时可能还没完成横屏锁定，
+    // 首帧的竖屏尺寸不能当成用户旋转，否则面板一进页面就被收起。
+    if (!isPortrait || wasPortrait != false) {
+      return;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.collapseWhenPortrait) {
+        return;
+      }
+      _collapseImmediately();
+    });
+  }
+
   void _togglePanel() {
     if (_animationController.isAnimating) {
       // 动画途中点击：反向动画。不读当前 flex 当记忆宽度，避免把中间值当成
@@ -180,6 +226,7 @@ class _CollapsiblePlayerSplitViewState extends State<CollapsiblePlayerSplitView>
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
+          _handleViewportConstraints(constraints);
           final available = math.max(constraints.maxWidth - spacing.xs, 0.0);
           return Stack(
             fit: StackFit.expand,

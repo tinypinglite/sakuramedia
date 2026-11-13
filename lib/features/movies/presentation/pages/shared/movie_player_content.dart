@@ -36,6 +36,7 @@ import 'package:sakuramedia/widgets/domain/media/media_thumbnail_action_support.
 import 'package:sakuramedia/widgets/base/media/video/player_app_fullscreen.dart';
 import 'package:sakuramedia/widgets/base/media/video/initial_seek_guard.dart';
 import 'package:sakuramedia/widgets/base/media/video/playback_resume_prompt.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_orientation_lock.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_screen_orientation.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_system_controls.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_viewport.dart';
@@ -64,6 +65,7 @@ class MoviePlayerContent extends ConsumerStatefulWidget {
     this.imageSearchRoutePath = desktopImageSearchPath,
     this.useTouchOptimizedControls = false,
     this.dividerHandleBuffer = 0,
+    this.orientationLock,
   });
 
   final String movieNumber;
@@ -73,6 +75,9 @@ class MoviePlayerContent extends ConsumerStatefulWidget {
   final String imageSearchRoutePath;
   final bool useTouchOptimizedControls;
   final double dividerHandleBuffer;
+
+  /// 移动壳传入的方向锁状态；桌面壳不传，顶栏不显示锁定按钮。
+  final PlayerOrientationLock? orientationLock;
 
   @override
   ConsumerState<MoviePlayerContent> createState() => _MoviePlayerContentState();
@@ -153,6 +158,7 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
             dividerHandleBuffer: widget.dividerHandleBuffer,
             collapsible: true,
             panelAvailable: playerState.selectedMedia != null,
+            collapseWhenPortrait: widget.useTouchOptimizedControls,
             leftChild: const MoviePlayerEmptyState(),
             rightChild: playerState.selectedMedia == null
                 ? const SizedBox.expand()
@@ -165,6 +171,7 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
           dividerHandleBuffer: widget.dividerHandleBuffer,
           collapsible: true,
           panelAvailable: playerState.selectedMedia != null,
+          collapseWhenPortrait: widget.useTouchOptimizedControls,
           leftChild: PlayerAppFullscreenDoubleTap(
             enabled: !widget.useTouchOptimizedControls,
             child: LayoutBuilder(
@@ -175,6 +182,9 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
                   primaryResolvedUrl,
                   isPortrait: isPortrait,
                   compactTopControls: shouldUseCompactPlayerControls(
+                    constraints: constraints,
+                  ),
+                  compactBottomControls: shouldUseCompactPlayerControls(
                     constraints: constraints,
                   ),
                 );
@@ -227,6 +237,7 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
     String resolvedUrl, {
     required bool isPortrait,
     required bool compactTopControls,
+    required bool compactBottomControls,
   }) {
     return MoviePlayerSurface(
       movieNumber: widget.movieNumber,
@@ -243,8 +254,10 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
       onBackPressed: _handleBack,
       isPortraitOverride: isPortrait,
       compactTopControlsOverride: compactTopControls,
+      compactBottomControlsOverride: compactBottomControls,
       useTouchOptimizedControls: widget.useTouchOptimizedControls,
       disableNativeFullscreen: true,
+      orientationLock: widget.orientationLock,
       mediaInfo: _buildMediaInfo(),
       thumbnails: _playerState.thumbnails,
     );
@@ -636,10 +649,12 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
     this.onBackPressed,
     this.isPortraitOverride,
     this.compactTopControlsOverride,
+    this.compactBottomControlsOverride,
     this.useTouchOptimizedControls = false,
     this.mediaInfo,
     this.thumbnails = const <MovieMediaThumbnailDto>[],
     this.disableNativeFullscreen = false,
+    this.orientationLock,
   });
 
   final String movieNumber;
@@ -670,6 +685,11 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
   /// 顶栏是否使用紧凑布局；为空时回退到 [MediaQuery]。
   final bool? compactTopControlsOverride;
 
+  /// 底栏是否使用紧凑布局；为空时按 [isPortraitOverride] / [MediaQuery] 判断。
+  /// 面板展开或窗口很窄时，竖屏判定可能仍不足以及时收窄底栏，由宿主按实际
+  /// 播放区宽度显式传入。
+  final bool? compactBottomControlsOverride;
+
   final bool useTouchOptimizedControls;
   final MoviePlayerMediaInfo? mediaInfo;
 
@@ -679,6 +699,10 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
 
   /// 右侧时间轴面板同一份缩略图，供桌面进度条 hover 预览使用。
   final List<MovieMediaThumbnailDto> thumbnails;
+
+  /// 移动端方向锁状态；顶栏据此显示锁定/跟随切换按钮，全屏进出按当前状态
+  /// 应用方向。桌面端不传。
+  final PlayerOrientationLock? orientationLock;
 
   @override
   ConsumerState<MoviePlayerSurface> createState() => _MoviePlayerSurfaceState();
@@ -1169,12 +1193,20 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     _openInfoSide();
   }
 
+  Future<void> _applyOrientationLock() {
+    return applyPlayerOrientationLock(
+      locked: widget.orientationLock?.isLocked ?? true,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isPortrait =
         widget.isPortraitOverride ??
         (MediaQuery.orientationOf(context) == Orientation.portrait);
+    final compactBottomControls =
+        widget.compactBottomControlsOverride ?? isPortrait;
     final compactTopControls =
         widget.compactTopControlsOverride ??
         (isPortrait || MediaQuery.sizeOf(context).width < 720);
@@ -1183,6 +1215,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       onBackPressed: widget.onBackPressed,
       onInfoPressed: _toggleInfoSideDrawer,
       compact: compactTopControls,
+      orientationLock: widget.orientationLock,
     );
     // 全屏路由内拿不到页面级浮层（信息侧栏 / 倍速 / 字幕抽屉都挂在页面 Stack 上），
     // 这些按钮在全屏里点了没反应，全屏态直接去掉。
@@ -1190,6 +1223,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       movieNumber: widget.movieNumber,
       onBackPressed: widget.onBackPressed,
       compact: compactTopControls,
+      orientationLock: widget.orientationLock,
     );
     final mobileBottomControls = buildMoviePlayerMobileBottomControls(
       activeDrawer: _activeDrawer,
@@ -1198,7 +1232,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
           _toggleMobileDrawer(MoviePlayerMobileDrawerType.speed),
       onSubtitleButtonPressed: () =>
           _toggleMobileDrawer(MoviePlayerMobileDrawerType.subtitle),
-      compact: isPortrait,
+      compact: compactBottomControls,
     );
     final mobileFullscreenBottomControls = buildMoviePlayerMobileBottomControls(
       activeDrawer: _activeDrawer,
@@ -1208,7 +1242,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       onSubtitleButtonPressed: () =>
           _toggleMobileDrawer(MoviePlayerMobileDrawerType.subtitle),
       includeDrawerButtons: false,
-      compact: isPortrait,
+      compact: compactBottomControls,
     );
     final desktopBottomControls = buildMoviePlayerDesktopBottomControls(
       currentRate: _playbackRate.currentRate,
@@ -1235,15 +1269,15 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
           await _player.play();
         }
         if (widget.useTouchOptimizedControls) {
-          await enterPlayerFullscreenOrientation();
+          await _applyOrientationLock();
         } else {
           await defaultEnterNativeFullscreen();
         }
       },
-      // 移动端退出全屏恢复页面横屏+沉浸，避免 media_kit 默认回调
-      // （清方向锁 + 恢复系统栏）把播放页的分栏方向与沉浸态一起拆掉。
+      // 移动端退出全屏按当前方向锁状态恢复，避免解锁后被 media_kit 默认回调
+      // （清方向锁 + 恢复系统栏）或旧的横屏锁把方向改回去。
       onExitFullscreen: widget.useTouchOptimizedControls
-          ? lockPlayerPageLandscape
+          ? _applyOrientationLock
           : defaultExitNativeFullscreen,
     );
     final playerContent = Stack(

@@ -5256,6 +5256,8 @@
   "widgetTagNoMatch": "No matching tags found",
   "widgetTagEmpty": "No tags yet",
   "widgetMoviePlayerInfoTooltip": "Playback info",
+  "widgetMoviePlayerLockOrientation": "Lock landscape",
+  "widgetMoviePlayerUnlockOrientation": "Follow device orientation",
   "widgetMoviePlayerPlaybackUnavailable": "This media cannot be played right now.",
   "widgetMoviePlayerPlaybackFailed": "Playback failed",
   "widgetMoviePlayerNoSubtitle": "No subtitles available",

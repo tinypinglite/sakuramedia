@@ -241,7 +241,6 @@ class AppGlassTextFieldBackend extends StatelessWidget {
     this.iconSpacing = 8,
     this.height,
     this.borderRadius = 12,
-    this.fillColor,
     this.highContrast = false,
     this.enabled = true,
     this.tone = AppGlassTone.standard,
@@ -268,7 +267,6 @@ class AppGlassTextFieldBackend extends StatelessWidget {
   final double iconSpacing;
   final double? height;
   final double borderRadius;
-  final Color? fillColor;
   final bool highContrast;
   final bool enabled;
   final AppGlassTone tone;
@@ -301,7 +299,6 @@ class AppGlassTextFieldBackend extends StatelessWidget {
         iconSpacing: iconSpacing,
         height: height,
         borderRadius: borderRadius,
-        fillColor: fillColor,
         enabled: enabled,
         role: AppGlassStyle.flatRoleFor(role),
       );
@@ -334,7 +331,6 @@ class AppGlassTextFieldBackend extends StatelessWidget {
       role: role,
       height: height,
       borderRadius: BorderRadius.circular(borderRadius),
-      tintOverride: fillColor,
       child: height == null
           ? body
           : SizedBox(

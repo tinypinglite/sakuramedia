@@ -146,9 +146,9 @@ abstract final class AppGlassStyle {
         quality: GlassQuality.premium,
       ),
       AppGlassRole.input => AppGlassRecipe(
-        tint: dark
-            ? whiteTint.withValues(alpha: 0.12)
-            : colors.surfaceMuted.withValues(alpha: 0.34),
+        // 输入框不染色：体色直接取背后的玻璃面，只靠 1px 边光和边缘吸收
+        // 区分，避免在浅色卡片上再叠出一块更白的底。
+        tint: Colors.transparent,
         thickness: 18,
         blur: 8,
         saturation: 1.45,
@@ -291,8 +291,9 @@ abstract final class AppGlassStyle {
         0.06,
       ),
       AppGlassRole.input => (
-        lightTint,
-        dark ? 0.40 : 0.34,
+        // 与玻璃路径一致：输入框降级时也不染色，只留边光和高光。
+        Colors.transparent,
+        0.0,
         dark ? 5.0 : 7.0,
         0.40,
         0.14,

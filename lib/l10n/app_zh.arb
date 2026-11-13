@@ -5409,6 +5409,8 @@
   "widgetTagNoMatch": "未找到匹配的标签",
   "widgetTagEmpty": "暂无标签",
   "widgetMoviePlayerInfoTooltip": "播放信息",
+  "widgetMoviePlayerLockOrientation": "锁定横屏",
+  "widgetMoviePlayerUnlockOrientation": "跟随系统方向",
   "widgetMoviePlayerPlaybackUnavailable": "暂时无法播放此媒体。",
   "widgetMoviePlayerPlaybackFailed": "播放失败",
   "widgetMoviePlayerNoSubtitle": "无可用字幕",

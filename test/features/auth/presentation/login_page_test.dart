@@ -230,6 +230,30 @@ void main() {
     },
   );
 
+  testWidgets('keyboard insets keep the focused login field connected', (
+    tester,
+  ) async {
+    await _pumpLogin(
+      tester,
+      platform: AppPlatform.mobile,
+      size: const Size(390, 844),
+      theme: buildSakuraMobileThemeData(),
+    );
+
+    final username = find.byKey(const Key('login-form-username'));
+    await tester.showKeyboard(username);
+    expect(tester.testTextInput.isVisible, isTrue);
+    expect(find.byKey(const Key('login-page-scroll')), findsNothing);
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 336);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byKey(const Key('login-page-scroll')), findsOneWidget);
+    expect(tester.testTextInput.isVisible, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('login failure stays on the page and shows an inline error', (
     tester,
   ) async {

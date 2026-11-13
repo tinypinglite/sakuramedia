@@ -39,7 +39,6 @@ class AppTextField extends StatefulWidget {
     this.minLines,
     this.isDense = true,
     this.contentPadding,
-    this.fillColor,
     this.borderRadius,
     this.style,
     this.height,
@@ -72,9 +71,6 @@ class AppTextField extends StatefulWidget {
 
   /// 覆盖默认内容内边距；用于塞进固定高度顶栏等紧凑场景。
   final EdgeInsetsGeometry? contentPadding;
-
-  /// 覆盖输入面填充色；为空时使用语义输入面的默认材质。
-  final Color? fillColor;
 
   /// 覆盖默认圆角；映射到液态玻璃形状。
   final BorderRadius? borderRadius;
@@ -232,7 +228,6 @@ class _AppTextFieldState extends State<AppTextField> {
               : context.appSpacing.sm,
           height: widget.height,
           borderRadius: resolvedRadius,
-          fillColor: widget.fillColor,
           highContrast: highContrast,
           enabled: widget.enabled,
           tone: widget.glassTone,

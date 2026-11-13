@@ -76,9 +76,9 @@ void main() {
       );
     });
 
-    test('media_kit 全屏进出只改方向，不重复切换系统栏', () async {
-      await enterPlayerFullscreenOrientation();
-      await lockPlayerPageLandscape();
+    test('方向锁切换只改方向，不重复切换系统栏', () async {
+      await applyPlayerOrientationLock(locked: false);
+      await applyPlayerOrientationLock(locked: true);
 
       expect(immersiveCalls, isEmpty);
       final orientationCalls = systemCalls
@@ -87,11 +87,7 @@ void main() {
           )
           .toList();
       expect(orientationCalls, hasLength(2));
-      expect(orientationCalls[0].arguments, <String>[
-        'DeviceOrientation.portraitUp',
-        'DeviceOrientation.landscapeLeft',
-        'DeviceOrientation.landscapeRight',
-      ]);
+      expect(orientationCalls[0].arguments, isEmpty);
       expect(orientationCalls[1].arguments, <String>[
         'DeviceOrientation.landscapeLeft',
         'DeviceOrientation.landscapeRight',

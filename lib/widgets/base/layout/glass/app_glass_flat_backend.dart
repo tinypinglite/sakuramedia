@@ -215,7 +215,6 @@ class AppGlassFlatTextFieldBackend extends StatelessWidget {
     this.iconSpacing = 8,
     this.height,
     this.borderRadius = 12,
-    this.fillColor,
     this.enabled = true,
     this.role = AppFlatSurfaceRole.input,
   });
@@ -241,7 +240,6 @@ class AppGlassFlatTextFieldBackend extends StatelessWidget {
   final double iconSpacing;
   final double? height;
   final double borderRadius;
-  final Color? fillColor;
   final bool enabled;
   final AppFlatSurfaceRole role;
 
@@ -339,15 +337,12 @@ class AppGlassFlatTextFieldBackend extends StatelessWidget {
             height: height,
             child: Center(child: field),
           );
-    final colored = fillColor == null
-        ? content
-        : ColoredBox(color: fillColor!, child: content);
 
     return AppGlassFlatSurface(
       height: height,
       borderRadius: BorderRadius.circular(borderRadius),
       role: role,
-      child: colored,
+      child: content,
     );
   }
 }

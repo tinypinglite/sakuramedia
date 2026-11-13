@@ -27,6 +27,7 @@ import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overl
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_controls.dart';
 import 'package:sakuramedia/widgets/base/media/video/themed_video_player.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_app_fullscreen.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_orientation_lock.dart';
 import 'package:sakuramedia/widgets/base/media/video/throttling_player.dart';
 
 /// 切片合集连播共享实现：media_kit 播放器（原生 Playlist 自动连播）占满画面，
@@ -37,6 +38,7 @@ class ClipCollectionPlayContent extends ConsumerStatefulWidget {
     required this.collectionId,
     this.startIndex = 0,
     this.useTouchOptimizedControls = false,
+    this.orientationLock,
   });
 
   final int collectionId;
@@ -44,6 +46,9 @@ class ClipCollectionPlayContent extends ConsumerStatefulWidget {
 
   /// 触摸优化控件开关：移动壳传 `true`（点击唤出控制条），桌面默认 `false`（hover 唤出）。
   final bool useTouchOptimizedControls;
+
+  /// 移动壳传入的方向锁状态；桌面壳不传，顶栏不显示锁定按钮。
+  final PlayerOrientationLock? orientationLock;
 
   @override
   ConsumerState<ClipCollectionPlayContent> createState() =>
@@ -250,6 +255,7 @@ class _ClipCollectionPlayContentState
       keyPrefix: 'clip-collection',
       collapsible: true,
       panelAvailable: filmstrip != null,
+      collapseWhenPortrait: widget.useTouchOptimizedControls,
       left: Stack(
         children: [
           Positioned.fill(
@@ -315,6 +321,7 @@ class _ClipCollectionPlayContentState
       displaySeekBar: false,
       disableNativeFullscreen: true,
       reservePanelToggleSpace: true,
+      orientationLock: widget.orientationLock,
       topControls: [
         ...buildMoviePlayerTopControls(
           movieNumber: _currentClipTitle(),
@@ -322,6 +329,7 @@ class _ClipCollectionPlayContentState
           trailingControls: <Widget>[
             MediaPlaybackInfoButton(player: videoController.player),
           ],
+          orientationLock: widget.orientationLock,
         ),
       ],
       bottomControls: buildCollectionPlayBottomControls(

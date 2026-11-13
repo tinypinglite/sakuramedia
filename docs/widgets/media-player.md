@@ -13,7 +13,7 @@
 - `PlayerAppFullscreenScope` / `PlayerAppFullscreenButton` / `PlayerAppFullscreenDoubleTap` / `PlayerAppFullscreenStateMixin`：`lib/widgets/base/media/video/player_app_fullscreen.dart`，桌面端在当前路由内切换布局 + 叠加系统窗口全屏，Esc 退出；移动端不渲染全屏按钮。
 - 播放页 `State` mix `PlayerAppFullscreenStateMixin`，用 scope 暴露状态，并在 `dispose` 首行调 `disposePlayerAppFullscreen()`；`ThemedVideoPlayer` / `MoviePlayerSurface` 传 `disableNativeFullscreen: true` 关掉 media_kit 的双击全屏，避免两套全屏打架。
 - 无 scope 时按钮回退 media_kit 原生全屏（快播弹窗等无面板场景行为不变）。
-- 移动端播放页进入时默认锁横屏并隐藏系统栏，底栏不提供应用内全屏按钮；移动影片页始终纯黑全出血，右侧缩略图面板默认展开。播放页不提供手动横竖屏切换；右侧缩略图面板仍可用右上角开关收起/展开。竖屏下控制条自动收窄：番号压缩，底栏隐藏音量与时间文本，避免小屏溢出。
+- 移动端播放页进入时默认锁横屏并隐藏系统栏，底栏不提供应用内全屏按钮；移动影片页始终纯黑全出血，右侧缩略图面板默认展开。顶栏右侧提供方向锁按钮：锁定时保持横屏（两个横屏方向都允许，翻转 180° 仍跟随传感器），解锁后跟随系统方向、横竖屏都可用；系统自动旋转开关关闭时解锁也不会自动转向。竖屏时右侧缩略图面板自动收起，右上角开关仍可手动展开。竖屏下控制条自动收窄：番号压缩，底栏隐藏音量与时间文本，避免小屏溢出。
 - 移动端控制层接入 `media_kit` 的左半屏拖动亮度、右半屏拖动媒体音量手势，使用其内置百分比浮层。亮度只改当前 App 并在播放面销毁时恢复，音量保持系统设置。
 - 窗口层那一半在 `lib/app/app_window_fullscreen.dart`：macOS / Windows 都走
   window_manager 的原生 `setFullScreen`（Windows 无边框由 runner 的
@@ -26,7 +26,7 @@
 
 - `MovieMediaThumbnailGrid`：媒体缩略图网格。
 - `MoviePlayerThumbnailPanel`：播放器旁的缩略图面板。
-- `CollapsiblePlayerSplitView`：播放器左右分栏共享壳。桌面与移动端的右侧面板默认展开，右上角常显纯图标开关（与顶栏同一行）可收起/再展开；双端顶栏会为开关和横竖屏按钮预留位置与间距，避免右上角操作互相覆盖。
+- `CollapsiblePlayerSplitView`：播放器左右分栏共享壳。桌面与移动端的右侧面板默认展开，右上角常显纯图标开关（与顶栏同一行）可收起/再展开；`collapseWhenPortrait` 为 true 时横屏转竖屏自动收起面板，开关仍保留可手动展开。双端顶栏会为开关预留位置与间距，避免右上角操作互相覆盖。
 
 两者位于 `lib/widgets/domain/media/`，缩略图请求和切片动作由调用方提供。
 
@@ -45,7 +45,7 @@
 
 ## 播放器控制
 
-`MoviePlayerBackOverlay`、`MoviePlayerInfoButton`、`MoviePlayerSpeedButton`、`MoviePlayerSubtitleButton` 和 `MoviePlayerMenuItemRow` 位于 `lib/widgets/domain/movies/player/`。移动端控制条需要保留触控唤起行为，桌面端可以使用 hover/鼠标行为；平台参数由页面壳传入。倍速/字幕菜单和移动端右侧抽屉统一使用 `AppSurface` 的全站唯一材质，不再维护独立的播放器玻璃组件。
+`MoviePlayerBackOverlay`、`MoviePlayerInfoButton`、`MoviePlayerOrientationLockButton`、`MoviePlayerSpeedButton`、`MoviePlayerSubtitleButton` 和 `MoviePlayerMenuItemRow` 位于 `lib/widgets/domain/movies/player/`。移动端控制条需要保留触控唤起行为，桌面端可以使用 hover/鼠标行为；平台参数由页面壳传入。方向锁状态由移动播放页持有的 `PlayerOrientationLock` 提供，按钮只负责展示与切换。倍速/字幕菜单和移动端右侧抽屉统一使用 `AppSurface` 的全站唯一材质，不再维护独立的播放器玻璃组件。
 
 播放区方向以实际布局约束为准（`player_viewport.dart`），不要直接用 `MediaQuery.orientationOf` 判断：iOS 从横屏切竖屏后 MediaQuery 可能滞后，会把竖屏顶栏误用横屏的非紧凑宽度，导致信息按钮被面板开关覆盖。移动端底栏的紧凑显示按同一份实际约束判定；紧凑顶栏按播放区实际宽度判断，窄于 520 即切换，不使用可能滞后的 `MediaQuery`。
 

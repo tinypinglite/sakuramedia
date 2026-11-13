@@ -18,6 +18,7 @@ class MoviePlayerSplitLayout extends StatelessWidget {
     required this.rightChild,
     this.collapsible = false,
     this.panelAvailable = true,
+    this.collapseWhenPortrait = false,
   });
 
   final MultiSplitViewController controller;
@@ -31,6 +32,9 @@ class MoviePlayerSplitLayout extends StatelessWidget {
   /// 右侧缩略图面板是否有内容可展示；无内容时不显示开关。
   final bool panelAvailable;
 
+  /// 播放区进入竖屏时自动收起右侧面板（顶部开关仍可手动展开）。
+  final bool collapseWhenPortrait;
+
   @override
   Widget build(BuildContext context) {
     return CollapsiblePlayerSplitView(
@@ -38,6 +42,7 @@ class MoviePlayerSplitLayout extends StatelessWidget {
       dividerHandleBuffer: dividerHandleBuffer,
       collapsible: collapsible,
       panelAvailable: panelAvailable,
+      collapseWhenPortrait: collapseWhenPortrait,
       handleKey: const Key('movie-player-panel-handle'),
       leftBuilder: (context) => MoviePlayerPanel(child: leftChild),
       rightBuilder: (context) => MoviePlayerSidePanel(child: rightChild),

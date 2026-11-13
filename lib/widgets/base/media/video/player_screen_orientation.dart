@@ -7,25 +7,26 @@ import 'package:flutter/services.dart';
 /// `landscape_player_system_ui.dart` 统一管理；这里只负责方向，避免
 /// media_kit 的全屏进出重复切换系统栏。
 
-/// 进入 media_kit 全屏：跟随系统传感器。
-///
-/// Android 上该组合映射为 `user`（尊重系统自动旋转开关）；iOS 上放开
-/// 竖屏 + 两个横屏，由系统旋转锁决定实际朝向。
-Future<void> enterPlayerFullscreenOrientation() async {
-  await SystemChrome.setPreferredOrientations(const <DeviceOrientation>[
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.landscapeLeft,
-    DeviceOrientation.landscapeRight,
-  ]);
-}
-
-/// 播放页默认方向：锁横屏。
+/// 播放页锁定方向：只允许横屏。
 ///
 /// Android 上 `[landscapeLeft, landscapeRight]` 映射为 `userLandscape`，
-/// 不受系统自动旋转开关影响，保证分栏布局始终横屏可用。
+/// 两个横屏方向都允许，因此翻转 180° 仍会跟随传感器；竖屏被排除。
 Future<void> lockPlayerPageLandscape() async {
   await SystemChrome.setPreferredOrientations(const <DeviceOrientation>[
     DeviceOrientation.landscapeLeft,
     DeviceOrientation.landscapeRight,
   ]);
+}
+
+/// 播放页解锁方向：交给系统传感器决定，横竖屏都可用。
+///
+/// Android 上空列表映射为 `unspecified`，遵循系统自动旋转开关；iOS 上放开
+/// `Info.plist` 允许的全部方向。
+Future<void> unlockPlayerOrientation() async {
+  await SystemChrome.setPreferredOrientations(const <DeviceOrientation>[]);
+}
+
+/// 按播放页当前的方向锁状态应用系统方向。
+Future<void> applyPlayerOrientationLock({required bool locked}) {
+  return locked ? lockPlayerPageLandscape() : unlockPlayerOrientation();
 }

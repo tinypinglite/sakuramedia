@@ -25,6 +25,7 @@ import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 import 'package:sakuramedia/widgets/base/media/video/themed_video_player.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_app_fullscreen.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_orientation_lock.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_viewport.dart';
 import 'package:sakuramedia/widgets/base/media/video/throttling_player.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
@@ -44,6 +45,7 @@ class VideoPlayerContent extends ConsumerStatefulWidget {
     this.initialPositionSeconds,
     this.imageSearchRoutePath = desktopImageSearchPath,
     this.useTouchOptimizedControls = false,
+    this.orientationLock,
   });
 
   final int videoId;
@@ -52,6 +54,9 @@ class VideoPlayerContent extends ConsumerStatefulWidget {
   final int? initialPositionSeconds;
   final String imageSearchRoutePath;
   final bool useTouchOptimizedControls;
+
+  /// 移动壳传入的方向锁状态；桌面壳不传，顶栏不显示锁定按钮。
+  final PlayerOrientationLock? orientationLock;
 
   @override
   ConsumerState<VideoPlayerContent> createState() => _VideoPlayerContentState();
@@ -460,6 +465,7 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
     return CollectionPlaySplitLayout(
       keyPrefix: 'video-single',
       collapsible: true,
+      collapseWhenPortrait: widget.useTouchOptimizedControls,
       left: PlayerAppFullscreenDoubleTap(
         enabled: !widget.useTouchOptimizedControls,
         child: LayoutBuilder(
@@ -485,11 +491,14 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
   }) {
     final l10n = AppLocalizations.of(context);
     final title = _title.trim();
+    // 面板展开或窗口很窄时，竖屏判定可能仍不足以及时收窄底栏；按播放区实际
+    // 宽度一起判断，避免音量/时间文本把底栏挤到溢出。
+    final compactBottomControls = isPortrait || compactTopControls;
     final bottomControls = <Widget>[
       const MaterialPlayOrPauseButton(),
-      if (!widget.useTouchOptimizedControls && !isPortrait)
+      if (!widget.useTouchOptimizedControls && !compactBottomControls)
         const MaterialDesktopVolumeButton(),
-      if (!isPortrait) const MaterialPositionIndicator(),
+      if (!compactBottomControls) const MaterialPositionIndicator(),
       const Spacer(),
       // 移动播放页进入即横屏沉浸，不显示桌面式全屏按钮。
       if (!widget.useTouchOptimizedControls) const PlayerAppFullscreenButton(),
@@ -504,6 +513,7 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
       playbackSessionKey: widget.videoId,
       videoKey: const Key('video-player-video'),
       reservePanelToggleSpace: true,
+      orientationLock: widget.orientationLock,
       topControls: [
         ...buildMoviePlayerTopControls(
           movieNumber: title.isEmpty ? l10n.videoFallbackTitle : title,
@@ -512,6 +522,7 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
           trailingControls: <Widget>[
             MediaPlaybackInfoButton(player: videoController.player),
           ],
+          orientationLock: widget.orientationLock,
         ),
       ],
       bottomControls: bottomControls,

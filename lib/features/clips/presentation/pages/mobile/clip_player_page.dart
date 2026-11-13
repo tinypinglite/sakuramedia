@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
@@ -36,7 +34,8 @@ class MobileClipPlayerPage extends ConsumerStatefulWidget {
       _MobileClipPlayerPageState();
 }
 
-class _MobileClipPlayerPageState extends ConsumerState<MobileClipPlayerPage> {
+class _MobileClipPlayerPageState extends ConsumerState<MobileClipPlayerPage>
+    with PlayerOrientationLockStateMixin<MobileClipPlayerPage> {
   Player? _player;
   VideoController? _controller;
   bool _hasResolvedUrl = true;
@@ -44,13 +43,11 @@ class _MobileClipPlayerPageState extends ConsumerState<MobileClipPlayerPage> {
   @override
   void initState() {
     super.initState();
-    unawaited(enterLandscapePlayerSystemUi());
     WidgetsBinding.instance.addPostFrameCallback((_) => _open());
   }
 
   @override
   void dispose() {
-    unawaited(restoreSystemUiAfterLandscapePlayer());
     _player?.dispose();
     super.dispose();
   }
@@ -92,9 +89,14 @@ class _MobileClipPlayerPageState extends ConsumerState<MobileClipPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    return PlayerSwipeBackGuard(
-      onBack: _handleBack,
-      child: Scaffold(backgroundColor: Colors.black, body: _buildBody(context)),
+    return wrapWithPlayerImmersiveOverlay(
+      PlayerSwipeBackGuard(
+        onBack: _handleBack,
+        child: Scaffold(
+          backgroundColor: Colors.black,
+          body: _buildBody(context),
+        ),
+      ),
     );
   }
 
@@ -129,6 +131,7 @@ class _MobileClipPlayerPageState extends ConsumerState<MobileClipPlayerPage> {
       videoController: videoController,
       useTouchOptimizedControls: true,
       videoKey: const Key('mobile-clip-player-video'),
+      orientationLock: orientationLock,
       topControls: [
         ...buildMoviePlayerTopControls(
           movieNumber: title.isEmpty
@@ -138,6 +141,7 @@ class _MobileClipPlayerPageState extends ConsumerState<MobileClipPlayerPage> {
           trailingControls: <Widget>[
             MediaPlaybackInfoButton(player: videoController.player),
           ],
+          orientationLock: orientationLock,
         ),
       ],
       bottomControls: const <Widget>[
