@@ -8,9 +8,11 @@ This page collects the explanations of behavior that come up most often in the c
 
 ## Metadata plugin networking and proxy
 
-The bundled metadata plugins access the following domains:
+Metadata plugins access the following domains; the bundled JavBus and AVMOO plugins only need `avmoo.shop`, `jp.netcdn.space` and `www.javbus.com`:
 
 ```text
+avmoo.shop
+jp.netcdn.space
 adult.contents.fc2.com
 storage*.contents.fc2.com
 contents-thumbnail*.fc2.com
@@ -30,7 +32,7 @@ Troubleshooting order:
 2. Check DNS and connectivity for the fixed domains from the deployment host. If the host has `curl`, run:
 
    ```bash
-   for host in adult.contents.fc2.com fc2cmadb.com api.video.dmm.co.jp video.dmm.co.jp awsimgsrc.dmm.co.jp pics.dmm.co.jp www.javbus.com; do
+   for host in avmoo.shop jp.netcdn.space adult.contents.fc2.com fc2cmadb.com api.video.dmm.co.jp video.dmm.co.jp awsimgsrc.dmm.co.jp pics.dmm.co.jp www.javbus.com; do
      curl -sS -o /dev/null -w "$host %{http_code}\n" --max-time 10 "https://$host"
    done
    ```
@@ -65,7 +67,7 @@ You can also pass `--username` and `--password` directly. The command clears ref
 
 ### Search or import by movie number fails. What should I do?
 
-This release uses only enabled metadata plugins, in the order configured under Settings → Metadata Sources. The official image bundles four metadata sources: DMM / FANZA, FC2, FC2CMADB, and JavBus. Run the "Capability test" for the relevant plugin on the Plugins page, then check each source's result under "Overview → Component Diagnostics". "No data" means the plugin is reachable but did not find the test movie number; "Failed" means you should check the plugin settings and network. Every plugin must declare Host API 18; older plugins that have not been released against 18 cannot load.
+This release uses only enabled metadata plugins, in the order configured under Settings → Metadata Sources. The official image bundles two metadata sources, JavBus and AVMOO; DMM / FANZA, FC2, FC2CMADB and others can be installed from the plugin market when needed. Run the "Capability test" for the relevant plugin on the Plugins page, then check each source's result under "Overview → Component Diagnostics". "No data" means the plugin is reachable but did not find the test movie number; "Failed" means you should check the plugin settings and network. Every plugin must declare Host API 18; older plugins that have not been released against 18 cannot load.
 
 ### Online search for movies or actors fails
 
@@ -79,7 +81,7 @@ Local search only queries data that has already been imported. After a first dep
 
 ### Why is "New from actors" empty?
 
-That page shows recent local movies linked to actors you have subscribed to. The system syncs release data through metadata plugins that declare the actor movie list capability; the bundled JavBus plugin supports it. The background task is "Subscribed actor movie sync", which runs daily at 02:00 by default. The first run scans the full list, and later runs check incrementally.
+That page shows recent local movies linked to actors you have subscribed to. The system syncs release data through metadata plugins that declare the actor movie list capability; the bundled JavBus and AVMOO plugins support it. The background task is "Subscribed actor movie sync", which runs daily at 02:00 by default. The first run scans the full list, and later runs check incrementally.
 
 Check in order: you have subscribed to actors, the sync task completed successfully, and the metadata plugin can reach the network. The list can also be empty when a subscription was just added and has not synced yet, or when there are no recent releases. Subscribing to an actor does not subscribe to her movies; once you see a movie you want, subscribe to that movie separately. See [Background Tasks](/guide/tasks#subscribed-actor-movie-sync) for details.
 

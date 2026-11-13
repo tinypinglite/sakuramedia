@@ -120,21 +120,15 @@ http://your-ip:38000
 The default username and password are `account` and `account`. Change the password right after logging in.
 
 ::: tip Metadata plugins
-This release requires every plugin to declare Host API 18. The official image already bundles and enables four metadata plugins: DMM / FANZA, FC2, FC2CMADB, and JavBus, so no installation is needed on a first deployment. You can adjust their order under Settings → Metadata Sources; restart the backend after saving. JavBus also supports syncing subscribed-actor movie lists. Actor search uses the backend's bundled GFriends index.
+This release requires every plugin to declare Host API 18. The official image already bundles and enables two metadata plugins, JavBus and AVMOO, so no installation is needed on a first deployment. You can adjust their order under Settings → Metadata Sources; restart the backend after saving. Both plugins support syncing subscribed-actor movie lists. Actor search uses the backend's bundled GFriends index.
 :::
 
 ::: warning Metadata plugin networking
-These plugins need the container to resolve and reach the following domains when querying metadata and downloading covers:
+The bundled metadata plugins need the container to resolve and reach the following domains when querying metadata and downloading covers:
 
 ```text
-adult.contents.fc2.com
-storage*.contents.fc2.com
-contents-thumbnail*.fc2.com
-fc2cmadb.com
-api.video.dmm.co.jp
-video.dmm.co.jp
-awsimgsrc.dmm.co.jp
-pics.dmm.co.jp
+avmoo.shop
+jp.netcdn.space
 www.javbus.com
 ```
 
@@ -143,7 +137,7 @@ After startup, run "Overview → Component Diagnostics"; it uses the test movie 
 
 ## Stage 2: Create a media library and import your existing movies
 
-The official image already has "Local Storage & qBittorrent" installed and enabled, along with common metadata, ranking, collection detection, and subtitle plugins, so there is no need to upload a plugin.
+The official image already has "Local Storage & qBittorrent", the JavBus and AVMOO metadata plugins, and the JavDB Rankings and More Movie Rankings plugins installed and enabled, so there is no need to upload them. Install 115, Guangyapan, other metadata sources, collection detection, and subtitle plugins when needed.
 
 ### 1. Create a media library
 

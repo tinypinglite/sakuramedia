@@ -105,7 +105,7 @@ Requests to external sites uniformly use the container environment variables `HT
 
 ### Metadata plugins
 
-The official image bundles and enables four metadata sources: DMM / FANZA, FC2, FC2CMADB, and JavBus. Movie search, import by movie number, and manual matching use only enabled metadata plugins, in the order configured under Settings → Metadata Sources; restart the API and APS after saving the order. This release requires every plugin to declare Host API 18, and older plugins must be released again before they can load. Actor search uses the backend's bundled GFriends index and needs no account configuration. See the [FAQ](/faq#metadata-plugin-networking-and-proxy) for the domains metadata plugins need and proxy configuration.
+The official image bundles and enables two metadata sources, JavBus and AVMOO; install DMM / FANZA, FC2, FC2CMADB and others from the plugin market when needed. Movie search, import by movie number, and manual matching use only enabled metadata plugins, in the order configured under Settings → Metadata Sources; restart the API and APS after saving the order. This release requires every plugin to declare Host API 18, and older plugins must be released again before they can load. Actor search uses the backend's bundled GFriends index and needs no account configuration. See the [FAQ](/faq#metadata-plugin-networking-and-proxy) for the domains metadata plugins need and proxy configuration.
 
 ## `[plugins]`
 

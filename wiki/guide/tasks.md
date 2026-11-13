@@ -32,7 +32,7 @@ When "Image & Text Search" is off, the image search indexing task is not schedul
 
 ### Subscribed actor movie sync
 
-The system walks through subscribed actors, calls every enabled metadata plugin that declares the actor movie list capability, merges and deduplicates movie numbers, imports missing movies into the local library, and links them to the actor. The first sync scans the full list, and later runs check incrementally; the task is skipped when no capable plugin is enabled. The bundled JavBus plugin supports this capability.
+The system walks through subscribed actors, calls every enabled metadata plugin that declares the actor movie list capability, merges and deduplicates movie numbers, imports missing movies into the local library, and links them to the actor. The first sync scans the full list, and later runs check incrementally; the task is skipped when no capable plugin is enabled. The bundled JavBus and AVMOO plugins support this capability.
 
 Subscribing to an actor only syncs release data. It does not subscribe to her movies or download them automatically.
 

@@ -8,9 +8,11 @@ outline: [2, 3]
 
 ## 元数据插件网络与代理
 
-内置元数据插件会访问以下域名：
+元数据插件会访问以下域名；官方镜像内置的 JavBus 和 AVMOO 只需访问 `avmoo.shop`、`jp.netcdn.space` 和 `www.javbus.com`：
 
 ```text
+avmoo.shop
+jp.netcdn.space
 adult.contents.fc2.com
 storage*.contents.fc2.com
 contents-thumbnail*.fc2.com
@@ -30,7 +32,7 @@ www.javbus.com
 2. 在部署机器上检查固定域名的 DNS 和连通性。如果部署机器有 `curl`，可以执行：
 
    ```bash
-   for host in adult.contents.fc2.com fc2cmadb.com api.video.dmm.co.jp video.dmm.co.jp awsimgsrc.dmm.co.jp pics.dmm.co.jp www.javbus.com; do
+   for host in avmoo.shop jp.netcdn.space adult.contents.fc2.com fc2cmadb.com api.video.dmm.co.jp video.dmm.co.jp awsimgsrc.dmm.co.jp pics.dmm.co.jp www.javbus.com; do
      curl -sS -o /dev/null -w "$host %{http_code}\n" --max-time 10 "https://$host"
    done
    ```
@@ -65,7 +67,7 @@ docker exec -it --user app -w /app sakuramedia python -m src.start.commands rese
 
 ### 按番号搜索或导入影片失败怎么办？
 
-当前版本只使用已启用的元数据插件，并按「设置 → 元数据源」中的顺序调用。官方镜像已内置 DMM / FANZA、FC2、FC2CMADB 和 JavBus 四个元数据源。先在插件页对相关插件运行「能力测试」，再到「概览 → 组件诊断」查看每个来源的结果：「无数据」表示插件可达但测试番号没有命中，「失败」时继续检查插件配置和网络。当前版本要求所有插件声明 Host API 18；未按 18 重新发版的旧插件无法加载。
+当前版本只使用已启用的元数据插件，并按「设置 → 元数据源」中的顺序调用。官方镜像已内置 JavBus 和 AVMOO 两个元数据源；DMM / FANZA、FC2、FC2CMADB 等可按需从插件市场安装。先在插件页对相关插件运行「能力测试」，再到「概览 → 组件诊断」查看每个来源的结果：「无数据」表示插件可达但测试番号没有命中，「失败」时继续检查插件配置和网络。当前版本要求所有插件声明 Host API 18；未按 18 重新发版的旧插件无法加载。
 
 ### 在线搜索入库影片或女优失败
 
@@ -79,7 +81,7 @@ docker exec -it --user app -w /app sakuramedia python -m src.start.commands rese
 
 ### 为什么“女优上新”是空的？
 
-该页面展示本地影片中关联到已订阅女优的近期作品。系统会通过声明演员作品列表能力的元数据插件同步作品资料；当前内置的 JavBus 支持这项能力。后台任务名为「订阅演员影片同步」，默认每天 02:00 执行，首次抓取会全量扫描，之后按增量检查。
+该页面展示本地影片中关联到已订阅女优的近期作品。系统会通过声明演员作品列表能力的元数据插件同步作品资料；当前内置的 JavBus 和 AVMOO 支持这项能力。后台任务名为「订阅演员影片同步」，默认每天 02:00 执行，首次抓取会全量扫描，之后按增量检查。
 
 依次确认：已经订阅女优、同步任务运行成功、元数据插件可以联网。刚订阅尚未同步或近期没有新作时也可能为空。女优订阅不会主动订阅她的影片，看到想看的作品后仍需要单独订阅影片。任务说明见[后台任务](/zh-CN/guide/tasks#订阅演员影片同步)。
 
