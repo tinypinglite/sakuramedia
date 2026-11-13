@@ -254,6 +254,7 @@ class _MetadataSourcesPageState extends ConsumerState<MetadataSourcesPage> {
                   ],
                 ),
         ),
+        _buildActorMovieSourcesCard(context),
         SizedBox(height: spacing.md),
         Text(
           _l10n.metadataSourcesPluginsHint,
@@ -269,12 +270,146 @@ class _MetadataSourcesPageState extends ConsumerState<MetadataSourcesPage> {
     );
   }
 
+  Widget _buildActorMovieSourcesCard(BuildContext context) {
+    final spacing = context.appSpacing;
+    if (_sources.isNotEmpty &&
+        _sources.every((source) => source.supportsActorMovies == null)) {
+      // 旧版后端没有能力字段，隐藏卡片而不是误报「没有可用来源」。
+      return const SizedBox.shrink();
+    }
+    final actorMovieSources = _sources
+        .where((source) => source.supportsActorMovies ?? false)
+        .toList(growable: false);
+    return Padding(
+      padding: EdgeInsets.only(top: spacing.md),
+      child: AppContentCard(
+        key: const Key('metadata-actor-movie-sources-card'),
+        title: _l10n.metadataActorMovieSourcesTitle,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              _l10n.metadataActorMovieSourcesDescription,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                tone: AppTextTone.secondary,
+              ),
+            ),
+            SizedBox(height: spacing.md),
+            if (actorMovieSources.isEmpty)
+              _ActorMovieSourcesWarning(
+                message: _l10n.metadataActorMovieSourcesEmptyWarning,
+              )
+            else
+              for (
+                var index = 0;
+                index < actorMovieSources.length;
+                index++
+              ) ...[
+                if (index > 0) SizedBox(height: spacing.sm),
+                _ActorMovieSourceRow(source: actorMovieSources[index]),
+              ],
+          ],
+        ),
+      ),
+    );
+  }
+
   void _handleBindingsDirtyChanged(bool dirty) {
     if (_bindingsDirty == dirty) {
       return;
     }
     _bindingsDirty = dirty;
     widget.onDirtyChanged?.call(_dirty);
+  }
+}
+
+class _ActorMovieSourcesWarning extends StatelessWidget {
+  const _ActorMovieSourcesWarning({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    return Container(
+      key: const Key('metadata-actor-movie-sources-warning'),
+      width: double.infinity,
+      padding: EdgeInsets.all(spacing.md),
+      decoration: BoxDecoration(
+        color: context.appColors.warningSurface,
+        borderRadius: context.appRadius.mdBorder,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.warning_amber_rounded,
+            size: context.appComponentTokens.iconSizeMd,
+            color: context.appTextPalette.warning,
+          ),
+          SizedBox(width: spacing.sm),
+          Expanded(
+            child: Text(
+              message,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                tone: AppTextTone.warning,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ActorMovieSourceRow extends StatelessWidget {
+  const _ActorMovieSourceRow({required this.source});
+
+  final MetadataSourceDto source;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    final colors = context.appColors;
+    return Container(
+      key: Key('metadata-actor-movie-source-${source.pluginId}'),
+      padding: EdgeInsets.symmetric(
+        horizontal: spacing.md,
+        vertical: spacing.sm,
+      ),
+      decoration: BoxDecoration(
+        color: colors.surfaceMuted,
+        borderRadius: context.appRadius.mdBorder,
+        border: Border.all(color: colors.borderSubtle),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.movie_outlined,
+            size: context.appComponentTokens.iconSizeMd,
+            color: context.appTextPalette.secondary,
+          ),
+          SizedBox(width: spacing.sm),
+          Expanded(
+            child: Text(
+              source.displayName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                weight: AppTextWeight.medium,
+                tone: AppTextTone.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

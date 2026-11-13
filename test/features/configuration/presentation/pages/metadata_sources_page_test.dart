@@ -30,8 +30,16 @@ void main() {
       method: 'GET',
       path: '/system/metadata-sources',
       body: <Map<String, dynamic>>[
-        <String, dynamic>{'plugin_id': 'source_a', 'display_name': 'Source A'},
-        <String, dynamic>{'plugin_id': 'source_b', 'display_name': 'Source B'},
+        <String, dynamic>{
+          'plugin_id': 'source_a',
+          'display_name': 'Source A',
+          'supports_actor_movies': true,
+        },
+        <String, dynamic>{
+          'plugin_id': 'source_b',
+          'display_name': 'Source B',
+          'supports_actor_movies': false,
+        },
       ],
     );
     bundle.adapter.enqueueJson(
@@ -62,6 +70,14 @@ void main() {
     expect(
       find.byKey(const Key('metadata-source-row-source_b')),
       findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('metadata-actor-movie-source-source_a')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('metadata-actor-movie-source-source_b')),
+      findsNothing,
     );
 
     await tester.tap(find.byKey(const Key('metadata-source-down-source_a')));
@@ -112,6 +128,35 @@ void main() {
     expect(
       find.byKey(const Key('metadata-sources-empty-state')),
       findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('hides actor movie sources when backend omits the capability', (
+    tester,
+  ) async {
+    bundle.adapter.enqueueJson(
+      method: 'GET',
+      path: '/system/metadata-sources',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{'plugin_id': 'source_a', 'display_name': 'Source A'},
+      ],
+    );
+
+    await pumpPreviewApp(
+      tester,
+      home: const MetadataSourcesPage(active: true),
+      size: const Size(1000, 900),
+      theme: buildSakuraDesktopThemeData(),
+      platform: TargetPlatform.macOS,
+      bundle: bundle,
+      wrap: (child) => SingleChildScrollView(child: child),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('metadata-actor-movie-sources-card')),
+      findsNothing,
     );
     expect(tester.takeException(), isNull);
   });
