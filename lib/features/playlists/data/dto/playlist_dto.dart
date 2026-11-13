@@ -1,3 +1,5 @@
+import 'package:sakuramedia/core/json/json_parse.dart';
+
 /// 播放列表类型：后端按 `kind` 区分系统列表（不可手动增删）与用户列表。
 abstract final class PlaylistKind {
   static const String custom = 'custom';
@@ -63,6 +65,51 @@ class UpdatePlaylistPayload {
       if (name != null) 'name': name,
       if (description != null) 'description': description,
     };
+  }
+}
+
+class PlaylistMovieBatchAddSkippedItemDto {
+  const PlaylistMovieBatchAddSkippedItemDto({
+    required this.movieNumber,
+    required this.reason,
+  });
+
+  final String movieNumber;
+  final String reason;
+
+  factory PlaylistMovieBatchAddSkippedItemDto.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return PlaylistMovieBatchAddSkippedItemDto(
+      movieNumber: json['movie_number'] as String? ?? '',
+      reason: json['reason'] as String? ?? '',
+    );
+  }
+}
+
+class PlaylistMovieBatchAddResultDto {
+  const PlaylistMovieBatchAddResultDto({
+    required this.requestedCount,
+    required this.updatedCount,
+    required this.skippedCount,
+    required this.skipped,
+  });
+
+  final int requestedCount;
+  final int updatedCount;
+  final int skippedCount;
+  final List<PlaylistMovieBatchAddSkippedItemDto> skipped;
+
+  factory PlaylistMovieBatchAddResultDto.fromJson(Map<String, dynamic> json) {
+    return PlaylistMovieBatchAddResultDto(
+      requestedCount: asInt(json['requested_count']),
+      updatedCount: asInt(json['updated_count']),
+      skippedCount: asInt(json['skipped_count']),
+      skipped: asObjectList(
+        json['skipped'],
+        PlaylistMovieBatchAddSkippedItemDto.fromJson,
+      ),
+    );
   }
 }
 

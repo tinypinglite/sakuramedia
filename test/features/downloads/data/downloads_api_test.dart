@@ -621,19 +621,19 @@ void main() {
     );
 
     test(
-      'triggerDownloadTaskBatchImport chunks ids over 100 and merges results',
+      'triggerDownloadTaskBatchImport chunks ids over 1000 and merges results',
       () async {
         final sessionStore = await _buildLoggedInSessionStore();
         final bundle = await createTestApiBundle(sessionStore);
         addTearDown(bundle.dispose);
 
-        final ids = List<int>.generate(250, (index) => index + 1);
+        final ids = List<int>.generate(2500, (index) => index + 1);
         for (final body in const <Map<String, dynamic>>[
-          {'accepted_count': 100, 'skipped_task_ids': <int>[]},
-          {'accepted_count': 100, 'skipped_task_ids': <int>[]},
+          {'accepted_count': 1000, 'skipped_task_ids': <int>[]},
+          {'accepted_count': 1000, 'skipped_task_ids': <int>[]},
           {
-            'accepted_count': 49,
-            'skipped_task_ids': [250],
+            'accepted_count': 499,
+            'skipped_task_ids': [2500],
           },
         ]) {
           bundle.adapter.enqueueJson(
@@ -650,11 +650,11 @@ void main() {
 
         final posts = bundle.adapter.requests.toList();
         expect(posts, hasLength(3));
-        expect(posts[0].body, {'task_ids': ids.sublist(0, 100)});
-        expect(posts[1].body, {'task_ids': ids.sublist(100, 200)});
-        expect(posts[2].body, {'task_ids': ids.sublist(200)});
-        expect(result.acceptedCount, 249);
-        expect(result.skippedTaskIds, [250]);
+        expect(posts[0].body, {'task_ids': ids.sublist(0, 1000)});
+        expect(posts[1].body, {'task_ids': ids.sublist(1000, 2000)});
+        expect(posts[2].body, {'task_ids': ids.sublist(2000)});
+        expect(result.acceptedCount, 2499);
+        expect(result.skippedTaskIds, [2500]);
       },
     );
 

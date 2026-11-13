@@ -35,12 +35,16 @@ class CollectionPickerResults<T extends Object> extends StatefulWidget {
     required this.nameOf,
     required this.rowsBuilder,
     this.where,
+    this.searchHint,
+    this.noMatchMessage,
   });
 
   final AsyncValue<List<T>> collections;
   final CollectionPickerChrome chrome;
   final String Function(T value) nameOf;
   final bool Function(T value)? where;
+  final String? searchHint;
+  final String? noMatchMessage;
 
   /// 生成过滤后的列表行；空/错误状态由本组件统一包裹。
   final List<Widget> Function(BuildContext context, List<T> visible)
@@ -95,7 +99,8 @@ class _CollectionPickerResultsState<T extends Object>
               ? AppPickerIosState(
                   message: all.isEmpty
                       ? widget.chrome.emptyMessage
-                      : l10n.widgetCollectionPickerNoMatch,
+                      : widget.noMatchMessage ??
+                            l10n.widgetCollectionPickerNoMatch,
                 )
               : null,
         );
@@ -109,7 +114,8 @@ class _CollectionPickerResultsState<T extends Object>
         AppPickerHeader(
           searchController: searchController,
           searchFieldKey: Key('${widget.chrome.keyPrefix}-search-field'),
-          searchHintText: l10n.widgetCollectionPickerSearchHint,
+          searchHintText:
+              widget.searchHint ?? l10n.widgetCollectionPickerSearchHint,
           onSearchChanged: (value) => setState(() => updateSearch(value)),
           clearSearchKey: Key('${widget.chrome.keyPrefix}-search-clear'),
         ),

@@ -97,6 +97,9 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
   String get batchKeyPrefix => 'playlist-detail';
 
   @override
+  int? get batchExcludedPlaylistId => widget.playlistId;
+
+  @override
   MovieBatchToggleExecutor get batchSubscriptionExecutor =>
       ref.read(movieSummaryProvider(_scope).notifier).batchToggleSubscription;
 

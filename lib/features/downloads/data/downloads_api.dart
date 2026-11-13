@@ -7,6 +7,7 @@ import 'package:sakuramedia/core/network/paginated_response_dto.dart';
 import 'package:sakuramedia/features/downloads/data/download_candidate_dto.dart';
 import 'package:sakuramedia/features/downloads/data/download_request_dto.dart';
 import 'package:sakuramedia/features/downloads/data/download_task_file_dto.dart';
+import 'package:sakuramedia/features/shared/data/batch_limits.dart';
 
 class DownloadsApi {
   const DownloadsApi({required ApiClient apiClient}) : _apiClient = apiClient;
@@ -16,9 +17,8 @@ class DownloadsApi {
   /// `POST /download-requests/manual/torrent` 的后端大小上限（10 MiB）。
   static const int maxManualTorrentBytes = 10 * 1024 * 1024;
 
-  /// `POST /download-tasks/imports` 的单次受理上限（对应后端请求体的
-  /// `max_length=100`）。
-  static const int _batchImportChunkSize = 100;
+  /// `POST /download-tasks/imports` 的单次受理上限。
+  static const int _batchImportChunkSize = maxBatchItems;
 
   Future<List<DownloadCandidateDto>> searchCandidates({
     required String movieNumber,

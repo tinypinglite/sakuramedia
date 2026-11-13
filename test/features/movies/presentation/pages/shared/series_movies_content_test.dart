@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/series_movies_content.dart';
@@ -123,6 +124,199 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'desktop batch action adds all selected movies to a target playlist',
+    (tester) async {
+      _seedPlaylistTargets(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/playlists/5/movies',
+        body: <String, dynamic>{
+          'requested_count': 2,
+          'updated_count': 2,
+          'skipped_count': 0,
+          'skipped': <dynamic>[],
+        },
+      );
+      _enqueueSeriesPage(
+        bundle,
+        movies: <Map<String, dynamic>>[
+          _movie('ABC-001', seriesName: 'Series Alpha'),
+          _movie('ABC-002', seriesName: 'Series Alpha'),
+        ],
+        total: 2,
+      );
+
+      await _pumpSeriesContent(
+        tester,
+        bundle: bundle,
+        desktop: true,
+        initialSeriesName: 'Series Alpha',
+      );
+      await tester.tap(
+        find.byKey(const Key('series-movies-enter-selection-button')),
+      );
+      await _pumpFrames(tester);
+      await tester.tap(
+        find.byKey(const Key('movie-summary-card-checkbox-ABC-001')),
+      );
+      await tester.tap(
+        find.byKey(const Key('movie-summary-card-checkbox-ABC-002')),
+      );
+      await _pumpFrames(tester);
+
+      await tester.tap(
+        find.byKey(const Key('series-movies-batch-add-playlist-button')),
+      );
+      await _pumpFrames(tester);
+      await tester.tap(
+        find.byKey(const Key('movie-playlist-target-picker-option-5')),
+      );
+      await _pumpFrames(tester);
+
+      final request = bundle.adapter.requests.singleWhere(
+        (request) => request.path == '/playlists/5/movies',
+      );
+      expect(request.body, <String, dynamic>{
+        'movie_numbers': <String>['ABC-001', 'ABC-002'],
+      });
+      expect(
+        find.byKey(const Key('series-movies-exit-selection-button')),
+        findsNothing,
+      );
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'desktop batch action keeps skipped movies selected on partial success',
+    (tester) async {
+      _seedPlaylistTargets(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/playlists/5/movies',
+        body: <String, dynamic>{
+          'requested_count': 2,
+          'updated_count': 1,
+          'skipped_count': 1,
+          'skipped': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'movie_number': 'ABC-002',
+              'reason': 'movie_not_found',
+            },
+          ],
+        },
+      );
+      _enqueueSeriesPage(
+        bundle,
+        movies: <Map<String, dynamic>>[
+          _movie('ABC-001', seriesName: 'Series Alpha'),
+          _movie('ABC-002', seriesName: 'Series Alpha'),
+        ],
+        total: 2,
+      );
+
+      await _pumpSeriesContent(
+        tester,
+        bundle: bundle,
+        desktop: true,
+        initialSeriesName: 'Series Alpha',
+      );
+      await tester.tap(
+        find.byKey(const Key('series-movies-enter-selection-button')),
+      );
+      await _pumpFrames(tester);
+      await tester.tap(
+        find.byKey(const Key('movie-summary-card-checkbox-ABC-001')),
+      );
+      await tester.tap(
+        find.byKey(const Key('movie-summary-card-checkbox-ABC-002')),
+      );
+      await _pumpFrames(tester);
+      await tester.tap(
+        find.byKey(const Key('series-movies-batch-add-playlist-button')),
+      );
+      await _pumpFrames(tester);
+      await tester.tap(
+        find.byKey(const Key('movie-playlist-target-picker-option-5')),
+      );
+      await _pumpFrames(tester);
+
+      expect(
+        find.byKey(const Key('series-movies-exit-selection-button')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('series-movies-selection-count-text')),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'desktop batch action keeps every movie selected when the request fails',
+    (tester) async {
+      _seedPlaylistTargets(bundle);
+      bundle.adapter.enqueueJson(
+        method: 'POST',
+        path: '/playlists/5/movies',
+        statusCode: 500,
+        body: <String, dynamic>{'detail': 'boom'},
+      );
+      _enqueueSeriesPage(
+        bundle,
+        movies: <Map<String, dynamic>>[
+          _movie('ABC-001', seriesName: 'Series Alpha'),
+          _movie('ABC-002', seriesName: 'Series Alpha'),
+        ],
+        total: 2,
+      );
+
+      await _pumpSeriesContent(
+        tester,
+        bundle: bundle,
+        desktop: true,
+        initialSeriesName: 'Series Alpha',
+      );
+      await tester.tap(
+        find.byKey(const Key('series-movies-enter-selection-button')),
+      );
+      await _pumpFrames(tester);
+      await tester.tap(
+        find.byKey(const Key('movie-summary-card-checkbox-ABC-001')),
+      );
+      await tester.tap(
+        find.byKey(const Key('movie-summary-card-checkbox-ABC-002')),
+      );
+      await _pumpFrames(tester);
+      await tester.tap(
+        find.byKey(const Key('series-movies-batch-add-playlist-button')),
+      );
+      await _pumpFrames(tester);
+      await tester.tap(
+        find.byKey(const Key('movie-playlist-target-picker-option-5')),
+      );
+      await _pumpFrames(tester);
+
+      expect(
+        find.byKey(const Key('series-movies-exit-selection-button')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const Key('series-movies-selection-count-text')),
+        findsOneWidget,
+      );
+      await tester.pump(const Duration(seconds: 4));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('series refresh replaces the retained list', (tester) async {
     _enqueueSeriesPage(
@@ -312,6 +506,8 @@ Future<void> _pumpSeriesContent(
       retry: (_, _) => null,
       overrides: bundle.riverpodOverrides(),
       child: MaterialApp(
+        builder: (context, child) =>
+            OKToast(child: child ?? const SizedBox.shrink()),
         theme: desktop
             ? buildSakuraDesktopThemeData()
             : buildSakuraMobileThemeData(),
@@ -347,6 +543,35 @@ Future<void> _pumpSeriesContent(
     ),
   );
   await _pumpFrames(tester);
+}
+
+void _seedPlaylistTargets(TestApiBundle bundle) {
+  bundle.adapter.setFallbackJson(
+    method: 'GET',
+    path: '/playlists',
+    body: <Map<String, dynamic>>[
+      <String, dynamic>{
+        'id': 5,
+        'name': 'Later',
+        'kind': 'custom',
+        'description': '',
+        'is_system': false,
+        'is_mutable': true,
+        'is_deletable': true,
+        'movie_count': 0,
+      },
+      <String, dynamic>{
+        'id': 6,
+        'name': 'Recently played',
+        'kind': 'recently_played',
+        'description': '',
+        'is_system': true,
+        'is_mutable': false,
+        'is_deletable': false,
+        'movie_count': 3,
+      },
+    ],
+  );
 }
 
 Widget _seriesContent({

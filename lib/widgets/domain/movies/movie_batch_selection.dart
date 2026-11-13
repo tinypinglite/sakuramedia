@@ -1,10 +1,20 @@
+import 'dart:async';
+
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_toggle_result.dart';
+import 'package:sakuramedia/features/playlists/presentation/providers/playlist_detail_provider.dart';
+import 'package:sakuramedia/features/playlists/presentation/providers/playlist_mutation_events_provider.dart';
+import 'package:sakuramedia/features/playlists/presentation/providers/playlists_api_provider.dart';
+import 'package:sakuramedia/features/playlists/presentation/widgets/movie_playlist_target_picker.dart';
+import 'package:sakuramedia/features/shared/data/batch_limits.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/app_selection_bottom_bar.dart';
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
@@ -23,7 +33,7 @@ typedef MovieBlacklistBatchExecutor =
     Future<void> Function({required Iterable<String> movieNumbers});
 
 /// 批量动作种类，用于区分「哪个按钮该转圈」。
-enum MovieBatchAction { subscribe, unsubscribe, blacklist }
+enum MovieBatchAction { addToPlaylist, subscribe, unsubscribe, blacklist }
 
 /// 移动端影片列表多选态**顶栏**：退出 + 计数 + 全选，仅此三样。
 ///
@@ -70,6 +80,7 @@ class MovieBatchMobileSelectionBottomBar extends StatelessWidget {
     super.key,
     required this.keyPrefix,
     required this.operatingAction,
+    required this.onAddToPlaylist,
     required this.onSubscribe,
     required this.onUnsubscribe,
     this.onBlacklist,
@@ -77,6 +88,7 @@ class MovieBatchMobileSelectionBottomBar extends StatelessWidget {
 
   final String keyPrefix;
   final MovieBatchAction? operatingAction;
+  final VoidCallback? onAddToPlaylist;
   final VoidCallback? onSubscribe;
   final VoidCallback? onUnsubscribe;
   final VoidCallback? onBlacklist;
@@ -84,13 +96,24 @@ class MovieBatchMobileSelectionBottomBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
+    final compact = onBlacklist != null;
+    final buttonSize = compact ? AppButtonSize.xSmall : AppButtonSize.medium;
     return AppSelectionBottomBar(
       key: Key('$keyPrefix-batch-bottom-bar'),
       actions: [
         AppButton(
+          key: Key('$keyPrefix-batch-add-playlist-button'),
+          label: l10n.moviePagePlaylistAddActionShort,
+          variant: AppButtonVariant.secondary,
+          size: buttonSize,
+          isLoading: operatingAction == MovieBatchAction.addToPlaylist,
+          onPressed: onAddToPlaylist,
+        ),
+        AppButton(
           key: Key('$keyPrefix-batch-subscribe-button'),
           label: l10n.widgetMovieSubscribe,
           variant: AppButtonVariant.primary,
+          size: buttonSize,
           isLoading: operatingAction == MovieBatchAction.subscribe,
           onPressed: onSubscribe,
         ),
@@ -98,6 +121,7 @@ class MovieBatchMobileSelectionBottomBar extends StatelessWidget {
           key: Key('$keyPrefix-batch-unsubscribe-button'),
           label: l10n.widgetMovieUnsubscribe,
           variant: AppButtonVariant.danger,
+          size: buttonSize,
           isLoading: operatingAction == MovieBatchAction.unsubscribe,
           onPressed: onUnsubscribe,
         ),
@@ -106,6 +130,7 @@ class MovieBatchMobileSelectionBottomBar extends StatelessWidget {
             key: Key('$keyPrefix-batch-blacklist-button'),
             label: l10n.widgetMovieBlacklist,
             variant: AppButtonVariant.danger,
+            size: buttonSize,
             isLoading: operatingAction == MovieBatchAction.blacklist,
             onPressed: onBlacklist,
           ),
@@ -178,7 +203,7 @@ Future<MovieSubscriptionBatchToggleResult?> runMovieSubscriptionBatch({
 ///
 /// 宿主 State 用法（`with` 顺序必须 [MultiSelectStateMixin] 在前，本 mixin 在后）：
 /// ```dart
-/// class _XxxPageState extends State<XxxPage>
+/// class _XxxPageState extends ConsumerState<XxxPage>
 ///     with MultiSelectStateMixin<XxxPage, String>, MovieBatchSelectionMixin<XxxPage> {
 ///   @override
 ///   String get batchKeyPrefix => 'xxx';
@@ -192,8 +217,8 @@ Future<MovieSubscriptionBatchToggleResult?> runMovieSubscriptionBatch({
 /// ```
 /// build 里 `selectionMode ? buildGlassBatchSelectionToolbar() : <常规 header +
 /// buildEnterSelectionButton()>`。
-mixin MovieBatchSelectionMixin<W extends StatefulWidget>
-    on MultiSelectStateMixin<W, String> {
+mixin MovieBatchSelectionMixin<W extends ConsumerStatefulWidget>
+    on MultiSelectStateMixin<W, String>, ConsumerState<W> {
   MovieBatchAction? _operatingAction;
 
   /// 批量请求进行中：工具条据此禁用退出/全选。
@@ -206,6 +231,9 @@ mixin MovieBatchSelectionMixin<W extends StatefulWidget>
   MovieBatchToggleExecutor get batchSubscriptionExecutor;
 
   MovieBlacklistBatchExecutor? get batchBlacklistExecutor => null;
+
+  /// 当前页面对应的播放列表；从该列表发起批量加入时要排除自身。
+  int? get batchExcludedPlaylistId => null;
 
   /// 当前可见（即「全选」覆盖范围）的番号列表。
   List<String> get batchSelectableNumbers;
@@ -273,6 +301,90 @@ mixin MovieBatchSelectionMixin<W extends StatefulWidget>
     }
   }
 
+  /// 批量加入目标播放列表：全成功退出多选，部分番号缺失时只保留缺失项。
+  Future<void> runAddToPlaylistBatch() async {
+    if (isBatchOperating || selectedIds.isEmpty) {
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    if (selectedIds.length > maxBatchItems) {
+      showToast(
+        l10n.sharedBatchTooManyItems(
+          l10n.moviePagePlaylistAddAction,
+          maxBatchItems,
+          selectedIds.length,
+        ),
+        tone: AppToastTone.warning,
+      );
+      return;
+    }
+    final target = await showMoviePlaylistTargetPicker(
+      context,
+      excludedPlaylistId: batchExcludedPlaylistId,
+    );
+    if (!mounted || target == null) {
+      return;
+    }
+    setState(() => _operatingAction = MovieBatchAction.addToPlaylist);
+    try {
+      final result = await ref
+          .read(playlistsApiProvider)
+          .addMoviesToPlaylist(
+            playlistId: target.id,
+            movieNumbers: selectedIds.toList(growable: false),
+          );
+      if (!mounted) {
+        return;
+      }
+      if (result.updatedCount > 0) {
+        unawaited(_refreshPlaylistAfterBatchAdd(target.id));
+      }
+      final skipped = result.skipped.map((item) => item.movieNumber).toSet();
+      if (skipped.isEmpty) {
+        showToast(
+          l10n.moviePlaylistBatchAddedToast(result.updatedCount, target.name),
+          tone: AppToastTone.success,
+        );
+        exitSelection();
+      } else {
+        showToast(
+          l10n.moviePlaylistBatchPartialToast(
+            result.updatedCount,
+            result.skippedCount,
+          ),
+          tone: AppToastTone.warning,
+        );
+        replaceSelection(skipped);
+      }
+    } catch (error) {
+      if (mounted) {
+        showToast(
+          apiErrorMessage(error, fallback: l10n.playlistAddFailed, l10n: l10n),
+          tone: AppToastTone.error,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _operatingAction = null);
+      }
+    }
+  }
+
+  Future<void> _refreshPlaylistAfterBatchAdd(int playlistId) async {
+    try {
+      final playlist = await ref
+          .read(playlistsApiProvider)
+          .getPlaylistDetail(playlistId: playlistId);
+      if (!mounted) {
+        return;
+      }
+      ref.read(playlistMutationEventsProvider.notifier).reportUpdated(playlist);
+      ref.invalidate(playlistDetailProvider(playlistId));
+    } catch (_) {
+      // 加入已经成功；元信息刷新失败不覆盖成功结果。
+    }
+  }
+
   /// 桌面多选态下的玻璃操作条。
   Widget buildGlassBatchSelectionToolbar() {
     final visible = batchSelectableNumbers;
@@ -294,6 +406,13 @@ mixin MovieBatchSelectionMixin<W extends StatefulWidget>
       exitKey: Key('$batchKeyPrefix-exit-selection-button'),
       onExitSelection: busy ? null : exitSelection,
       actions: <AppGlassSelectionAction>[
+        AppGlassSelectionAction(
+          key: Key('$batchKeyPrefix-batch-add-playlist-button'),
+          label: l10n.moviePagePlaylistAddAction,
+          icon: Icons.playlist_add_rounded,
+          isLoading: _operatingAction == MovieBatchAction.addToPlaylist,
+          onTap: (selectedIds.isEmpty || busy) ? null : runAddToPlaylistBatch,
+        ),
         AppGlassSelectionAction(
           key: Key('$batchKeyPrefix-batch-subscribe-button'),
           label: l10n.widgetMovieSubscribe,
@@ -348,6 +467,9 @@ mixin MovieBatchSelectionMixin<W extends StatefulWidget>
     return MovieBatchMobileSelectionBottomBar(
       keyPrefix: batchKeyPrefix,
       operatingAction: _operatingAction,
+      onAddToPlaylist: (selectedIds.isEmpty || busy)
+          ? null
+          : runAddToPlaylistBatch,
       onSubscribe: (selectedIds.isEmpty || busy)
           ? null
           : () => runSubscriptionBatch(subscribe: true),

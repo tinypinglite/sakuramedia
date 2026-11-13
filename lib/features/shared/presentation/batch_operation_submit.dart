@@ -4,6 +4,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/language/providers/app_localizations_provider.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
+import 'package:sakuramedia/features/shared/data/batch_limits.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/batch_operation_submission_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/batch_operations_api_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -31,9 +32,6 @@ String _batchOperationLabel(
   BatchOperationType.downloadTaskDelete => l10n.sharedBatchDeleteDownloadTask,
 };
 
-/// 后端 `BatchOperationRequest.ids` 的上限，超过会被 422 拒绝。
-const int maxBatchOperationItems = 1000;
-
 /// 把整批操作提交给后端任务队列；成功与失败都只发一条 toast。
 ///
 /// 任务进度与结果在活动中心查看；提交成功后列表不会即时变化，需用户手动刷新。
@@ -51,10 +49,10 @@ Future<bool> submitBatchOperation(
 }) async {
   final l10n = ref.read(appLocalizationsProvider);
   final label = _batchOperationLabel(operation, l10n);
-  if (ids.length > maxBatchOperationItems) {
+  if (ids.length > maxBatchItems) {
     if (context.mounted) {
       showToast(
-        l10n.sharedBatchTooManyItems(label, maxBatchOperationItems, ids.length),
+        l10n.sharedBatchTooManyItems(label, maxBatchItems, ids.length),
         tone: AppToastTone.warning,
       );
     }

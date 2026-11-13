@@ -2700,6 +2700,32 @@
   "playlistPickerLoadFailed": "Failed to load playlists",
   "playlistNoMatch": "No matching playlists",
   "playlistSearchHint": "Search playlists",
+  "moviePlaylistTargetSearchHint": "Search playlists",
+  "moviePlaylistTargetEmpty": "No playlists yet. Create one below.",
+  "moviePlaylistTargetNoMatch": "No matching playlists",
+  "moviePlaylistTargetCreateAndAdd": "Create playlist and add",
+  "moviePlaylistBatchAddedToast": "Added {count} movies to \"{name}\"",
+  "@moviePlaylistBatchAddedToast": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "moviePlaylistBatchPartialToast": "Added {updated}; {skipped} not found",
+  "@moviePlaylistBatchPartialToast": {
+    "placeholders": {
+      "updated": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
   "playlistRemoveFailed": "Failed to remove from the playlist",
   "playlistAddFailed": "Failed to add to the playlist",
   "playlistFilterResolution": "Resolution",
@@ -3306,6 +3332,7 @@
     }
   },
   "moviePagePlaylistAddAction": "Add to playlist",
+  "moviePagePlaylistAddActionShort": "Add to list",
   "moviePagePlaylistManageAction": "Manage playlists",
   "moviePagePlaylistUpdateFailed": "Failed to update playlist membership",
   "moviePageWatchLabel": "Last watched at {position}",

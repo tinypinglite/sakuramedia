@@ -74,6 +74,10 @@ void main() {
       find.byKey(const Key('desktop-rankings-batch-subscribe-button')),
       findsOneWidget,
     );
+    expect(
+      find.byKey(const Key('desktop-rankings-batch-add-playlist-button')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -113,6 +117,13 @@ void main() {
     await refreshFuture;
     await tester.pumpAndSettle();
     expect(_itemRequests(bundle), hasLength(2));
+
+    await tester.longPress(find.byKey(const Key('movie-summary-card-ABC-001')));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('mobile-rankings-batch-add-playlist-button')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }

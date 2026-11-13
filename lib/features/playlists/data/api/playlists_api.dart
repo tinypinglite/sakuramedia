@@ -82,6 +82,17 @@ class PlaylistsApi {
     );
   }
 
+  Future<PlaylistMovieBatchAddResultDto> addMoviesToPlaylist({
+    required int playlistId,
+    required List<String> movieNumbers,
+  }) async {
+    final response = await _apiClient.post(
+      '/playlists/$playlistId/movies',
+      data: <String, dynamic>{'movie_numbers': movieNumbers},
+    );
+    return PlaylistMovieBatchAddResultDto.fromJson(response);
+  }
+
   Future<void> removeMovieFromPlaylist({
     required int playlistId,
     required String movieNumber,

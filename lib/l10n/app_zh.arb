@@ -2700,6 +2700,32 @@
   "playlistPickerLoadFailed": "播放列表加载失败",
   "playlistNoMatch": "没有匹配的播放列表",
   "playlistSearchHint": "搜索播放列表",
+  "moviePlaylistTargetSearchHint": "搜索播放列表",
+  "moviePlaylistTargetEmpty": "暂无播放列表，点击下方新建",
+  "moviePlaylistTargetNoMatch": "没有匹配的播放列表",
+  "moviePlaylistTargetCreateAndAdd": "新建播放列表并加入",
+  "moviePlaylistBatchAddedToast": "已将 {count} 部影片加入“{name}”",
+  "@moviePlaylistBatchAddedToast": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "moviePlaylistBatchPartialToast": "已加入 {updated} 部，{skipped} 部未找到",
+  "@moviePlaylistBatchPartialToast": {
+    "placeholders": {
+      "updated": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
   "playlistRemoveFailed": "移出播放列表失败",
   "playlistAddFailed": "加入播放列表失败",
   "playlistFilterResolution": "分辨率",
@@ -3306,6 +3332,7 @@
     }
   },
   "moviePagePlaylistAddAction": "加入播放列表",
+  "moviePagePlaylistAddActionShort": "加入列表",
   "moviePagePlaylistManageAction": "管理播放列表",
   "moviePagePlaylistUpdateFailed": "播放列表更新失败",
   "moviePageWatchLabel": "上次看到 {position}",

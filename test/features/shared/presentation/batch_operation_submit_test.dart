@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/shared/data/batch_limits.dart';
 import 'package:sakuramedia/features/shared/data/batch_operation_dto.dart';
 import 'package:sakuramedia/features/shared/presentation/batch_operation_submit.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
@@ -66,7 +67,7 @@ void main() {
   testWidgets('超过 ids 上限时本地拦截且不发出请求', (tester) async {
     await pumpSubmitTrigger(
       tester,
-      ids: List<int>.generate(maxBatchOperationItems + 1, (index) => index + 1),
+      ids: List<int>.generate(maxBatchItems + 1, (index) => index + 1),
     );
 
     await tester.tap(find.text('submit'));
@@ -92,7 +93,7 @@ void main() {
     );
     await pumpSubmitTrigger(
       tester,
-      ids: List<int>.generate(maxBatchOperationItems, (index) => index + 1),
+      ids: List<int>.generate(maxBatchItems, (index) => index + 1),
     );
 
     await tester.tap(find.text('submit'));

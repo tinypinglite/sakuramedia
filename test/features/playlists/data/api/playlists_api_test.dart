@@ -299,6 +299,44 @@ void main() {
     expect(request.path, '/playlists/8/movies/ABC-001');
   });
 
+  test(
+    'addMoviesToPlaylist posts all numbers and parses skipped items',
+    () async {
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/playlists/8/movies',
+        body: <String, dynamic>{
+          'requested_count': 3,
+          'updated_count': 2,
+          'skipped_count': 1,
+          'skipped': <Map<String, dynamic>>[
+            <String, dynamic>{
+              'movie_number': 'MISSING-001',
+              'reason': 'movie_not_found',
+            },
+          ],
+        },
+      );
+
+      final result = await playlistsApi.addMoviesToPlaylist(
+        playlistId: 8,
+        movieNumbers: const <String>['ABC-001', 'ABC-002', 'MISSING-001'],
+      );
+
+      final request = adapter.requests.single;
+      expect(request.method, 'POST');
+      expect(request.path, '/playlists/8/movies');
+      expect(request.body, <String, dynamic>{
+        'movie_numbers': <String>['ABC-001', 'ABC-002', 'MISSING-001'],
+      });
+      expect(result.requestedCount, 3);
+      expect(result.updatedCount, 2);
+      expect(result.skippedCount, 1);
+      expect(result.skipped.single.movieNumber, 'MISSING-001');
+      expect(result.skipped.single.reason, 'movie_not_found');
+    },
+  );
+
   test('removeMovieFromPlaylist sends delete request', () async {
     adapter.enqueueJson(
       method: 'DELETE',

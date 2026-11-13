@@ -23,7 +23,12 @@ Future<T?> showCollectionTargetPicker<T extends Object>({
   int? excludedCollectionId,
   AppAdaptiveModalVariant variant = AppAdaptiveModalVariant.auto,
   Key? drawerKey,
+  String? searchHint,
+  String? emptyMessage,
+  String? noMatchMessage,
+  String? createAndAddLabel,
 }) {
+  final l10n = AppLocalizations.of(context);
   return showAppAdaptiveModal<T>(
     context: context,
     variant: variant,
@@ -39,6 +44,11 @@ Future<T?> showCollectionTargetPicker<T extends Object>({
       optionKeyPrefix: optionKeyPrefix,
       onCreate: onCreate,
       excludedCollectionId: excludedCollectionId,
+      searchHint: searchHint ?? l10n.widgetCollectionPickerSearchHint,
+      emptyMessage: emptyMessage ?? l10n.widgetCollectionPickerEmpty,
+      noMatchMessage: noMatchMessage ?? l10n.widgetCollectionPickerNoMatch,
+      createAndAddLabel:
+          createAndAddLabel ?? l10n.widgetCollectionPickerCreateAndAdd,
     ),
   );
 }
@@ -52,6 +62,10 @@ class _CollectionTargetPicker<T extends Object> extends ConsumerStatefulWidget {
     required this.optionKeyPrefix,
     required this.onCreate,
     required this.excludedCollectionId,
+    required this.searchHint,
+    required this.emptyMessage,
+    required this.noMatchMessage,
+    required this.createAndAddLabel,
   });
 
   final AsyncValue<List<T>> Function(WidgetRef ref) watchCollections;
@@ -67,6 +81,10 @@ class _CollectionTargetPicker<T extends Object> extends ConsumerStatefulWidget {
 
   /// 不在列表中显示的合集 id（从合集详情页发起「加入其它合集」时排除自身）。
   final int? excludedCollectionId;
+  final String searchHint;
+  final String emptyMessage;
+  final String noMatchMessage;
+  final String createAndAddLabel;
 
   @override
   ConsumerState<_CollectionTargetPicker<T>> createState() =>
@@ -85,14 +103,15 @@ class _CollectionTargetPickerState<T extends Object>
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
     return CollectionPickerResults<T>(
       collections: widget.watchCollections(ref),
       chrome: (
         keyPrefix: 'collection-target-picker',
-        emptyMessage: l10n.widgetCollectionPickerEmpty,
+        emptyMessage: widget.emptyMessage,
       ),
       nameOf: widget.nameOf,
+      searchHint: widget.searchHint,
+      noMatchMessage: widget.noMatchMessage,
       where: (collection) =>
           widget.idOf(collection) != widget.excludedCollectionId,
       rowsBuilder: (context, visible) => [
@@ -110,16 +129,16 @@ class _CollectionTargetPickerState<T extends Object>
             ),
             onTap: () => Navigator.of(context).pop(collection),
           ),
-        _buildCreateRow(context, l10n),
+        _buildCreateRow(context),
       ],
     );
   }
 
-  Widget _buildCreateRow(BuildContext context, AppLocalizations l10n) {
+  Widget _buildCreateRow(BuildContext context) {
     final accent = Theme.of(context).colorScheme.primary;
     return AppPickerIosRow(
       leading: Icon(Icons.add_circle_outline_rounded, color: accent),
-      title: l10n.widgetCollectionPickerCreateAndAdd,
+      title: widget.createAndAddLabel,
       titleColor: accent,
       onTap: _createAndPick,
       optionKey: const Key('collection-target-picker-create-button'),
