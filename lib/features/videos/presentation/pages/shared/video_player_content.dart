@@ -505,14 +505,14 @@ class _VideoPlayerContentState extends ConsumerState<VideoPlayerContent>
   }) {
     final l10n = AppLocalizations.of(context);
     final title = _title.trim();
-    // 面板展开或窗口很窄时，竖屏判定可能仍不足以及时收窄底栏；按播放区实际
-    // 宽度一起判断，避免音量/时间文本把底栏挤到溢出。
+    // 面板展开或窗口很窄时，竖屏判定可能仍不足以判断音量按钮是否需要收窄；
+    // 按播放区实际宽度一起判断，避免音量按钮把底栏挤到溢出。
     final compactBottomControls = isPortrait || compactTopControls;
     final bottomControls = <Widget>[
       const MaterialPlayOrPauseButton(),
       if (!widget.useTouchOptimizedControls && !compactBottomControls)
         const MaterialDesktopVolumeButton(),
-      if (!compactBottomControls) const MaterialPositionIndicator(),
+      const MaterialPositionIndicator(),
       const Spacer(),
       // 移动播放页进入即横屏沉浸，不显示桌面式全屏按钮。
       if (!widget.useTouchOptimizedControls) const PlayerAppFullscreenButton(),

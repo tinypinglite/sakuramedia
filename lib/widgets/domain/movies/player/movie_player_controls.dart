@@ -76,7 +76,7 @@ List<Widget> buildMoviePlayerMobileBottomControls({
   return <Widget>[
     const MaterialPlayOrPauseButton(),
     if (!compact) const MaterialDesktopVolumeButton(),
-    if (!compact) const MaterialPositionIndicator(),
+    const MaterialPositionIndicator(),
     const Spacer(),
     // 全屏态传 false：倍速 / 字幕抽屉浮层挂在播放页 Stack 上，不在 media_kit
     // push 的全屏路由内，按钮点了没反应，直接隐藏。
