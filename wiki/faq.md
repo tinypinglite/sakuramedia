@@ -22,7 +22,10 @@ video.dmm.co.jp
 awsimgsrc.dmm.co.jp
 pics.dmm.co.jp
 www.javbus.com
+www.f101w.com
 ```
+
+The JavLibrary mirror host is configurable; the default is `www.f101w.com`.
 
 The host being able to reach a site does not mean the container can reach it. Requests to external sites use the `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` environment variables of the `sakuramedia` container; setting a proxy only for the Docker daemon or the host does not pass it to the container.
 
@@ -32,7 +35,7 @@ Troubleshooting order:
 2. Check DNS and connectivity for the fixed domains from the deployment host. If the host has `curl`, run:
 
    ```bash
-   for host in avmoo.shop jp.netcdn.space adult.contents.fc2.com fc2cmadb.com api.video.dmm.co.jp video.dmm.co.jp awsimgsrc.dmm.co.jp pics.dmm.co.jp www.javbus.com; do
+   for host in avmoo.shop jp.netcdn.space adult.contents.fc2.com fc2cmadb.com api.video.dmm.co.jp video.dmm.co.jp awsimgsrc.dmm.co.jp pics.dmm.co.jp www.javbus.com www.f101w.com; do
      curl -sS -o /dev/null -w "$host %{http_code}\n" --max-time 10 "https://$host"
    done
    ```

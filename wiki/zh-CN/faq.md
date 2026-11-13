@@ -22,7 +22,10 @@ video.dmm.co.jp
 awsimgsrc.dmm.co.jp
 pics.dmm.co.jp
 www.javbus.com
+www.f101w.com
 ```
+
+JavLibrary 的镜像站域名可配置，默认为 `www.f101w.com`。
 
 宿主机能访问不代表容器能访问。外部站点请求使用 `sakuramedia` 容器的环境变量 `HTTP_PROXY`、`HTTPS_PROXY` 和 `NO_PROXY`；只配置 Docker daemon 或宿主机代理不会自动传给容器。
 
@@ -32,7 +35,7 @@ www.javbus.com
 2. 在部署机器上检查固定域名的 DNS 和连通性。如果部署机器有 `curl`，可以执行：
 
    ```bash
-   for host in avmoo.shop jp.netcdn.space adult.contents.fc2.com fc2cmadb.com api.video.dmm.co.jp video.dmm.co.jp awsimgsrc.dmm.co.jp pics.dmm.co.jp www.javbus.com; do
+   for host in avmoo.shop jp.netcdn.space adult.contents.fc2.com fc2cmadb.com api.video.dmm.co.jp video.dmm.co.jp awsimgsrc.dmm.co.jp pics.dmm.co.jp www.javbus.com www.f101w.com; do
      curl -sS -o /dev/null -w "$host %{http_code}\n" --max-time 10 "https://$host"
    done
    ```
