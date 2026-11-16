@@ -108,7 +108,8 @@ jobs:
               --notes-file /tmp/release-notes.md
             echo "Updated existing public release ${TAG}"
           else
-            args=(--target main --title "$TITLE" --notes-file /tmp/release-notes.md)
+            # tag 指向公开仓库的空 release 分支，避免自动 Source code 归档带出源码。
+            args=(--target release --title "$TITLE" --notes-file /tmp/release-notes.md)
             if [ "$IS_PRERELEASE" = "true" ]; then
               args+=(--prerelease --latest=false)
             else
