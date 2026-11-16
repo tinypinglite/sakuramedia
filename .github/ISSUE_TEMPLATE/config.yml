@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+
+contact_links:
+  - name: 📖 先看 Wiki
+    url: https://tinypinglite.github.io/sakuramedia/guide/quick-start.html
+    about: 大部分问题在 Wiki 里都能找到答案，建议先看一遍快速开始和配置说明以及常见问题。
+  - name: 🤖 把 Wiki 交给 AI 帮你排查
+    url: https://tinypinglite.github.io/sakuramedia/
+    about: wiki支持下载本地, 可以尝试把你的问题和Wiki一起丢给AI。

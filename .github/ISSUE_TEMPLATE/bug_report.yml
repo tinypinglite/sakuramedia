@@ -1,0 +1,91 @@
+name: Bug 反馈
+description: 遇到了问题或异常行为
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        感谢反馈！提交前请先确认：
+
+        1. **查过 [Wiki 常见问题](https://tinypinglite.github.io/sakuramedia/faq)** —— 大部分使用问题已有解答
+        2. **试过让 AI 帮你排查** —— 把仓库 `wiki/` 目录的 Markdown 文件下载下来，丢给 DeepSeek / ChatGPT 等 AI 描述你的问题，通常能更快拿到答案
+        3. **搜过已有 Issue** —— 避免重复提交
+
+        以上都没能解决，请继续填写 👇
+
+  - type: input
+    id: version
+    attributes:
+      label: 后端版本 以及 所使用的各个插件版本
+      description: 后端版本在APP侧边栏可以看到，插件版本在系统设置 -> 插件中 可以看到
+      placeholder: "例如: 后端 v0.4.8; 插件: 插件A v1.2.3, 插件B v4.5.6"
+    validations:
+      required: true
+
+  - type: input
+    id: app_version
+    attributes:
+      label: APP版本
+      description: APP版本在APP侧边栏可以看到，插件版本在系统设置 -> 插件中 可以看到
+      placeholder: "v0.4.8"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: client
+    attributes:
+      label: 客户端类型
+      options:
+        - 桌面端 (macOS)
+        - 桌面端 (Windows)
+        - 移动端 (iOS)
+        - 移动端 (Android)
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 清楚描述你遇到的问题，包括你做了什么、期望看到什么、实际发生了什么
+      placeholder: |
+        1. 进入 XX 页面
+        2. 点击 XX 按钮
+        3. 出现 XX 错误 / 没有任何反应
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志或截图
+      description: 如有报错日志、截图或录屏，请贴在这里。 注意给图片打码
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: reproduction_steps
+    attributes:
+      label: 问题复现步骤（可选）
+      description: 如果问题可以复现，请按实际操作顺序填写步骤，方便定位问题
+      placeholder: |
+        1. 进入 XX 页面
+        2. 点击 XX 按钮
+        3. 出现 XX 错误 / 没有任何反应
+    validations:
+      required: false
+
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: 提交前确认
+      options:
+        - label: 我已查阅 [Wiki 常见问题](https://tinypinglite.github.io/sakuramedia/faq)，没有找到解答
+          required: true
+        - label: 我已搜索过已有 Issue，没有重复
+          required: true
+        - label: 我确定我没有上传包含敏感信息文字、图片/视频.
+          required: true
+        

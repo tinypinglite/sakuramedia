@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-11-14T00:00:00Z",
+  "announcements": [
+    {
+      "id": "example-2026-11-14-welcome",
+      "level": "info",
+      "title_i18n": {
+        "zh-CN": "示例：info 级公告",
+        "en": "Example: info announcement"
+      },
+      "body_i18n": {
+        "zh-CN": "info 和 warning 只出现在左下角版本号弹层的「公告」区块；未读时版本号旁会有小圆点。",
+        "en": "Info and warning announcements only appear in the Announcements section of the version popover at the bottom left; an unseen dot shows up next to the version label."
+      },
+      "published_at": "2026-11-14T00:00:00Z",
+      "expires_at": "2026-12-31T00:00:00Z",
+      "component": "all"
+    },
+    {
+      "id": "example-2026-11-14-frontend-warning",
+      "level": "warning",
+      "title_i18n": {
+        "zh-CN": "示例：0.16.0 之前的客户端存在播放问题",
+        "en": "Example: players before 0.16.0 have a playback issue"
+      },
+      "body_i18n": {
+        "zh-CN": "只对 0.16.0 之前的客户端显示（含 0.10.0），升级到 0.16.0 后自动消失。",
+        "en": "Shown only to clients from 0.10.0 up to (but excluding) 0.16.0; disappears after upgrading."
+      },
+      "published_at": "2026-11-14T00:00:00Z",
+      "component": "frontend",
+      "affected_from_version": "0.10.0",
+      "resolved_in_version": "0.16.0",
+      "link": "https://github.com/tinypinglite/sakuramedia/releases"
+    },
+    {
+      "id": "example-2026-11-14-backend-critical",
+      "level": "critical",
+      "title_i18n": {
+        "zh-CN": "示例：请升级到 0.15.0",
+        "en": "Example: upgrade to 0.15.0"
+      },
+      "body_i18n": {
+        "zh-CN": "critical 会在登录后强制弹窗，用户必须点「知道了」才能继续；同一个 id 每台设备只弹一次。",
+        "en": "Critical announcements show a blocking dialog after login until acknowledged; each id is shown once per device."
+      },
+      "published_at": "2026-11-14T00:00:00Z",
+      "expires_at": null,
+      "component": "backend",
+      "affected_from_version": "0.10.0",
+      "resolved_in_version": "0.15.0",
+      "link": "https://github.com/tinypinglite/sakuramediabe/security/advisories"
+    },
+    {
+      "id": "example-2026-12-01-scheduled",
+      "level": "info",
+      "title_i18n": {
+        "zh-CN": "示例：定时公告",
+        "en": "Example: scheduled announcement"
+      },
+      "body_i18n": {
+        "zh-CN": "published_at 填未来时间即可定时上线，expires_at 到点自动下线；前提是 feed 已在预定时间前被后端拉取过（提前 30~60 分钟推送）。",
+        "en": "Set published_at to a future time to schedule it, and expires_at to retire it automatically. The feed must have been fetched by the backend before that time (publish 30-60 minutes ahead)."
+      },
+      "published_at": "2026-12-01T08:00:00Z",
+      "expires_at": "2026-12-02T08:00:00Z",
+      "component": "all"
+    },
+    {
+      "id": "example-backend-all-versions",
+      "level": "warning",
+      "title_i18n": {
+        "zh-CN": "示例：不限版本的后端公告",
+        "en": "Example: backend announcement without version bounds"
+      },
+      "body_i18n": {
+        "zh-CN": "component 为 frontend/backend 时，版本边界是可选的；不写就对该端所有版本显示。",
+        "en": "Version bounds are optional for frontend/backend announcements; omit them to target every version of that side."
+      },
+      "published_at": "2026-11-14T00:00:00Z",
+      "component": "backend"
+    }
+  ]
+}

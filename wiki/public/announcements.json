@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-11-15T04:10:03Z",
+  "announcements": [
+    {
+      "id": "2026-11-15-frontend-115-playback-0-15-2",
+      "level": "critical",
+      "title_i18n": {
+        "zh-CN": "请升级客户端至 0.15.2",
+        "en": "Please upgrade the app to 0.15.2"
+      },
+      "body_i18n": {
+        "zh-CN": "服务端已更新至 0.15.2。为适配最新的 115 网盘播放链路，请将客户端升级至 0.15.2 版本。旧版本可能无法正常播放 115 网盘资源。",
+        "en": "The server has been updated to 0.15.2. To support the latest 115 Cloud Drive playback flow, please upgrade the app to version 0.15.2. Older versions may be unable to play 115 Cloud Drive resources."
+      },
+      "published_at": "2026-11-15T04:10:03Z",
+      "expires_at": null,
+      "component": "frontend",
+      "resolved_in_version": "0.15.2",
+      "link": "https://github.com/tinypinglite/sakuramedia/releases"
+    }
+  ]
+}

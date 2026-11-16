@@ -1,0 +1,105 @@
+name: Deploy Docs to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'wiki/**'
+      - 'scripts/generate-star-history.mjs'
+      - '.github/workflows/docs.yml'
+  schedule:
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: wiki/package-lock.json
+
+      - name: Install dependencies
+        working-directory: wiki
+        run: npm install
+
+      - name: Generate star history SVGs
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          REPO: ${{ github.repository }}
+        run: node scripts/generate-star-history.mjs
+
+      - name: Build
+        working-directory: wiki
+        run: npm run docs:build
+
+      - name: Package wiki archive
+        working-directory: wiki
+        run: |
+          mkdir -p .vitepress/dist/downloads
+          BUILD_TIME=$(date -u '+%Y-%m-%d %H:%M UTC')
+          SHORT_SHA=${GITHUB_SHA::7}
+          cat > README.md <<EOF
+          # SakuraMedia Wiki 离线包
+
+          - 打包时间: ${BUILD_TIME}
+          - 提交版本: ${SHORT_SHA}
+          - 在线最新版: https://tinypinglite.github.io/sakuramedia/
+          - 项目仓库: https://github.com/tinypinglite/sakuramedia
+
+          此包为 Wiki 内容的一次性快照，Wiki 会持续更新，建议定期回上方链接获取最新内容。
+
+          ## 目录说明
+
+          站点默认英文，中文站位于 \`/zh-CN/\`，离线包两种语言都收录：
+
+          - \`index.md\` / \`faq.md\` / \`guide/\` / \`manual/\`: 英文站点内容
+          - \`zh-CN/\`: 中文站点内容（同样的结构）
+          - \`public/\`: 图片与品牌资源
+
+          ## 阅读建议
+
+          Markdown 文件可用任何编辑器/预览工具查看，推荐 Typora、Obsidian、VS Code 等。
+
+          文档内部链接（如 \`/guide/xxx\`、\`/zh-CN/guide/xxx\`）指向在线站点路径，离线阅读时可能无法直接跳转，建议对照在线版一起看。
+          EOF
+
+          zip -r .vitepress/dist/downloads/sakuramedia-wiki.zip \
+            README.md index.md faq.md guide manual zh-CN public
+          rm README.md
+          echo "Archive size:"
+          ls -lh .vitepress/dist/downloads/sakuramedia-wiki.zip
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: wiki/.vitepress/dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
