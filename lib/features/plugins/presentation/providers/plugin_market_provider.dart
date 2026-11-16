@@ -19,7 +19,7 @@ class PluginMarket extends _$PluginMarket
 
   @override
   Future<PluginMarketState> build() async {
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     attachDisposeGuard();
     return PluginMarketState(catalog: await _fetchCatalog());
   }

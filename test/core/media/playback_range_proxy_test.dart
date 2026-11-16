@@ -361,6 +361,23 @@ void main() {
     expect(response.body, origin.bytes.sublist(origin.bytes.length - 65536));
     expect(origin.requestedRanges.first, 'bytes=0-0');
   });
+
+  test('disposed shared proxy is replaced by a fresh instance', () async {
+    const policy = PlaybackProxyPolicy(
+      providerKey: 'shared-restart-test',
+      enabled: true,
+    );
+    final first = await LoopbackRangePlaybackProxy.shared(policy);
+    addTearDown(first.dispose);
+
+    await first.dispose();
+    await Future<void>.delayed(Duration.zero);
+
+    final second = await LoopbackRangePlaybackProxy.shared(policy);
+    addTearDown(second.dispose);
+
+    expect(identical(first, second), isFalse);
+  });
 }
 
 class _RangeResponse {

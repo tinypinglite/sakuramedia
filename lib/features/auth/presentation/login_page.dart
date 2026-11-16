@@ -32,6 +32,7 @@ import 'package:sakuramedia/widgets/base/layout/badges/app_media_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_glass_anchored_menu.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/domain/settings/network_proxy_dialog.dart';
 
 const double _wideViewportMinHeight = 700;
 const double _scrollFallbackMinHeight = 560;
@@ -543,6 +544,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
               enabled: !_isSubmitting,
               onSelected: _handleLanguageSelected,
             ),
+            _LoginNetworkProxyButton(enabled: !_isSubmitting),
           ],
         ),
       ],
@@ -1556,10 +1558,17 @@ class _ProtocolPrefix extends StatelessWidget {
 
 /// 登录页顶部的控件胶囊，语言与界面风格共用同一外观。
 class _LoginTopBarPill extends StatelessWidget {
-  const _LoginTopBarPill({required this.icon, required this.label});
+  const _LoginTopBarPill({
+    required this.icon,
+    required this.label,
+    this.showArrow = true,
+    this.showLabel = true,
+  });
 
   final IconData icon;
   final String label;
+  final bool showArrow;
+  final bool showLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -1579,20 +1588,23 @@ class _LoginTopBarPill extends StatelessWidget {
             size: context.appComponentTokens.iconSizeSm,
             color: context.appTextPalette.muted,
           ),
-          SizedBox(width: spacing.xs),
-          Text(
-            label,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              tone: AppTextTone.secondary,
+          if (showLabel) ...[
+            SizedBox(width: spacing.xs),
+            Text(
+              label,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                tone: AppTextTone.secondary,
+              ),
             ),
-          ),
-          Icon(
-            Icons.arrow_drop_down_rounded,
-            size: context.appComponentTokens.iconSizeSm,
-            color: context.appTextPalette.muted,
-          ),
+          ],
+          if (showArrow)
+            Icon(
+              Icons.arrow_drop_down_rounded,
+              size: context.appComponentTokens.iconSizeSm,
+              color: context.appTextPalette.muted,
+            ),
         ],
       ),
     );
@@ -1763,6 +1775,45 @@ class _LoginLanguageSwitcher extends StatelessWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// 登录页顶栏的全局网络代理入口；登录前也能修改，避免代理配错后无法恢复。
+class _LoginNetworkProxyButton extends StatelessWidget {
+  const _LoginNetworkProxyButton({required this.enabled});
+
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Semantics(
+      label: l10n.networkProxyTitle,
+      child: Tooltip(
+        message: l10n.networkProxyTitle,
+        child: AppInteractiveSurface(
+          key: const Key('login-network-proxy-button'),
+          enabled: enabled,
+          onTap: enabled
+              ? () => unawaited(showNetworkProxyDialog(context))
+              : null,
+          focusRingRadius: context.appRadius.pillBorder,
+          child: SizedBox(
+            height: kMinInteractiveDimension,
+            child: Center(
+              widthFactor: 1,
+              heightFactor: 1,
+              child: _LoginTopBarPill(
+                icon: Icons.settings_ethernet_rounded,
+                label: l10n.networkProxyTitle,
+                showArrow: false,
+                showLabel: false,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

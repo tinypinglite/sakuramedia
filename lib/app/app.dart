@@ -11,8 +11,10 @@ import 'package:sakuramedia/app/first_login_performance_hint.dart';
 import 'package:sakuramedia/app/language/language_store.dart';
 import 'package:sakuramedia/app/language/providers/language_providers.dart';
 import 'package:sakuramedia/app/network_permission_hint.dart';
+import 'package:sakuramedia/app/network_proxy_store.dart';
 import 'package:sakuramedia/app/onboarding_store.dart';
 import 'package:sakuramedia/app/providers/appearance_providers.dart';
+import 'package:sakuramedia/app/providers/network_proxy_providers.dart';
 import 'package:sakuramedia/app/window_bootstrap_desktop.dart'
     show applyDesktopWindowAppearance;
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
@@ -53,6 +55,7 @@ class MyApp extends StatefulWidget {
     this.sessionStore,
     this.appearanceStore,
     this.languageStore,
+    this.networkProxyStore,
     this.onboardingStore,
     this.announcementStateStore,
     this.observers,
@@ -66,6 +69,9 @@ class MyApp extends StatefulWidget {
 
   /// 界面语言存储；生产传 SharedPreferences 实现，测试/预览默认内存实现。
   final AppLanguageStore? languageStore;
+
+  /// 全局 HTTP 代理存储；生产传 SharedPreferences 实现，测试/预览默认内存实现。
+  final NetworkProxyStore? networkProxyStore;
 
   /// 一次性上手提示存储；生产传 SharedPreferences 实现，测试/预览默认内存实现。
   final OnboardingStore? onboardingStore;
@@ -89,6 +95,7 @@ class _MyAppState extends State<MyApp> {
   late SessionStore _activeSessionStore;
   late AppearanceStore _activeAppearanceStore;
   late AppLanguageStore _activeLanguageStore;
+  late NetworkProxyStore _activeNetworkProxyStore;
   late OnboardingStore _activeOnboardingStore;
   late AnnouncementStateStore _activeAnnouncementStateStore;
   late GoRouter _router;
@@ -107,6 +114,7 @@ class _MyAppState extends State<MyApp> {
     if (oldWidget.platformOverride == widget.platformOverride &&
         oldWidget.sessionStore == widget.sessionStore &&
         oldWidget.languageStore == widget.languageStore &&
+        oldWidget.networkProxyStore == widget.networkProxyStore &&
         oldWidget.onboardingStore == widget.onboardingStore &&
         oldWidget.announcementStateStore == widget.announcementStateStore) {
       return;
@@ -129,6 +137,8 @@ class _MyAppState extends State<MyApp> {
     _activeAppearanceStore =
         widget.appearanceStore ?? InMemoryAppearanceStore();
     _activeLanguageStore = widget.languageStore ?? InMemoryLanguageStore();
+    _activeNetworkProxyStore =
+        widget.networkProxyStore ?? InMemoryNetworkProxyStore();
     _activeOnboardingStore =
         widget.onboardingStore ?? InMemoryOnboardingStore();
     _activeAnnouncementStateStore =
@@ -163,6 +173,7 @@ class _MyAppState extends State<MyApp> {
           sessionStoreProvider.overrideWithValue(_activeSessionStore),
           appearanceStoreProvider.overrideWithValue(_activeAppearanceStore),
           appLanguageStoreProvider.overrideWithValue(_activeLanguageStore),
+          networkProxyStoreProvider.overrideWithValue(_activeNetworkProxyStore),
           announcementStateStoreProvider.overrideWithValue(
             _activeAnnouncementStateStore,
           ),

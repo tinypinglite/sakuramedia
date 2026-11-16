@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/core/network/api_exception.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/features/configuration/data/api/download_clients_api.dart';
@@ -216,6 +217,56 @@ void main() {
       isEmpty,
     );
     expect(fetches, 2);
+  });
+
+  test('登出瞬间页面仍挂载：无 token 重建立即失败，登录后自动重拉不再显示旧 401', () async {
+    await store.saveBaseUrl('https://api.example.com');
+    await store.saveTokens(
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: DateTime.parse('2026-08-05T12:00:00Z'),
+    );
+    final api = _FakeMediaLibrariesApi(apiClient: apiClient);
+    var fetches = 0;
+    api.getHandler = () async {
+      fetches += 1;
+      if (!store.hasSession) {
+        throw ApiException.unauthorized(message: '请先登录');
+      }
+      return [_library(1, 'Main')];
+    };
+    final container = ProviderContainer(
+      overrides: [
+        sessionStoreProvider.overrideWithValue(store),
+        mediaLibrariesApiProvider.overrideWithValue(api),
+      ],
+      retry: (_, _) => null,
+    );
+    addTearDown(container.dispose);
+    // 设置页正开着：provider 在登出边沿有活跃监听者，会立即用无 token 请求重建。
+    container.listen(mediaLibrariesProvider, (_, _) {});
+
+    expect(await container.read(mediaLibrariesProvider.future), hasLength(1));
+    expect(fetches, 1);
+
+    await store.clearSession();
+    await expectLater(
+      container.read(mediaLibrariesProvider.future),
+      throwsA(isA<ApiException>()),
+    );
+    expect(container.read(mediaLibrariesProvider).hasError, isTrue);
+    expect(fetches, 2);
+
+    // 重新登录：必须再次失效并用新 token 重拉，而不是把上面这次 401 留到进程结束。
+    await store.saveTokens(
+      accessToken: 'access-token-2',
+      refreshToken: 'refresh-token-2',
+      expiresAt: DateTime.parse('2026-08-06T12:00:00Z'),
+    );
+    final recovered = await container.read(mediaLibrariesProvider.future);
+    expect(recovered.single.name, 'Main');
+    expect(container.read(mediaLibrariesProvider).hasError, isFalse);
+    expect(fetches, 3);
   });
 
   test('媒体库 CRUD 更新 media 域派生状态且只请求一次', () async {

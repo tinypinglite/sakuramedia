@@ -18,7 +18,7 @@ class MovieSubscriptionStatusCounts extends _$MovieSubscriptionStatusCounts
     with AsyncNotifierDisposeGuardMixin<MovieSubscriptionStatusCountsDto> {
   @override
   Future<MovieSubscriptionStatusCountsDto> build() async {
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     attachDisposeGuard();
     return ref.read(movieSubscriptionsApiProvider).getStatusCounts();
   }

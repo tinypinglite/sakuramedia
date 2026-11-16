@@ -25,7 +25,6 @@ const zhSidebar = [
       { text: '媒体存储迁移', link: '/zh-CN/guide/media-storage-transfer' },
       { text: '常用命令', link: '/zh-CN/guide/commands' },
       { text: '常见问题', link: '/zh-CN/faq' },
-      { text: '插件开发', link: '/zh-CN/guide/plugin-development' },
     ],
   },
   {
@@ -87,7 +86,6 @@ const enSidebar = [
       { text: 'Media storage transfer', link: '/guide/media-storage-transfer' },
       { text: 'Common commands', link: '/guide/commands' },
       { text: 'FAQ', link: '/faq' },
-      { text: 'Plugin development', link: '/guide/plugin-development' },
     ],
   },
   {

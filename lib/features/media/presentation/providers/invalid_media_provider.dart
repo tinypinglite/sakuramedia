@@ -46,7 +46,7 @@ class InvalidMedia extends _$InvalidMedia
 
   @override
   Future<InvalidMediaState> build() async {
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     attachDisposeGuard();
     final paged = await loadInitialPage();
     return InvalidMediaState(paged: paged);

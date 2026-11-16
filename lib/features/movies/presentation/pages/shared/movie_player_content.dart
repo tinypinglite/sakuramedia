@@ -16,6 +16,7 @@ import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/media/playback_user_agent.dart';
 import 'package:sakuramedia/core/media/playback_source.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/core/format/file_size.dart';
 import 'package:sakuramedia/core/format/media_timecode.dart';
@@ -253,6 +254,13 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
       subtitleState: _playerState.subtitleState,
       onSubtitleSelectionChanged: _controller.setSelectedSubtitleId,
       onSubtitleReloadRequested: _controller.loadSubtitles,
+      onReloadRequested: (position) {
+        unawaited(
+          _controller.load(
+            startupPosition: position > Duration.zero ? position : null,
+          ),
+        );
+      },
       onBackPressed: _handleBack,
       isPortraitOverride: isPortrait,
       compactTopControlsOverride: compactTopControls,
@@ -654,6 +662,7 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
     this.subtitleState = MoviePlayerSubtitleState.empty,
     this.onSubtitleSelectionChanged,
     this.onSubtitleReloadRequested,
+    this.onReloadRequested,
     this.onBackPressed,
     this.isPortraitOverride,
     this.compactTopControlsOverride,
@@ -688,6 +697,10 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
   final MoviePlayerSubtitleState subtitleState;
   final ValueChanged<int?>? onSubtitleSelectionChanged;
   final Future<void> Function()? onSubtitleReloadRequested;
+
+  /// 连续两次重试仍失败时，由宿主重新拉取影片详情并重建播放面。
+  /// 参数是失败时的播放位置，用于重新加载后回到原处。
+  final ValueChanged<Duration>? onReloadRequested;
   final VoidCallback? onBackPressed;
 
   /// 播放区实际布局方向。iOS 旋转后 MediaQuery 可能滞后，由宿主按播放区
@@ -747,6 +760,11 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
   StreamSubscription<double?>? _audioBitrateSubscription;
   int _openRequestId = 0;
   bool _hasPlaybackError = false;
+  bool _retryInFlight = false;
+
+  /// 首次失败先原地重新打开；第二次仍失败时交给宿主重新拉详情，避免在
+  /// 同一条 115 直链或同一份已失效的播放数据上无限重试。
+  bool _quickRetryAttempted = false;
   Duration? _pendingInitialSeek;
   late final MoviePlayerResumePromptCoordinator _resumePrompt;
   late final MoviePlayerStartupSeekCoordinator _startupSeek;
@@ -859,6 +877,8 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       _playbackRate.resetMobileDisplayForNewMedia(_player.state.rate);
       _closeAllMobileDrawers();
       _hasPlaybackError = false;
+      _retryInFlight = false;
+      _quickRetryAttempted = false;
       unawaited(_openMedia());
     }
     if (oldWidget.resumePosition != widget.resumePosition) {
@@ -920,21 +940,28 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     );
   }
 
-  Future<void> _openMedia() async {
+  Future<void> _openMedia({Duration? retryPosition}) async {
     final requestId = ++_openRequestId;
     final playbackAttemptId = _createPlaybackAttemptId();
     final playbackUrl = withPlaybackAttemptId(
       widget.resolvedUrl,
       playbackAttemptId,
     );
+    // 重试时优先回到失败位置；失败发生在起播阶段（位置为 0）则回到
+    // 路由指定的起播点，避免用户从时刻/缩略图进入时被重置到片头。
+    final retryingFromPlayback =
+        retryPosition != null && retryPosition > Duration.zero;
+    final startupPosition = retryingFromPlayback
+        ? retryPosition
+        : widget.initialPosition;
     _statsSampler.reset();
-    _startupSeek.begin(widget.initialPosition);
+    _startupSeek.begin(startupPosition);
     _pendingInitialSeek = null;
     _resumePrompt.beginSession(
-      hasResumePosition: widget.resumePosition != null,
+      hasResumePosition: widget.resumePosition != null && !retryingFromPlayback,
     );
     debugPrint(
-      '[player-debug] surface_state_open_media requestId=$requestId url=${widget.resolvedUrl} initialPositionSeconds=${widget.initialPosition?.inSeconds} startupTargetSeconds=${_startupSeek.target?.inSeconds}',
+      '[player-debug] surface_state_open_media requestId=$requestId url=${widget.resolvedUrl} initialPositionSeconds=${startupPosition?.inSeconds} retryPositionSeconds=${retryPosition?.inSeconds} startupTargetSeconds=${_startupSeek.target?.inSeconds}',
     );
     _isSurfaceReady.value = false;
     await _configureSeekFramedrop();
@@ -957,7 +984,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
         waitUntilFirstFrameRendered: () =>
             _controller.waitUntilFirstFrameRendered,
         resolvedUrl: playbackUrl,
-        initialPosition: widget.initialPosition,
+        initialPosition: startupPosition,
         shouldContinue: () => mounted && requestId == _openRequestId,
         waitUntilSeekReady: () => waitUntilInitialSeekReady(
           firstFrame: _controller.waitUntilFirstFrameRendered,
@@ -1040,6 +1067,15 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
   }
 
   void _markSurfaceReady() {
+    _quickRetryAttempted = false;
+    // 重试期间旧一次 open 的迟到错误可能已经把错误态重新立起来；新一次
+    // 播放既然已经出帧，就以实际可播为准把浮层收掉。
+    if (_hasPlaybackError) {
+      _hasPlaybackError = false;
+      if (mounted) {
+        setState(() {});
+      }
+    }
     _isSurfaceReady.value = true;
     final pendingSeek = _pendingInitialSeek;
     _pendingInitialSeek = null;
@@ -1067,6 +1103,38 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     setState(() {
       _hasPlaybackError = true;
     });
+  }
+
+  Future<void> _retryPlayback() async {
+    if (_retryInFlight) {
+      return;
+    }
+    final position = _player.state.position;
+    final reload = widget.onReloadRequested;
+    // 第一次先原地重开：保留当前 Player 和播放位置，只重新发起一次播放
+    // 尝试（新的 playback_attempt_id 会让后端重新解析 115 直链）。
+    // 第二次仍失败则交给宿主重新拉取详情并重建播放面，覆盖签名地址失效
+    // 或后端媒体数据变化等情况。
+    if (_quickRetryAttempted && reload != null) {
+      debugPrint(
+        '[player-debug] playback_retry_reload positionSeconds=${position.inSeconds}',
+      );
+      reload(position);
+      return;
+    }
+    _quickRetryAttempted = true;
+    _retryInFlight = true;
+    debugPrint(
+      '[player-debug] playback_retry_reopen positionSeconds=${position.inSeconds}',
+    );
+    setState(() {
+      _hasPlaybackError = false;
+    });
+    try {
+      await _openMedia(retryPosition: position);
+    } finally {
+      _retryInFlight = false;
+    }
   }
 
   Future<void> _handleSubtitleSelected(int? subtitleId) async {
@@ -1394,7 +1462,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       fit: StackFit.expand,
       children: [
         framedPlayer,
-        const MoviePlayerPlaybackErrorOverlay(),
+        MoviePlayerPlaybackErrorOverlay(onRetry: _retryPlayback),
         if (widget.onBackPressed case final onBackPressed?)
           MoviePlayerBackOverlay(onPressed: onBackPressed),
       ],
@@ -1871,7 +1939,9 @@ class _SeekBarPreviewCard extends StatelessWidget {
 }
 
 class MoviePlayerPlaybackErrorOverlay extends StatelessWidget {
-  const MoviePlayerPlaybackErrorOverlay({super.key});
+  const MoviePlayerPlaybackErrorOverlay({super.key, required this.onRetry});
+
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) {
@@ -1912,6 +1982,13 @@ class MoviePlayerPlaybackErrorOverlay extends StatelessWidget {
                   size: AppTextSize.s14,
                   tone: AppTextTone.onMedia,
                 ),
+              ),
+              SizedBox(height: context.appSpacing.lg),
+              AppButton(
+                key: const Key('movie-player-playback-error-retry'),
+                variant: AppButtonVariant.primary,
+                label: l10n.commonRetry,
+                onPressed: onRetry,
               ),
             ],
           ),

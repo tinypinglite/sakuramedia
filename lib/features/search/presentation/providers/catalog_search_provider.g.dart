@@ -70,7 +70,7 @@ final class CatalogSearchProvider
   }
 }
 
-String _$catalogSearchHash() => r'6a02ce2c8e4f59115689b03b4e619805c40f1e4f';
+String _$catalogSearchHash() => r'bcf2d58d72e6aa788b61e10dc069784b41d9b515';
 
 /// 一次性目录搜索的按路由缓存状态。
 ///

@@ -48,7 +48,7 @@ final class MediaBrowseProvider
   MediaBrowse create() => MediaBrowse();
 }
 
-String _$mediaBrowseHash() => r'2f8d14322477fbb0e8660678d784bf8ef60d1ced';
+String _$mediaBrowseHash() => r'0bd5f5c10fbeb124d60463e0d71bf37bc8e4e8fe';
 
 /// 「媒体管理」列表控制器（Riverpod）：分页拉取全局 `/media`，持有筛选。
 ///

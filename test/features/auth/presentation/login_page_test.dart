@@ -365,6 +365,21 @@ void main() {
       debugDefaultTargetPlatformOverride = null;
     }
   });
+
+  testWidgets('login page exposes the global proxy entry', (tester) async {
+    await _pumpLogin(
+      tester,
+      platform: AppPlatform.desktop,
+      size: const Size(1200, 800),
+      theme: buildSakuraDesktopThemeData(),
+    );
+
+    await tester.tap(find.byKey(const Key('login-network-proxy-button')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('network-proxy-dialog')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 Future<void> _pumpLogin(

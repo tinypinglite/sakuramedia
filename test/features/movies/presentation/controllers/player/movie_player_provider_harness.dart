@@ -80,7 +80,8 @@ class MoviePlayerHarness {
 
   void addListener(VoidCallback listener) => _listeners.add(listener);
 
-  Future<void> load() => _notifier.load();
+  Future<void> load({Duration? startupPosition}) =>
+      _notifier.load(startupPosition: startupPosition);
   void applyAutoThumbnailColumns(int count) =>
       _notifier.applyAutoThumbnailColumns(count);
   void setThumbnailColumns(int count) => _notifier.setThumbnailColumns(count);

@@ -204,7 +204,7 @@ NAS 不是必须的：后端可以跑在任何能长期运行 Docker 的机器�
 
 - [点一个 Star](https://github.com/tinypinglite/sakuramedia/stargazers)，让更多人看到这个项目。
 - 帮助改进 [Wiki](https://tinypinglite.github.io/sakuramedia/zh-CN/) 和文档。
-- 开发插件：查看 [插件开发文档](https://tinypinglite.github.io/sakuramedia/zh-CN/guide/plugin-development)；上架插件市场请向 [sakuramedia-plugin-market](https://github.com/tinypinglite/sakuramedia-plugin-market) 提交 PR。
+- 上架插件市场：向 [sakuramedia-plugin-market](https://github.com/tinypinglite/sakuramedia-plugin-market) 提交 PR。
 - 提交 Bug 修复或新功能 PR。客户端使用 Flutter 开发，当前基线为 3.47.2；`flutter pub get` 后可用 `./scripts/test.sh -j 4` 运行测试。
 
 本项目不需要捐赠；Star、文档、插件和 PR 都是帮助。

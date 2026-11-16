@@ -20,7 +20,7 @@ class DownloadSelectionPolicy extends _$DownloadSelectionPolicy
 
   @override
   Future<DownloadSelectionPolicyState> build() async {
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     attachDisposeGuard();
     final policy = await ref
         .read(downloadSelectionPolicyApiProvider)

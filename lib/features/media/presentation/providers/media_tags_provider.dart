@@ -15,7 +15,7 @@ class MediaTags extends _$MediaTags
     with AsyncNotifierDisposeGuardMixin<List<MediaTagDto>> {
   @override
   Future<List<MediaTagDto>> build() async {
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     attachDisposeGuard();
     return ref.read(mediaTagsApiProvider).getTags();
   }

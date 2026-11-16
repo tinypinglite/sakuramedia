@@ -31,7 +31,7 @@ void main() {
     bundle = await createTestApiBundle(sessionStore);
     container = ProviderContainer(
       overrides: [
-        // invalidateOnSignOut 会 watch sessionStoreProvider，必须 override。
+        // invalidateOnSessionChange 会 watch sessionStoreProvider，必须 override。
         sessionStoreProvider.overrideWithValue(sessionStore),
         accountApiProvider.overrideWithValue(bundle.accountApi),
       ],
@@ -48,6 +48,16 @@ void main() {
     // build() 内的 Future.microtask(load) 需要 event loop tick 才发起请求；
     // 用一次 tick 即可完成微任务调度。
     while (container.read(accountProfileProvider).account == null) {
+      await Future<void>.delayed(Duration.zero);
+    }
+  }
+
+  Future<void> _pumpUntil(bool Function() predicate) async {
+    final deadline = DateTime.now().add(const Duration(seconds: 5));
+    while (!predicate()) {
+      if (DateTime.now().isAfter(deadline)) {
+        fail('condition not met within 5s');
+      }
       await Future<void>.delayed(Duration.zero);
     }
   }
@@ -192,7 +202,7 @@ void main() {
     );
 
     // keepAlive 状态不随页面卸载释放；组合根 ObjectKey 绑 SessionStore 实例，
-    // 同一次运行内换账号不重建容器——必须靠 invalidateOnSignOut 失效，
+    // 同一次运行内换账号不重建容器——必须靠 invalidateOnSessionChange 失效，
     // 否则新账号读到上一账号的资料。
     _enqueueAccount(bundle, username: 'second-account');
     await sessionStore.clearSession();
@@ -207,6 +217,68 @@ void main() {
       container.read(accountProfileProvider).account?.username,
       'second-account',
     );
+  });
+
+  test('登出瞬间页面仍挂载：登录后自动重拉，旧 401 不残留', () async {
+    var fetches = 0;
+    void enqueueBySession() {
+      bundle.adapter.enqueueResponder(
+        method: 'GET',
+        path: '/account',
+        responder: (options, requestBody) async {
+          fetches += 1;
+          final hasSession = sessionStore.hasSession;
+          final body = hasSession
+              ? <String, dynamic>{
+                  'username': 'account',
+                  'created_at': '2026-03-08T09:00:00Z',
+                  'last_login_at': '2026-03-08T10:00:00Z',
+                }
+              : <String, dynamic>{
+                  'error': <String, dynamic>{
+                    'code': 'unauthorized',
+                    'message': '请先登录',
+                  },
+                };
+          return ResponseBody.fromString(
+            jsonEncode(body),
+            hasSession ? 200 : 401,
+            headers: const <String, List<String>>{
+              Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+            },
+          );
+        },
+      );
+    }
+
+    // 初次加载 → 登出边沿重建 → 登录边沿重建。
+    for (var i = 0; i < 3; i++) {
+      enqueueBySession();
+    }
+
+    // 设置页正开着：provider 在登出边沿有活跃监听者。
+    container.listen(accountProfileProvider, (_, _) {});
+    await _pumpUntilAccountLoaded();
+    expect(container.read(accountProfileProvider).account?.username, 'account');
+
+    await sessionStore.clearSession();
+    await _pumpUntil(
+      () => container.read(accountProfileProvider).errorMessage != null,
+    );
+    expect(container.read(accountProfileProvider).errorMessage, '请先登录');
+
+    // 重新登录必须再次失效并重拉，否则页面会一直显示登出瞬间缓存的 401。
+    await sessionStore.saveTokens(
+      accessToken: 'access-token-2',
+      refreshToken: 'refresh-token-2',
+      expiresAt: DateTime.parse('2026-03-11T12:00:00Z'),
+    );
+    await _pumpUntil(() {
+      final state = container.read(accountProfileProvider);
+      return !state.isLoading && state.errorMessage == null;
+    });
+    expect(container.read(accountProfileProvider).account?.username, 'account');
+    expect(fetches, 3);
   });
 }
 

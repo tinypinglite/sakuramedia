@@ -92,7 +92,7 @@ final class MovieSubscriptionManagerProvider
 }
 
 String _$movieSubscriptionManagerHash() =>
-    r'2fcb7a087c87805f8d2df44a38d7e29123ab4077';
+    r'31403c9574122ca1a1a421191948be7cb557f10d';
 
 /// 「订阅管理」页的列表控制器。
 ///
@@ -229,7 +229,7 @@ final class MovieSubscriptionStatusSelectionProvider
 }
 
 String _$movieSubscriptionStatusSelectionHash() =>
-    r'41db4ad74ec54e1f4b046d075f6243a0d2329067';
+    r'97b5c12001e0cbd26d230d6051ef49d9dd92c455';
 
 abstract class _$MovieSubscriptionStatusSelection
     extends $Notifier<MovieSubscriptionStatus?> {

@@ -161,11 +161,34 @@ class LoopbackRangePlaybackProxy implements PlaybackRangeProxy {
     }
   }
 
+  /// 从共享表移除当前实例。
+  ///
+  /// isolate 异常退出后如果仍留在 [_shared] 里，后续播放会一直命中这个
+  /// 已销毁的代理并静默回退到直连，115 的并发保护随之失效，只有重启 App
+  /// 才能恢复。退出和显式 dispose 都必须把位置腾出来，让下一次播放重新创建。
+  void _forgetSharedInstance() {
+    final shared = _shared[policy.providerKey];
+    if (shared == null) {
+      return;
+    }
+    unawaited(
+      shared
+          .then((proxy) {
+            if (identical(proxy, this) &&
+                identical(_shared[policy.providerKey], shared)) {
+              _shared.remove(policy.providerKey);
+            }
+          })
+          .catchError((_) {}),
+    );
+  }
+
   void _handleWorkerExit() {
     if (_disposed) {
       return;
     }
     _disposed = true;
+    _forgetSharedInstance();
     for (final completer in _pendingLocalUrls.values) {
       if (!completer.isCompleted) {
         completer.completeError(
@@ -244,6 +267,7 @@ class LoopbackRangePlaybackProxy implements PlaybackRangeProxy {
         }
       }
       _pendingLocalUrls.clear();
+      _forgetSharedInstance();
     }
   }
 }

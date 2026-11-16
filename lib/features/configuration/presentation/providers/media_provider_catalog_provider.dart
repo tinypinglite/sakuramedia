@@ -19,7 +19,7 @@ class MediaProviderCatalog extends _$MediaProviderCatalog
     // 目录里的 display_name / 配置字段 label 由后端按请求语言解析（读时文案），
     // 语言一变这份快照就过期，必须跟着重拉。
     ref.watch(appLanguageControllerProvider);
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     attachDisposeGuard();
     return _api.getProviders();
   }

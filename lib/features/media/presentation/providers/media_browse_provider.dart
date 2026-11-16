@@ -75,7 +75,7 @@ class MediaBrowse extends _$MediaBrowse
 
   @override
   Future<MediaBrowseState> build() async {
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     attachDisposeGuard();
     ref.listen(statsFeaturesEnabledProvider, (_, enabled) {
       if (enabled) return;

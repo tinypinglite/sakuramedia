@@ -17,6 +17,7 @@ import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dar
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_switch.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_inline_spinner.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
@@ -27,6 +28,7 @@ import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_tab_bar.dart';
+import 'package:sakuramedia/widgets/domain/settings/network_proxy_dialog.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 /// 系统设置里的「插件」页：分「已安装」「插件市场」两个分栏。
@@ -87,13 +89,27 @@ class _DesktopPluginsSectionState extends ConsumerState<DesktopPluginsSection>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppTabBar(
-            key: const Key('plugins-tab-bar'),
-            controller: _tabController,
-            onTap: (_) => setState(() {}),
-            tabs: [
-              Tab(text: l10n.pluginsTabInstalled),
-              Tab(text: l10n.pluginsTabMarket),
+          Row(
+            children: [
+              Expanded(
+                child: AppTabBar(
+                  key: const Key('plugins-tab-bar'),
+                  controller: _tabController,
+                  onTap: (_) => setState(() {}),
+                  tabs: [
+                    Tab(text: l10n.pluginsTabInstalled),
+                    Tab(text: l10n.pluginsTabMarket),
+                  ],
+                ),
+              ),
+              SizedBox(width: spacing.sm),
+              AppTextButton(
+                key: const Key('plugins-network-proxy-button'),
+                label: l10n.networkProxyTitle,
+                icon: const Icon(Icons.settings_ethernet_rounded),
+                size: AppTextButtonSize.small,
+                onPressed: () => unawaited(showNetworkProxyDialog(context)),
+              ),
             ],
           ),
           SizedBox(height: spacing.lg),

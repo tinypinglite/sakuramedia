@@ -42,7 +42,7 @@ class MediaLibraries extends _$MediaLibraries
     with AsyncNotifierDisposeGuardMixin<MediaLibrariesState> {
   @override
   Future<MediaLibrariesState> build() async {
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     attachDisposeGuard();
     final libraries = await ref.watch(
       configuration.mediaLibrariesProvider.future,

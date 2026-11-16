@@ -207,7 +207,7 @@ Get the client from [GitHub Releases](https://github.com/tinypinglite/sakuramedi
 
 - [Star the project](https://github.com/tinypinglite/sakuramedia/stargazers) so more people find it.
 - Help improve the [Wiki](https://tinypinglite.github.io/sakuramedia/) and the docs.
-- Build plugins: see the [plugin development guide](https://tinypinglite.github.io/sakuramedia/guide/plugin-development); to list one in the plugin market, send a PR to [sakuramedia-plugin-market](https://github.com/tinypinglite/sakuramedia-plugin-market).
+- To list a plugin in the plugin market, send a PR to [sakuramedia-plugin-market](https://github.com/tinypinglite/sakuramedia-plugin-market).
 - Send PRs for bug fixes or new features. The client is built with Flutter, currently on 3.47.2; after `flutter pub get`, run the tests with `./scripts/test.sh -j 4`.
 
 The project doesn't need donations; stars, docs, plugins, and PRs are all help.

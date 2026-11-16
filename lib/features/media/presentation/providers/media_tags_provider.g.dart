@@ -33,7 +33,7 @@ final class MediaTagsProvider
   MediaTags create() => MediaTags();
 }
 
-String _$mediaTagsHash() => r'97f244428aa33ca389caba75bcd560633e35a908';
+String _$mediaTagsHash() => r'1d11ab746ce25367fa5f69ae89f6b1212dfd0709';
 
 abstract class _$MediaTags extends $AsyncNotifier<List<MediaTagDto>> {
   FutureOr<List<MediaTagDto>> build();

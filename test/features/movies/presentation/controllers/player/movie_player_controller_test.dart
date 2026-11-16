@@ -604,6 +604,32 @@ void main() {
     expect(controller.isResumeDecisionPending, isFalse);
   });
 
+  test('reload resumes from an explicit retry position', () async {
+    final controller = MoviePlayerHarness(
+      movieNumber: 'ABC-001',
+      baseUrl: 'https://api.example.com',
+      initialPositionSeconds: 90,
+      fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+      fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      fetchMovieSubtitles: ({required movieNumber}) async =>
+          buildSubtitleList(),
+      updateMediaProgress:
+          ({required mediaId, required positionSeconds}) async =>
+              MovieMediaProgressDto(
+                lastPositionSeconds: positionSeconds,
+                lastWatchedAt: null,
+              ),
+    );
+    addTearDown(controller.dispose);
+
+    await controller.load(startupPosition: const Duration(seconds: 245));
+
+    expect(controller.initialPlaybackPosition, const Duration(seconds: 245));
+    expect(controller.resumePlaybackPosition, isNull);
+    expect(controller.isResumeDecisionPending, isFalse);
+    expect(controller.currentPlaybackSeconds, 245);
+  });
+
   test('flushPlaybackProgress reports pending position once', () async {
     final controller = MoviePlayerHarness(
       movieNumber: 'ABC-001',

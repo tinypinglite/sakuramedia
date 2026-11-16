@@ -13,7 +13,7 @@ class DownloadClients extends _$DownloadClients
     with AsyncNotifierDisposeGuardMixin<List<DownloadClientDto>> {
   @override
   Future<List<DownloadClientDto>> build() async {
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     attachDisposeGuard();
     return ref.read(downloadClientsApiProvider).getClients();
   }

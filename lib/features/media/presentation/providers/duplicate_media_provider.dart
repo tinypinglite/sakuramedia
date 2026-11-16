@@ -54,7 +54,7 @@ class DuplicateMedia extends _$DuplicateMedia
   Future<PagedListState<DuplicateMediaGroupDto>> build(
     MediaListItemKind kind,
   ) async {
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     attachDisposeGuard();
     return loadInitialPage();
   }

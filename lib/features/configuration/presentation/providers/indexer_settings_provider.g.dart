@@ -45,7 +45,7 @@ final class IndexerSettingsProvider
   IndexerSettings create() => IndexerSettings();
 }
 
-String _$indexerSettingsHash() => r'06c8e90db88c4f6890f7bc4e68d4b1485fa4e698';
+String _$indexerSettingsHash() => r'7720bc54abaa84acc68050ee0e0e3ca0a5bc227a';
 
 /// 索引器设置的共享远端快照与桌面草稿。
 ///

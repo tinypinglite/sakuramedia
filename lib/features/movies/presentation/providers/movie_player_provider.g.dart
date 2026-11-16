@@ -114,7 +114,7 @@ final class MoviePlayerProvider
   }
 }
 
-String _$moviePlayerHash() => r'dea017dc5538b8d391de16f18b6cb8d77803e091';
+String _$moviePlayerHash() => r'0ae599682e24ac9ab3577109620a50aea00655d7';
 
 /// 单个播放器路由的业务状态；页面离开后自动销毁并停止定时上报。
 

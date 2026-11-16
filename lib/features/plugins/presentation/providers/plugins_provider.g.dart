@@ -36,7 +36,7 @@ final class PluginsProvider
   Plugins create() => Plugins();
 }
 
-String _$pluginsHash() => r'8ad673094cb548ec68d8f30fb723e89e27ea62d7';
+String _$pluginsHash() => r'28075917d99a332b0e3cef1dbdf35f247890d68c';
 
 /// 已安装插件列表与安装 / 启停 / 删除操作的会话级共享状态。
 

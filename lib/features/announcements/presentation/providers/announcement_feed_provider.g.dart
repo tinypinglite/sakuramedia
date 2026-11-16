@@ -41,7 +41,7 @@ final class AnnouncementFeedProvider
   }
 }
 
-String _$announcementFeedHash() => r'a9dcf1ef3bdc68e7e2abad2cad331add91a36684';
+String _$announcementFeedHash() => r'15dfce466d4f2e56730856270533e9140f3026df';
 
 abstract class _$AnnouncementFeed extends $Notifier<AnnouncementFeedState> {
   AnnouncementFeedState build();

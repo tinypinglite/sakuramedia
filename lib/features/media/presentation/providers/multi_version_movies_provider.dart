@@ -56,7 +56,7 @@ class MultiVersionMovies extends _$MultiVersionMovies
     bool includeProcessed = false,
   }) async {
     attachDisposeGuard();
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     return loadInitialPage();
   }
 

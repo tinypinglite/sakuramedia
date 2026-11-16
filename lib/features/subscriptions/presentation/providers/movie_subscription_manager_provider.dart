@@ -91,7 +91,7 @@ class MovieSubscriptionManager extends _$MovieSubscriptionManager
   Future<MovieSubscriptionManagerState> build(
     MovieSubscriptionStatus? status,
   ) async {
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     attachDisposeGuard();
     // 页面离开后本 provider 没有监听者，Riverpod 会**挂起**这条入站订阅——但底层
     // 是 `StreamSubscription.pause()`，事件会缓冲、在页面回来恢复监听时补投，
@@ -413,7 +413,7 @@ class MovieSubscriptionStatusSelection
     extends _$MovieSubscriptionStatusSelection {
   @override
   MovieSubscriptionStatus? build() {
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     return MovieSubscriptionFilterState.initial.status;
   }
 

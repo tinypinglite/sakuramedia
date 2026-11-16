@@ -36,7 +36,7 @@ final class InvalidMediaProvider
   InvalidMedia create() => InvalidMedia();
 }
 
-String _$invalidMediaHash() => r'7c4fecb1e79e6f0fbe0bae4ebf1322150fecf315';
+String _$invalidMediaHash() => r'072b25a94b35fd21647775f4f6f5dce0f0535c51';
 
 /// 「媒体维护」失效媒体列表（Riverpod）。删除成功后从列表移除并扣减 total。
 

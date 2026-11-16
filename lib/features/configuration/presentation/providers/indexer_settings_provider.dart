@@ -17,7 +17,7 @@ class IndexerSettings extends _$IndexerSettings
     with AsyncNotifierDisposeGuardMixin<IndexerSettingsState> {
   @override
   Future<IndexerSettingsState> build() async {
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     attachDisposeGuard();
     final settings = await ref.read(indexerSettingsApiProvider).getSettings();
     return IndexerSettingsState.fromDto(settings);

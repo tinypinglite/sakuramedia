@@ -14,7 +14,7 @@ class TasteProfile extends _$TasteProfile
     with AsyncNotifierDisposeGuardMixin<TasteProfileDto> {
   @override
   Future<TasteProfileDto> build() async {
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     attachDisposeGuard();
     // 订阅广播只在这里接一次，所有口味面板共享同一份补丁结果。
     ref.listen(actorSubscriptionEventsProvider, (_, next) {

@@ -42,7 +42,7 @@ final class MediaLibrariesProvider
   MediaLibraries create() => MediaLibraries();
 }
 
-String _$mediaLibrariesHash() => r'366002323d44aeef1103bfb341c14d05fd819711';
+String _$mediaLibrariesHash() => r'75d6f45e86af9ef5cb7eec13f6f5150839ff4257';
 
 /// 配置域媒体库 provider 的派生投影：keepAlive；媒体管理页与维护页共享一份，
 /// 避免每次进 tab 各拉一次。列表更新由配置域 owner 推送，

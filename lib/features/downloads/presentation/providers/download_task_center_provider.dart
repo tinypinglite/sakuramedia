@@ -98,7 +98,7 @@ class DownloadTaskCenter extends _$DownloadTaskCenter
 
   @override
   Future<DownloadTaskCenterState> build() async {
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     attachDisposeGuard();
     ref.onDispose(() {
       _pollTimer?.cancel();

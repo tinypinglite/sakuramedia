@@ -13,7 +13,7 @@ class MediaLibraries extends _$MediaLibraries
     with AsyncNotifierDisposeGuardMixin<List<MediaLibraryDto>> {
   @override
   Future<List<MediaLibraryDto>> build() async {
-    invalidateOnSignOut(ref);
+    invalidateOnSessionChange(ref);
     attachDisposeGuard();
     return ref.read(mediaLibrariesApiProvider).getLibraries();
   }

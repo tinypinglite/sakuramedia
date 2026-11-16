@@ -92,7 +92,7 @@ class MoviePlayer extends _$MoviePlayer {
   ValueListenable<int?> get activeThumbnailIndexListenable =>
       _activeThumbnailIndexNotifier;
 
-  Future<void> load() async {
+  Future<void> load({Duration? startupPosition}) async {
     final requestVersion = ++_loadVersion;
     _thumbnailVersion += 1;
     _subtitleVersion += 1;
@@ -105,7 +105,7 @@ class MoviePlayer extends _$MoviePlayer {
     );
 
     debugPrint(
-      '[player-debug] provider_load_start movie=${scope.movieNumber} initialMediaId=${scope.initialMediaId} initialPositionSeconds=${scope.initialPositionSeconds}',
+      '[player-debug] provider_load_start movie=${scope.movieNumber} initialMediaId=${scope.initialMediaId} scopeInitialPositionSeconds=${scope.initialPositionSeconds} startupPositionSeconds=${startupPosition?.inSeconds}',
     );
     try {
       final movie = await _dependencies.fetchMovieDetail(
@@ -115,8 +115,9 @@ class MoviePlayer extends _$MoviePlayer {
         return;
       }
       final selectedMedia = _resolveInitialMedia(movie.mediaItems);
-      final startupPosition = _resolveExplicitStartupPlaybackPosition();
-      final resumePosition = startupPosition == null
+      final resolvedStartupPosition =
+          startupPosition ?? _resolveExplicitStartupPlaybackPosition();
+      final resumePosition = resolvedStartupPosition == null
           ? _resolveResumePlaybackPosition(selectedMedia)
           : null;
       state = _resetSubtitleState(
@@ -126,7 +127,7 @@ class MoviePlayer extends _$MoviePlayer {
           thumbnails: const <MovieMediaThumbnailDto>[],
           thumbnailErrorMessage: null,
           isThumbnailLoading: false,
-          startupPlaybackPosition: startupPosition,
+          startupPlaybackPosition: resolvedStartupPosition,
           resumePlaybackPosition: resumePosition,
           isResumeDecisionPending: resumePosition != null,
           clipStartIndex: null,
@@ -134,8 +135,8 @@ class MoviePlayer extends _$MoviePlayer {
         ),
       );
       _progressController.reset(
-        currentPlaybackSeconds: startupPosition?.inSeconds ?? 0,
-        lastReportedPositionSeconds: startupPosition?.inSeconds,
+        currentPlaybackSeconds: resolvedStartupPosition?.inSeconds ?? 0,
+        lastReportedPositionSeconds: resolvedStartupPosition?.inSeconds,
       );
       _setActiveThumbnailIndex(null);
       await Future.wait<void>(<Future<void>>[
