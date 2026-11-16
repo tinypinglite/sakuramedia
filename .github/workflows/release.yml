@@ -58,3 +58,67 @@ jobs:
     needs: test
     uses: ./.github/workflows/release-ios.yml
     secrets: inherit
+
+  publish-public:
+    name: Publish packages to public repo
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [macos, windows, android, ios]
+    runs-on: ubuntu-latest
+    concurrency:
+      group: publish-public-${{ github.ref_name }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Download platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*-release-${{ github.ref_name }}'
+          merge-multiple: true
+          path: dist
+
+      - name: Publish to public repository
+        env:
+          PUBLIC_REPO: tinypinglite/sakuramedia
+          PUBLIC_TOKEN: ${{ secrets.PUBLIC_RELEASE_TOKEN }}
+          PRIVATE_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          FILE_COUNT="$(find dist -maxdepth 1 -type f | wc -l | tr -d ' ')"
+          if [ "$FILE_COUNT" -ne 8 ]; then
+            echo "::error::Expected 8 release assets, found ${FILE_COUNT}"
+            find dist -maxdepth 1 -type f -printf '%f\n' || true
+            exit 1
+          fi
+
+          TITLE="$(GH_TOKEN="$PRIVATE_TOKEN" gh release view "$TAG" \
+            --repo "$GITHUB_REPOSITORY" --json name --jq .name)"
+          GH_TOKEN="$PRIVATE_TOKEN" gh release view "$TAG" \
+            --repo "$GITHUB_REPOSITORY" --json body --jq .body > /tmp/release-notes.md
+          IS_PRERELEASE="$(GH_TOKEN="$PRIVATE_TOKEN" gh release view "$TAG" \
+            --repo "$GITHUB_REPOSITORY" --json isPrerelease --jq .isPrerelease)"
+
+          if GH_TOKEN="$PUBLIC_TOKEN" gh release view "$TAG" \
+            --repo "$PUBLIC_REPO" >/dev/null 2>&1; then
+            GH_TOKEN="$PUBLIC_TOKEN" gh release upload "$TAG" dist/* \
+              --repo "$PUBLIC_REPO" --clobber
+            GH_TOKEN="$PUBLIC_TOKEN" gh release edit "$TAG" \
+              --repo "$PUBLIC_REPO" --title "$TITLE" \
+              --notes-file /tmp/release-notes.md
+            echo "Updated existing public release ${TAG}"
+          else
+            args=(--target main --title "$TITLE" --notes-file /tmp/release-notes.md)
+            if [ "$IS_PRERELEASE" = "true" ]; then
+              args+=(--prerelease --latest=false)
+            else
+              args+=(--latest)
+            fi
+            GH_TOKEN="$PUBLIC_TOKEN" gh release create "$TAG" dist/* \
+              --repo "$PUBLIC_REPO" "${args[@]}"
+            echo "Created public release ${TAG}"
+          fi
+
+          GH_TOKEN="$PUBLIC_TOKEN" gh release view "$TAG" --repo "$PUBLIC_REPO" \
+            --json url,isPrerelease,assets \
+            --jq '{url,isPrerelease,assets:[.assets[].name]}'

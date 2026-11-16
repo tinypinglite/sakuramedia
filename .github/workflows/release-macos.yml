@@ -209,8 +209,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           name: sakuramedia ${{ github.ref_name }}
-          # beta 的正文用审过的 Release Notes，正式版继续叠加自动生成的变更列表。
-          generate_release_notes: ${{ !contains(github.ref_name, '-') }}
+          # 统一使用发版前审核过的 Release Notes；正式版也关闭自动生成，
+          # 避免公开 Release 里带出私密仓库的 compare 链接。
+          generate_release_notes: false
           files: |
             dist/${{ env.DMG_NAME }}
             dist/${{ env.DMG_NAME }}.sha256
