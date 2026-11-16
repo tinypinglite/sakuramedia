@@ -15,6 +15,12 @@ abstract interface class PlaybackRangeProxy {
     required String cacheKey,
   });
 
+  /// 立即取消 [cacheKey] 对应的下游会话和上游请求。
+  ///
+  /// 播放器切换媒体或销毁时调用。取消会同步释放该会话占用的上游闸门，
+  /// 避免旧媒体在播放器已经断开后继续阻塞新媒体。
+  void release(String cacheKey);
+
   Future<void> dispose();
 }
 
@@ -202,6 +208,17 @@ class LoopbackRangePlaybackProxy implements PlaybackRangeProxy {
   }
 
   @override
+  void release(String cacheKey) {
+    if (_disposed) {
+      return;
+    }
+    _controlPort.send(<String, Object?>{
+      'type': 'release',
+      'cacheKey': cacheKey,
+    });
+  }
+
+  @override
   Future<void> dispose() async {
     if (_disposed) {
       return;
@@ -235,13 +252,11 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
   static const int _downstreamFlushBytes = 256 * 1024;
   static const Duration _downstreamFlushInterval = Duration(milliseconds: 16);
 
-  _LoopbackRangePlaybackProxyWorker._(this.policy, this._server, this._onLog)
-    : _gate = _UpstreamGate(policy.maxConcurrentUpstreamRequests);
+  _LoopbackRangePlaybackProxyWorker._(this.policy, this._server, this._onLog);
 
   final PlaybackProxyPolicy policy;
   final HttpServer _server;
   final void Function(String message)? _onLog;
-  final _UpstreamGate _gate;
   final Map<String, _PlaybackOrigin> _origins = <String, _PlaybackOrigin>{};
   final Set<_StreamSession> _sessions = <_StreamSession>{};
   bool _disposed = false;
@@ -270,7 +285,7 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
     _origins[cacheKey] = _PlaybackOrigin(origin, <String, String>{
       ...policy.defaultUpstreamHeaders,
       ...headers,
-    });
+    }, policy.maxConcurrentUpstreamRequests);
     return Uri(
       scheme: 'http',
       host: '127.0.0.1',
@@ -278,6 +293,16 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
       path: '/v',
       queryParameters: <String, String>{'k': cacheKey},
     );
+  }
+
+  @override
+  void release(String cacheKey) {
+    for (final session in _sessions.toList()) {
+      if (session.key == cacheKey) {
+        session.cancel();
+      }
+    }
+    _origins.remove(cacheKey);
   }
 
   Future<void> _handle(HttpRequest request) async {
@@ -302,7 +327,7 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
     // A player may keep the previous loopback request open after a seek.
     // Abort it explicitly so its upstream window cannot block the new seek.
     _cancelSessionsForKey(key);
-    final session = _StreamSession(key, origin, policy, _gate);
+    final session = _StreamSession(key, origin, policy);
     _sessions.add(session);
     try {
       response.bufferOutput = false;
@@ -527,7 +552,8 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
     _StreamSession session,
     Future<T> Function() action,
   ) async {
-    await _gate.acquire();
+    final gate = session.origin.gate;
+    await gate.acquire();
     session.gateHeld = true;
     try {
       if (session.cancelled) {
@@ -791,8 +817,10 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
       session.cancel();
     }
     _sessions.clear();
+    for (final origin in _origins.values) {
+      origin.gate.close();
+    }
     _origins.clear();
-    _gate.close();
     try {
       await _server.close(force: true);
     } catch (_) {}
@@ -865,6 +893,11 @@ Future<void> _proxyIsolateMain(List<Object?> args) async {
             'error': error.toString(),
           });
         }
+      } else if (type == 'release') {
+        final cacheKey = message['cacheKey'];
+        if (cacheKey is String) {
+          activeWorker.release(cacheKey);
+        }
       } else if (type == 'dispose') {
         disposed = true;
         await activeWorker.dispose();
@@ -930,22 +963,25 @@ PlaybackProxyPolicy _policyFromMap(Map<Object?, Object?> map) =>
     );
 
 class _PlaybackOrigin {
-  _PlaybackOrigin(this.url, this.headers);
+  _PlaybackOrigin(this.url, this.headers, int maxConcurrentRequests)
+    : gate = _UpstreamGate(maxConcurrentRequests);
 
   final Uri url;
   final Map<String, String> headers;
+
+  /// 每一条播放链接各自的上游闸门，不同链接互不影响。
+  final _UpstreamGate gate;
   Uri? resolvedUrl;
   String? contentType;
 }
 
 class _StreamSession {
-  _StreamSession(this.key, this.origin, this._policy, this._gate)
+  _StreamSession(this.key, this.origin, this._policy)
     : client = _createClient(_policy);
 
   final String key;
   final _PlaybackOrigin origin;
   final PlaybackProxyPolicy _policy;
-  final _UpstreamGate _gate;
   HttpClient client;
   bool cancelled = false;
   bool responseStarted = false;
@@ -975,7 +1011,7 @@ class _StreamSession {
       return;
     }
     gateHeld = false;
-    _gate.release();
+    origin.gate.release();
   }
 
   void close() {

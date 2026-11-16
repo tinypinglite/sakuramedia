@@ -134,6 +134,56 @@ void main() {
 
     expect(nativePlayer.state.playlist.medias.single.uri, firstOpenUrl);
     expect(proxy.requests, hasLength(1));
+    expect(proxy.releasedKeys, isEmpty);
+  });
+
+  test('同一播放器切换 Cloud115 媒体时只释放上一条媒体会话', () async {
+    final proxy = _FakePlaybackRangeProxy();
+    player = ThrottlingPlayer(
+      platformPlayer: nativePlayer,
+      playbackProxy: proxy,
+    );
+
+    await player!.open(
+      Playlist([
+        Media(
+          'http://api.local/media/42/play/?expires=1',
+          httpHeaders: const {'User-Agent': cloud115PlaybackUserAgent},
+        ),
+      ]),
+    );
+    await player!.open(
+      Playlist([
+        Media(
+          'http://api.local/media/43/play/?expires=1',
+          httpHeaders: const {'User-Agent': cloud115PlaybackUserAgent},
+        ),
+      ]),
+    );
+
+    expect(proxy.releasedKeys, <String>['cloud115:api.local/media/42/play/']);
+    expect(proxy.requests.last.cacheKey, 'cloud115:api.local/media/43/play/');
+  });
+
+  test('销毁播放器时释放本地代理会话', () async {
+    final proxy = _FakePlaybackRangeProxy();
+    player = ThrottlingPlayer(
+      platformPlayer: nativePlayer,
+      playbackProxy: proxy,
+    );
+    await player!.open(
+      Playlist([
+        Media(
+          'http://api.local/media/42/play/?expires=1',
+          httpHeaders: const {'User-Agent': cloud115PlaybackUserAgent},
+        ),
+      ]),
+    );
+
+    await player!.dispose();
+    player = null;
+
+    expect(proxy.releasedKeys, <String>['cloud115:api.local/media/42/play/']);
   });
 
   test('Cloud115 HLS 保持原地址，避免把 m3u8 当普通文件代理', () async {
@@ -210,6 +260,7 @@ void main() {
 class _FakePlaybackRangeProxy implements PlaybackRangeProxy {
   final List<({String originUrl, Map<String, String> headers, String cacheKey})>
   requests = [];
+  final List<String> releasedKeys = <String>[];
 
   @override
   Future<Uri> localUrlFor(
@@ -219,6 +270,11 @@ class _FakePlaybackRangeProxy implements PlaybackRangeProxy {
   }) async {
     requests.add((originUrl: originUrl, headers: headers, cacheKey: cacheKey));
     return Uri.parse('http://127.0.0.1:1234/v?k=$cacheKey');
+  }
+
+  @override
+  void release(String cacheKey) {
+    releasedKeys.add(cacheKey);
   }
 
   @override

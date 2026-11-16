@@ -42,6 +42,11 @@ class PlaybackProxyPolicy {
 
   final String providerKey;
   final bool enabled;
+
+  /// 同一条播放链接允许的同时上游请求数。
+  ///
+  /// 不同播放链接各自持有独立的闸门，不会互相排队；115 的并发限制本来就是
+  /// 按链接下发的（不同链接上限不同）。
   final int maxConcurrentUpstreamRequests;
   final int upstreamWindowBytes;
   final Duration upstreamTimeout;

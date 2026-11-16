@@ -80,7 +80,7 @@ void main() {
     expect(origin.videoRequestCount, greaterThanOrEqualTo(2));
   });
 
-  test('one gate slot serializes different media', () async {
+  test('different media use independent upstream gates', () async {
     final origin = await _RangeOrigin.start(
       responseDelay: const Duration(milliseconds: 80),
     );
@@ -98,50 +98,12 @@ void main() {
     final firstUrl = await proxy.localUrlFor(
       origin.startUrl,
       headers: const <String, String>{'User-Agent': _cloud115UserAgent},
-      cacheKey: 'serialized-a',
+      cacheKey: 'independent-a',
     );
     final secondUrl = await proxy.localUrlFor(
       origin.startUrl,
       headers: const <String, String>{'User-Agent': _cloud115UserAgent},
-      cacheKey: 'serialized-b',
-    );
-    final responses = await Future.wait([
-      _get(firstUrl, range: 'bytes=0-65535'),
-      _get(secondUrl, range: 'bytes=131072-196607'),
-    ]);
-
-    expect(
-      responses.map((response) => response.statusCode),
-      everyElement(HttpStatus.partialContent),
-    );
-    expect(origin.maxActiveVideoRequests, 1);
-  });
-
-  test('policy concurrency can allow two upstream streams', () async {
-    final origin = await _RangeOrigin.start(
-      responseDelay: const Duration(milliseconds: 80),
-    );
-    final proxy = await LoopbackRangePlaybackProxy.create(
-      policy: cloud115PlaybackProxyPolicy.copyWith(
-        maxConcurrentUpstreamRequests: 2,
-        upstreamWindowBytes: 64 * 1024,
-        cooldown: Duration.zero,
-      ),
-    );
-    addTearDown(() async {
-      await proxy.dispose();
-      await origin.stop();
-    });
-
-    final firstUrl = await proxy.localUrlFor(
-      origin.startUrl,
-      headers: const <String, String>{'User-Agent': _cloud115UserAgent},
-      cacheKey: 'concurrency-two-a',
-    );
-    final secondUrl = await proxy.localUrlFor(
-      origin.startUrl,
-      headers: const <String, String>{'User-Agent': _cloud115UserAgent},
-      cacheKey: 'concurrency-two-b',
+      cacheKey: 'independent-b',
     );
     final responses = await Future.wait([
       _get(firstUrl, range: 'bytes=0-65535'),
@@ -153,6 +115,93 @@ void main() {
       everyElement(HttpStatus.partialContent),
     );
     expect(origin.maxActiveVideoRequests, 2);
+  });
+
+  test('a stalled media does not block another media', () async {
+    final origin = await _RangeOrigin.start(stallFirstVideoBody: true);
+    final proxy = await LoopbackRangePlaybackProxy.create(
+      policy: cloud115PlaybackProxyPolicy.copyWith(
+        upstreamWindowBytes: 64 * 1024,
+        cooldown: Duration.zero,
+      ),
+    );
+    addTearDown(() async {
+      await proxy.dispose();
+      await origin.stop();
+    });
+
+    final stalledUrl = await proxy.localUrlFor(
+      origin.startUrl,
+      headers: const <String, String>{'User-Agent': _cloud115UserAgent},
+      cacheKey: 'stalled-media',
+    );
+    final stalledRequest = _get(
+      stalledUrl,
+      range: 'bytes=0-65535',
+    ).catchError((_) => _RangeResponse(0, Uint8List(0)));
+    await _waitUntil(() => origin.videoRequestCount >= 1);
+
+    final otherUrl = await proxy.localUrlFor(
+      origin.startUrl,
+      headers: const <String, String>{'User-Agent': _cloud115UserAgent},
+      cacheKey: 'other-media',
+    );
+    final other = await _get(
+      otherUrl,
+      range: 'bytes=131072-196607',
+    ).timeout(const Duration(milliseconds: 1500));
+
+    expect(other.statusCode, HttpStatus.partialContent);
+    expect(other.body, origin.bytes.sublist(128 * 1024, 192 * 1024));
+
+    proxy.release('stalled-media');
+    await stalledRequest.timeout(const Duration(milliseconds: 1500));
+  });
+
+  test('release 取消残留会话并释放闸门给新媒体', () async {
+    final origin = await _RangeOrigin.start(stallFirstVideoBody: true);
+    final proxy = await LoopbackRangePlaybackProxy.create(
+      policy: cloud115PlaybackProxyPolicy.copyWith(
+        upstreamWindowBytes: 64 * 1024,
+        cooldown: Duration.zero,
+      ),
+    );
+    addTearDown(() async {
+      await proxy.dispose();
+      await origin.stop();
+    });
+
+    final staleUrl = await proxy.localUrlFor(
+      origin.startUrl,
+      headers: const <String, String>{'User-Agent': _cloud115UserAgent},
+      cacheKey: 'stale-media',
+    );
+    final staleRequest = _get(
+      staleUrl,
+      range: 'bytes=0-65535',
+    ).catchError((_) => _RangeResponse(0, Uint8List(0)));
+    await _waitUntil(() => origin.videoRequestCount >= 1);
+
+    final freshUrl = await proxy.localUrlFor(
+      origin.startUrl,
+      headers: const <String, String>{'User-Agent': _cloud115UserAgent},
+      cacheKey: 'fresh-media',
+    );
+    final freshRequest = _get(freshUrl, range: 'bytes=131072-196607');
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    proxy.release('stale-media');
+
+    final fresh = await freshRequest.timeout(
+      const Duration(milliseconds: 1500),
+    );
+    expect(fresh.statusCode, HttpStatus.partialContent);
+    expect(fresh.body, origin.bytes.sublist(128 * 1024, 192 * 1024));
+
+    final stale = await staleRequest.timeout(
+      const Duration(milliseconds: 1500),
+    );
+    expect(stale.statusCode, isNot(HttpStatus.partialContent));
   });
 
   test('reuses one upstream connection across sequential windows', () async {

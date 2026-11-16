@@ -30,9 +30,9 @@ import 'package:sakuramedia/core/network/debug_capture_proxy.dart';
 /// - 用户拖动 60 次/秒 → libmpv 实际见到的 seek 命令会明显减少
 ///
 /// 声明启用代理的 provider 会在 [open] 时切到进程内 loopback Range 代理；
-/// 上游并发由 provider policy 决定，seek 合并只负责降低命令频率，不能替代
-/// 网络层闸门。HLS 的播放列表和分片地址改写不在本代理能力内，因此 `m3u8`
-/// 保持直连。
+/// 上游并发由 provider policy 按**播放链接**限制，seek 合并只负责降低命令
+/// 频率，不能替代网络层闸门。HLS 的播放列表和分片地址改写不在本代理能力
+/// 内，因此 `m3u8` 保持直连。
 ///
 /// **返回的 `Future` 在 seek 排队时不等待真实执行完毕**——这里刻意如此。
 /// 拖动过程中所有 seek 都是 unawaited 的（`MaterialSeekBar` 里就是 no-await
@@ -58,9 +58,12 @@ class ThrottlingPlayer extends Player {
   bool _seekInFlight = false;
   bool _proxiedProfileApplied = false;
   final PlaybackRangeProxy? playbackProxy;
+  PlaybackRangeProxy? _activeProxy;
+  final Set<String> _activeProxyKeys = <String>{};
 
   @override
   Future<void> open(Playable playable, {bool play = true}) async {
+    _releaseUnusedProxyKeys(playable);
     final proxied = await _proxyPlayable(playable);
     final hasLocalProxy = switch (proxied) {
       Media media => _isLocalRangeProxy(media.uri),
@@ -71,6 +74,62 @@ class ThrottlingPlayer extends Player {
     };
     await _configurePlaybackNetwork(hasLocalProxy: hasLocalProxy);
     await super.open(proxied, play: play);
+  }
+
+  @override
+  Future<void> dispose() async {
+    _releaseAllProxyKeys();
+    await super.dispose();
+  }
+
+  void _releaseUnusedProxyKeys(Playable playable) {
+    final proxy = _activeProxy;
+    if (proxy == null) {
+      return;
+    }
+    final retainedKeys = <String>{};
+    final medias = switch (playable) {
+      Media media => <Media>[media],
+      Playlist playlist => playlist.medias,
+      _ => const <Media>[],
+    };
+    for (final media in medias) {
+      final key = _localRangeProxyKey(media.uri);
+      if (key != null) {
+        retainedKeys.add(key);
+      }
+    }
+    final releasedKeys = <String>[];
+    for (final key in _activeProxyKeys) {
+      if (!retainedKeys.contains(key)) {
+        proxy.release(key);
+        releasedKeys.add(key);
+      }
+    }
+    _activeProxyKeys.removeAll(releasedKeys);
+    if (_activeProxyKeys.isEmpty) {
+      _activeProxy = null;
+    }
+  }
+
+  void _releaseAllProxyKeys() {
+    final proxy = _activeProxy;
+    final keys = _activeProxyKeys.toList(growable: false);
+    _activeProxy = null;
+    _activeProxyKeys.clear();
+    if (proxy == null) {
+      return;
+    }
+    for (final key in keys) {
+      proxy.release(key);
+    }
+  }
+
+  static String? _localRangeProxyKey(String url) {
+    if (!_isLocalRangeProxy(url)) {
+      return null;
+    }
+    return Uri.tryParse(url)?.queryParameters['k'];
   }
 
   Future<Playable> _proxyPlayable(Playable playable) async {
@@ -94,15 +153,18 @@ class ThrottlingPlayer extends Player {
         final proxy =
             playbackProxy ??
             await LoopbackRangePlaybackProxy.shared(config.policy);
+        final cacheKey = playbackProxyCacheKey(
+          providerKey: config.providerKey,
+          policy: config.policy,
+          url: media.uri,
+        );
         final localUrl = await proxy.localUrlFor(
           media.uri,
           headers: media.httpHeaders ?? const <String, String>{},
-          cacheKey: playbackProxyCacheKey(
-            providerKey: config.providerKey,
-            policy: config.policy,
-            url: media.uri,
-          ),
+          cacheKey: cacheKey,
         );
+        _activeProxy = proxy;
+        _activeProxyKeys.add(cacheKey);
         wrapped.add(
           Media(
             localUrl.toString(),
