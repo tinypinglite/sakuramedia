@@ -8,11 +8,24 @@ This guide deploys the SakuraMedia backend from scratch and imports movies that 
 
 If you only want to get import and playback working first, completing stages 1 and 2 is enough. Automatic downloading, image search, the 115 cloud drive and other features are optional extensions; see the two sections below and [Recommended Plugins](/guide/plugins).
 
+## Download the client
+
+The client cannot be used on its own; it connects to a deployed SakuraMedia backend. You can download and install it first, then enter the backend address on the first login after deployment.
+
+Download the installer from [GitHub Releases](https://github.com/tinypinglite/sakuramedia/releases/latest):
+
+| Platform | Installer | Notes |
+|---|---|---|
+| Windows | `sakuramedia-windows-<version>-setup-unsigned.exe` | Unsigned; when SmartScreen appears, choose "More info → Run anyway" |
+| macOS | `sakuramedia-macos-<version>.dmg` | Signed with a fixed self-signed certificate and not notarized by Apple; if macOS reports an unidentified developer, allow it in "Privacy & Security" |
+| Android | `sakuramedia-android-<version>-release-signed.apk` | Install directly; the system may warn about unknown sources |
+| iOS | `sakuramedia-ios-<version>-sidestore-ready.ipa` | Requires iOS 15.0+; install via SideStore or a self-signing tool. If you have no sideloading experience, start with the desktop client |
+
 ## Before you begin
 
 - A host or NAS that runs continuously, with Docker and Docker Compose installed.
 - An SSD directory for backend runtime data (database, configuration, logs, plugins).
-- The client, downloaded from [GitHub Releases](https://github.com/tinypinglite/sakuramedia/releases/latest).
+- The client installed as described in [Download the client](#download-the-client).
 
 ## Stage 1: Deploy the backend
 

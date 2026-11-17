@@ -8,11 +8,24 @@ outline: [2, 3]
 
 只想先跑通导入和播放时，完成阶段 1、2 即可。自动下载、以图搜图、115 网盘等属于可选扩展，见下方两节和[推荐插件](/zh-CN/guide/plugins)。
 
+## 下载客户端
+
+客户端不能单独使用，需要连接一台已经部署好的 SakuraMedia 后端。可以先下载安装，等后端部署完成后再在首次登录时填写地址。
+
+从 [GitHub Releases](https://github.com/tinypinglite/sakuramedia/releases/latest) 下载安装包：
+
+| 平台 | 安装包 | 说明 |
+|---|---|---|
+| Windows | `sakuramedia-windows-<版本>-setup-unsigned.exe` | 安装包未签名；SmartScreen 提示时选择「更多信息 → 仍要运行」 |
+| macOS | `sakuramedia-macos-<版本>.dmg` | 使用固定自签名证书，未经过 Apple 公证；系统提示来源不明时在「隐私与安全性」中允许 |
+| Android | `sakuramedia-android-<版本>-release-signed.apk` | 直接安装；系统可能提示未知来源 |
+| iOS | `sakuramedia-ios-<版本>-sidestore-ready.ipa` | 需要 iOS 15.0+，通过 SideStore 或自签工具安装；没有侧载经验建议先用桌面端 |
+
 ## 开始前
 
 - 一台持续运行的主机或 NAS，已安装 Docker 和 Docker Compose。
 - 一个 SSD 目录存放后端运行数据（数据库、配置、日志、插件）。
-- 客户端从 [GitHub Releases](https://github.com/tinypinglite/sakuramedia/releases/latest) 下载。
+- 已按[下载客户端](#下载客户端)安装客户端。
 
 ## 阶段 1：部署后端
 

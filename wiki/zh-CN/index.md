@@ -10,6 +10,9 @@ hero:
   tagline: 记住喜欢的影片，收藏心动的时刻，留下值得回看的片段。
   actions:
     - theme: brand
+      text: 下载客户端
+      link: https://github.com/tinypinglite/sakuramedia/releases/latest
+    - theme: alt
       text: 快速开始
       link: /zh-CN/guide/quick-start
     - theme: alt
@@ -36,7 +39,9 @@ features:
   - title: 女优订阅与最新作品追踪
     details: 支持订阅女优持续追踪新作动态。
   - title: 多客户端支持
-    details: 提供 Win/Mac/iOS/Android 平台 APP。
+    details: 提供 Win/Mac/iOS/Android 平台 APP，从 GitHub Releases 下载安装。
+    link: https://github.com/tinypinglite/sakuramedia/releases/latest
+    linkText: 下载客户端
   - title: 排行榜
     details: 由已启用的排行榜插件提供来源和定时同步能力，可以快速找到最近热门的影片。
   - title: 插件化扩展

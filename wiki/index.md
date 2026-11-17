@@ -10,6 +10,9 @@ hero:
   tagline: Remember the movies you like, save the moments that caught your eye, and keep the clips worth watching again.
   actions:
     - theme: brand
+      text: Download the client
+      link: https://github.com/tinypinglite/sakuramedia/releases/latest
+    - theme: alt
       text: Quick start
       link: /guide/quick-start
     - theme: alt
@@ -36,7 +39,9 @@ features:
   - title: Actor subscriptions and new release tracking
     details: Subscribe to actors and keep following their new releases.
   - title: Multiple clients
-    details: Apps for Windows, macOS, iOS and Android.
+    details: Apps for Windows, macOS, iOS and Android, downloadable from GitHub Releases.
+    link: https://github.com/tinypinglite/sakuramedia/releases/latest
+    linkText: Download the client
   - title: Rankings
     details: Enabled ranking plugins supply sources and scheduled sync, so recently popular movies are easy to find.
   - title: Plugin-based extension
