@@ -55,17 +55,13 @@ app.*.map.json
 android/key.properties
 android/keystore/
 
-# Wiki (VitePress)
-wiki/node_modules/
-wiki/.vitepress/dist/
-wiki/.vitepress/cache/
-wiki/public/star-history-*.svg
-
 # Python helper scripts
 __pycache__/
 
-# 本地资源和临时图片不纳入版本库。
+# 本地资源和临时图片不纳入版本库；品牌资源例外，随应用打包。
 assets/*
+!assets/brand/
+!assets/brand/**
 
 .vscode
 .worktrees/

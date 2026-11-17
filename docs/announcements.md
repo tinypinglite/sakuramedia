@@ -1,7 +1,8 @@
 # Deployment announcements
 
-The backend polls `wiki/public/announcements.json` after it is deployed to
-GitHub Pages. The published URL is:
+The backend polls `wiki/public/announcements.json` in the public repo
+(`tinypinglite/sakuramedia`) after it is deployed to GitHub Pages. The
+published URL is:
 
 `https://tinypinglite.github.io/sakuramedia/announcements.json`
 
@@ -53,7 +54,7 @@ GitHub Pages. The published URL is:
 
 1. Create or update the human-facing notice in GitHub Discussions
    (`Announcements`) and, for a security issue, publish a Security Advisory.
-2. Add the matching entry to `wiki/public/announcements.json`.
+2. Add the matching entry to `wiki/public/announcements.json` in the public repo.
 3. Push the change. The existing GitHub Pages workflow deploys the feed.
 4. Deployments receive it on their next poll; current cache lifetime is
    30 minutes.

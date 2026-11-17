@@ -1099,7 +1099,7 @@ class _AuthBrandLockup extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.all(2),
                   child: Image.asset(
-                    'wiki/public/brand/sakuramedia-logo.png',
+                    'assets/brand/sakuramedia-logo.png',
                     fit: BoxFit.cover,
                     excludeFromSemantics: true,
                   ),

@@ -22,7 +22,7 @@ void main() {
 
   test('login brand asset is bundled', () async {
     final data = await rootBundle.load(
-      'wiki/public/brand/sakuramedia-logo.png',
+      'assets/brand/sakuramedia-logo.png',
     );
     expect(data.lengthInBytes, greaterThan(0));
   });
