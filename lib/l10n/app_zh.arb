@@ -1,0 +1,5959 @@
+{
+  "@@locale": "zh",
+  "appTitle": "SakuraMedia",
+  "loginFirstRunTitle": "第一次使用？",
+  "loginFirstRunDescription": "SakuraMedia 由客户端和后端组成，客户端不能单独使用。先部署后端，再填服务器地址登录。默认账号 account / account，登录后请修改密码。",
+  "loginViewDeployGuide": "查看部署教程",
+  "loginHaveServer": "已有服务器，直接登录",
+  "firstLoginPerformanceHintTitle": "性能小提示",
+  "firstLoginPerformanceHintDescription": "如果遇到卡顿或掉帧，可以到「系统设置 → 外观」把界面风格切换为「扁平风格」。扁平风格不使用 Flutter 的实时模糊，更适合低性能设备。macOS 用户还可以在外观设置中单独关闭窗口毛玻璃。",
+  "firstLoginPerformanceHintDismiss": "知道了",
+  "loginBrandTagline": "PRIVATE MEDIA",
+  "loginHeroEyebrow": "A PRIVATE PLACE FOR EVERY FRAME",
+  "loginHeroTitle": "留下喜欢的",
+  "loginHeroDescription": "时刻、切片、订阅、观看都在这",
+  "loginDockTitle": "登录你的媒体空间",
+  "loginDockSubtitle": "连接 SakuraMedia 服务器",
+  "loginWelcomeTitle": "欢迎回来",
+  "loginEnterLibrary": "进入收藏馆",
+  "loginTrustLine": "仅连接你自己的服务器",
+  "loginServerAddress": "服务器地址",
+  "loginServerHelperShort": "填运行后端的机器地址",
+  "loginServerHelpTooltip": "如何获取服务器地址",
+  "loginServerHelper": "填运行后端的机器地址，例如 192.168.1.10:38000",
+  "loginUsername": "用户名",
+  "loginPassword": "密码",
+  "loginShowPassword": "显示密码",
+  "loginHidePassword": "隐藏密码",
+  "loginSubmitting": "登录中...",
+  "loginSubmit": "登录",
+  "loginErrorFallback": "登录失败，请稍后重试",
+  "loginErrorNetwork": "登录失败，请检查网络或服务器地址",
+  "loginDeployGuideInError": "还没有部署后端？查看部署教程",
+  "loginOpenBrowserFailed": "无法打开浏览器，请手动访问 Wiki 的「快速开始」",
+  "loginLocalNetworkPermissionHintMacos": "连接失败？请打开「系统设置 → 隐私与安全性 → 本地网络」，确认 SakuraMedia 已开启，然后完全退出并重新打开 App。若列表中没有 SakuraMedia，先点一次登录再回来查看。",
+  "loginLocalNetworkPermissionHintIos": "连接失败？请打开「设置 → 隐私与安全性 → 本地网络」，确认 SakuraMedia 已开启，然后重新打开 App。若列表中没有 SakuraMedia，先点一次登录再回来查看。",
+  "networkPermissionHintTitle": "网络连接失败",
+  "networkPermissionHintAppleMessage": "如果刚刚更新过客户端，系统可能会重置此应用的本地网络权限。请前往系统设置中的「隐私与安全性 → 本地网络」，重新允许 SakuraMedia，然后重试。",
+  "networkPermissionHintAndroidMessage": "如果刚刚更新过客户端，系统或安全软件可能会限制此应用联网。请前往系统的应用权限或联网管理，确认 SakuraMedia 未被禁止访问网络，然后重试。",
+  "networkPermissionHintDismiss": "知道了",
+  "loginServerRequired": "请输入服务器地址",
+  "loginServerInvalid": "请输入有效的 http(s) 地址",
+  "loginFieldRequired": "请输入{field}",
+  "@loginFieldRequired": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsLanguageTitle": "界面语言",
+  "settingsLanguageHint": "语言保存在服务器与本机；切换后新产生的任务和通知使用新语言，历史文本保持原语言。部分服务端文案重启应用后生效。",
+  "settingsLanguageSimplifiedChinese": "简体中文",
+  "settingsLanguageEnglish": "English",
+  "settingsLanguageUpdateFailed": "语言更新失败，请检查后端版本或稍后重试",
+  "errorNetworkFailure": "无法连接到服务器。请检查后端地址是否正确、服务是否已启动，或网络是否可达。",
+  "errorNetworkFailureWithHost": "无法连接到服务器：{baseUrl}。请检查后端地址是否正确、服务是否已启动，或网络是否可达。",
+  "@errorNetworkFailureWithHost": {
+    "placeholders": {
+      "baseUrl": {
+        "type": "String"
+      }
+    }
+  },
+  "errorTimeout": "连接服务器超时。请检查服务是否繁忙、网络是否稳定，或稍后重试。",
+  "errorTimeoutWithHost": "连接服务器超时：{baseUrl}。请检查服务是否繁忙、网络是否稳定，或稍后重试。",
+  "@errorTimeoutWithHost": {
+    "placeholders": {
+      "baseUrl": {
+        "type": "String"
+      }
+    }
+  },
+  "errorLoadMoreFailed": "加载更多失败，请点击重试",
+  "errorSearchFailed": "搜索失败，请稍后重试",
+  "errorIndexerLoadFailed": "索引器加载失败，请稍后重试。",
+  "errorDownloadClientLoadFailed": "下载器加载失败，请稍后重试。",
+  "errorMediaLibraryLoadFailed": "媒体库加载失败，请稍后重试。",
+  "errorRemoveFailed": "移除失败，请重试",
+  "errorActivityLoadFailed": "任务中心加载失败，请稍后重试",
+  "errorTasteProfileLoadFailed": "观影偏好加载失败，请稍后重试",
+  "errorMediaListLoadFailed": "媒体列表加载失败，请稍后重试",
+  "errorLoadMoreMediaFailed": "加载更多媒体失败，请点击重试",
+  "errorRankingFilterLoadFailed": "排行榜筛选加载失败，请稍后重试",
+  "errorFilterUpdateFailed": "筛选结果更新失败，请重试",
+  "errorTorznabConnectionTestFailed": "Torznab 连通性测试请求失败",
+  "errorMomentListLoadFailed": "时刻列表加载失败，请稍后重试",
+  "errorClipLoadFailed": "切片暂时无法加载，请稍后重试",
+  "errorLoadMoreRetry": "加载更多失败，请重试",
+  "errorNotificationLoadFailed": "通知加载失败，请稍后重试",
+  "errorNotificationFilterRefreshFailed": "通知筛选刷新失败，请重试",
+  "errorLoadMoreNotificationsFailed": "加载更多通知失败，请点击重试",
+  "errorTaskFilterRefreshFailed": "任务筛选刷新失败，请重试",
+  "errorLoadMoreTasksFailed": "加载更多任务失败，请点击重试",
+  "errorExecutableTaskLoadFailed": "可执行任务加载失败，请重试",
+  "errorRecommendedMovieLoadFailed": "推荐影片加载失败，请稍后重试",
+  "errorLoadMoreRecommendedMoviesFailed": "加载更多推荐影片失败，请点击重试",
+  "errorHotNewMovieLoadFailed": "热门新片加载失败，请稍后重试",
+  "errorLoadMoreHotNewMoviesFailed": "加载更多热门新片失败，请点击重试",
+  "errorRecommendedMomentLoadFailed": "推荐时刻加载失败，请稍后重试",
+  "errorLoadMoreRecommendedMomentsFailed": "加载更多推荐时刻失败，请点击重试",
+  "errorResetSubscriptionSearchFailed": "重置订阅搜索状态失败",
+  "errorUnsubscribeMovieFailed": "取消订阅影片失败",
+  "errorBatchUnsubscribeMoviesFailed": "批量取消订阅影片失败",
+  "errorSubscriptionListLoadFailed": "订阅列表加载失败，请稍后重试",
+  "errorLoadMoreSubscriptionsFailed": "加载更多订阅失败，请点击重试",
+  "errorTagLoadFailed": "标签加载失败，请稍后重试",
+  "errorRankingLoadFailed": "排行榜加载失败，请稍后重试",
+  "errorVideoListLoadFailed": "视频列表加载失败，请稍后重试",
+  "errorActorListLoadFailed": "女优列表加载失败，请稍后重试",
+  "errorReviewLoadFailed": "评论加载失败，请稍后重试。",
+  "errorReviewFilterUpdateFailed": "评论筛选更新失败，请稍后重试。",
+  "errorReviewLoadMoreFailed": "评论加载更多失败，请稍后重试。",
+  "errorRetryLater": "请稍后重试",
+  "errorAccountProfileLoadFailed": "账号资料加载失败，请稍后重试",
+  "errorChangeUsernameFailed": "修改用户名失败",
+  "errorDownloadTaskLoadFailed": "下载任务加载失败，请稍后重试",
+  "errorInvalidMediaLoadFailed": "失效媒体加载失败，请稍后重试",
+  "errorLoadMoreInvalidMediaFailed": "加载更多失效媒体失败，请点击重试",
+  "errorDuplicateMediaLoadFailed": "重复媒体加载失败，请稍后重试",
+  "errorLoadMoreDuplicateMediaFailed": "加载更多重复媒体失败，请点击重试",
+  "errorMultiVersionMovieLoadFailed": "多版本影片加载失败，请稍后重试",
+  "errorLoadMoreMoviesFailed": "加载更多影片失败，请点击重试",
+  "errorUsernameExists": "用户名已存在，请换一个名称",
+  "errorUsernameRequired": "请输入用户名",
+  "errorUsernameUnchanged": "用户名未变化",
+  "sseMovieImporting": "正在入库影片...",
+  "sseMovieSearchingExternal": "正在从外部数据源搜索影片",
+  "sseMovieCandidatesFetched": "已从在线源获取候选影片",
+  "sseMovieImportingOnline": "正在入库在线影片",
+  "sseMovieOnlineImportFinished": "在线影片入库完成",
+  "sseMovieOnlineSearchFinished": "在线搜索已完成",
+  "sseMovieSyncingOnlineResults": "正在同步在线影片搜索结果",
+  "commonCancel": "取消",
+  "commonRetry": "重试",
+  "commonClose": "关闭",
+  "commonDelete": "删除",
+  "commonCopy": "复制",
+  "commonDone": "完成",
+  "commonSelectedCount": "已选 {count}",
+  "@commonSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "commonCollapseSearch": "收起搜索",
+  "commonUnknown": "未知",
+  "commonApiKey": "API Key",
+  "commonProvider": "Provider",
+  "commonSubmittingPleaseWait": "正在提交，请稍候…",
+  "accountTitle": "账号",
+  "accountProfileTitle": "账号资料",
+  "accountUsername": "用户名",
+  "accountUsernameHint": "请输入新的用户名",
+  "accountUsernameHelpMobile": "保存后当前登录态保持不变。",
+  "accountUsernameHelpDesktop": "用户名用于登录和账号识别，保存后当前登录态保持不变。",
+  "accountSaveUsername": "保存用户名",
+  "accountUsernameUpdated": "用户名已更新",
+  "accountCurrentUsername": "当前用户名",
+  "accountCreatedAt": "创建时间",
+  "accountLastLogin": "上次登录",
+  "accountChangePasswordTitle": "修改密码",
+  "accountChangePasswordNotice": "修改密码后将立即退出当前登录，需要使用新密码重新登录。",
+  "accountCurrentPassword": "当前密码",
+  "accountNewPassword": "新密码",
+  "accountConfirmNewPassword": "确认新密码",
+  "accountConfirmChange": "确认修改",
+  "accountReset": "重置",
+  "accountPasswordChangedReloginFailed": "密码已修改，但新密码登录校验失败，请重新登录确认",
+  "accountPasswordChangedRelogin": "密码已更新，请重新登录",
+  "accountCurrentPasswordRequired": "请输入当前密码",
+  "accountNewPasswordRequired": "请输入新密码",
+  "accountNewPasswordSameAsCurrent": "新密码不能与当前密码相同",
+  "accountConfirmPasswordRequired": "请再次输入新密码",
+  "accountPasswordMismatch": "两次输入的新密码不一致",
+  "apiKeysTitle": "API 密钥",
+  "apiKeysDescription": "供外部工具（如 MCP 服务）调用 API，权限等同于账号。密钥只在生成时显示一次，请妥善保存。",
+  "apiKeysEmpty": "还没有 API 密钥。",
+  "apiKeysGenerate": "生成新密钥",
+  "apiKeyUnnamed": "未命名密钥",
+  "apiKeyNeverUsed": "从未使用",
+  "apiKeyLastUsed": "最后使用 {time}",
+  "@apiKeyLastUsed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "apiKeyCreatedAt": "创建于 {time}",
+  "@apiKeyCreatedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "apiKeyDeleteTitle": "删除 API 密钥",
+  "apiKeyDeleteMessage": "删除后使用「{name}」的集成将立即失效，确认删除？",
+  "@apiKeyDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "apiKeyGenerateTitle": "生成 API 密钥",
+  "apiKeyNameLabel": "备注名（可选）",
+  "apiKeyNameHint": "例如：MCP server",
+  "apiKeyGenerateAction": "生成",
+  "apiKeyGeneratedTitle": "密钥已生成",
+  "apiKeyOnlyOnceNotice": "此密钥仅显示一次，关闭后将无法再次查看，请立即复制保存。",
+  "apiKeyCopied": "已复制到剪贴板",
+  "apiKeyCopyFailed": "复制失败，请手动选择复制",
+  "errorChangePasswordFailed": "修改密码失败",
+  "errorApiKeysLoadFailed": "API 密钥加载失败",
+  "errorApiKeyDeleteFailed": "删除密钥失败",
+  "errorApiKeyGenerateFailed": "生成密钥失败",
+  "commonSave": "保存",
+  "commonRefresh": "刷新",
+  "commonSaved": "已保存",
+  "clientProxyTitle": "客户端代理",
+  "clientProxyDescription": "仅用于客户端自身的网络请求（如访问后端、从插件市场安装插件），常用于解决插件安装失败的问题；视频播放不走此代理。",
+  "clientProxyAddressLabel": "代理地址",
+  "clientProxyAddressHint": "http://127.0.0.1:7890",
+  "clientProxyInvalidAddress": "代理地址格式不正确，请填写 host:port",
+  "clientProxyNotConfigured": "未设置",
+  "configRestartRequiredBadge": "重启容器生效",
+  "configUnsavedBadge": "未保存",
+  "configOptionalServicesTitle": "图搜 / 相似度",
+  "configQdrantEnabledTitle": "启用相似影片与向量服务",
+  "configQdrantEnabledSubtitle": "使用 Qdrant 提供相似影片，并增强推荐结果",
+  "configComposeDefaultHelper": "按快速开始的 Compose 示例部署时，默认即此地址，API Key 留空即可。",
+  "configQdrantUrlLabel": "Qdrant 地址",
+  "configQdrantApiKeyLabel": "Qdrant API Key（可选）",
+  "configImageSearchEnabledTitle": "启用图片与文字搜图",
+  "configImageSearchEnabledSubtitle": "使用嵌入服务生成图片与文字向量，并增强时刻推荐",
+  "configImageSearchRequiresQdrant": "需先启用上方的相似影片与向量服务",
+  "configEmbeddingUrlLabel": "嵌入服务地址",
+  "configEmbeddingApiKeyLabel": "嵌入服务 API Key（可选）",
+  "configOptionalServicesTip": "保存后重启后端容器生效。关闭功能会保留索引；如需释放内存，请同时停止对应的可选容器。重新启用后可在系统维护中重建图搜索引，在任务中心重算相似影片。",
+  "configDisableVectorTitle": "关闭向量服务",
+  "configDisableVectorMessage": "图片与文字搜图依赖 Qdrant，将同时关闭。已有配置与索引会保留，保存并重启后生效。",
+  "configDisableVectorConfirm": "同时关闭",
+  "configInvalidHttpUrl": "请输入有效的 HTTP 或 HTTPS 地址",
+  "configMediaImportTitle": "媒体导入",
+  "configMediaImportTip": "这组配置仅控制 JAV 类影片导入的最小文件大小。第一次部署通常保持默认。",
+  "configMinVideoSizeLabel": "允许导入的视频最小体积",
+  "configMinVideoSizeHint": "建议不低于 256",
+  "configMinVideoSizeHelper": "UI 按 MB 编辑，保存时会转换为字节；不建议低于 256 MB。",
+  "configMinVideoSizeShort": "最小体积",
+  "configPositiveIntRequired": "请输入大于 0 的{label}",
+  "@configPositiveIntRequired": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "configSchedulerTitle": "定时任务频率",
+  "configSchedulerTip": "Cron 语法：分 时 日 月 周（*/N 每隔 N，逗号列表，连字符区间）；普通任务并发数控制同时执行的任务数量。修改后需要重启容器才生效。",
+  "configWorkerSectionTitle": "普通任务执行",
+  "configWorkerConcurrencyLabel": "普通任务并发数",
+  "configWorkerConcurrencyHelper": "导入和存储迁移任务使用独立并发，不受此设置影响。",
+  "configWorkerConcurrencyUnit": "个",
+  "configWorkerConcurrencyRange": "请输入 {min}–{max} 的整数",
+  "@configWorkerConcurrencyRange": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "configCronRequired": "请输入 5 位标准 cron",
+  "configLoggingTitle": "日志",
+  "configLoggingTip": "日志等级平时保持 INFO，排查问题时再临时改成 DEBUG。",
+  "configLoggingLevelLabel": "日志等级",
+  "configUnsavedChangesTitle": "有未保存的改动",
+  "configUnsavedChangesMessage": "刷新将丢弃当前未保存的高级设置，确认刷新？",
+  "configLoggingConfirmTitle": "确认修改日志等级",
+  "configLoggingConfirmMessage": "修改日志等级将重启容器，页面会临时无响应并需刷新，是否继续？",
+  "configContinueSave": "继续保存",
+  "restartRequiredMessage": "{action}，需重启容器才生效",
+  "@restartRequiredMessage": {
+    "placeholders": {
+      "action": {
+        "type": "String"
+      }
+    }
+  },
+  "errorAdvancedSettingsLoadFailed": "高级设置加载失败",
+  "errorAdvancedSettingsSaveFailed": "保存高级设置失败",
+  "configCronGroupDownloadImport": "下载 / 导入",
+  "configCronGroupScrapeBackfill": "抓取 / 回填",
+  "configCronGroupRecommendation": "推荐",
+  "configCronGroupMaintenance": "巡检 / 清理",
+  "taskNameActorSubscriptionSync": "订阅演员影片同步",
+  "taskNameSubscribedMovieAutoDownload": "已订阅缺失影片自动下载",
+  "taskNameDownloadTaskSync": "下载任务状态同步",
+  "taskNameDownloadTaskAutoImport": "已完成下载自动导入",
+  "taskNameMovieStatsSync": "影片互动数与热度同步",
+  "taskNameMediaFileHashBackfill": "媒体文件哈希补算",
+  "taskNameMediaFileScan": "媒体文件巡检",
+  "taskNameMediaThumbnailGeneration": "媒体缩略图生成",
+  "taskNameImageSearchIndex": "图像搜索索引构建",
+  "taskNameMovieSimilarityRecompute": "影片相似度重算",
+  "taskNameMomentRecommendationGenerate": "推荐时刻生成",
+  "taskNameDailyRecommendationGenerate": "每日推荐快照生成",
+  "taskNameActivityRecordCleanup": "任务记录清理",
+  "taskNameGfriendsFiletreeRefresh": "GFriends 缓存刷新",
+  "taskHelpActorSubscriptionSync": "定时同步已订阅演员的作品列表，并将新影片资料导入本地库。",
+  "taskHelpSubscribedMovieAutoDownload": "自动下载已订阅但缺失的影片。",
+  "taskHelpDownloadTaskSync": "同步下载任务状态。",
+  "taskHelpDownloadTaskAutoImport": "导入已完成的下载任务。",
+  "taskHelpMovieStatsSync": "通过绑定的互动数插件刷新影片互动数与热度。",
+  "taskHelpMediaFileHashBackfill": "补算缺失的媒体文件哈希。",
+  "taskHelpMediaFileScan": "用存储提供方清单校验媒体文件有效性。",
+  "taskHelpMediaThumbnailGeneration": "生成媒体缩略图。",
+  "taskHelpImageSearchIndex": "生成图片搜索索引。",
+  "taskHelpMovieSimilarityRecompute": "离线重算影片相似度。",
+  "taskHelpMomentRecommendationGenerate": "生成推荐时刻。",
+  "taskHelpDailyRecommendationGenerate": "生成每日推荐快照。",
+  "taskHelpActivityRecordCleanup": "清理任务中心的通知与任务运行数据。",
+  "taskHelpGfriendsFiletreeRefresh": "刷新 GFriends Filetree 缓存。",
+  "relativeTimeJustNow": "刚刚",
+  "relativeTimeMinutesAgo": "{count} 分钟前",
+  "@relativeTimeMinutesAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "relativeTimeHoursAgo": "{count} 小时前",
+  "@relativeTimeHoursAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "relativeTimeDaysAgo": "{count} 天前",
+  "@relativeTimeDaysAgo": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "lastCheckedRelative": "{time}检测",
+  "@lastCheckedRelative": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "systemDiagnosticsRunning": "正在检测 {current}/{total}…",
+  "@systemDiagnosticsRunning": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "systemDiagnosticsNeverRun": "尚未检测。点右上角开始一次完整检测。",
+  "systemDiagnosticsLastRunWithIssues": "上次检测：{time} · {count} 项异常",
+  "@systemDiagnosticsLastRunWithIssues": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "systemDiagnosticsLastRunAllPassed": "上次检测：{time} · 全部通过",
+  "@systemDiagnosticsLastRunAllPassed": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionLastSearchedAt": "上次查询：{time}",
+  "@subscriptionLastSearchedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionSubscribedAt": "订阅于 {time}",
+  "@subscriptionSubscribedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "syncedAtLabel": "更新于 {time}",
+  "@syncedAtLabel": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaDurationHoursMinutesSeconds": "{hours}时{minutes}分{seconds}秒",
+  "@mediaDurationHoursMinutesSeconds": {
+    "placeholders": {
+      "hours": {
+        "type": "int"
+      },
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaDurationMinutesSeconds": "{minutes}分{seconds}秒",
+  "@mediaDurationMinutesSeconds": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      },
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaDurationSeconds": "{seconds}秒",
+  "@mediaDurationSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaLibraryDeleted": "媒体库已删除",
+  "mediaLibraryFallback": "媒体库 {id}",
+  "@mediaLibraryFallback": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "durationMinutes": "{count} 分钟",
+  "@durationMinutes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "systemDiagnosticsComponentTitle": "组件诊断",
+  "systemDiagnosticsRerun": "重新检测",
+  "systemDiagnosticsOpenPage": "打开组件诊断页",
+  "systemDiagnosticsStartCheck": "开始检测",
+  "systemDiagnosticsStatusNotChecked": "未检测",
+  "systemDiagnosticsStatusIssues": "{count} 项异常",
+  "@systemDiagnosticsStatusIssues": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "systemDiagnosticsStatusWarning": "有警告",
+  "systemDiagnosticsStatusPartiallyChecked": "部分未检测",
+  "systemDiagnosticsStatusAllPassed": "全部通过",
+  "subscriptionNewMovieSearching": "新片 · 持续查询中",
+  "subscriptionSearchedTimes": "已查询过 {count} 次",
+  "@subscriptionSearchedTimes": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionRetryBeforeGivingUp": "再尝试 {count} 次就放弃",
+  "@subscriptionRetryBeforeGivingUp": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionNotSearched": "尚未查询",
+  "subscriptionDeadTorrents": "{count} 个种子已判死",
+  "@subscriptionDeadTorrents": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionReleasedAt": "发行 {date}",
+  "@subscriptionReleasedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionLocalMediaCount": "本地 {count} 个媒体",
+  "@subscriptionLocalMediaCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "commonEdit": "编辑",
+  "indexerAdd": "新增索引器",
+  "indexerLoadFailedTitle": "索引器加载失败",
+  "indexerOverviewTitle": "Torznab 索引器负责搜索候选资源，并把资源请求投递到对应下载器。",
+  "indexerOverviewDescription": "每个索引器可独立配置 API Key；留空的站点请求不会携带 apikey。",
+  "indexerApiKeyConfigured": "API Key 已配置",
+  "indexerCountLabel": "索引器数",
+  "indexerBoundDownloadClientsLabel": "已绑定下载器",
+  "indexerCountValue": "{count} 个",
+  "@indexerCountValue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "indexerGuideCreateDownloaderTitle": "请先在下载器页创建下载器",
+  "indexerGuideCreateDownloaderDescription": "索引器需要先绑定下载器，影片详情里的资源投递才能生效。",
+  "indexerGuideGoToDownloaders": "前往下载器",
+  "indexerEmpty": "还没有索引器配置",
+  "indexerApiKeyLine": "API Key: {value}",
+  "@indexerApiKeyLine": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "indexerBoundDownloadClientsLine": "绑定下载器: {value}",
+  "@indexerBoundDownloadClientsLine": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "indexerConfigured": "已配置",
+  "indexerNotConfigured": "未配置",
+  "indexerNotMatched": "未匹配",
+  "indexerBoundDownloaderInvalid": "绑定下载器已失效，请重新选择",
+  "indexerLoadFailedFallback": "索引器加载失败，请稍后重试。",
+  "indexerConnectionHealthy": "Torznab 连通正常",
+  "indexerConnectionTestFailed": "Torznab 连通性测试失败",
+  "indexerDeleteTitle": "删除索引器",
+  "indexerDeleteMessage": "确认删除索引器\"{name}\"？删除后，该索引器将无法继续把资源请求投递到当前下载器。",
+  "@indexerDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "indexerDeleteFailed": "删除索引器失败",
+  "indexerDeleted": "索引器已删除",
+  "indexerUnsavedTestHint": "当前配置尚未保存，保存后再测试。",
+  "indexerEditTitle": "编辑索引器",
+  "indexerUnsupportedKind": "索引器类型仅支持 pt 或 bt",
+  "indexerSelectDownloader": "请至少选择一个仍可用的下载器",
+  "indexerUpdated": "索引器已更新",
+  "indexerCreated": "索引器已创建",
+  "indexerUpdateFailed": "更新索引器失败",
+  "indexerCreateFailed": "创建索引器失败",
+  "indexerKindLabel": "类别",
+  "indexerBoundDownloadClientLabel": "绑定下载器",
+  "indexerTestPanelTitle": "Torznab 连通性",
+  "indexerTestPanelDescription": "使用已保存的配置执行一次真实 Torznab 搜索，不会修改索引器数据。",
+  "indexerTestAgain": "重新测试",
+  "indexerTestStart": "测试 Torznab 连通性",
+  "indexerTestStatusTesting": "测试中",
+  "indexerTestStatusPending": "待测试",
+  "indexerTestStatusHealthy": "连通正常",
+  "indexerTestStatusFailed": "连通失败",
+  "indexerTestMetricQuery": "查询",
+  "indexerTestMetricIndexers": "索引器",
+  "indexerTestMetricResults": "候选",
+  "indexerTestMetricElapsed": "耗时",
+  "indexerTestCountIndexers": "{count} 个",
+  "@indexerTestCountIndexers": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "indexerTestCountResults": "{count} 条",
+  "@indexerTestCountResults": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "indexerTestRequestFailed": "请求 Torznab 测试接口失败",
+  "indexerTestHealthyNoResults": "Torznab 已连通，测试查询未返回候选。",
+  "indexerTestHealthy": "Torznab 已连通，真实搜索已完成。",
+  "indexerTestIncomplete": "Torznab 未能完成本次连通性测试。",
+  "indexerTestFixNoIndexers": "请添加至少一个索引器并保存配置后再测试。",
+  "indexerTestFixGeneric": "请检查 Torznab 服务、API Key 和索引器地址后重试。",
+  "indexerNameRequired": "请输入索引器名称",
+  "indexerNameDuplicate": "索引器名称重复",
+  "indexerUrlRequired": "请输入索引器 URL",
+  "indexerUrlInvalid": "请输入合法的 http/https 地址",
+  "indexerDownloadClientRequired": "请至少选择一个下载器",
+  "indexerNameFieldLabel": "名称 (NAME)",
+  "indexerNameHint": "例如: 馒头",
+  "indexerUrlFieldLabel": "资源地址 (URL)",
+  "indexerUrlHint": "填写完整的 torznab 地址",
+  "indexerApiKeyFieldLabel": "API Key (可选)",
+  "indexerApiKeyHint": "留空则请求不携带 apikey",
+  "indexerShowApiKey": "显示 API Key",
+  "indexerHideApiKey": "隐藏 API Key",
+  "indexerKindFieldLabel": "类别 (KIND)",
+  "indexerKindPt": "PT (私有)",
+  "indexerKindBt": "BT (公网)",
+  "indexerDownloadClientPriority": "下载器优先级",
+  "indexerDownloadClientPriorityHint": "首位下载器将作为自动下载和资源投递的默认目标。",
+  "metricText": "{label}：{value}",
+  "@metricText": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "indexerNoBoundDownloaderTitle": "尚未绑定下载器",
+  "indexerNoBoundDownloaderSubtitle": "请从下方添加至少一个下载器",
+  "indexerDefaultDownloader": "默认下载器",
+  "indexerPriority": "优先级 {index}",
+  "@indexerPriority": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "indexerMoveUp": "上移",
+  "indexerMoveUpName": "上移 {name}",
+  "@indexerMoveUpName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "indexerMoveDown": "下移",
+  "indexerMoveDownName": "下移 {name}",
+  "@indexerMoveDownName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "indexerRemove": "移除",
+  "indexerAddDownloaderGroup": "添加下载器",
+  "indexerUnbound": "未绑定",
+  "indexerAddAction": "添加",
+  "downloaderLoadFailedFallback": "下载器加载失败，请稍后重试。",
+  "downloaderDeleteTitle": "删除下载器",
+  "downloaderDeleteMessage": "确认删除下载器“{name}”？该操作不会删除下载任务。",
+  "@downloaderDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "downloaderDeleted": "下载器已删除",
+  "downloaderDeleteFailed": "删除下载器失败",
+  "downloaderTabDownloaders": "下载器",
+  "downloaderTabGuide": "接入说明",
+  "downloaderAdd": "新增下载器",
+  "downloaderOverviewTitle": "下载器把索引器推送的资源请求交给对应 Provider 执行。",
+  "downloaderOverviewDescription": "先选择支持下载的媒体库，再填写该 Provider 提供的配置字段。",
+  "downloaderConfiguredCount": "已配置下载器数",
+  "downloaderAvailableLibraries": "可用媒体库数",
+  "downloaderProviderUnavailable": "Provider 目录暂不可用，已有下载器仍可管理；恢复插件目录后才能新建或编辑 Provider 配置。",
+  "downloaderLoadFailedTitle": "下载器加载失败",
+  "downloaderEmpty": "还没有下载器配置",
+  "downloaderGuideLibrariesTitle": "先准备媒体库",
+  "downloaderGuideLibrariesDescription": "下载器必须绑定一个支持下载的媒体库，配置由对应 Provider 提供。",
+  "downloaderGuideLibrariesTip": "如果列表为空，请先安装并配置支持下载的 Provider。",
+  "downloaderGuideConfigured": "已配置",
+  "downloaderGuidePending": "待配置",
+  "downloaderGuideGoToLibraries": "前往媒体库",
+  "downloaderGuideConfigureTitle": "配置下载器",
+  "downloaderGuideConfigureDescription": "选择目标媒体库后，填写 Provider 目录定义的配置字段。",
+  "downloaderGuideSensitiveHint": "敏感字段留空保存时会沿用已有值。",
+  "downloaderGuideSwitchToDownloaders": "切换到下载器",
+  "downloaderUnknownProvider": "未知 Provider",
+  "downloaderUnmatchedLibrary": "未匹配 ({id})",
+  "@downloaderUnmatchedLibrary": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "downloaderMediaLibraryLabel": "媒体库",
+  "downloaderUpdated": "下载器已更新",
+  "downloaderCreated": "下载器已创建",
+  "downloaderUpdateFailed": "更新下载器失败",
+  "downloaderCreateFailed": "创建下载器失败",
+  "downloaderTestFailed": "下载器测试失败",
+  "downloaderEditTitle": "编辑下载器",
+  "downloaderTestConfig": "测试配置",
+  "downloaderNameRequired": "请输入下载器名称",
+  "downloaderNameLabel": "名称",
+  "downloaderNameHint": "给下载器起个名字",
+  "downloaderTargetLibrary": "目标媒体库",
+  "downloaderNoDownloadableLibraries": "暂无支持下载的媒体库",
+  "downloaderSelectTargetLibrary": "请选择目标媒体库",
+  "downloaderTestResultTitle": "配置测试结果",
+  "downloaderTestStatusOk": "通过",
+  "downloaderTestStatusWarning": "有警告",
+  "downloaderTestStatusFailed": "未通过",
+  "downloaderTestSummaryOk": "所有检查已通过，可以保存并开始使用。",
+  "downloaderTestSummaryWarning": "检测完成，但存在警告。配置仍可保存，导入时可能回退为复制。",
+  "downloaderTestSummaryFailed": "检测未通过。配置仍可保存，但下载任务或导入可能失败。",
+  "downloaderCheckStatusOk": "通过",
+  "downloaderCheckStatusWarning": "警告",
+  "downloaderCheckStatusSkipped": "未执行",
+  "downloaderCheckStatusFailed": "失败",
+  "downloaderCheckQbittorrent": "qBittorrent 连通性",
+  "downloaderCheckDirectoryMapping": "下载目录映射",
+  "downloaderCheckHardlink": "硬链接",
+  "downloaderCheckCleanup": "临时文件清理",
+  "downloaderCheckProvider": "下载器测试",
+  "downloaderConfigLoadFailed": "下载器配置加载失败",
+  "downloaderConfigLoadFailedFallback": "下载器配置加载失败，请稍后重试。",
+  "downloaderNoDownloadableLibraryProvider": "当前没有支持下载的媒体库，请先配置可下载的媒体库 Provider。",
+  "downloaderCreate": "新建下载器",
+  "mediaLibraryProviderCatalogLoadFailed": "Provider 目录加载失败，请稍后重试。",
+  "mediaLibraryNoProviderInstalled": "暂无可用 Provider，请先在“插件”设置中安装并启用媒体 Provider。",
+  "mediaLibraryDeleteTitle": "删除媒体库",
+  "mediaLibraryDeleteMessage": "确认删除媒体库“{name}”？该操作不可恢复。",
+  "@mediaLibraryDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaLibraryDeleteFailed": "删除媒体库失败",
+  "mediaLibraryStorageTitle": "媒体库存储",
+  "mediaLibraryStorageDescriptionMobile": "媒体库通过已安装的 Provider 连接存储；配置字段由插件目录动态提供。",
+  "mediaLibraryStorageDescriptionDesktop": "媒体库通过已安装的 Provider 连接存储；Provider 配置由插件目录动态提供。",
+  "mediaLibraryAdd": "新增媒体库",
+  "mediaLibraryProviderCatalogUnavailable": "Provider 目录暂不可用，已存在的媒体库仍可管理；新增或编辑配置前请重试。",
+  "providerLoginTitle": "登录 {provider}",
+  "@providerLoginTitle": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "providerLoginDescription": "在 App 内登录后会自动返回并填入媒体库配置，无需手动复制 Cookie 或 token。",
+  "providerLoginAction": "打开登录页",
+  "providerLoginAgain": "重新登录",
+  "providerLoginSuccess": "登录成功 · 账号 {account}",
+  "@providerLoginSuccess": {
+    "placeholders": {
+      "account": {
+        "type": "String"
+      }
+    }
+  },
+  "providerLoginSuccessWithoutAccount": "登录成功",
+  "providerLoginUseManual": "高级：手动填写",
+  "providerLoginManualActive": "正在手动填写登录信息",
+  "providerLoginManualDescription": "手动填写会替代网页登录结果，保存时按原有方式校验。",
+  "providerLoginUseWeb": "改回网页登录",
+  "providerLoginRequired": "请先登录，或展开高级选项手动填写",
+  "providerLoginFailed": "网页登录验证失败，请重新登录",
+  "providerLoginTimedOut": "登录超时，请重试",
+  "providerLoginPageLoadFailed": "登录页加载失败，请检查网络后重试",
+  "providerLoginSessionResetFailed": "清理上次登录状态失败，请重试",
+  "providerLoginUnavailable": "当前 Provider 的登录配置无效",
+  "providerLoginWaitingHint": "请在上方网页完成登录，成功后会自动返回",
+  "providerLoginValidatingTitle": "已检测到登录",
+  "providerLoginValidating": "正在验证 {provider} 账号",
+  "@providerLoginValidating": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "providerLoginValidatingSlow": "仍在验证 {provider} 账号，网络较慢时可能需要更久",
+  "@providerLoginValidatingSlow": {
+    "placeholders": {
+      "provider": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaLibraryEmpty": "还没有媒体库",
+  "mediaLibraryLoadFailedTitle": "媒体库加载失败",
+  "mediaLibraryLoadFailedFallback": "媒体库加载失败，请稍后重试。",
+  "mediaLibraryProviderUnavailable": "Provider 不可用 · {providerKey}",
+  "@mediaLibraryProviderUnavailable": {
+    "placeholders": {
+      "providerKey": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaLibraryUpdatedAt": "更新时间: {time}",
+  "@mediaLibraryUpdatedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaLibraryMoreActions": "更多操作",
+  "mediaLibraryEditTitle": "编辑媒体库",
+  "mediaLibraryEditSubtitleUnavailable": "当前 Provider 不可用，仅可修改媒体库名称。",
+  "mediaLibraryUpdated": "媒体库已更新",
+  "mediaLibraryCreated": "媒体库已创建",
+  "mediaLibraryUpdateFailed": "更新媒体库失败",
+  "mediaLibraryCreateFailed": "创建媒体库失败",
+  "mediaLibraryEditAction": "编辑媒体库",
+  "mediaLibraryDeleteAction": "删除媒体库",
+  "mediaLibraryUnavailable": "不可用",
+  "mediaLibraryNameRequired": "请输入媒体库名称",
+  "mediaLibraryNameLabel": "名称",
+  "mediaLibraryNameHint": "例如：Main Library",
+  "mediaLibraryProviderLabel": "存储 Provider",
+  "mediaLibrarySelectProvider": "请选择存储 Provider",
+  "mediaLibraryProviderUnavailableHint": "Provider「{providerKey}」当前不可用，无法编辑其配置。可先修改名称；恢复插件后再编辑配置。",
+  "@mediaLibraryProviderUnavailableHint": {
+    "placeholders": {
+      "providerKey": {
+        "type": "String"
+      }
+    }
+  },
+  "systemMaintenanceImageSearchLoadFailed": "图搜索状态加载失败",
+  "systemMaintenanceImageSearchLoadFailedFallback": "图搜索状态加载失败，请稍后重试。",
+  "systemMaintenanceMediaInfoBackfillTitle": "媒体信息回填",
+  "systemMaintenanceMediaInfoBackfillDescription": "为缺少或不完整技术信息的媒体文件重新探测，补齐时长、分辨率和视频信息。只处理缺失或不完整项，不会无条件覆盖已有信息。",
+  "systemMaintenanceMediaInfoBackfillSuccess": "媒体信息回填任务已提交，进度请在任务中心查看",
+  "systemMaintenanceFileHashBackfillTitle": "媒体文件哈希补算",
+  "systemMaintenanceFileHashBackfillDescription": "为尚未记录文件哈希的媒体文件计算并保存文件指纹，用于识别重复媒体。只处理哈希为空的文件，媒体库较大时可能运行较久。",
+  "systemMaintenanceFileHashBackfillSuccess": "媒体文件哈希补算任务已提交，进度请在任务中心查看",
+  "systemMaintenanceThumbnailPackTitle": "媒体缩略图打包回填",
+  "systemMaintenanceThumbnailPackDescription": "把媒体时间轴缩略图从单文件整理为打包存储，减少服务器上的小文件数量。只处理尚未打包的媒体，媒体库较大时可能运行较久。",
+  "systemMaintenanceThumbnailPackSuccess": "缩略图打包回填任务已提交，进度请在任务中心查看",
+  "systemMaintenanceMovieAssetPackTitle": "影片图片打包回填",
+  "systemMaintenanceMovieAssetPackDescription": "把影片的封面、薄封面与剧情图从单文件整理为打包存储，减少服务器上的小文件数量。只处理尚未打包的影片，媒体库较大时可能运行较久。",
+  "systemMaintenanceMovieAssetPackSuccess": "影片图片打包回填任务已提交，进度请在任务中心查看",
+  "systemMaintenanceImageSearchTitle": "图搜索索引",
+  "systemMaintenanceSubmit": "提交中",
+  "systemMaintenanceRunNow": "立即执行",
+  "systemMaintenanceTaskRunning": "任务已在运行中",
+  "systemMaintenanceSubmitFailed": "任务提交失败，请重试",
+  "systemMaintenanceRebuilding": "重建中",
+  "systemMaintenanceRebuildNow": "立即重建",
+  "systemMaintenanceRebuildIndex": "重建索引",
+  "systemMaintenanceRebuildNotice": "重建会清空现有图片索引，期间图搜索结果可能暂时不完整。",
+  "systemMaintenanceDisabled": "未启用",
+  "systemMaintenanceImageSearchDisabledMessage": "图片与文字搜图未启用。可在服务器端高级设置中开启，保存后重启后端容器。",
+  "systemMaintenanceImageSearchRebuildingMessage": "图搜索索引正在后台重建，请稍候。",
+  "systemMaintenanceImageSearchSpaceUnknownMessage": "无法确认历史图搜索索引使用的嵌入空间，图搜索已暂停。请重建索引后再搜索。",
+  "systemMaintenanceImageSearchSpaceChangedMessage": "嵌入空间已从「{indexed}」变更为「{current}」，图搜索已暂停。请重建索引后再搜索。",
+  "@systemMaintenanceImageSearchSpaceChangedMessage": {
+    "placeholders": {
+      "indexed": {
+        "type": "String"
+      },
+      "current": {
+        "type": "String"
+      }
+    }
+  },
+  "systemMaintenanceImageSearchRebuildHint": "更换嵌入模型后，重建索引以重新生成全部图片向量。重建期间图搜索结果可能暂时不完整。",
+  "systemMaintenanceRebuildDialogTitle": "重建图搜索索引",
+  "systemMaintenanceRebuildDialogMessage": "{message}\n\n这会清空现有图片索引并重新开始构建，确认继续吗？",
+  "@systemMaintenanceRebuildDialogMessage": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "systemMaintenanceRebuildFailed": "重建图搜索索引失败",
+  "systemMaintenanceRebuildStarted": "图搜索索引已开始重建",
+  "systemLogsExportTitle": "导出后端日志",
+  "systemLogsExportDescription": "将 api.log 与 aps.log 按所选时间范围打包为 ZIP。可导出的历史取决于服务器日志保留量，不包含其他任务的独立日志。",
+  "systemLogsRangeLabel": "时间范围",
+  "systemLogsRangeLastHour": "最近 1 小时",
+  "systemLogsRangeLast24Hours": "最近 24 小时",
+  "systemLogsRangeLast7Days": "最近 7 天",
+  "systemLogsRangeLast30Days": "最近 30 天",
+  "systemLogsRedactLabel": "过滤敏感信息",
+  "systemLogsRedactDescription": "屏蔽常见密码、Token、Cookie、请求签名等凭据，保留 IP 与文件路径。",
+  "systemLogsRawWarning": "原始日志可能包含密码、Token、Cookie 等敏感信息，请勿公开分享。",
+  "systemLogsExportAction": "导出日志",
+  "systemLogsSaveDialogTitle": "保存后端日志",
+  "systemLogsExportSuccess": "日志已导出",
+  "systemLogsExportFailed": "日志导出失败，请稍后重试",
+  "systemLogsRawConfirmTitle": "导出未脱敏日志？",
+  "systemLogsRawConfirmMessage": "日志可能包含凭据与隐私信息，请仅在可信环境中使用。",
+  "systemLogsRawConfirmAction": "继续导出",
+  "configTabAccountSecurity": "账号安全",
+  "configTabAppearance": "外观",
+  "configTabMediaLibraries": "媒体库",
+  "configTabMediaTags": "媒体文件标签",
+  "configTabMetadataSources": "元数据源",
+  "metadataSourcesOrderTitle": "元数据源顺序",
+  "metadataSourcesOrderDescription": "影片导入会按这里的顺序依次尝试已启用的元数据插件，第一个完整结果胜出。",
+  "metadataSourcesOrderEmpty": "当前没有已加载的元数据插件，请先安装并启用 Host API 18 的元数据插件。",
+  "metadataSourcesSaveOrder": "保存顺序",
+  "metadataSourcesMoveUp": "上移",
+  "metadataSourcesMoveDown": "下移",
+  "metadataSourcesPluginsHint": "插件账号与配置请在「插件」页维护。",
+  "metadataSourcesLoadFailed": "元数据源加载失败",
+  "metadataSourcesSaveFailed": "元数据源顺序保存失败",
+  "metadataActorMovieSourcesTitle": "订阅演员影片同步源",
+  "metadataActorMovieSourcesDescription": "「订阅演员影片同步」会同时查询下面所有插件并合并番号，这些源之间没有优先级，也不需要单独开关；发现的番号仍按上方元数据源顺序抓取资料。",
+  "metadataActorMovieSourcesEmptyWarning": "当前没有启用支持该能力的元数据插件，「订阅演员影片同步」将不会执行。请到「插件」页启用支持女优影片列表的插件。",
+  "pluginBindingsTitle": "互动数与评论来源",
+  "pluginBindingsDescription": "互动数只使用一个绑定插件；评论也只使用一个绑定插件，未绑定时不显示评论入口。元数据来源仍按上方顺序 fallback。",
+  "pluginBindingsStatsLabel": "互动数来源",
+  "pluginBindingsReviewLabel": "评论来源",
+  "pluginBindingsUnbound": "不绑定",
+  "pluginBindingsNoStatsSource": "没有可用的互动数插件",
+  "pluginBindingsNoReviewSource": "没有可用的评论插件",
+  "pluginBindingsEmpty": "当前没有支持互动数或评论的插件。",
+  "pluginBindingsLoadFailed": "来源绑定加载失败",
+  "pluginBindingsSave": "保存来源绑定",
+  "pluginBindingsSaveFailed": "来源绑定保存失败",
+  "pluginBindingsSourceUnavailable": "已绑定的来源 {source} 当前不可用，请重新选择。",
+  "@pluginBindingsSourceUnavailable": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "configTabDownloadClients": "下载器",
+  "configTabIndexers": "索引器",
+  "configTabExternalPlayer": "外部播放器",
+  "configTabBlacklistedMovies": "屏蔽影片",
+  "configTabAdvanced": "高级设置",
+  "configTabPlugins": "插件",
+  "configTabSystemMaintenance": "系统维护",
+  "errorMediaTagsLoadFailed": "媒体文件标签加载失败，请稍后重试。",
+  "mediaTagsManagementNoticeTitle": "按规则自动标记媒体文件",
+  "mediaTagsManagementNoticeDescription": "规则会匹配文件名、发布标题和简介，排除词优先于命中词。修改规则只影响后续导入和重新应用；手工接管的媒体不会被覆盖。",
+  "mediaTagsEmpty": "还没有媒体文件标签",
+  "mediaTagsLoadFailedTitle": "媒体文件标签加载失败",
+  "mediaTagsLoadFailedFallback": "媒体文件标签加载失败，请稍后重试。",
+  "mediaTagsAdd": "新增媒体文件标签",
+  "mediaTagsEditTitle": "编辑媒体文件标签",
+  "mediaTagsNameLabel": "标签名称",
+  "mediaTagsNameHint": "例如：高画质",
+  "mediaTagsIncludeTermsLabel": "命中词",
+  "mediaTagsIncludeTermsHint": "每行一个，命中任意一项即可",
+  "mediaTagsExcludeTermsLabel": "排除词",
+  "mediaTagsExcludeTermsHint": "每行一个，可留空",
+  "mediaTagsEnabledLabel": "启用自动匹配",
+  "mediaTagsEnabledDescription": "关闭后不再参与自动规则；已手工分配的标签仍会保留。",
+  "mediaTagsMoreActions": "更多操作",
+  "mediaTagsDeleteTitle": "删除媒体文件标签",
+  "mediaTagsDeleteMessage": "删除「{name}」后，所有媒体上的该标签关联也会移除。此操作不可恢复。",
+  "@mediaTagsDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaTagsDeleted": "媒体文件标签已删除",
+  "mediaTagsDeleteFailed": "删除媒体文件标签失败",
+  "mediaTagsCreated": "媒体文件标签已创建",
+  "mediaTagsCreateFailed": "创建媒体文件标签失败",
+  "mediaTagsSaved": "媒体文件标签已保存",
+  "mediaTagsSaveFailed": "保存媒体文件标签失败",
+  "mediaTagsMediaCount": "{count} 个媒体",
+  "@mediaTagsMediaCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaTagsExcludeSummary": "排除 {count} 项",
+  "@mediaTagsExcludeSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaTagsRuleTestTitle": "规则测试",
+  "mediaTagsRuleTestDescription": "使用已保存且启用的规则测试一个文件名或发布信息。",
+  "mediaTagsPreviewFileNameLabel": "文件名",
+  "mediaTagsPreviewFileNameHint": "例如：ABC-001.2160p.mkv",
+  "mediaTagsPreviewReleaseTitleLabel": "发布标题（可选）",
+  "mediaTagsPreviewReleaseDescriptionLabel": "发布简介（可选）",
+  "mediaTagsPreviewAction": "测试匹配",
+  "mediaTagsPreviewNoMatch": "没有命中任何媒体文件标签",
+  "mediaTagsPreviewMatchedTerm": "命中词：{term}",
+  "@mediaTagsPreviewMatchedTerm": {
+    "placeholders": {
+      "term": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaTagsPreviewFailed": "规则测试失败，请稍后重试。",
+  "mediaTagsRetagTitle": "重新应用自动标签",
+  "mediaTagsRetagDescription": "按当前已启用规则重算所有 JAV 媒体文件。手工接管的媒体会跳过，任务进度可在任务中心查看。",
+  "mediaTagsRetagAction": "重新应用",
+  "mediaTagsRetagConfirmTitle": "重新应用自动标签",
+  "mediaTagsRetagConfirmMessage": "将扫描全部 JAV 媒体并按当前规则更新标签。手工接管的媒体不会被修改。",
+  "mediaTagsRetagSubmitted": "媒体文件标签重算任务已提交",
+  "mediaTagsRetagFailed": "提交媒体文件标签重算任务失败",
+  "mediaTagsNameRequired": "请输入标签名称",
+  "mediaTagsIncludeTermsRequired": "至少需要一个命中词",
+  "mediaTagsDisabledBadge": "已停用",
+  "mediaTagsAssignmentTitle": "媒体文件标签",
+  "mediaTagsAssignmentDescription": "保存后，该文件将由手工标签接管，自动规则和全量重算不会再覆盖它。",
+  "mediaTagsAssignmentManualBadge": "手工管理",
+  "mediaTagsAssignmentAutoBadge": "自动匹配",
+  "mediaTagsAssignmentEmpty": "暂无可选择的媒体文件标签",
+  "mediaTagsAssignmentSave": "保存标签",
+  "mediaTagsAssignmentSaved": "媒体文件标签已更新",
+  "mediaTagsAssignmentSavedRefreshFailed": "媒体文件标签已保存，但详情刷新失败，请稍后重试",
+  "mediaTagsAssignmentSaveFailed": "更新媒体文件标签失败",
+  "mediaTagsAssignmentLoadFailed": "加载媒体文件标签失败",
+  "mediaTagsAssignmentResetAuto": "恢复自动标签",
+  "mediaTagsAssignmentResetTitle": "恢复自动标签",
+  "mediaTagsAssignmentResetMessage": "将解除手工接管，并按当前启用的规则重新计算该文件的标签。",
+  "mediaTagsAssignmentResetFailed": "恢复自动标签失败",
+  "mediaTagsAssignmentDisabledHint": "该标签的自动匹配已关闭，仍可手工分配。",
+  "movieMediaTagFilterTitle": "媒体文件标签",
+  "movieMediaTagFilterClear": "清空",
+  "movieMediaTagFilterSelectedCount": "已选 {count} 个",
+  "@movieMediaTagFilterSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "moviePageMediaTagCount": "文件标签 {count}",
+  "@moviePageMediaTagCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "movieMediaTagsEdit": "编辑文件标签",
+  "mediaListTagsEdit": "编辑文件标签",
+  "mediaListTagsManualBadge": "手工",
+  "mediaListTagsOverflow": "+{count}",
+  "@mediaListTagsOverflow": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shellNavMediaTags": "媒体文件标签",
+  "appearanceDescription": "调整界面明暗、主题色与表面风格，设置保存在本机。",
+  "appearanceThemeMode": "主题模式",
+  "appearanceSystem": "跟随系统",
+  "appearanceLight": "浅色",
+  "appearanceDark": "深色",
+  "appearanceThemeColor": "主题色",
+  "appearanceThemeColorFooter": "主题色会应用到按钮、选中态和强调元素。",
+  "appearanceSurfaceStyle": "界面风格",
+  "appearanceSurfaceStyleDescription": "液态玻璃更精致；扁平风格不使用 Flutter 实时模糊，适合低性能设备。",
+  "appearanceSurfaceLiquid": "液态玻璃",
+  "appearanceSurfaceLiquidDescription": "折射与高光，适合较新设备",
+  "appearanceSurfaceFlat": "扁平风格",
+  "appearanceSurfaceFlatDescription": "不使用 Flutter 实时模糊，适合低性能设备",
+  "appearanceMacosWindow": "macOS 窗口",
+  "appearanceWindowVibrancy": "透明毛玻璃",
+  "appearanceWindowVibrancyDescription": "让桌面透过窗口并实时模糊；关闭后使用不透明窗口",
+  "appearanceWindowVibrancyFooter": "仅影响窗口背景，与液态玻璃或扁平风格的界面材质无关。",
+  "providerConfigFieldRequired": "请输入{label}",
+  "@providerConfigFieldRequired": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "indexerConfigLoadFailed": "索引器配置加载失败",
+  "indexerConfigLoadFailedFallback": "索引器配置加载失败，请稍后重试。",
+  "indexerNameDuplicateWithName": "索引器名称重复: {name}",
+  "@indexerNameDuplicateWithName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "indexerUrlMustBeHttp": "索引器 URL 必须是合法的 http/https 地址",
+  "indexerDownloadersInvalid": "索引器绑定的下载器已失效，请重新选择",
+  "indexerSaveFailed": "保存索引器配置失败",
+  "indexerListTitle": "索引器列表",
+  "indexerCreateDownloaderHint": "请先在下载器 Tab 创建下载器",
+  "indexerEmptyNoMatch": "没有匹配的索引站",
+  "indexerDownloaderLine": "下载器: {downloaders}",
+  "@indexerDownloaderLine": {
+    "placeholders": {
+      "downloaders": {
+        "type": "String"
+      }
+    }
+  },
+  "configLeaveUnsavedMessage": "高级设置里还有未保存的改动，确认离开？",
+  "configLeaveConfirm": "确认离开",
+  "indexerSearchHint": "搜索已添加的索引器...",
+  "indexerEmptyDesktop": "还没有配置索引站",
+  "pluginInstallTitle": "安装插件",
+  "pluginInstallMessage": "将安装「{fileName}」。若已存在同名插件，会替换其代码并保留 data/ 运行数据。",
+  "@pluginInstallMessage": {
+    "placeholders": {
+      "fileName": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginInstallConfirm": "安装",
+  "pluginInstalledRefreshFailed": "插件已安装，但列表刷新失败，请稍后重试",
+  "pluginInstallFailed": "安装插件失败",
+  "pluginToggleFailed": "插件启停失败",
+  "pluginUpdateCheckPartialFailed": "部分插件的更新检查失败，请稍后重试",
+  "pluginNoUpdates": "未发现可用更新",
+  "pluginUpdatesFound": "发现 {count} 个插件更新",
+  "@pluginUpdatesFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pluginUpgradeTitle": "更新插件",
+  "pluginUpgradeMessage": "将「{name}」从 v{fromVersion} 更新到 v{toVersion}。更新完成后，稍后需要重启后端容器；重启完成后请完全退出 App 后重新打开。",
+  "@pluginUpgradeMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "fromVersion": {
+        "type": "String"
+      },
+      "toVersion": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginUpgradeConfirm": "更新",
+  "pluginUpgradeNotes": "更新内容\n{notes}",
+  "@pluginUpgradeNotes": {
+    "placeholders": {
+      "notes": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginUpgradeFailed": "更新插件失败",
+  "pluginDeleteTitle": "删除插件",
+  "pluginDeleteMessage": "确认删除「{name}」的插件代码？运行数据（data/）会保留，可在重新安装同一插件后继续使用；仍被媒体库使用的存储插件无法删除。",
+  "@pluginDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginDeleteFailed": "删除插件失败",
+  "pluginRestartNoticeTitle": "稍后需要重启后端",
+  "pluginRestartNoticeInstalledMessage": "插件包「{name}」已安装。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "@pluginRestartNoticeInstalledMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeUpgradedMessage": "插件「{name}」已更新。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "@pluginRestartNoticeUpgradedMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeDeletedMessage": "插件「{name}」已删除。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "@pluginRestartNoticeDeletedMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeEnabledMessage": "插件「{name}」已启用。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "@pluginRestartNoticeEnabledMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeDisabledMessage": "插件「{name}」已停用。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "@pluginRestartNoticeDisabledMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeSettingsSavedMessage": "插件「{name}」的配置已保存。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "@pluginRestartNoticeSettingsSavedMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginRestartNoticeBindingsSavedMessage": "插件来源绑定已保存。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "pluginRestartNoticeMetadataOrderSavedMessage": "元数据源顺序已保存。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "pluginRestartNoticeConfirm": "知道了",
+  "pluginMarketInstallMessage": "将从 {repo} 下载 v{version} 安装包并安装「{name}」。",
+  "@pluginMarketInstallMessage": {
+    "placeholders": {
+      "repo": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginCommunityWarning": "这是社区插件，未经官方审计，请确认来源可信。",
+  "pluginHomepageCopied": "项目主页已复制",
+  "pluginCopyFailed": "复制失败",
+  "pluginZipUnreadable": "无法读取所选插件包，请换一个文件再试",
+  "pluginZipPickerUnavailable": "文件选择器尚未加载，请完整重启应用后再试",
+  "pluginZipOpenFailed": "打开文件选择器失败，请稍后再试",
+  "pluginSettingsUnset": "未设置",
+  "pluginSettingsOn": "开启",
+  "pluginSettingsOff": "关闭",
+  "pluginSettingsSelectOne": "请选择一项",
+  "pluginSettingsSelectToggle": "请选择开关状态",
+  "pluginSettingsInteger": "请输入整数",
+  "pluginSettingsNumber": "请输入数字",
+  "pluginSettingsMin": "不能小于 {value}",
+  "@pluginSettingsMin": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginSettingsMax": "不能大于 {value}",
+  "@pluginSettingsMax": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginSettingsExclusiveMin": "必须大于 {value}",
+  "@pluginSettingsExclusiveMin": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginSettingsExclusiveMax": "必须小于 {value}",
+  "@pluginSettingsExclusiveMax": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginSettingsRequired": "请填写{title}",
+  "@pluginSettingsRequired": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginSettingsMinLength": "至少输入 {count} 个字符",
+  "@pluginSettingsMinLength": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pluginSettingsMaxLength": "最多输入 {count} 个字符",
+  "@pluginSettingsMaxLength": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pluginSettingsBoundMin": "最小 {value}",
+  "@pluginSettingsBoundMin": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginSettingsBoundGreater": "大于 {value}",
+  "@pluginSettingsBoundGreater": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginSettingsBoundMax": "最大 {value}",
+  "@pluginSettingsBoundMax": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginSettingsBoundLess": "小于 {value}",
+  "@pluginSettingsBoundLess": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginSettingsListHint": "每行一项",
+  "pluginSettingsNullableHint": "留空表示未设置",
+  "listSeparator": "，",
+  "hintSeparator": "；",
+  "pluginSettingsLoadFailed": "插件配置加载失败",
+  "pluginSettingsLoadFailedFallback": "插件配置加载失败，请稍后重试。",
+  "pluginSettingsEmpty": "配置不能为空",
+  "pluginSettingsMustBeObject": "插件配置必须是一个 JSON 对象",
+  "pluginSettingsInvalidJson": "不是合法的 JSON",
+  "pluginSettingsSaveFailed": "插件配置保存失败",
+  "pluginSettingsTitle": "插件配置",
+  "pluginSettingsJavdbAccountRisk": "JavDB 账号存在封禁风险，建议使用小号，以免影响主账号。",
+  "pluginSettingsJsonLabel": "配置内容（JSON）",
+  "pluginSettingsPlaceholderEndpoint": "服务地址",
+  "pluginSettingsPlaceholderEnabled": "启用",
+  "pluginSettingsFormat": "格式化",
+  "pluginsTabInstalled": "已安装",
+  "pluginsTabMarket": "插件市场",
+  "pluginsLoadFailed": "插件加载失败",
+  "pluginsLoadFailedFallback": "插件加载失败，请稍后重试。",
+  "pluginsRestartNotice": "插件安装、更新、启停、删除或配置修改后，稍后需要重启后端容器；重启完成后，请完全退出 App 后重新打开。",
+  "pluginsCheckUpdates": "检查更新",
+  "pluginsZipSupport": "支持上传 .zip 插件包",
+  "pluginsEmptyTitle": "还没有安装插件",
+  "pluginsEmptyMessage": "点击上方「安装插件」上传 zip 插件包；安装后，稍后需要重启后端容器，重启完成后请完全退出 App 后重新打开。",
+  "pluginsEmptyMessageMobile": "点击下方「安装插件」上传 zip 插件包；安装后，稍后需要重启后端容器，重启完成后请完全退出 App 后重新打开。",
+  "pluginsInstalledTitle": "已安装插件",
+  "pluginsCount": "{count} 个",
+  "@pluginsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pluginsLoadErrorTooltip": "插件加载失败",
+  "pluginsLoadErrorBadge": "加载失败",
+  "pluginsUpdateAction": "更新",
+  "pluginsDeleteSemantic": "删除 {name}",
+  "@pluginsDeleteSemantic": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginsManagementTitle": "插件管理",
+  "pluginsManageNotice": "安装、更新、启停、删除或配置修改后，稍后需要重启后端容器；重启完成后，请完全退出 App 后重新打开。",
+  "pluginsUpdatableStat": "可更新",
+  "pluginsLoadingList": "正在加载插件列表",
+  "pluginsCheckReleaseUpdates": "检查插件 Release 更新",
+  "pluginsUpdatesFound": "发现 {count} 个更新",
+  "@pluginsUpdatesFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pluginsMarket": "插件市场",
+  "pluginsEnabled": "已启用",
+  "pluginsDisabled": "已停用",
+  "pluginsUpdateAvailable": "有更新",
+  "pluginsMoreActions": "更多操作",
+  "pluginsManageSemantic": "管理 {name}",
+  "@pluginsManageSemantic": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginsActionsTitle": "选择要执行的插件操作",
+  "pluginsDisable": "停用插件",
+  "pluginsEnable": "启用插件",
+  "pluginsUpdateTo": "更新到 v{version}",
+  "@pluginsUpdateTo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginsTestCapabilities": "能力测试",
+  "pluginTestTitle": "能力测试",
+  "pluginTestConfigNotice": "测试番号 {movieNumber}。使用当前已加载的配置；修改配置后需保存并重启后端再测试。",
+  "@pluginTestConfigNotice": {
+    "placeholders": {
+      "movieNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginTestConfigNoticeWithoutNumber": "该插件未声明默认测试番号，暂时无法测试。",
+  "pluginTestCapabilitiesTitle": "可测试能力",
+  "pluginTestNoCapabilities": "该插件没有可测试的能力。",
+  "pluginTestRun": "测试",
+  "pluginTestRunAll": "全部测试",
+  "pluginTestCapabilityMetadata": "元数据",
+  "pluginTestCapabilityStats": "互动数",
+  "pluginTestCapabilityReviews": "评论",
+  "pluginTestCapabilityMetadataDescription": "按测试番号抓取标题、演员、标签与图片",
+  "pluginTestCapabilityStatsDescription": "按测试番号抓取互动数与热度",
+  "pluginTestCapabilityReviewsDescription": "按测试番号拉取第一页评论",
+  "pluginTestStatusPending": "未测试",
+  "pluginTestStatusTesting": "测试中",
+  "pluginTestStatusOk": "通过",
+  "pluginTestStatusEmpty": "无数据",
+  "pluginTestStatusFailed": "失败",
+  "pluginTestEmptyMetadata": "插件正常响应，但测试番号未找到",
+  "pluginTestEmptyStats": "插件正常响应，但没有互动数数据",
+  "pluginTestEmptyReviews": "接口正常，但该番号没有评论",
+  "pluginTestFailedGeneric": "插件测试失败",
+  "pluginTestRequestFailed": "插件测试请求失败",
+  "pluginTestMetadataSummary": "{title} · 演员 {actors} · 标签 {tags} · 图片 {images}",
+  "@pluginTestMetadataSummary": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "actors": {
+        "type": "int"
+      },
+      "tags": {
+        "type": "int"
+      },
+      "images": {
+        "type": "int"
+      }
+    }
+  },
+  "pluginTestStatsSummary": "热度 {heat} · {fields} 个字段",
+  "@pluginTestStatsSummary": {
+    "placeholders": {
+      "heat": {
+        "type": "String"
+      },
+      "fields": {
+        "type": "int"
+      }
+    }
+  },
+  "pluginTestReviewsSummary": "本页 {count} 条评论",
+  "@pluginTestReviewsSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "pluginTestElapsed": "耗时 {ms} ms",
+  "@pluginTestElapsed": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "pluginMarketTitle": "插件市场",
+  "pluginMarketDescription": "插件来自官方索引仓库；社区插件未经官方审计，安装前请确认来源可信。",
+  "pluginMarketInstallable": "可安装",
+  "pluginMarketUpdatable": "可更新",
+  "pluginMarketSearchHint": "搜索插件名称、ID 或描述",
+  "pluginMarketLoadFailed": "插件市场加载失败",
+  "pluginMarketLoadFailedFallback": "插件市场加载失败，请稍后重试。",
+  "pluginMarketEmpty": "市场暂无插件",
+  "pluginMarketNoMatch": "没有匹配的插件",
+  "pluginMarketEmptyDescription": "索引仓库还没有收录插件，稍后再来看看。",
+  "pluginMarketNoMatchDescription": "换个关键词试试。",
+  "pluginMarketOfficial": "官方",
+  "pluginMarketCommunity": "社区",
+  "pluginMarketCopyHomepage": "复制项目主页",
+  "pluginMarketCopyHomepageSemantic": "复制 {name} 的项目主页",
+  "@pluginMarketCopyHomepageSemantic": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginMarketInstalled": "已安装",
+  "pluginMarketInstalledVersion": "已安装 v{version} · 可更新到 v{latest}",
+  "@pluginMarketInstalledVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "latest": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginMarketInstalledAuthor": "已安装 v{version} · {author}",
+  "@pluginMarketInstalledAuthor": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "author": {
+        "type": "String"
+      }
+    }
+  },
+  "pluginMarketInstallablePlugins": "可安装插件",
+  "castNoPlayableMedia": "暂无可播放的媒体",
+  "castPlayUrlUnavailable": "无法获取播放地址",
+  "castErrorFallback": "投屏失败，请重试",
+  "castDeviceCannotPlayVideo": "该设备不支持播放视频",
+  "castUnnamedDevice": "未命名设备",
+  "castTvCannotStartPlayback": "电视暂时无法开始播放，请稍后重试",
+  "castTvUnsupportedFormat": "电视不支持播放该视频格式",
+  "castTvCannotAccessUrl": "电视无法访问该视频地址",
+  "castTvNotResponding": "电视未响应，请确认设备处于开机状态",
+  "castTvConnectionFailed": "连接电视失败，请确认设备与电视在同一网络",
+  "castRestartFailed": "重新播放失败，请重试",
+  "castControlFailed": "操作失败，请重试",
+  "castSeekFailed": "跳转失败，请重试",
+  "castThumbnailLoadFailed": "缩略图加载失败，请重试",
+  "castEndedTitle": "投屏已结束",
+  "castEndedMessage": "当前没有进行中的投屏会话",
+  "castBack": "返回",
+  "castPlayAgain": "重新播放",
+  "castSeekBack10": "快退 10 秒",
+  "castSeekForward10": "快进 10 秒",
+  "castPause": "暂停",
+  "castPlay": "播放",
+  "castStatusConnecting": "正在连接电视…",
+  "castStatusDisconnected": "与电视的连接已断开",
+  "castStatusStopped": "电视已停止播放",
+  "castStatusFinished": "播放已结束",
+  "castToDevice": "投屏到「{deviceName}」",
+  "@castToDevice": {
+    "placeholders": {
+      "deviceName": {
+        "type": "String"
+      }
+    }
+  },
+  "castDisconnect": "断开",
+  "castPickerTitle": "投屏到电视",
+  "castRescan": "重新搜索",
+  "castSearchFailedTitle": "搜索设备失败",
+  "castSearchFailedMessage": "请确认已连接局域网 Wi-Fi 后重试",
+  "castScanningTitle": "正在搜索附近设备…",
+  "castScanningSubtitle": "正在搜索附近的投屏设备",
+  "castDeviceNamePlaceholder": "设备名称",
+  "castNoDeviceTitle": "未发现可投屏设备",
+  "castNoDeviceMessage": "请确认电视与本机在同一网络，且电视已开启投屏功能",
+  "tagBrowseTitle": "按标签发现",
+  "tagBrowseSubtitle": "选择一个或多个标签，组合你想看的",
+  "tagSearchHint": "搜索标签",
+  "tagEmpty": "暂无标签",
+  "tagForYou": "为你",
+  "tagForYouSubtitle": "根据常看标签",
+  "tagPopular": "热门标签",
+  "tagCountLabel": "{count} 个",
+  "@tagCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tagSearchFindsAll": "搜索可找到全部 {count} 个标签",
+  "@tagSearchFindsAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tagSearchResults": "搜索结果",
+  "tagNoMatch": "没有找到匹配的标签",
+  "tagResultLimitHint": "只显示前 {limit} 个，继续输入以缩小范围",
+  "@tagResultLimitHint": {
+    "placeholders": {
+      "limit": {
+        "type": "int"
+      }
+    }
+  },
+  "tagSelected": "已选",
+  "tagClear": "清空",
+  "tagSelectedCount": "已选 {count} 个标签",
+  "@tagSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tagViewMovies": "查看影片",
+  "tagSemanticLabel": "标签「{name}」",
+  "@tagSemanticLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "tagMatch": "匹配",
+  "tagMatchModeOr": "任一",
+  "tagMatchModeAnd": "全部",
+  "tagSummarySelected": "标签 · {count}",
+  "@tagSummarySelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tagSummarySelect": "选择标签",
+  "tagSummaryMatchMode": "匹配{mode}",
+  "@tagSummaryMatchMode": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "tagEmptyMovieList": "该标签下暂无影片",
+  "tagRefreshFailed": "刷新失败",
+  "tagMovieCountLabel": "{count} 部",
+  "@tagMovieCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recentLoadFailed": "最近浏览暂时无法加载，请稍后重试",
+  "recentEmpty": "还没有浏览记录",
+  "recentSectionTitle": "最近浏览",
+  "recentMore": "更多",
+  "recentRefreshFailed": "刷新失败",
+  "searchSubscribeMovieFailed": "订阅影片失败",
+  "searchSubscribeActorFailed": "订阅女优失败",
+  "searchUnsubscribeActorFailed": "取消订阅女优失败",
+  "searchStatsLabel": "共 {total} 条，新增 {created}，已存在 {existing}，失败 {failed}",
+  "@searchStatsLabel": {
+    "placeholders": {
+      "total": {
+        "type": "int"
+      },
+      "created": {
+        "type": "int"
+      },
+      "existing": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "videoFallbackTitle": "视频",
+  "videoUnnamedTitle": "未命名视频",
+  "videoUnnamedCollection": "未命名合集",
+  "videoGenericVideo": "该视频",
+  "videoGenericCollection": "该合集",
+  "videoSortCreatedAt": "入库时间",
+  "videoSortTitle": "标题",
+  "videoSortDuration": "时长",
+  "videoSortFileSize": "文件大小",
+  "videoFilterUncollected": "未归类",
+  "videoFilterAll": "全部",
+  "videoFilterSectionCollection": "合集",
+  "videoFilterSectionCollectionOwnership": "合集归属",
+  "videoFilterNotInCollection": "未加入合集",
+  "videoFilter": "筛选",
+  "videoPlay": "播放",
+  "videoPlayAll": "播放全部",
+  "videoThumbnails": "缩略图",
+  "videoAddToCollection": "加入合集",
+  "videoRemoveFromCollection": "移出合集",
+  "videoRemoveFromCollectionTitle": "从合集移除",
+  "videoRemove": "移除",
+  "videoConfirm": "确认",
+  "videoSelect": "选择",
+  "videoSelectAll": "全选",
+  "videoDeselectAll": "取消全选",
+  "videoSelectedCount": "已选 {count} 个",
+  "@videoSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "videoSelectAllCount": "全选({count})",
+  "@videoSelectAllCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "videoReload": "重新加载",
+  "videoBackToCollection": "返回合集",
+  "videoMediaCount": "共 {count} 个媒体",
+  "@videoMediaCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "videoTotalCount": "{count} 个",
+  "@videoTotalCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "videoCollectionVideoCount": "{count} 个视频",
+  "@videoCollectionVideoCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "videoEpisodeIndex": "第 {index} 集",
+  "@videoEpisodeIndex": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "videoBelongsToCollections": "所属合集",
+  "videoViewCollectionSemantics": "查看合集「{name}」",
+  "@videoViewCollectionSemantics": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "videoDeleteTitle": "删除视频",
+  "videoDeleteConfirmMessage": "确认删除{label}？该操作不可恢复。",
+  "@videoDeleteConfirmMessage": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "videoBatchDeleteConfirmMessage": "确认删除选中的 {count} 个视频？该操作不可恢复。",
+  "@videoBatchDeleteConfirmMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "videoDeleteFailed": "删除失败，请重试",
+  "videoDeleteFailedLater": "删除失败，请稍后重试",
+  "videoDeletedToast": "已删除视频",
+  "videoEpisodeDeleteTitle": "删除选集",
+  "videoEpisodeDeleteMessage": "将删除该视频及全部关联媒体文件，并从所有合集中移除。此操作不可恢复。",
+  "videoRemoveFailed": "移出失败，请重试",
+  "videoRemovedFromCollection": "已从合集移除",
+  "videoAddedToCollection": "已加入「{name}」",
+  "@videoAddedToCollection": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "videoAddToCollectionFailed": "加入合集失败，请重试",
+  "videoRemoveFromCollectionFailed": "移出合集失败",
+  "videoAddToCollectionFailedShort": "加入合集失败",
+  "videoBatchRemoveConfirmMessage": "确认从合集移除选中的 {count} 个视频？视频本身不会被删除。",
+  "@videoBatchRemoveConfirmMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "videoCollectionsTitle": "视频合集",
+  "videoAllVideosTitle": "全部视频",
+  "videoNewCollection": "新建合集",
+  "videoNew": "新建",
+  "videoViewAll": "查看全部",
+  "videoSearchCollections": "搜索合集",
+  "videoDeleteCollectionTitle": "删除合集",
+  "videoDeleteCollectionConfirmMessage": "确定删除合集「{name}」吗？合集内的视频不会被删除。",
+  "@videoDeleteCollectionConfirmMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "videoDeleteCollectionConfirmMessageNamed": "确认删除{name}？合集内的视频不会被删除。",
+  "@videoDeleteCollectionConfirmMessageNamed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "videoCollectionDeleted": "已删除合集",
+  "videoCollectionsEmpty": "暂无合集，点击「新建合集」创建",
+  "videoCollectionsNoMatch": "没有匹配的合集",
+  "videoCollectionsEmptyHint": "还没有合集，点「新建合集」把视频攒成一个连播合集吧",
+  "videoCollectionsEmptyMobile": "还没有合集，点下方「新建合集」开始吧",
+  "videoCollectionsLoadFailed": "合集加载失败，请稍后重试",
+  "videoCollectionsLoadFailedShort": "合集加载失败",
+  "videoCollectionCreated": "已创建合集",
+  "videoEditCollection": "编辑合集",
+  "videoCreateCollection": "创建",
+  "videoCollectionNameHint": "合集名称",
+  "videoCollectionNameRequired": "请输入合集名称",
+  "videoCollectionDescriptionHint": "描述（可选）",
+  "videoCreateCollectionAndAdd": "新建合集并加入",
+  "videoCollectionsEmptyDialog": "暂无合集，点击新建入口创建",
+  "videoSaveFailed": "保存失败",
+  "videoCreateFailed": "创建失败",
+  "videoNoCollection": "不加入合集",
+  "videoCollectionsEmptyShort": "暂无合集",
+  "videoAddToCollectionOptional": "加入合集（可选）",
+  "videoSelectedCollection": "已选合集",
+  "videoCollectionEmptyHint": "合集还没有视频，去视频列表用「加入合集」添加吧",
+  "videoEmptyList": "暂无视频数据",
+  "videoNoPlayableMedia": "暂无可播放的媒体",
+  "videoLoadFailed": "加载失败，请重试",
+  "videoRetryLater": "请稍后重试。",
+  "videoNoAvailableMedia": "该视频暂无可用媒体",
+  "videoCoverSet": "已设为封面",
+  "videoCoverSetFailed": "设置封面失败，请重试",
+  "videoClipCreated": "切片已生成",
+  "videoDetailLoadFailed": "视频详情暂时无法加载，请重试",
+  "videoCollectionNoPlayable": "合集内没有可播放的视频",
+  "videoEpisodePanelTitle": "选集 · {count}",
+  "@videoEpisodePanelTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "videoEpisodeDeleted": "已删除选集及关联媒体",
+  "videoEpisodeRemoved": "已移出合集，视频仍保留",
+  "videoEpisodeQueueUpdateFailed": "选集已更新，播放队列更新失败，请返回合集重新播放",
+  "videoContinuousPlayback": "连播",
+  "videoCollectionEmptyPlayable": "合集内暂无可播放视频",
+  "videoImportTitle": "导入视频",
+  "videoImportStart": "开始导入",
+  "videoEpisodeRemoveSubtitle": "保留视频和媒体文件",
+  "videoEpisodeDeleteSubtitle": "删除视频及全部关联媒体",
+  "videoEpisodeActionsTooltip": "选集操作",
+  "diagnosticCategoryBasicResources": "基础资源",
+  "diagnosticCategoryMetadataSources": "元数据源",
+  "diagnosticCategoryDownloadAndIndexing": "下载与检索链",
+  "diagnosticCategoryIntelligence": "智能能力",
+  "diagnosticItemMediaLibrary": "媒体库",
+  "diagnosticItemMetadataSources": "元数据源",
+  "diagnosticItemIndexer": "索引器",
+  "diagnosticItemEmbeddingService": "嵌入服务",
+  "diagnosticStatusProbing": "检测中",
+  "diagnosticStatusHealthy": "正常",
+  "diagnosticStatusWarning": "告警",
+  "diagnosticStatusUnhealthy": "异常",
+  "diagnosticStatusNotReady": "未就绪",
+  "diagnosticStatusBlockedBy": "待 {blockedBy}",
+  "@diagnosticStatusBlockedBy": {
+    "placeholders": {
+      "blockedBy": {
+        "type": "String"
+      }
+    }
+  },
+  "diagnosticCategoryAllHealthy": "全部正常",
+  "diagnosticCategoryHasWarnings": "存在告警",
+  "diagnosticCategoryWaitingDependency": "等待前置",
+  "diagnosticCollapseDetails": "收起详情",
+  "diagnosticExpandDetails": "展开详情",
+  "diagnosticDetailCause": "可能原因",
+  "diagnosticDetailFix": "怎么改",
+  "diagnosticFixAction": "去修复",
+  "diagnosticBlockedWaiting": "等待 {blockedBy} 就绪",
+  "@diagnosticBlockedWaiting": {
+    "placeholders": {
+      "blockedBy": {
+        "type": "String"
+      }
+    }
+  },
+  "diagnosticMediaLibraryNoneConfigured": "尚未配置任何媒体库",
+  "diagnosticErrorMediaLibraryLoadFailed": "读取媒体库列表失败",
+  "diagnosticErrorMetadataSourcesLoadFailed": "读取元数据源失败",
+  "diagnosticMetadataSourcesEmptySummary": "未启用元数据插件",
+  "diagnosticMetadataSourceSummary": "{title} · 演员 {actors} · 标签 {tags} · 图片 {images}",
+  "@diagnosticMetadataSourceSummary": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      },
+      "actors": {
+        "type": "int"
+      },
+      "tags": {
+        "type": "int"
+      },
+      "images": {
+        "type": "int"
+      }
+    }
+  },
+  "diagnosticMetadataSourceEmptySummary": "未找到测试番号 {movieNumber}",
+  "@diagnosticMetadataSourceEmptySummary": {
+    "placeholders": {
+      "movieNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "diagnosticMetadataSourceFailedSummary": "插件测试失败",
+  "diagnosticIndexerConfigOrConnectionFailed": "索引器配置或连通性检测失败",
+  "diagnosticEmbeddingDisabledSummary": "未启用，可在高级设置中开启",
+  "diagnosticEmbeddingHealthySummary": "嵌入模型加载正常",
+  "diagnosticEmbeddingSpace": "空间：{spaceId}",
+  "@diagnosticEmbeddingSpace": {
+    "placeholders": {
+      "spaceId": {
+        "type": "String"
+      }
+    }
+  },
+  "diagnosticEmbeddingSpaceWithDimension": "空间：{spaceId} · {dimension} 维",
+  "@diagnosticEmbeddingSpaceWithDimension": {
+    "placeholders": {
+      "spaceId": {
+        "type": "String"
+      },
+      "dimension": {
+        "type": "int"
+      }
+    }
+  },
+  "diagnosticEmbeddingModelNotReady": "模型未就绪",
+  "diagnosticCheckRequestFailed": "检测请求失败",
+  "diagnosticMediaLibraryOneAvailable": "1 个可用（{name}）",
+  "@diagnosticMediaLibraryOneAvailable": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "diagnosticMediaLibraryAvailable": "{count} 个可用",
+  "@diagnosticMediaLibraryAvailable": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "diagnosticIndexerNoneConfigured": "尚未添加任何索引器条目",
+  "diagnosticIndexerInvalidUrl": "存在非法 tracker URL",
+  "diagnosticIndexerClientMissing": "存在未绑定下载器的 entry",
+  "diagnosticIndexerClientStale": "存在绑定到已删除下载器的 entry",
+  "diagnosticIndexerConfigIssue": "配置存在问题",
+  "diagnosticIndexerConnectedNoResults": "{count} 个索引器已连接，测试查询未返回候选",
+  "@diagnosticIndexerConnectedNoResults": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "diagnosticIndexerConnectedWithResults": "{count} 个索引器已连接，返回 {results} 条候选",
+  "@diagnosticIndexerConnectedWithResults": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "results": {
+        "type": "String"
+      }
+    }
+  },
+  "diagnosticIndexerNoneSaved": "尚未保存任何索引器条目",
+  "diagnosticTorznabTestFailed": "Torznab 连通性测试失败",
+  "diagnosticHintMediaLibraryEmptyCause": "还没有配置媒体库。",
+  "diagnosticHintMediaLibraryEmptyFix": "在「媒体库」页新建一个，指向存放影片的目录。",
+  "diagnosticHintMediaLibraryProbeFailedCause": "读取媒体库列表失败，后端没有正常响应。",
+  "diagnosticHintBackendCheckRetryFix": "确认后端正常后重新检测。",
+  "diagnosticHintIndexerEmptyCause": "还没有添加任何站点。",
+  "diagnosticHintIndexerEmptyFix": "在「索引器」页至少添加一个站点，并给它绑定一个下载器。",
+  "diagnosticHintIndexerInvalidUrlCause": "有站点的地址是空的，或者格式不对。",
+  "diagnosticHintIndexerInvalidUrlFix": "在「索引器」页检查每个站点的地址。",
+  "diagnosticHintIndexerClientMissingCause": "有站点没有绑定下载器。",
+  "diagnosticHintIndexerClientMissingFix": "在「索引器」页给它选一个下载器。",
+  "diagnosticHintIndexerClientStaleCause": "有站点绑定的下载器已经被删了。",
+  "diagnosticHintIndexerClientStaleFix": "在「索引器」页给它重新选一个下载器。",
+  "diagnosticHintIndexerTestFailedCause": "搜索测试失败了。",
+  "diagnosticHintIndexerTestFailedFix": "确认索引器服务能访问，然后在「索引器」页核对各站点地址与 API Key。",
+  "diagnosticHintJoyTagUnhealthyCause": "JoyTag 推理服务没有响应。",
+  "diagnosticHintJoyTagUnhealthyFix": "在部署后端的机器上查看嵌入服务日志。",
+  "diagnosticHintMetadataSourcesEmptyCause": "没有启用任何元数据插件。",
+  "diagnosticHintMetadataSourcesEmptyFix": "在「插件」页安装并启用元数据插件，再重新检测。",
+  "diagnosticHintMetadataSourcesProbeFailedCause": "读取元数据源失败，后端没有正常响应。",
+  "diagnosticHintMetadataSourceEmptyCause": "插件有响应，但测试番号没有返回元数据。",
+  "diagnosticHintMetadataSourceEmptyFix": "在「插件」页检查这个插件的配置，再重新检测。",
+  "diagnosticHintMetadataSourceFailedCause": "这个元数据插件没有通过测试。",
+  "diagnosticHintMetadataSourceFailedFix": "在「插件」页检查这个插件的配置和账号状态，再重新检测。",
+  "diagnosticHintProbeRequestFailedCause": "检测请求没完成，后端没有响应。",
+  "overviewStatusUnavailable": "不可用",
+  "overviewStatusHealthy": "正常",
+  "overviewStatusAbnormal": "异常",
+  "overviewIndexSpaceReady": "就绪",
+  "overviewIndexSpaceRebuildRequired": "需重建",
+  "overviewIndexSpaceUninitialized": "未建立",
+  "overviewRefreshFailed": "刷新失败",
+  "overviewMore": "更多",
+  "overviewRecentlyAdded": "最近添加",
+  "overviewRecentlySubscribed": "最近订阅",
+  "overviewRecentlyPlayed": "最近播放",
+  "overviewNoLatestMovies": "暂无入库影片，去搜索看看吧",
+  "overviewNoSubscribedMovies": "暂无订阅影片",
+  "overviewMovieCount": "{count} 部",
+  "@overviewMovieCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewNoWatchHistory": "还没有观看记录",
+  "overviewOpenMenu": "打开菜单",
+  "overviewTabMine": "我的",
+  "overviewTabClips": "切片",
+  "overviewTabDiscover": "发现",
+  "overviewTabMoments": "时刻",
+  "overviewLatestMoviesLoadFailed": "最近添加影片加载失败，请稍后重试",
+  "overviewSearchHint": "如 SSNI-888、三上悠亚",
+  "overviewPlaylists": "播放列表",
+  "overviewPlaylistsLoadFailed": "播放列表暂时无法加载，请稍后重试",
+  "overviewNoPlaylists": "暂无播放列表",
+  "overviewImagePickFailed": "选择图片失败",
+  "overviewImageSearchSpaceUnknown": "无法确认历史索引使用的嵌入空间。",
+  "overviewImageSearchSpaceChanged": "嵌入空间已从「{indexed}」变更为「{current}」。",
+  "@overviewImageSearchSpaceChanged": {
+    "placeholders": {
+      "indexed": {
+        "type": "String"
+      },
+      "current": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewRebuildIndexConfirm": "{spaceMessage} 这会清空现有图片索引并重新开始构建，确认继续吗？",
+  "@overviewRebuildIndexConfirm": {
+    "placeholders": {
+      "spaceMessage": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewServiceHealth": "服务健康",
+  "overviewEmbeddingService": "嵌入服务",
+  "overviewRebuild": "重建",
+  "overviewWatchTrend": "观看趋势",
+  "overviewRangeLast7Days": "近 7 天",
+  "overviewRangeLast7DaysShort": "7天",
+  "overviewRangeLast30Days": "近 30 天",
+  "overviewRangeLast30DaysShort": "30天",
+  "overviewRangeLast90Days": "近 90 天",
+  "overviewRangeLast90DaysShort": "90天",
+  "overviewRangeLastYear": "近一年",
+  "overviewRangeLastYearShort": "1年",
+  "overviewRangeAllTime": "全部时间",
+  "overviewRangeAllTimeShort": "全部",
+  "overviewWatchTrendSummary": "{period}看过 {count} 部",
+  "@overviewWatchTrendSummary": {
+    "placeholders": {
+      "period": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewNoWatchHistoryInRange": "该区间暂无观看记录",
+  "overviewStorageDistribution": "存储分布",
+  "overviewNoMediaLibraries": "暂无媒体库",
+  "overviewFiles": "{count} 个文件",
+  "@overviewFiles": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewFilesAndSize": "{count} 个文件 · {size}",
+  "@overviewFilesAndSize": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewOther": "其他",
+  "overviewFree": "空闲",
+  "overviewLibraryTitle": "资料库",
+  "overviewLibrarySubtitle": "状态、任务与最近内容，一眼掌握。",
+  "overviewConnected": "已连接",
+  "overviewImportMedia": "导入媒体",
+  "overviewMediaAssets": "媒体资产",
+  "overviewNoAssetData": "暂无媒体资产数据",
+  "overviewPlayableMovies": "可播放影片",
+  "overviewMovieTotal": "共 {count} 部影片",
+  "@overviewMovieTotal": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewActresses": "女优",
+  "overviewSubscribedMovies": "已订阅",
+  "overviewSubscriptionRate": "订阅率 {rate}",
+  "@overviewSubscriptionRate": {
+    "placeholders": {
+      "rate": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewSubscribedCount": "已订阅 {count}",
+  "@overviewSubscribedCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewLibraryCount": "{count} 个资源库",
+  "@overviewLibraryCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewTotalMediaSize": "媒体总量",
+  "overviewPendingThumbnails": "待生成缩略图",
+  "overviewPendingIndex": "待索引",
+  "overviewWorkbenchTitle": "工作台",
+  "overviewWorkbenchActive": "{count} 个进行中",
+  "@overviewWorkbenchActive": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "overviewWorkbenchEmpty": "当前队列空闲",
+  "overviewStatusLoadFailed": "媒体资产加载失败，请稍后重试",
+  "overviewInsightsLoadFailed": "统计数据加载失败",
+  "overviewWatchTrendLoadFailed": "观看趋势加载失败",
+  "routeOverviewTitle": "概览",
+  "routeDiscoverTitle": "发现",
+  "routeMoviesTitle": "影片",
+  "routeActorsTitle": "女优",
+  "routeTagsTitle": "标签",
+  "routeMomentsTitle": "时刻",
+  "routeClipsTitle": "切片",
+  "routePlaylistsTitle": "播放列表",
+  "routeFavoritesTitle": "我的收藏",
+  "routeRecentlyPlayedTitle": "最近播放",
+  "routeRecentViewsTitle": "最近浏览",
+  "routeRatingsTitle": "我的评分",
+  "routeVideosTitle": "PornBox",
+  "routeRankingsTitle": "排行榜",
+  "routeRankingsBoardTitle": "榜单",
+  "routeMediaManagementTitle": "媒体管理",
+  "routeMediaImportTitle": "资源导入",
+  "routeDownloadTasksTitle": "下载任务",
+  "routeTaskCenterTitle": "任务中心",
+  "routeSubscriptionManagementTitle": "订阅管理",
+  "routeNotificationsTitle": "通知",
+  "routeConfigurationTitle": "系统设置",
+  "routeSearchTitle": "搜索",
+  "routeImageSearchTitle": "画面搜索",
+  "routeLatestAddedTitle": "最近添加",
+  "routeRecentlySubscribedTitle": "最近订阅",
+  "routeMessagesTitle": "消息",
+  "routeThumbnailsTitle": "缩略图",
+  "routeClipCollectionsTitle": "切片合集",
+  "routeCollectionsTitle": "合集",
+  "routeMomentCollectionsTitle": "时刻合集",
+  "routeVideoCollectionsTitle": "视频合集",
+  "routePlaylistDetailsTitle": "播放列表详情",
+  "routeNewActorReleasesTitle": "女优上新",
+  "routeRecommendedMoviesTitle": "推荐影片",
+  "routeRecommendedMomentsTitle": "推荐时刻",
+  "routePopularNewReleasesTitle": "热门新片",
+  "routeSeriesMoviesTitle": "系列影片",
+  "routeMovieDetailsTitle": "影片详情",
+  "routeActorDetailsTitle": "女优详情",
+  "routeVideoDetailsTitle": "视频详情",
+  "routeCollectionDetailsTitle": "合集详情",
+  "routeNavBrowseSectionLabel": "浏览",
+  "routeNavManageSectionLabel": "管理",
+  "routeNavOverviewDescription": "桌面工作台总览、待办与快捷入口的统一落点。",
+  "routeNavDiscoverDescription": "每日推荐影片与推荐时刻的统一发现入口。",
+  "routeNavMoviesDescription": "影片资料、筛选面板与详情浏览的统一入口。",
+  "routeNavActorsDescription": "演员资料、筛选面板与后续详情工作流的统一入口。",
+  "routeNavTagsDescription": "按标签多选组合筛选影片的统一入口。",
+  "routeNavMomentsDescription": "全局时刻列表、预览和快速跳播的统一入口。",
+  "routeNavClipsDescription": "圈选生成的切片与切片合集的统一入口：浏览、悬停预览、加入合集与连播。",
+  "routeNavPlaylistsDescription": "播放列表浏览、维护与影片归档的统一入口。",
+  "routeNavFavoritesDescription": "影片详情里手动收藏的影片列表。",
+  "routeNavRecentlyPlayedDescription": "按播放时间倒序查看最近看过的影片。",
+  "routeNavRecentViewsDescription": "最近浏览过的影片与女优。",
+  "routeNavRatingsDescription": "已评分影片、总分排序与评分维度维护的统一入口。",
+  "routeNavVideosDescription": "PornBox 视频的列表、合集、详情与播放统一入口。",
+  "routeNavRankingsDescription": "来源榜单聚合、周期切换与影片热榜浏览入口。",
+  "routeNavMediaManagementDescription": "媒体文件浏览、失效巡检与删除的统一入口。",
+  "routeNavMediaImportDescription": "导入 JAV 与普通视频，并在任务中心查看进度和结果。",
+  "routeNavDownloadTasksDescription": "查看下载进度、导入状态，并手动提交磁力链接或种子文件。",
+  "routeNavTaskCenterDescription": "后台任务与元数据任务的统一入口，所有操作回执的落点。",
+  "routeNavSubscriptionManagementDescription": "订阅影片的资源查询进展：缺资源、已放弃、查询出错的集中处理台。",
+  "routeNavNotificationsDescription": "后台通知消息中心，展示即自动已读。",
+  "routeNavConfigurationDescription": "媒体库、下载器、索引器、账号安全等系统配置的统一入口。",
+  "routeNavMobileOverviewDescription": "移动端首页骨架与后续动态入口。",
+  "routeNavMobileMoviesDescription": "移动端影片列表与后续详情入口。",
+  "routeNavMobileActorsDescription": "移动端女优列表与后续详情入口。",
+  "routeNavMobileRankingsDescription": "移动端榜单骨架与后续推荐入口。",
+  "routeNavMobileVideosDescription": "移动端 PornBox 视频列表、合集与播放入口。",
+  "coreImageSaveSuccess": "图片已保存",
+  "coreImageSavePermissionDenied": "没有相册权限，无法保存图片",
+  "coreImageSaveFailed": "保存失败，请稍后重试",
+  "coreImageSaveToGallery": "已保存到系统相册",
+  "coreImageSaveUnsupported": "当前平台暂不支持保存图片",
+  "coreSessionInvalidAuthResponse": "认证响应格式错误",
+  "appVersionTooltip": "客户端 {frontend} · 服务端 {backend}",
+  "@appVersionTooltip": {
+    "placeholders": {
+      "frontend": {
+        "type": "String"
+      },
+      "backend": {
+        "type": "String"
+      }
+    }
+  },
+  "themeColorBurgundyLabel": "酒红",
+  "themeColorCrimsonLabel": "绛红",
+  "themeColorKleinBlueLabel": "克莱因蓝",
+  "themeColorSilhouetteLabel": "映辉",
+  "momentConfirm": "确认",
+  "momentAddAction": "添加",
+  "momentRemoveAction": "移除",
+  "momentSelectAction": "选择",
+  "momentSelectAll": "全选",
+  "momentDeselectAll": "取消全选",
+  "momentSelectedCount": "已选 {count} 个",
+  "@momentSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "momentCountLabel": "{count} 个时刻",
+  "momentCollectionAllMomentsTitle": "全部时刻",
+  "@momentCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "momentCreateAction": "创建",
+  "momentViewAll": "查看全部",
+  "momentAddToCollection": "加入合集",
+  "momentKindVideo": "视频",
+  "momentKindAll": "全部",
+  "momentSortLatest": "最新",
+  "momentSortEarliest": "最早",
+  "momentFilterKindTitle": "内容类型",
+  "momentFilterSortTitle": "排序",
+  "momentLabel": "时刻 #{id}",
+  "@momentLabel": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "momentVideoLabel": "视频 #{id}",
+  "@momentVideoLabel": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "momentSourceDeleted": "来源已删除",
+  "momentSourceMovie": "影片",
+  "momentDeleteTitle": "删除时刻",
+  "momentDeletedToast": "已删除时刻",
+  "momentAddedToast": "已加入",
+  "momentMovedOutToast": "已移出",
+  "momentDeleteConfirmMessage": "确认删除“{label}”？该时刻标记会被永久删除，该操作不可恢复。",
+  "@momentDeleteConfirmMessage": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "momentDeleteMarkerConfirmMessage": "确认删除“{label}”？该时刻标记会被永久删除，不会删除原视频或切片。",
+  "@momentDeleteMarkerConfirmMessage": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "momentBatchDeleteConfirmMessage": "确认删除选中的 {count} 个时刻？该操作不可恢复。",
+  "@momentBatchDeleteConfirmMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "momentBatchDeleteMarkerConfirmMessage": "确认删除选中的 {count} 个时刻？这些时刻标记会被永久删除，不会删除原视频或切片。",
+  "@momentBatchDeleteMarkerConfirmMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "momentEmptyList": "暂无时刻数据",
+  "momentPickerCountAvailable": "已加入 {added} · 可添加 {total}",
+  "@momentPickerCountAvailable": {
+    "placeholders": {
+      "added": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "momentPickerCountTotal": "已加入 {added} · 共 {total}",
+  "@momentPickerCountTotal": {
+    "placeholders": {
+      "added": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "momentPickerSearchHint": "搜番号 / 标题",
+  "momentPickerOnlyUnadded": "仅看未加入",
+  "momentEmptyNoMatchTitle": "没有匹配的时刻",
+  "momentEmptyNoMatchMessage": "换个番号或关键词试试",
+  "momentEmptyKindTitle": "这组内容里没有时刻",
+  "momentEmptyKindMessage": "试试其他的内容类型",
+  "momentEmptyAllAddedTitle": "可添加的都已加入",
+  "momentEmptyAllAddedMessage": "这个合集已经收齐了，切到「全部」可以管理已加入的时刻",
+  "momentEmptyNoMomentsTitle": "还没有时刻",
+  "momentEmptyNoMomentsMessage": "去播放器圈选生成吧",
+  "momentErrorCollectionLoadFailed": "合集暂时无法加载，请稍后重试",
+  "momentErrorCollectionDetailLoadFailed": "合集详情暂时无法加载，请稍后重试",
+  "momentErrorCollectionsLoadFailed": "合集加载失败",
+  "momentErrorPointsLoadFailed": "时刻加载失败",
+  "momentErrorDeleteFailed": "删除失败，请重试",
+  "momentErrorRemoveFromCollectionFailed": "移出合集失败，请重试",
+  "momentErrorRemoveFromCollectionBriefFailed": "移出合集失败",
+  "momentErrorAddToCollectionFailed": "加入合集失败",
+  "momentErrorSaveFailed": "保存失败",
+  "momentErrorCreateFailed": "创建失败",
+  "momentErrorInfoLoadFailed": "时刻信息加载失败，请稍后重试",
+  "momentErrorGone": "该时刻已不存在，无法加入合集",
+  "momentErrorResultImageLoadFailed": "读取结果图片失败，请稍后重试",
+  "momentCollectionSectionTitle": "时刻合集",
+  "momentCollectionCreateTitle": "新建合集",
+  "momentCollectionEditTitle": "编辑合集",
+  "momentCollectionSearchHint": "搜索合集",
+  "momentCollectionNameHint": "例如：周末回看",
+  "momentCollectionNameRequired": "请输入合集名称",
+  "momentCollectionDescriptionHint": "描述可选",
+  "momentCollectionUnnamed": "该合集",
+  "momentCollectionDeleteTitle": "删除合集",
+  "momentCollectionDeleteMessage": "确认删除{name}？只会删除合集本身，合集内的时刻不会被删除。",
+  "@momentCollectionDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "momentCollectionCreatedToast": "已创建合集",
+  "momentCollectionCreatedFromMomentsToast": "已创建时刻合集",
+  "momentCollectionDeletedToast": "已删除合集",
+  "momentCollectionRemovedToast": "已从合集移除",
+  "momentCollectionRemoveAction": "从合集移除",
+  "momentCollectionBatchRemoveMessage": "确认从合集移除选中的 {count} 个时刻？时刻本身不会被删除。",
+  "@momentCollectionBatchRemoveMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "momentCollectionEmptyDesktop": "还没有合集，点右上角「新建合集」开始吧",
+  "momentCollectionEmptyMobile": "还没有合集，点下方「新建合集」开始吧",
+  "momentCollectionEmptyHint": "还没有合集，点「新建」把喜欢的时刻攒成一个合集吧",
+  "momentCollectionEmptyAddDialog": "暂无合集，点击新建入口创建",
+  "momentCollectionNoMatch": "没有匹配的合集",
+  "momentCollectionEmptyDetailMobile": "合集还没有时刻，点右上角「添加」加入吧",
+  "momentCollectionEmptyDetailDesktop": "合集还没有时刻，去「时刻」里加入吧",
+  "momentAddMomentsAction": "添加时刻",
+  "momentNewAction": "新建",
+  "clipCollectionPageTitle": "切片合集",
+  "clipCollectionCreate": "新建合集",
+  "clipCollectionEdit": "编辑合集",
+  "clipCollectionSearchHint": "搜索合集",
+  "clipCollectionLoadFailed": "合集暂时无法加载，请稍后重试",
+  "clipCollectionDetailLoadFailed": "合集详情暂时无法加载，请稍后重试",
+  "clipCollectionEmptyDesktop": "还没有合集，点右上角「新建合集」开始吧",
+  "clipCollectionEmptyMobile": "还没有合集，点下方「新建合集」开始吧",
+  "clipCollectionNoMatch": "没有匹配的合集",
+  "clipCollectionCreatedToast": "已创建合集",
+  "clipCollectionDeletedToast": "已删除合集",
+  "clipCollectionDeleteTitle": "删除合集",
+  "clipCollectionDeleteMessage": "确认删除{name}？只会删除合集本身，合集内的切片不会被删除。",
+  "@clipCollectionDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "clipCollectionDeleteFailed": "删除失败，请重试",
+  "clipCollectionUnnamed": "该合集",
+  "clipCollectionNameHint": "例如：年度精选",
+  "clipCollectionNameRequired": "请输入合集名称",
+  "clipCollectionDescriptionHint": "描述可选",
+  "clipCollectionCreateAction": "创建",
+  "clipCollectionSaveFailed": "保存失败",
+  "clipCollectionCreateFailed": "创建合集失败",
+  "clipCollectionPlayAll": "播放全部",
+  "clipCollectionPlay": "播放",
+  "clipCollectionClipCount": "{count} 个切片",
+  "clipCollectionAllClipsTitle": "全部切片",
+  "@clipCollectionClipCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clipCollectionAdd": "添加",
+  "clipCollectionAddClips": "添加切片",
+  "clipCollectionSelectedCount": "已选 {count} 个",
+  "@clipCollectionSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clipCollectionSelectAll": "全选",
+  "clipCollectionDeselectAll": "取消全选",
+  "clipCollectionRemoveFromCollection": "从合集移除",
+  "clipCollectionRemove": "移除",
+  "clipCollectionDeleteClips": "删除切片",
+  "clipCollectionAddToCollection": "加入合集",
+  "clipCollectionNoClipsMobile": "合集还没有切片，点右上角「添加」加入吧",
+  "clipCollectionNoClipsDesktop": "合集还没有切片，去「全部切片」里加入吧",
+  "clipCollectionNoMovieNumber": "无番号",
+  "clipCollectionMovieSource": "影片",
+  "clipCollectionRemovedToast": "已从合集移除",
+  "clipCollectionMovedOutToast": "已移出",
+  "clipCollectionAddedToast": "已加入",
+  "clipCollectionAddedToToast": "已加入「{name}」",
+  "@clipCollectionAddedToToast": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "clipCollectionUnnamedClip": "该切片",
+  "clipCollectionDeleteClipMessage": "确认删除{name}？切片文件会被一并删除，该操作不可恢复。",
+  "@clipCollectionDeleteClipMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "clipCollectionClipDeletedToast": "已删除切片",
+  "clipCollectionAddFailed": "加入合集失败",
+  "clipCollectionAddFailedRetry": "加入合集失败，请重试",
+  "clipCollectionRemoveFailed": "移出合集失败",
+  "clipCollectionBatchRemoveMessage": "确认从合集移除选中的 {count} 个切片？切片本身不会被删除。",
+  "@clipCollectionBatchRemoveMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clipCollectionBatchDeleteMessage": "确认删除选中的 {count} 个切片？切片文件会被一并删除，该操作不可恢复。",
+  "@clipCollectionBatchDeleteMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clipCollectionConfirm": "确认",
+  "clipCollectionNoPlayableClips": "合集内没有可播放的切片",
+  "clipCollectionPlayLoadFailed": "合集加载失败，请稍后重试",
+  "clipCollectionContinuousPlay": "连播",
+  "clipCollectionEpisodePanelTitle": "选集 · {count}",
+  "@clipCollectionEpisodePanelTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clipCollectionClipsLoadFailed": "切片加载失败",
+  "clipCollectionAddedAvailableCount": "已加入 {added} · 可添加 {total}",
+  "@clipCollectionAddedAvailableCount": {
+    "placeholders": {
+      "added": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "clipCollectionAddedTotalCount": "已加入 {added} · 共 {total}",
+  "@clipCollectionAddedTotalCount": {
+    "placeholders": {
+      "added": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "clipCollectionSearchClipsHint": "搜番号 / 标题",
+  "clipCollectionOnlyUnadded": "仅看未加入",
+  "clipCollectionNoMatchingClips": "没有匹配的切片",
+  "clipCollectionTryAnotherKeyword": "换个番号或关键词试试",
+  "clipCollectionAllAdded": "可添加的都已加入",
+  "clipCollectionAllAddedHint": "这个合集已经收齐了，切到「全部」可以管理已加入的切片",
+  "clipCollectionViewAll": "查看全部",
+  "clipCollectionNoClipsTitle": "还没有切片",
+  "clipCollectionNoClipsHint": "去播放器圈选生成吧",
+  "clipCollectionUntitledClip": "未命名切片",
+  "clipCollectionCollectionsLoadFailed": "合集加载失败",
+  "clipCollectionEmptyCreateHint": "暂无合集，点击新建入口创建",
+  "playlistLoadFailed": "播放列表暂时无法加载，请稍后重试",
+  "playlistCreateTooltip": "新建播放列表",
+  "playlistCreateTitle": "新建播放列表",
+  "playlistEmpty": "暂无播放列表",
+  "playlistSectionSystem": "系统列表",
+  "playlistSectionMine": "我的播放列表",
+  "playlistCountBadge": "{count} 个",
+  "@playlistCountBadge": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistCreatedToast": "已创建播放列表",
+  "playlistFavoritesNotReady": "收藏列表尚未初始化",
+  "playlistNoWatchHistory": "还没有观看记录",
+  "playlistNoMovies": "暂无影片数据",
+  "playlistNoMatchingMovies": "当前筛选条件下暂无匹配影片",
+  "playlistRefreshFailed": "刷新失败",
+  "playlistDeleteTitle": "删除播放列表",
+  "playlistDeleteMessage": "确认删除播放列表“{name}”？该操作不可恢复。",
+  "@playlistDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "playlistDeleteFailed": "删除播放列表失败",
+  "playlistDeletedToast": "播放列表已删除",
+  "playlistMovieCount": "{count} 部影片",
+  "@playlistMovieCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistMovieCountShort": "{count} 部",
+  "@playlistMovieCountShort": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistActionsTooltip": "播放列表操作",
+  "playlistNotFound": "未找到该播放列表",
+  "playlistDetailLoadFailed": "播放列表详情暂时无法加载，请稍后重试",
+  "playlistNameHint": "例如：稍后再看",
+  "playlistNameRequired": "请输入播放列表名称",
+  "playlistDescriptionHint": "描述可选",
+  "playlistCreateAction": "创建",
+  "playlistCreateFailed": "创建播放列表失败",
+  "playlistEditTitle": "编辑播放列表",
+  "playlistUpdateFailed": "更新播放列表失败",
+  "playlistUpdatedToast": "播放列表已更新",
+  "playlistPickerLoadFailed": "播放列表加载失败",
+  "playlistNoMatch": "没有匹配的播放列表",
+  "playlistSearchHint": "搜索播放列表",
+  "moviePlaylistTargetSearchHint": "搜索播放列表",
+  "moviePlaylistTargetEmpty": "暂无播放列表，点击下方新建",
+  "moviePlaylistTargetNoMatch": "没有匹配的播放列表",
+  "moviePlaylistTargetCreateAndAdd": "新建播放列表并加入",
+  "moviePlaylistBatchAddedToast": "已将 {count} 部影片加入“{name}”",
+  "@moviePlaylistBatchAddedToast": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "moviePlaylistBatchPartialToast": "已加入 {updated} 部，{skipped} 部未找到",
+  "@moviePlaylistBatchPartialToast": {
+    "placeholders": {
+      "updated": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistRemoveFailed": "移出播放列表失败",
+  "playlistAddFailed": "加入播放列表失败",
+  "playlistFilterResolution": "分辨率",
+  "playlistFilterAll": "全部",
+  "playlistSortHeat": "热度",
+  "playlistSortBitrate": "码率",
+  "playlistSortAddedAt": "最近入库",
+  "playlistSortReleaseDate": "发布时间",
+  "playlistSortDefault": "最近触达",
+  "playlistEditInfo": "编辑信息",
+  "activityAll": "全部",
+  "activityUnread": "未读",
+  "activityTimeUnknown": "时间未知",
+  "activityNotificationCategoryInfo": "信息",
+  "activityNotificationCategoryWarning": "警告",
+  "activityNotificationCategoryError": "错误",
+  "activityNotificationCategoryReminder": "提醒",
+  "activityMarkAllRead": "全部已读",
+  "activityEmptyNotificationsFiltered": "当前筛选下暂无通知",
+  "activityNoUnreadNotifications": "没有未读消息",
+  "activityNoNotifications": "暂无消息",
+  "activityCenterTitle": "任务中心",
+  "activityTabOverview": "概览",
+  "activityTabHistory": "任务历史",
+  "activityTaskRunHistoryTitle": "运行记录",
+  "activityHistoryEmpty": "该任务还没有运行记录",
+  "activityRunCompletedWithWarning": "有警告",
+  "activityActiveTasks": "活动任务",
+  "activityEmptyTasksFiltered": "当前筛选下暂无任务记录",
+  "activityJobSubmitted": "任务已提交",
+  "activityJobAlreadyRunning": "任务已在运行中",
+  "activityJobSubmitFailed": "任务提交失败，请重试",
+  "activityJobsLoading": "加载中",
+  "activityJobsLoadFailed": "加载失败",
+  "activityJobsEmpty": "暂无任务",
+  "activityJobsCount": "{count} 个任务",
+  "@activityJobsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityExecutableJobsTitle": "可执行任务",
+  "activityCommonTasks": "常用任务",
+  "activityJobDisabled": "未启用",
+  "activityJobSubmitting": "提交中",
+  "activityJobRunNow": "立即执行",
+  "activityJobFillParams": "填写参数",
+  "activityJobNotManual": "不可手动执行",
+  "activityJobScheduled": "定时任务",
+  "activityJobManualTask": "手动任务",
+  "activityJobNoRuns": "暂无运行记录",
+  "activityJobLastRun": "最近运行：{time}",
+  "@activityJobLastRun": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "activityFilterAllTasks": "全部任务",
+  "activityFilterSystemTasks": "系统任务",
+  "activityExecutableJobsEmpty": "暂无可执行任务",
+  "activityJobParamsTitle": "填写任务参数",
+  "activityJobParamsEmpty": "该任务没有可填写的参数，将按默认配置执行。",
+  "activityJobParamsSubmit": "提交任务",
+  "activityJobParamFallbackHelp": "参数名：{name}",
+  "@activityJobParamFallbackHelp": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "activityJobParamUnset": "未设置",
+  "activityJobParamYes": "是",
+  "activityJobParamNo": "否",
+  "activityJobParamSelectPlaceholder": "请选择",
+  "activityJobParamSelectRequired": "请选择{label}",
+  "@activityJobParamSelectRequired": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "activityJobParamRequired": "请输入{label}",
+  "@activityJobParamRequired": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "activityJobParamIntegerRequired": "请输入整数",
+  "activityJobParamNumberRequired": "请输入数字",
+  "activityJobParamJsonArrayRequired": "请输入 JSON 数组",
+  "activityJobParamJsonObjectRequired": "请输入 JSON 对象",
+  "activityJobParamJsonInvalid": "请输入合法的 JSON",
+  "activityFilterAllStates": "全部状态",
+  "activityFilterAllTaskTypes": "全部任务类型",
+  "activityFilterAllTriggers": "全部触发来源",
+  "activityTaskFilterTitle": "筛选任务历史",
+  "activityTaskStateLabel": "任务状态",
+  "activityTaskTypeLabel": "任务类型",
+  "activityTaskTriggerLabel": "触发来源",
+  "activityHandleFailedFiles": "处理失败文件（{count}）",
+  "@activityHandleFailedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityViewSkippedFiles": "查看跳过文件（{count}）",
+  "@activityViewSkippedFiles": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityViewMediaTransferResult": "查看迁移结果（{count}）",
+  "@activityViewMediaTransferResult": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityFinishedAt": "完成于 {time}",
+  "@activityFinishedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "activityStartedAt": "开始于 {time}",
+  "@activityStartedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "activityCreatedAt": "创建于 {time}",
+  "@activityCreatedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "activityTaskStateRunning": "运行中",
+  "activityTaskStateCompleted": "已完成",
+  "activityTaskStateFailed": "失败",
+  "activityTaskStatePending": "排队中",
+  "activityTriggerScheduled": "定时触发",
+  "activityTriggerManual": "手动触发",
+  "activityTriggerStartup": "启动触发",
+  "activityTriggerInternal": "内部触发",
+  "activityTriggerPlugin": "插件触发",
+  "activitySortStartedAt": "开始时间",
+  "activitySortCreatedAt": "创建时间",
+  "activitySortUpdatedAt": "更新时间",
+  "activitySummarySucceeded": "成功 {count} 项",
+  "@activitySummarySucceeded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activitySummaryFailed": "失败 {count} 项",
+  "@activitySummaryFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activitySummaryTransferred": "已迁移 {count} 项",
+  "@activitySummaryTransferred": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activitySummarySkipped": "已跳过 {count} 项",
+  "@activitySummarySkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activitySummaryTransferFailed": "迁移失败 {count} 项",
+  "@activitySummaryTransferFailed": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activitySummaryCleanupIncomplete": "源文件待确认 {count} 项",
+  "@activitySummaryCleanupIncomplete": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activitySummaryUnexecuted": "未执行 {count} 项",
+  "@activitySummaryUnexecuted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "activityConnectionConnectingNotifications": "正在同步通知",
+  "activityConnectionPollingNotifications": "每 30 秒同步通知",
+  "activityConnectionNotificationSyncFailed": "通知同步失败，可手动刷新",
+  "downloadStateAll": "全部",
+  "downloadStateDownloading": "下载中",
+  "downloadStateQueued": "排队中",
+  "downloadStateCompleted": "已完成",
+  "downloadStateFailed": "失败",
+  "downloadManualAddTitle": "手动添加下载",
+  "downloadManualAddAction": "手动添加",
+  "downloadSelectionCount": "已选 {count} 个",
+  "@downloadSelectionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionClearAll": "取消全选",
+  "downloadSelectionSelectAll": "全选（{count}）",
+  "@downloadSelectionSelectAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionDelete": "删除所选（{count}）",
+  "@downloadSelectionDelete": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadEmptyFiltered": "没有符合筛选条件的下载任务",
+  "downloadEmpty": "暂无下载任务",
+  "downloadViewAllTasks": "查看全部任务",
+  "downloadClientFallbackName": "客户端 #{id}",
+  "@downloadClientFallbackName": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadCreatedAt": "创建 {time}",
+  "@downloadCreatedAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadViewFiles": "查看文件",
+  "downloadRetriggerImport": "重新导入",
+  "downloadDeleteBlockedImporting": "任务正在导入，无法删除",
+  "downloadImportStatusPending": "待导入",
+  "downloadImportStatusRunning": "导入中",
+  "downloadImportStatusCompleted": "已导入",
+  "downloadImportStatusFailed": "导入失败",
+  "downloadImportStatusSkipped": "已跳过",
+  "downloadImportSubmitted": "已提交导入任务",
+  "downloadImportSubmitFailed": "提交导入失败，请稍后重试",
+  "downloadViewMovieDetails": "查看影片详情：{number}",
+  "@downloadViewMovieDetails": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSearchByMovieNumber": "按番号搜索",
+  "downloadFilterAllClients": "全部客户端",
+  "downloadFilterTitle": "筛选下载任务",
+  "downloadMovieNumberLabel": "番号",
+  "downloadStateFilterLabel": "下载状态",
+  "downloadClientFilterLabel": "下载客户端",
+  "downloadFilterClientSpecified": "指定客户端",
+  "downloadSourceRequired": "请粘贴下载链接",
+  "downloadSourceSingleOnly": "一次只能提交一条链接",
+  "downloadLinkInvalid": "无法识别该链接，请检查磁力、eD2k 或 HTTP/HTTPS 地址",
+  "downloadMovieNumberRequired": "请填写番号",
+  "downloadMovieNumberResolving": "番号查询中，请稍候",
+  "downloadMovieNumberQueryFirst": "请先点击「查询」并匹配影片",
+  "downloadMovieNumberParsing": "正在识别番号…",
+  "downloadMovieNumberUnrecognized": "无法识别番号，请输入完整番号（如 SSNI-888）",
+  "downloadMovieNumberParsed": "已识别为 {number}，正在本地查询…",
+  "@downloadMovieNumberParsed": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadMovieNumberQueryFailed": "番号查询失败，请稍后重试",
+  "downloadMovieNumberLocalNotFound": "本地未找到，正在在线搜索并入库…",
+  "downloadMovieNumberOnlineSearching": "正在在线搜索并入库…",
+  "downloadMovieNumberNotFound": "本地和在线均未找到 {number}",
+  "@downloadMovieNumberNotFound": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadMovieNumberOnlineSearchFailed": "在线搜索失败，请稍后重试",
+  "downloadMovieNumberOnlineNoResult": "在线搜索未返回结果，请重试",
+  "downloadTorrentTooLarge": "种子文件不能超过 10 MB",
+  "downloadTorrentUnreadable": "无法读取所选种子文件，请换一个文件再试",
+  "downloadTorrentPickerUnavailable": "文件选择器尚未加载，请完整重启应用后再试",
+  "downloadTorrentPickerOpenFailed": "打开文件选择器失败，请稍后再试",
+  "downloadTorrentFileRequired": "请选择 .torrent 文件",
+  "downloadCreateTaskFailed": "创建下载任务失败，请重试",
+  "downloadLinkDialogTitle": "添加下载",
+  "downloadSourcePrefilledDescription": "链接已从评论填入，确认下载器后提交。",
+  "downloadClose": "关闭",
+  "downloadSubmit": "提交下载",
+  "downloadSectionSource": "资源",
+  "downloadLinkModeLabel": "链接",
+  "downloadLinkHelper": "支持磁力、eD2k 和 HTTP/HTTPS 直链，类型会自动识别。",
+  "downloadMagnetLabel": "磁力链接",
+  "downloadEd2kLabel": "eD2k 链接",
+  "downloadHttpLabel": "HTTP 直链",
+  "downloadTorrentLabel": "种子文件",
+  "downloadSectionSettings": "下载设置",
+  "downloadMediaKindJav": "JAV 影片",
+  "downloadMovieNumberHint": "例如 ABC-123 或 FC2-PPV-123",
+  "downloadMovieNumberHelper": "点「查询」或回车解析并匹配；本地没有时会在线搜索并入库。",
+  "downloadQuerying": "查询中",
+  "downloadQuery": "查询",
+  "downloadDisplayNameLabel": "显示名称（可选）",
+  "downloadDisplayNameHelper": "优先显示在下载任务列表；留空时使用影片标题或资源名称。",
+  "downloadSourceCompactHelper": "从评论识别，提交前可修改。",
+  "downloadSourceUnsupported": "当前下载器不支持该来源类型",
+  "downloadLoadingClients": "正在加载下载器…",
+  "downloadClientsLoadFailed": "下载器加载失败",
+  "downloadClientsEmpty": "还没有可用的下载器",
+  "downloadClientsEmptyHint": "请先在系统设置中配置并启用下载器，然后再提交下载。",
+  "downloadConfigureClients": "去配置下载器",
+  "downloadClientLabel": "下载器",
+  "downloadSelectClient": "请选择下载器",
+  "downloadTorrentNotSelected": "未选择种子文件",
+  "downloadTorrentSelectHint": "选择 .torrent 文件，最大 10 MB",
+  "downloadChooseFile": "选择文件",
+  "downloadChooseFileAgain": "重新选择",
+  "downloadDeleteSourceAfterImport": "导入后删除源文件",
+  "downloadDeleteSourceAfterImportHint": "导入成功后删除下载器中的源文件，不可恢复",
+  "downloadMovieNumberResolvingFallback": "正在查询番号…",
+  "downloadMovieNumberQueryFailedTitle": "番号查询失败",
+  "downloadMovieSourceLocal": "本地",
+  "downloadMovieSourceOnline": "在线",
+  "downloadMovieSourceCurrent": "当前影片",
+  "downloadUnknownTitle": "未知标题",
+  "downloadSubmittedToClient": "已提交到 {client}",
+  "@downloadSubmittedToClient": {
+    "placeholders": {
+      "client": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadTaskAlreadyExists": "下载任务已存在",
+  "clipCollectionsTitle": "切片合集",
+  "clipCollectionsEmptyHint": "还没有合集，点「新建」把喜欢的切片攒成一个连播合集吧",
+  "clipCollectionsLoadFailedFallback": "合集暂时无法加载，请稍后重试",
+  "clipCollectionCreated": "已创建合集",
+  "clipEmpty": "还没有切片，去播放器圈选生成吧",
+  "clipListTotalCount": "{count} 个切片",
+  "@clipListTotalCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clipSortLatest": "最新",
+  "clipSortEarliest": "最早",
+  "clipEnterSelection": "选择",
+  "clipSelectionCount": "已选 {count} 个",
+  "@clipSelectionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clipSelectAll": "全选",
+  "clipDeselectAll": "取消全选",
+  "clipAddToCollection": "加入合集",
+  "clipRenamed": "已重命名",
+  "clipRenameFailed": "重命名失败，请重试",
+  "clipDeleteTitle": "删除切片",
+  "clipDeleteMessage": "确认删除“{title}”？切片文件会被一并删除，该操作不可恢复。",
+  "@clipDeleteMessage": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "clipDeleteUnnamedMessage": "确认删除该切片？切片文件会被一并删除，该操作不可恢复。",
+  "clipBatchDeleteMessage": "确认删除选中的 {count} 个切片？切片文件会被一并删除，该操作不可恢复。",
+  "@clipBatchDeleteMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "clipDeleteFailed": "删除失败，请重试",
+  "clipDeleted": "已删除切片",
+  "clipFallbackTitle": "切片",
+  "clipInvalidPlaybackUrl": "无效的播放地址",
+  "clipCreateTitle": "新建切片",
+  "clipCreateRangeLabel": "{start} – {end} · 时长 {duration}",
+  "@clipCreateRangeLabel": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "clipCreateTitleHint": "切片标题（可选）",
+  "clipCreateNotice": "切片由服务器同步生成，较长区间可能需要等待。",
+  "clipCreateAction": "创建",
+  "clipCreateTimeout": "切片耗时较长，请稍后在「我的切片」查看",
+  "clipCreateRangeTooLong": "区间过长（最长 15 分钟）",
+  "clipCreateInvalidRange": "请选择不同的起止点",
+  "clipCreateFailed": "切片失败，请重试",
+  "clipCreateThumbnailExpired": "缩略图已失效，请重新选择",
+  "clipCreateFailedFallback": "创建切片失败，请重试",
+  "clipRenameTitle": "重命名切片",
+  "clipRenameHint": "切片标题（可留空）",
+  "imageSearchCapabilitiesLoadFailed": "功能状态加载失败",
+  "imageSearchCapabilitiesLoadFailedMessage": "请检查服务器连接后重试",
+  "imageSearchDisabledTitle": "图片与文字搜图未启用",
+  "imageSearchDisabledMessageMobile": "需要管理员在服务器端开启并重启后端容器。",
+  "imageSearchDisabledMessageDesktop": "可在「系统设置 → 高级设置 → 图搜 / 相似度」中开启，保存后重启后端容器。",
+  "imageSearchRecheck": "重新检测",
+  "imageSearchModeImage": "图片",
+  "imageSearchModeText": "文字",
+  "imageSearchAdvancedFilter": "高级筛选",
+  "imageSearchFilterDisabledHint": "搜索完成后可筛选",
+  "imageSearchPickImage": "选择图片",
+  "imageSearchChangeImage": "更换",
+  "imageSearchCollapsePreview": "收起大图",
+  "imageSearchExpandPreview": "展示大图",
+  "imageSearchPreviewTitle": "图片预览",
+  "imageSearchTextHint": "例如：长发、白色连衣裙、海边",
+  "imageSearchSearchAction": "搜图",
+  "imageSearchEmpty": "暂无匹配结果",
+  "imageSearchAutoLoadPaused": "已暂停自动加载",
+  "imageSearchContinueLoading": "继续加载",
+  "imageSearchLoadMoreFailed": "加载更多失败，请稍后重试",
+  "imageSearchPickImageFailed": "选择图片失败",
+  "imageSearchTextRequired": "请输入文字描述",
+  "imageSearchReadResultImageFailed": "读取结果图片失败，请稍后重试",
+  "imageSearchPickUnreadable": "无法读取所选图片，请换一张再试",
+  "imageSearchPickerUnavailable": "图片选择器尚未加载，请完整重启应用后再试",
+  "imageSearchPickerOpenFailed": "打开图片选择器失败，请稍后再试",
+  "imageSearchSimilarAction": "相似图片",
+  "imageSearchSaveToLocal": "保存到本地",
+  "imageSearchAddMark": "添加标记",
+  "imageSearchRemoveMark": "删除标记",
+  "imageSearchAddToCollection": "加入合集",
+  "imageSearchPlay": "播放",
+  "imageSearchMovieDetail": "影片详情",
+  "imageSearchImageSaved": "图片已保存",
+  "imageSearchSaveFailed": "保存失败，请稍后重试",
+  "imageSearchMarkAdded": "已添加标记",
+  "imageSearchMarkRemoved": "已删除标记",
+  "imageSearchMarkUpdateFailed": "更新标记失败",
+  "imageSearchSimilarityLabel": "相似 {score}",
+  "@imageSearchSimilarityLabel": {
+    "placeholders": {
+      "score": {
+        "type": "String"
+      }
+    }
+  },
+  "imageSearchMaterialTitle": "搜索素材",
+  "imageSearchMovieScopeTitle": "影片范围",
+  "imageSearchActorScopeTitle": "女优范围",
+  "imageSearchSelectSubscribedActors": "选择已订阅女优",
+  "imageSearchSelectedActorsCount": "已选 {count} 位",
+  "@imageSearchSelectedActorsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "imageSearchSelectAtLeastOneActor": "请选择至少一位女优",
+  "imageSearchReset": "重置",
+  "imageSearchApplyAndSearch": "应用并搜索",
+  "imageSearchActorFilterNone": "不过滤",
+  "imageSearchActorFilterInclude": "仅包含所选",
+  "imageSearchActorFilterExclude": "排除所选",
+  "imageSearchMovieScopeAll": "全部",
+  "imageSearchMovieScopeOnlyCurrent": "仅当前影片",
+  "imageSearchMovieScopeExcludeCurrent": "排除当前影片",
+  "imageSearchTargetThumbnail": "缩略图",
+  "imageSearchTargetPlot": "剧情图",
+  "imageSearchSubscribedActorsLoadFailed": "加载已订阅女优失败",
+  "imageSearchNoMoviesForActors": "所选女优下没有可用于筛选的影片",
+  "imageSearchImageSearchFailed": "以图搜图失败，请稍后重试",
+  "imageSearchTextSearchFailed": "文字搜索失败，请稍后重试",
+  "imageSearchIndexRebuildRequired": "嵌入空间已变更，请先重建图搜索索引",
+  "imageSearchNoSubscribedActors": "暂无已订阅女优",
+  "imageSearchClearSelection": "清空已选",
+  "moviePageFilterTooltip": "筛选",
+  "moviePageAllMoviesTitle": "全部影片",
+  "moviePageMovieCount": "{count} 部",
+  "@moviePageMovieCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "moviePageTagFilterCount": "标签 · {count}",
+  "@moviePageTagFilterCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "moviePageEmptyNoMovies": "暂无影片，去搜索看看吧",
+  "moviePageEmptyNoMatches": "当前筛选条件下暂无匹配影片",
+  "moviePageEmptyNotRated": "还没有评分的影片",
+  "moviePageRatedCount": "已评分 {count} 部",
+  "@moviePageRatedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "moviePageDimensionManage": "维度管理",
+  "moviePageDimensionTotal": "总分",
+  "moviePageDimensionFallback": "维度",
+  "moviePageTotalScore": "总分 {score}",
+  "@moviePageTotalScore": {
+    "placeholders": {
+      "score": {
+        "type": "String"
+      }
+    }
+  },
+  "moviePageSeriesFallbackName": "系列 #{id}",
+  "@moviePageSeriesFallbackName": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "moviePageSeriesTotalCount": "共 {count} 部",
+  "@moviePageSeriesTotalCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "moviePagePlaylistAdded": "已加入",
+  "moviePagePlaylistTotalCount": "共 {count} 个",
+  "@moviePagePlaylistTotalCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "moviePagePlaylistAddAction": "加入播放列表",
+  "moviePagePlaylistAddActionShort": "加入列表",
+  "moviePagePlaylistManageAction": "管理播放列表",
+  "moviePagePlaylistUpdateFailed": "播放列表更新失败",
+  "moviePageWatchLabel": "上次看到 {position}",
+  "@moviePageWatchLabel": {
+    "placeholders": {
+      "position": {
+        "type": "String"
+      }
+    }
+  },
+  "moviePageWatchLabelWithDate": "上次看到 {position} · {date}",
+  "@moviePageWatchLabelWithDate": {
+    "placeholders": {
+      "position": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "moviePageSectionRankings": "榜单",
+  "moviePageSectionTags": "标签",
+  "moviePageSectionMediaSources": "媒体源",
+  "moviePageSectionSubtitles": "字幕",
+  "moviePageSectionSubtitlesCount": "字幕 · {count}",
+  "@moviePageSectionSubtitlesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "moviePageSectionClips": "切片",
+  "moviePageSectionSimilarMovies": "相似影片",
+  "moviePageMetaSeries": "系列",
+  "moviePageMetaMetadata": "元数据",
+  "moviePageMetaReleased": "上映 · {date}",
+  "@moviePageMetaReleased": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "moviePageMetaDuration": "{minutes} 分钟",
+  "@moviePageMetaDuration": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "moviePageMetaStudio": "厂商 · {name}",
+  "@moviePageMetaStudio": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "moviePageMetaDirector": "导演 · {name}",
+  "@moviePageMetaDirector": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "moviePageCollectionNotMatched": "未匹配到影片，未更新合集状态",
+  "moviePageMarkedAsCollection": "已标记为合集",
+  "moviePageMarkedAsSingle": "已标记为单体",
+  "moviePageCollectionUpdateFailed": "更新合集状态失败",
+  "moviePageMediaDeleted": "媒体文件已删除",
+  "moviePageMediaDeleteFailed": "删除媒体文件失败",
+  "moviePageMediaSourceLabel": "媒体源 {id}",
+  "@moviePageMediaSourceLabel": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "moviePageMediaLabel": "媒体 {id}",
+  "@moviePageMediaLabel": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "moviePageMediaDeleteTitle": "删除媒体文件",
+  "moviePageMediaDeleteConfirm": "确认删除媒体“{name}”？",
+  "@moviePageMediaDeleteConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "moviePageMediaDeleteWarning": "该操作会删除媒体文件及 SakuraMedia 记录，且可能无法恢复。",
+  "moviePageSaveToLocal": "保存到本地",
+  "moviePageImageSaved": "图片已保存",
+  "moviePageImageSaveFailed": "保存失败，请稍后重试",
+  "moviePageImageLoadFailed": "读取图片失败，请稍后重试",
+  "moviePageMarkAdded": "已添加标记",
+  "moviePageMarkRemoved": "已删除标记",
+  "moviePageMarkUpdateFailed": "更新标记失败",
+  "moviePageActionSimilarImage": "相似图片",
+  "moviePageActionAddMark": "添加标记",
+  "moviePageActionRemoveMark": "删除标记",
+  "moviePageActionPlay": "播放",
+  "moviePageUnsubscribeFailed": "取消订阅影片失败",
+  "moviePageSubscribeFailed": "订阅影片失败",
+  "moviePageFavoriteListNotReady": "收藏列表尚未初始化",
+  "moviePageFavoriteRemoved": "已取消收藏",
+  "moviePageFavoriteAdded": "已收藏",
+  "moviePageFavoriteRemoveFailed": "取消收藏失败",
+  "moviePageFavoriteAddFailed": "收藏失败",
+  "moviePageBlacklistTitle": "屏蔽影片",
+  "moviePageBlacklistWarning": "已订阅影片无法屏蔽，请先取消订阅。屏蔽后将从正常列表和推荐中隐藏。",
+  "moviePageBlacklistConfirm": "屏蔽",
+  "moviePageBlacklistFailed": "屏蔽影片失败",
+  "moviePageBlacklisted": "已屏蔽影片",
+  "moviePageUnblacklisted": "已取消屏蔽影片",
+  "moviePageUnblacklistFailed": "取消屏蔽影片失败",
+  "moviePageBlacklistLoadFailedTitle": "屏蔽影片加载失败",
+  "moviePageBlacklistLoadFailed": "屏蔽影片加载失败，请稍后重试。",
+  "moviePageBlacklistHint": "已屏蔽的影片不会出现在普通列表和推荐中。右键影片可取消屏蔽。",
+  "moviePageBlacklistEmpty": "还没有屏蔽任何影片",
+  "moviePageUnblacklistAction": "取消屏蔽",
+  "moviePageCastSessionLabel": "投屏中 · {device}",
+  "@moviePageCastSessionLabel": {
+    "placeholders": {
+      "device": {
+        "type": "String"
+      }
+    }
+  },
+  "moviePageDetailLoadFailed": "影片详情暂时无法加载，请稍后重试",
+  "moviePageMergedPlayback": "合并播放",
+  "moviePageMergedPlaybackSegments": "合并播放 · {count} 段",
+  "@moviePageMergedPlaybackSegments": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "moviePageMergedNotEnoughSegments": "该媒体库没有足够的可播放分段",
+  "moviePageMergedLoadFailed": "合并播放加载失败，请稍后重试",
+  "moviePageEpisodePickerTitle": "选集 · {count}",
+  "@moviePageEpisodePickerTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "moviePagePlayerLoading": "正在加载影片…",
+  "moviePagePlayerLoadFailedTitle": "播放器加载失败",
+  "moviePagePlayerEmptyTitle": "暂无可播放媒体",
+  "moviePagePlayerEmptyMessage": "当前影片还没有可用的播放地址，请稍后再试。",
+  "moviePageMediaLibraryLabel": "媒体库 {id}",
+  "@moviePageMediaLibraryLabel": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "moviePageClipCreated": "切片已生成",
+  "movieActionDetailMenuTitle": "影片操作",
+  "movieActionSelect": "选择",
+  "movieActionSubscribeMovie": "订阅影片",
+  "movieActionUnsubscribeMovie": "取消订阅",
+  "movieActionMarkAsCollection": "标记为合集",
+  "movieActionMarkAsSingle": "标记为单体",
+  "movieActionMarkAsCollectionOrSingle": "标记为合集/单体",
+  "movieActionBlacklistMovie": "屏蔽影片",
+  "movieActionBlacklistMovieMessage": "已订阅影片无法屏蔽，请先取消订阅。屏蔽后将从正常列表和推荐中隐藏。",
+  "movieActionBlacklistConfirm": "屏蔽",
+  "movieActionBlacklistMovieFailed": "屏蔽影片失败",
+  "movieActionMovieBlacklisted": "已屏蔽影片",
+  "movieActionRefreshMetadata": "刷新元数据",
+  "movieActionRefreshMetadataDescription": "刷新会按当前元数据源重新获取资料，更新自动管理的标题、简介、演员、标签和图片；人工管理或已被接管的字段会保留。",
+  "movieActionRefreshMetadataDescriptionManualActors": "刷新会重新获取资料并更新自动管理的标题、简介、标签和图片；演员表已手动管理，本次不会覆盖。",
+  "movieActionRefreshMetadataHint": "每次刷新都会重新下载自动管理的封面；远端提供剧照时会一并替换。",
+  "movieActionRefreshMetadataConfirm": "确认刷新",
+  "movieActionMovieMetadataRefreshed": "影片元数据已刷新",
+  "movieActionRefreshMovieMetadataFailed": "刷新影片元数据失败",
+  "movieActionCollectionStatusLoadFailed": "获取合集状态失败，请稍后重试",
+  "movieActionCollectionStatusUnmatched": "未匹配到影片，未更新合集状态",
+  "movieActionMovieMarkedAsCollection": "已将 {movieNumber} 标记为合集",
+  "@movieActionMovieMarkedAsCollection": {
+    "placeholders": {
+      "movieNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "movieActionMovieMarkedAsSingle": "已将 {movieNumber} 标记为单体",
+  "@movieActionMovieMarkedAsSingle": {
+    "placeholders": {
+      "movieNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "movieActionCollectionStatusUpdateFailed": "更新合集状态失败",
+  "movieActionExternalPlayerUnavailableInApp": "外部播放器不可用，已使用应用内播放",
+  "movieActionExternalPlayerUnavailable": "外部播放器不可用",
+  "movieActionMergedPlaybackUrlUnavailable": "无法获取合并播放地址",
+  "movieActionMergedPlaybackStartFailed": "合并播放启动失败，请稍后重试",
+  "movieActionSearchSimilarImages": "相似图片",
+  "movieActionSaveToLocal": "保存到本地",
+  "movieActionReadImageFailed": "读取图片失败，请稍后重试",
+  "movieActionImageSaved": "图片已保存",
+  "movieActionImageSaveFailed": "保存失败，请稍后重试",
+  "movieControllerClipRenamed": "已重命名",
+  "movieControllerClipRenameFailed": "重命名失败，请重试",
+  "movieControllerClipDeleteTitle": "删除切片",
+  "movieControllerClipDeleteMessage": "确认删除“{title}”？切片文件会被一并删除，该操作不可恢复。",
+  "@movieControllerClipDeleteMessage": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "movieControllerClipDeleteMessageUnnamed": "确认删除该切片？切片文件会被一并删除，该操作不可恢复。",
+  "movieControllerClipDeleted": "已删除切片",
+  "movieControllerClipDeleteFailed": "删除失败，请重试",
+  "movieProviderSimilarMoviesLoadFailed": "相似影片暂时无法加载，请稍后重试",
+  "movieProviderMovieNotFound": "未找到该影片",
+  "movieProviderMovieDetailLoadFailed": "影片详情暂时无法加载，请稍后重试",
+  "movieProviderRetryLater": "请稍后重试。",
+  "movieProviderSubtitleFetchFailed": "字幕抓取失败",
+  "movieProviderPlayerLoadFailed": "播放器暂时无法加载，请稍后重试",
+  "movieProviderMagnetSearchFailed": "搜索资源失败，请稍后重试。",
+  "movieProviderSubscribeMovieFailed": "订阅影片失败",
+  "movieProviderBatchSubscribeMoviesFailed": "批量订阅影片失败",
+  "movieProviderForceUnsubscribeBusy": "选中影片正在处理，请稍后重试",
+  "movieProviderReadMovieMediaFailed": "读取影片媒体失败",
+  "movieProviderReadMovieMediaForFailed": "读取 {movieNumber} 的媒体失败",
+  "@movieProviderReadMovieMediaForFailed": {
+    "placeholders": {
+      "movieNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "movieProviderReadingMediaList": "正在读取媒体清单：{current}/{total} 部",
+  "@movieProviderReadingMediaList": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "movieProviderDeleteMovieMediaFailed": "删除 {movieNumber} 的媒体 {mediaId} 失败",
+  "@movieProviderDeleteMovieMediaFailed": {
+    "placeholders": {
+      "movieNumber": {
+        "type": "String"
+      },
+      "mediaId": {
+        "type": "int"
+      }
+    }
+  },
+  "movieProviderMediaDeletedProgress": "已删除 {deleted}/{total} 个媒体 · {movieNumber}",
+  "@movieProviderMediaDeletedProgress": {
+    "placeholders": {
+      "deleted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      },
+      "movieNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "movieProviderRefreshMovieMediaFailed": "刷新 {movieNumber} 的媒体状态失败",
+  "@movieProviderRefreshMovieMediaFailed": {
+    "placeholders": {
+      "movieNumber": {
+        "type": "String"
+      }
+    }
+  },
+  "movieProviderMediaClearedUnsubscribeFailed": "媒体已清理，但批量取消订阅失败",
+  "movieProviderMediaDeletedUnsubscribing": "已删除 {deleted}/{total} 个媒体，正在批量取消订阅…",
+  "@movieProviderMediaDeletedUnsubscribing": {
+    "placeholders": {
+      "deleted": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "movieProviderForceUnsubscribeStopped": "{step}：{reason}。已停止操作，已删除 {deletedCount} 个媒体，删除操作无法回滚。",
+  "@movieProviderForceUnsubscribeStopped": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      },
+      "reason": {
+        "type": "String"
+      },
+      "deletedCount": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListTabList": "媒体列表",
+  "mediaListTabDuplicates": "重复媒体",
+  "mediaListTabVersions": "多版本影片",
+  "mediaListTabInvalid": "失效媒体",
+  "mediaListKindJav": "JAV 影片",
+  "mediaListKindUnknown": "未知归属",
+  "mediaListUnnamedMedia": "未命名媒体",
+  "mediaListSortFileSize": "文件大小",
+  "mediaListSortHeat": "热度",
+  "mediaListThumbnailPending": "待生成",
+  "mediaListThumbnailRetryWait": "等待重试",
+  "mediaListThumbnailFailed": "生成失败",
+  "mediaListThumbnailCompleted": "已完成",
+  "mediaListFilterTooltip": "筛选",
+  "mediaListFilterAll": "全部",
+  "mediaListFilterSectionSource": "归属",
+  "mediaListFilterSectionLibrary": "所属媒体库",
+  "mediaListFilterSectionThumbnail": "缩略图状态",
+  "mediaListFilterAllLibraries": "全部媒体库",
+  "mediaListFilterAllMedia": "全部媒体",
+  "mediaListSearchFileNameHint": "搜索文件名",
+  "mediaListSearchFileNameTooltip": "搜索文件名",
+  "mediaListCollapseSearchTooltip": "收起搜索",
+  "mediaListInvalidBadge": "失效",
+  "mediaListInvalidReasonFileMissing": "文件已丢失",
+  "mediaListUpdatedAt": "更新 {value}",
+  "@mediaListUpdatedAt": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaListActionTransfer": "迁移",
+  "mediaListActionTransferToLibrary": "迁移到其它媒体库",
+  "mediaListActionMore": "更多操作",
+  "mediaListActionRetryThumbnails": "重试缩略图",
+  "mediaListActionRegenerateThumbnails": "重新生成缩略图",
+  "mediaListActionPlay": "播放",
+  "mediaListActionMovieDetail": "影片详情",
+  "mediaListRowActionDelete": "删除媒体",
+  "mediaListRowActionDeleteSubtitle": "删除该媒体及其文件，不可恢复",
+  "mediaListRowActionRetrySubtitle": "重新加入缩略图生成队列",
+  "mediaListRowActionRegenerateSubtitle": "删除已有缩略图并重新生成",
+  "mediaListSelectedItems": "已选 {count} 项",
+  "@mediaListSelectedItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListSelectedRecords": "已选 {count} 条",
+  "@mediaListSelectedRecords": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListSelectedCopies": "已选 {count} 个",
+  "@mediaListSelectedCopies": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListSelectAllLoaded": "全选本页",
+  "mediaListClearSelectAllLoaded": "取消全选本页",
+  "mediaListTotalItems": "共 {count} 条",
+  "@mediaListTotalItems": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListTotalItemsWithSelection": "共 {count} 条 · 已选 {selected} 项",
+  "@mediaListTotalItemsWithSelection": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "selected": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListTotalGroups": "共 {count} 组",
+  "@mediaListTotalGroups": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListTotalMovies": "共 {count} 部",
+  "@mediaListTotalMovies": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListEnterSelection": "选择",
+  "mediaListRefreshing": "刷新中",
+  "mediaListClearSelection": "清空",
+  "mediaListBatchTransfer": "迁移（{count}）",
+  "@mediaListBatchTransfer": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListBatchDelete": "批量删除（{count}）",
+  "@mediaListBatchDelete": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListBatchDeleteSelected": "删除已选",
+  "mediaListBatchRetryThumbnails": "重试",
+  "mediaListBatchRegenerateThumbnails": "重新生成",
+  "mediaListBatchDeleteTitle": "批量删除媒体",
+  "mediaListBatchDeleteMessage": "将删除已选 {count} 项媒体及其对应文件，且不可恢复。请确认要继续吗？",
+  "@mediaListBatchDeleteMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListDeleteTitle": "删除媒体",
+  "mediaListDeleteMessage": "确认删除“{name}”及对应文件？该操作不可恢复。",
+  "@mediaListDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaListDeleteSuccess": "媒体已删除",
+  "mediaListDeleteFailed": "删除媒体失败",
+  "mediaListTransferTitle": "迁移媒体",
+  "mediaListTransferDescription": "将 {count} 项媒体从“{library}”迁移到新的媒体库。",
+  "@mediaListTransferDescription": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "library": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaListTransferTargetLabel": "目标媒体库",
+  "mediaListTransferNotice": "迁移任务会先确认目标媒体可用，再更新媒体归属并清理源文件。部分文件可能被跳过，详细结果请在活动中心查看。",
+  "mediaListTransferConfirm": "确认迁移",
+  "mediaListTransferNoTarget": "当前媒体库没有可用的迁移目标",
+  "mediaListTransferSubmitted": "迁移任务 #{id} 已提交，请在活动中心查看进度",
+  "@mediaListTransferSubmitted": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListTransferSubmitFailed": "提交迁移任务失败，请稍后重试。",
+  "mediaListThumbnailRetryTitle": "重试缩略图",
+  "mediaListThumbnailRegenerateTitle": "重新生成缩略图",
+  "mediaListThumbnailBatchRegenerateMessage": "将删除已选 {count} 项现有的缩略图并重新生成，生成完成前缩略图将不可用。确认继续吗？",
+  "@mediaListThumbnailBatchRegenerateMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListThumbnailBatchRetryMessage": "将把已选 {count} 项重新加入缩略图生成队列。确认继续吗？",
+  "@mediaListThumbnailBatchRetryMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListThumbnailRegenerateConfirm": "重新生成",
+  "mediaListThumbnailSingleRegenerateMessage": "将删除该媒体现有的缩略图并重新生成，生成完成前缩略图将不可用。确认继续吗？",
+  "mediaListThumbnailNothingToRegenerate": "没有可重新生成的媒体",
+  "mediaListThumbnailNothingToRetry": "媒体已无可重试的失败状态",
+  "mediaListThumbnailRegenerateSubmitted": "已提交 {count} 项缩略图重新生成，生成完成后自动恢复",
+  "@mediaListThumbnailRegenerateSubmitted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListThumbnailRetrySubmitted": "已重置 {count} 项缩略图，已重新加入生成队列",
+  "@mediaListThumbnailRetrySubmitted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListThumbnailRegenerateFailed": "重新生成缩略图失败，请稍后重试。",
+  "mediaListThumbnailRetryFailed": "重试缩略图失败，请稍后重试。",
+  "mediaListEmpty": "当前筛选下没有媒体记录。调整筛选条件或稍后再试。",
+  "mediaListDuplicateBatchDeleteTitle": "批量删除重复媒体",
+  "mediaListDuplicateBatchDeleteMessage": "将删除选中的 {count} 项媒体及对应文件，每组至少保留一个副本。确认继续？",
+  "@mediaListDuplicateBatchDeleteMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListDuplicateChanged": "重复媒体已变化，请重新选择，至少保留一个副本",
+  "mediaListDuplicateRemainingHint": "删除后该组还会保留 {count} 项媒体。",
+  "@mediaListDuplicateRemainingHint": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListDuplicateNoLongerHint": "删除后该组将不再属于重复媒体。",
+  "mediaListDuplicateDeleteTitle": "删除重复媒体",
+  "mediaListDuplicateDeleteMessage": "确认删除“{name}”及对应文件？{hint}",
+  "@mediaListDuplicateDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "hint": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaListDuplicateDeleteFailed": "删除重复媒体失败",
+  "mediaListDuplicateDeleted": "重复媒体已删除",
+  "mediaListDuplicateCopiesCount": "{count} 个副本",
+  "@mediaListDuplicateCopiesCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListDuplicateDeleteItem": "删除此项",
+  "mediaListDuplicateSelectionHint": "请选择要删除的媒体，每组至少保留一个副本",
+  "mediaListDuplicateDescription": "按文件内容指纹聚合同一文件的媒体记录。删除前请确认至少保留一个可用副本。",
+  "mediaListDuplicateEmpty": "当前类型没有发现重复文件。",
+  "mediaListDuplicateKindTitle": "媒体类型",
+  "mediaListKeepAtLeastOne": "至少保留一个",
+  "mediaListSelectItem": "选择此项",
+  "mediaListVersionsFilterTitle": "版本筛选",
+  "mediaListVersionsBatchDeleteTitle": "批量删除影片版本",
+  "mediaListVersionsBatchDeleteMessage": "将删除选中的 {count} 个版本及对应文件，每部影片至少保留一个版本。确认继续？",
+  "@mediaListVersionsBatchDeleteMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListVersionsChanged": "影片版本已变化，请重新选择，至少保留一个版本",
+  "mediaListVersionsDeleteTitle": "删除影片版本",
+  "mediaListVersionsDeleteMessage": "确认删除“{name}”及对应文件？删除后保留 {count} 个版本。",
+  "@mediaListVersionsDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListVersionsDeleteFailed": "删除影片版本失败",
+  "mediaListVersionsDeleted": "影片版本已删除",
+  "mediaListVersionsIncludeVr": "包含 VR",
+  "mediaListVersionsIncludeFc2": "包含 FC2",
+  "mediaListVersionsIncludeProcessed": "包含已处理",
+  "mediaListVersionsProcessedBadge": "已处理",
+  "mediaListVersionsMarkProcessed": "标记已处理",
+  "mediaListVersionsMarkPending": "恢复待处理",
+  "mediaListVersionsMarkedProcessed": "已标记为处理",
+  "mediaListVersionsMarkedPending": "已恢复为待处理",
+  "mediaListVersionsProcessFailed": "更新处理状态失败",
+  "mediaListVersionsCount": "{count} 个版本",
+  "@mediaListVersionsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListVersionsDeleteItem": "删除此版本",
+  "mediaListVersionsSelectionHint": "请选择要删除的版本，每部影片至少保留一个",
+  "mediaListVersionsEmpty": "暂无多版本影片",
+  "mediaListInvalidBatchDeleteTitle": "批量删除失效媒体",
+  "mediaListInvalidBatchDeleteMessage": "将删除已选 {count} 条失效媒体记录及实际存在的文件，且不可恢复。缩略图会保留，供同一文件重新入库时复用。确认要继续吗？",
+  "@mediaListInvalidBatchDeleteMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaListInvalidEmpty": "当前没有失效媒体",
+  "mediaListInvalidDeleteTitle": "删除失效媒体",
+  "mediaListInvalidDeleteMessage": "确认删除“{name}”的这条失效媒体记录及实际存在的文件？该操作不可恢复，缩略图会保留用于同文件复用。",
+  "@mediaListInvalidDeleteMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "mediaListInvalidDeleted": "失效媒体已删除",
+  "mediaListInvalidDeleteFailed": "删除失效媒体失败",
+  "mediaImportTitleJav": "JAV 影片导入",
+  "mediaImportTitleVideo": "视频导入",
+  "mediaImportDescriptionJav": "浏览存储中的目录，批量导入 JAV 影片。",
+  "mediaImportDescriptionVideo": "选择存储中的目录或视频文件，可同时加入合集。",
+  "mediaImportDescriptionSuffix": "导入进度和结果请前往任务中心查看。",
+  "mediaImportCreateAction": "新建导入",
+  "mediaImportTabJav": "JAV 影片",
+  "mediaImportTabVideo": "视频",
+  "mediaImportViewTasksAction": "查看导入任务",
+  "mediaImportTaskSubmitted": "导入任务 #{id} 已提交，请在任务中心查看进度",
+  "@mediaImportTaskSubmitted": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaImportVideoTaskSubmitted": "视频导入任务 #{id} 已提交，请在任务中心查看进度",
+  "@mediaImportVideoTaskSubmitted": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "mediaImportSubmitFailed": "提交导入任务失败，请稍后重试。",
+  "mediaImportPickerTitle": "新建媒体导入",
+  "mediaImportPickerSubmitAction": "开始导入",
+  "mediaImportDispositionKeep": "保留源文件",
+  "mediaImportDispositionDeleteAfterCommit": "导入成功后删除源文件",
+  "mediaImportDispositionInPlace": "原地导入（不复制文件）",
+  "mediaImportDispositionKeepDescription": "将源文件复制到媒体库中，导入后不会删除源文件",
+  "mediaImportDispositionDeleteAfterCommitDescription": "将源文件复制到媒体库中，导入成功后删除源文件",
+  "mediaImportDispositionInPlaceDescription": "不复制文件，媒体直接引用源文件当前位置",
+  "mediaImportFailureMovieNumberNotFound": "未识别番号",
+  "mediaImportFailureMetadataFetchFailed": "元数据获取失败",
+  "mediaImportFailureImageDownloadFailed": "封面下载失败",
+  "mediaImportFailureMetadataUpsertFailed": "元数据保存失败",
+  "mediaImportFailureMediaImportFailed": "文件导入失败",
+  "mediaImportFailureFileTooSmall": "文件过小",
+  "mediaImportFailureUnsupportedFormat": "不支持的格式",
+  "mediaImportFailureAlreadyIndexedPath": "已在库中",
+  "mediaImportFailureUnknownReason": "未知原因",
+  "mediaImportMetadataSearchFailed": "搜索元数据失败，请稍后重试。",
+  "mediaListBatchResetThumbnailsCount": "{label}（{count}）",
+  "@mediaListBatchResetThumbnailsCount": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaSortDefault": "默认排序",
+  "widgetMediaClipSelectionEnter": "圈选切片",
+  "widgetMediaClipSelectionExit": "退出切片圈选",
+  "widgetMediaThumbnailInterval": "缩略图时间间隔",
+  "widgetMediaThumbnailColumns": "缩略图列数",
+  "widgetMediaThumbnailSeconds": "{seconds} 秒",
+  "@widgetMediaThumbnailSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaThumbnailColumnCount": "{columns} 列",
+  "@widgetMediaThumbnailColumnCount": {
+    "placeholders": {
+      "columns": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaThumbnailSecondsCompact": "{seconds}秒",
+  "@widgetMediaThumbnailSecondsCompact": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaThumbnailColumnCountCompact": "{columns}列",
+  "@widgetMediaThumbnailColumnCountCompact": {
+    "placeholders": {
+      "columns": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaThumbnailLoadFailedTitle": "缩略图加载失败",
+  "widgetMediaThumbnailEmpty": "暂时还没有可用缩略图，可稍后重新加载。",
+  "widgetMediaThumbnailReload": "重新加载",
+  "widgetMediaClipStartBadge": "起",
+  "widgetMediaClipEndBadge": "终",
+  "widgetMediaScrollLockEnabled": "锁定跟随播放位置",
+  "widgetMediaScrollLockDisabled": "允许手动滚动缩略图",
+  "widgetMediaThumbnailPanelCollapse": "收起缩略图面板",
+  "widgetMediaThumbnailPanelExpand": "展开缩略图面板",
+  "widgetMediaClose": "关闭",
+  "widgetMediaActionSearchSimilar": "相似图片",
+  "widgetMediaActionSaveToLocal": "保存到本地",
+  "widgetMediaActionAddMark": "添加标记",
+  "widgetMediaActionRemoveMark": "删除标记",
+  "widgetMediaActionPlay": "播放",
+  "widgetMediaActionSetCover": "设为封面",
+  "widgetMediaActionAddToCollection": "加入合集",
+  "widgetMediaActionMovieDetail": "影片详情",
+  "widgetMediaImageSaved": "图片已保存",
+  "widgetMediaSaveFailed": "保存失败，请稍后重试",
+  "widgetMediaSaveImageFailed": "保存图片失败",
+  "widgetMediaMarkAdded": "已添加标记",
+  "widgetMediaMarkRemoved": "已删除标记",
+  "widgetMediaMarkUpdateFailed": "更新标记失败",
+  "widgetMediaPlaybackModeUnknown": "未确认",
+  "widgetMediaPlaybackModeDirect": "直连",
+  "widgetMediaPlaybackModeProxy": "后端代理",
+  "widgetMediaPlaybackInfoDismiss": "关闭播放信息",
+  "widgetMediaLoadFailed": "加载失败，请重试",
+  "widgetMediaVideo": "视频",
+  "widgetMediaNoPlayableMedia": "暂无可播放的媒体",
+  "widgetMediaMovieDetailLoadFailed": "影片详情加载失败",
+  "widgetMediaMissingMediaId": "当前结果缺少媒体标识",
+  "widgetMediaMarksLoadFailed": "标记信息加载失败",
+  "widgetMediaSourceDeleted": "来源已删除",
+  "widgetMediaSimilarityLabel": "相似度 {score}",
+  "@widgetMediaSimilarityLabel": {
+    "placeholders": {
+      "score": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMediaVideoLabel": "视频 #{id}",
+  "@widgetMediaVideoLabel": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMediaMovieNumberLabel": "番号 {number}",
+  "@widgetMediaMovieNumberLabel": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMediaTimestampLabel": "时间点 {time}",
+  "@widgetMediaTimestampLabel": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMediaTransferResultTitle": "迁移结果",
+  "widgetMediaTransferSummarySucceeded": "成功 {count}",
+  "@widgetMediaTransferSummarySucceeded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaTransferSummaryUnsuccessful": "未成功 {count}",
+  "@widgetMediaTransferSummaryUnsuccessful": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaTransferUnsuccessfulHeader": "未成功（{count}）",
+  "@widgetMediaTransferUnsuccessfulHeader": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaTransferSuccessfulHeader": "迁移成功（{count}）",
+  "@widgetMediaTransferSuccessfulHeader": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaTransferFilesEmpty": "该任务没有可展示的文件明细",
+  "widgetMediaTransferFilesLoadFailed": "迁移文件加载失败，请稍后重试",
+  "widgetMediaTransferFileFallback": "媒体 #{id}",
+  "@widgetMediaTransferFileFallback": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaTransferStatusTransferred": "已迁移",
+  "widgetMediaTransferStatusFailed": "失败",
+  "widgetMediaTransferStatusCleanupIncomplete": "源文件待确认",
+  "widgetMediaTransferStatusSkipped": "已跳过",
+  "widgetMediaTransferStatusUnexecuted": "未执行",
+  "mediaTransferReasonMediaBusy": "媒体被其他任务占用",
+  "mediaTransferReasonLibraryChanged": "媒体库配置已变化",
+  "mediaTransferReasonMediaUnavailable": "源媒体已变化或不存在",
+  "mediaTransferReasonSourceChanged": "源文件已变化",
+  "mediaTransferReasonStageFailed": "目标端暂存失败",
+  "mediaTransferReasonSwitchFailed": "媒体归属更新失败",
+  "mediaTransferReasonTargetVerificationFailed": "目标文件确认失败",
+  "mediaTransferReasonSourceCleanupFailed": "源文件清理失败",
+  "mediaTransferReasonCleanupUnconfirmed": "源文件清理结果未确认",
+  "mediaTransferReasonInterrupted": "任务中断",
+  "mediaTransferReasonTransferSetupFailed": "迁移初始化失败",
+  "mediaTransferReasonTargetNotAvailable": "目标端未命中，未执行迁移",
+  "mediaTransferReasonUnknown": "未知原因",
+  "widgetMediaImportFailedSkippedTitle": "失败与跳过文件",
+  "widgetMediaImportSubtitlePendingFailures": "失败 {count} 个待处理",
+  "@widgetMediaImportSubtitlePendingFailures": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaImportSubtitleSkipped": "已跳过 {count} 个",
+  "@widgetMediaImportSubtitleSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaImportSubtitleAllProcessed": "{taskName} · 已全部处理",
+  "@widgetMediaImportSubtitleAllProcessed": {
+    "placeholders": {
+      "taskName": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMediaImportNoFailedOrSkippedFiles": "该任务没有失败或跳过的文件",
+  "widgetMediaImportFailedFilesHeader": "失败文件",
+  "widgetMediaImportSkipped": "已跳过",
+  "widgetMediaImportFailedItemsLoadFailed": "失败文件加载失败，请稍后重试",
+  "widgetMediaImportStatePending": "待处理",
+  "widgetMediaImportStateRetrying": "重试中",
+  "widgetMediaImportStateImported": "已导入",
+  "widgetMediaImportManualMatch": "手动匹配",
+  "widgetMediaImportRetryFailed": "重试失败：{error}",
+  "@widgetMediaImportRetryFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMediaImportRetrySubmitted": "重试任务已提交",
+  "widgetMediaImportSubmitRetryFailed": "提交重试失败，请稍后重试。",
+  "widgetMediaImportBackToFailedList": "返回失败文件列表",
+  "widgetMediaImportManualMatchTitle": "手动匹配元数据",
+  "widgetMediaImportNumberHint": "输入影片番号，如 ABC-001",
+  "widgetMediaImportSearchNumberTooltip": "搜索番号元数据",
+  "widgetMediaImportRetryWithMetadata": "用此元数据重试导入",
+  "widgetMediaImportSearchPrompt": "输入影片番号后搜索影片元数据。",
+  "widgetMediaImportNoCandidates": "没有找到匹配的影片",
+  "widgetMediaImportSourceErrors": "{sources}查询失败，结果可能不完整。",
+  "@widgetMediaImportSourceErrors": {
+    "placeholders": {
+      "sources": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMediaImportDurationMinutes": "{minutes} 分钟",
+  "@widgetMediaImportDurationMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMediaImportBrowseFailed": "浏览来源失败，请重试。",
+  "widgetMediaImportDeleteAfterCommitTitle": "导入成功后将删除源文件",
+  "widgetMediaImportDeleteAfterCommitDescription": "在媒体已成功入库后会将源文件删除!!!",
+  "widgetMediaImportSelectSource": "选择来源",
+  "widgetMediaImportCurrentDirectorySelected": "已选择当前目录",
+  "widgetMediaImportSelectCurrentDirectory": "选择当前目录",
+  "widgetMediaImportGoUp": "上一级",
+  "widgetMediaImportEmptySource": "该来源下没有可导入的文件或目录",
+  "widgetMediaImportLoadMore": "加载更多",
+  "widgetMediaImportRetryLoad": "重试加载",
+  "widgetMediaImportDispositionLabel": "导入方式",
+  "widgetMediaImportKeepInPlaceTitle": "源文件保留在原位置",
+  "widgetMediaImportKeepInPlaceDescription": "移动、重命名或修改源文件会导致媒体失效；删除媒体记录不会删除源文件。",
+  "widgetMediaImportLibraryLoadFailed": "媒体库加载失败，请重试。",
+  "widgetMediaImportNoLibraries": "暂无媒体库，请先在系统设置中添加媒体库。",
+  "widgetMediaImportLibraryLabel": "导入到媒体库",
+  "widgetDownloadDeleteTitle": "删除下载任务",
+  "widgetDownloadDeleteMessage": "是否删除 {count} 个下载任务？",
+  "@widgetDownloadDeleteMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetDownloadDeleteFailure": "删除失败",
+  "widgetDownloadDeleteBlacklistNotice": "其中 {count} 个任务删除后，对应资源会加入资源黑名单，之后相同磁力/种子不会再次提交。",
+  "@widgetDownloadDeleteBlacklistNotice": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetDownloadDeleteFilesLabel": "同时删除下载器中的文件",
+  "widgetDownloadDeleteFilesHint": "不影响已导入媒体库的文件",
+  "widgetDownloadFilesTitle": "任务文件",
+  "widgetDownloadFilesLoadFailed": "任务文件读取失败，请稍后重试",
+  "widgetDownloadFilesEmpty": "该任务源内没有文件",
+  "widgetClipActionPlay": "播放",
+  "widgetClipActionMovie": "影片",
+  "widgetClipActionAddToCollection": "加入合集",
+  "widgetClipActionRename": "重命名",
+  "widgetClipActionRemoveFromCollection": "移出合集",
+  "widgetClipSelectionHintStart": "点击缩略图设为起点",
+  "widgetClipSelectionHintEnd": "起点 {start} · 点击设为终点",
+  "@widgetClipSelectionHintEnd": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetClipSelectionHintRange": "起点 {start} · 终点 {end} · 时长 {duration}",
+  "@widgetClipSelectionHintRange": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetClipSelectionClear": "清除",
+  "widgetClipSelectionCreate": "创建",
+  "widgetSearchHint": "如 SSNI-888、三上悠亚",
+  "widgetSearchTabMovies": "影片",
+  "widgetSearchTabActors": "女优",
+  "searchSortRelevance": "相关度",
+  "widgetSearchInputPrompt": "输入关键词开始搜索",
+  "widgetSearchLocalNoMovies": "本地库未找到匹配影片",
+  "widgetSearchOnlineNoMovie": "在线源未找到该番号或未成功入库",
+  "widgetSearchLocalNoMatchingMovies": "本地库中没有匹配该关键词的影片。",
+  "widgetSearchLocalNoActors": "本地库未找到匹配女优",
+  "widgetSearchOnlineNoActor": "在线源未找到匹配女优",
+  "widgetSearchLocalNoMatchingActors": "本地库中没有匹配该关键词的女优。",
+  "searchSourceErrors": "部分元数据源查询失败：{names}",
+  "@searchSourceErrors": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetSearchFetchExternal": "从外部数据源获取",
+  "widgetSearchDefaultTooltip": "搜索影片或女优",
+  "widgetSearchTextImageTooltip": "文字搜图",
+  "widgetSearchImageSearchTooltip": "以图搜图",
+  "widgetSearchOnlineToggleTooltip": "联网搜索",
+  "widgetCollectionMemberDeleteVideo": "删除视频",
+  "widgetCollectionMemberRemoveFromCollection": "移出合集",
+  "widgetCollectionMemberPlay": "播放",
+  "widgetCollectionMemberOpenMovie": "影片",
+  "widgetCollectionMemberThumbnails": "缩略图",
+  "widgetCollectionMemberAddToCollection": "加入合集",
+  "widgetCollectionPickerCreateAndAdd": "新建合集并加入",
+  "widgetCollectionPickerSearchHint": "搜索合集",
+  "widgetCollectionPickerLoadFailed": "合集加载失败",
+  "widgetCollectionPickerEmpty": "暂无合集，点击下方新建",
+  "widgetCollectionPickerNoMatch": "没有匹配的合集",
+  "widgetMomentActionPlay": "播放",
+  "widgetMomentActionMovie": "影片",
+  "widgetMomentActionAddToCollection": "加入合集",
+  "widgetMomentActionDelete": "删除",
+  "widgetRankingSortDefault": "默认（名次）",
+  "widgetVideoSortManual": "手动顺序",
+  "widgetTasteMatchedMovies": "关联 {count} 部",
+  "@widgetTasteMatchedMovies": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetTasteOpenActor": "查看女优「{name}」",
+  "@widgetTasteOpenActor": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetTasteBasedOnMovies": "基于 {count} 部影片的播放与收藏",
+  "@widgetTasteBasedOnMovies": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetTasteSourceHint": "来自你的播放、收藏与片单",
+  "movieWidgetActorSearchFailed": "搜索演员失败，请稍后重试",
+  "movieWidgetLocalActorCreateFailed": "新建女优失败，请稍后重试",
+  "movieWidgetCreateLocalActorTitle": "新建本地女优",
+  "movieWidgetAddActorTitle": "添加演员",
+  "movieWidgetCreateLocalActorSubtitle": "创建后会自动加入本片演员表。",
+  "movieWidgetCreateAndAdd": "创建并添加",
+  "movieWidgetAddActorsCount": "添加 {count} 位演员",
+  "@movieWidgetAddActorsCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "movieWidgetSearchActorLabel": "搜索演员",
+  "movieWidgetActorSearchHint": "输入名字搜索女优库",
+  "movieWidgetSelectedActorsSummary": "已选 {count} 位：{names}",
+  "@movieWidgetSelectedActorsSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "movieWidgetActorNameSeparator": "、",
+  "movieWidgetActorSearchPrompt": "输入名字开始搜索",
+  "movieWidgetActorNotFound": "未找到匹配的演员",
+  "movieWidgetCreateLocalActorWithName": "新建本地女优「{name}」",
+  "@movieWidgetCreateLocalActorWithName": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "movieWidgetCreateLocalActorEntry": "没找到？新建本地女优",
+  "movieWidgetActorAlreadyInCast": "已在演员表",
+  "movieWidgetBackToSelection": "返回选择",
+  "movieWidgetActorNameLabel": "姓名",
+  "movieWidgetActorNameRequired": "请输入女优姓名",
+  "movieWidgetActorNameTooLong": "姓名不能超过 255 个字符",
+  "movieWidgetActorAliasLabel": "别名（可选）",
+  "movieWidgetActorAliasHint": "例如：别名A / 别名B",
+  "movieWidgetActorAliasHelper": "多个别名用 / 分隔，可留空",
+  "movieWidgetActorAliasTooLong": "别名不能超过 1024 个字符",
+  "movieWidgetAddActorFailed": "添加演员失败，请稍后重试",
+  "movieWidgetActorsAddedWithFailures": "已添加 {added} 位演员，{failed} 位添加失败",
+  "@movieWidgetActorsAddedWithFailures": {
+    "placeholders": {
+      "added": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "movieWidgetActorsAddedRefreshFailed": "已添加 {added} 位演员，列表刷新失败",
+  "@movieWidgetActorsAddedRefreshFailed": {
+    "placeholders": {
+      "added": {
+        "type": "int"
+      }
+    }
+  },
+  "movieWidgetActorAdded": "已添加 {name}",
+  "@movieWidgetActorAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "movieWidgetActorsAdded": "已添加 {count} 位演员",
+  "@movieWidgetActorsAdded": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "movieWidgetActorRemoved": "已从演员表移除 {name}",
+  "@movieWidgetActorRemoved": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "movieWidgetActorRemovedRefreshFailed": "已移除 {name}，列表刷新失败",
+  "@movieWidgetActorRemovedRefreshFailed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "movieWidgetRemoveActorFailed": "移除演员失败，请稍后重试",
+  "movieWidgetActorsSectionTitle": "演员",
+  "movieWidgetActorRemovalScopeNotice": "移除只影响本片，不会删除女优资料。",
+  "movieWidgetActorCastManualNotice": "演员表已手动管理。",
+  "movieWidgetActorRemovalEditingHint": "移除只影响本片；增删后将改为手动管理。",
+  "movieWidgetActorAddManualHint": "添加后将改为手动管理。",
+  "movieWidgetManageAction": "管理",
+  "movieWidgetAddLabel": "添加",
+  "movieWidgetRemoveActorFromCast": "从演员表移除 {name}",
+  "@movieWidgetRemoveActorFromCast": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "movieWidgetNoActors": "暂无演员",
+  "movieWidgetNoClips": "暂无切片",
+  "movieWidgetPlaylistTooltip": "播放列表",
+  "movieWidgetSubscribed": "已订阅",
+  "movieWidgetSubscribe": "订阅",
+  "movieWidgetRemoveFavorite": "取消收藏",
+  "movieWidgetFavoriteMovie": "收藏影片",
+  "movieWidgetReview": "评论",
+  "movieWidgetThumbnail": "缩略图",
+  "movieWidgetPlay": "播放",
+  "movieWidgetMerge": "合并",
+  "movieWidgetMoreActions": "更多操作",
+  "movieWidgetClipCreated": "切片已生成",
+  "movieWidgetMagnetSearch": "磁力搜索",
+  "movieWidgetDownloadSubmitted": "已提交到 {clientName}",
+  "@movieWidgetDownloadSubmitted": {
+    "placeholders": {
+      "clientName": {
+        "type": "String"
+      }
+    }
+  },
+  "movieWidgetDownloadTaskExists": "下载任务已存在",
+  "movieWidgetNoReviews": "暂无评论",
+  "movieWidgetAnonymousUser": "匿名用户",
+  "movieWidgetNoReviewContent": "暂无评论内容",
+  "movieWidgetSearchMovieNumber": "搜索番号",
+  "movieWidgetAddDownload": "添加下载",
+  "movieWidgetAddDownloadIndexed": "添加下载 {index}",
+  "@movieWidgetAddDownloadIndexed": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      }
+    }
+  },
+  "movieWidgetRetryLoadMore": "重试加载更多",
+  "movieWidgetNoMediaSources": "暂无媒体源",
+  "movieWidgetDeleteMedia": "删除媒体",
+  "movieWidgetMomentsTitle": "时刻",
+  "movieWidgetNoMediaPoints": "暂无标记点",
+  "movieWidgetSelectMergeLibraryTitle": "选择合并播放媒体库",
+  "movieWidgetMediaLibraryFallback": "媒体库 {id}",
+  "@movieWidgetMediaLibraryFallback": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "movieWidgetMediaLibrarySegments": "{providerKey} · {count} 段",
+  "@movieWidgetMediaLibrarySegments": {
+    "placeholders": {
+      "providerKey": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "movieWidgetNoPlotImages": "暂无剧情图",
+  "movieWidgetNoSimilarMovies": "暂无相似影片",
+  "movieWidgetSubtitleListLoadFailed": "字幕列表加载失败",
+  "movieWidgetNoSubtitles": "暂无可用字幕",
+  "movieWidgetSubtitleContentLoadFailed": "字幕内容读取失败",
+  "movieWidgetSubtitleContentEmpty": "（字幕内容为空）",
+  "movieWidgetNoTags": "暂无标签",
+  "movieWidgetRatingSaveFailed": "保存评分失败",
+  "movieWidgetLoading": "加载中…",
+  "movieWidgetRatingDimensionsLoadFailed": "评分维度加载失败",
+  "movieWidgetNoRatingDimensions": "还没有评分维度",
+  "movieWidgetSetupAction": "设置",
+  "movieWidgetRatingLoading": "评分加载中…",
+  "movieWidgetRatingLoadFailed": "评分加载失败",
+  "movieWidgetDimensionNameRequired": "维度名称不能为空",
+  "movieWidgetRatingDimensionSaveFailed": "保存评分维度失败",
+  "movieWidgetDeleteRatingDimensionTitle": "删除评分维度",
+  "movieWidgetDeleteRatingDimensionMessage": "删除「{name}」后，已有影片在该维度的分值会被移除并重算总分。",
+  "@movieWidgetDeleteRatingDimensionMessage": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "movieWidgetRatingDimensionDeleteFailed": "删除评分维度失败",
+  "movieWidgetRatingDimensionsTitle": "评分维度",
+  "movieWidgetRatingScaleHint": "各维度可使用 1–5、1–10 或 1–100 分；总分固定 1–5，按已填维度加权平均。",
+  "movieWidgetRatingScaleLabel": "分数范围",
+  "movieWidgetRatingScale5": "5 分制",
+  "movieWidgetRatingScale10": "10 分制",
+  "movieWidgetRatingScale100": "百分制",
+  "movieWidgetRatingScaleLocked": "已有评分，分数范围不可修改",
+  "movieWidgetRatingScoreInvalid": "请输入 {min}–{max} 的整数",
+  "@movieWidgetRatingScoreInvalid": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "movieWidgetRatingUnrated": "未评分",
+  "movieWidgetAddDimension": "新增维度",
+  "movieWidgetEditDimension": "编辑维度",
+  "movieWidgetDimensionNameHint": "维度名称，如 颜值 / 剧情",
+  "subscriptionStatusImported": "已入库",
+  "subscriptionStatusDownloading": "下载中",
+  "subscriptionStatusImportFailed": "导入失败",
+  "subscriptionStatusExhausted": "已放弃",
+  "subscriptionStatusFailed": "查询出错",
+  "subscriptionStatusMissing": "缺资源",
+  "subscriptionStatusPending": "待查",
+  "subscriptionStatusUnknown": "未知状态",
+  "subscriptionStatusMediaRemoved": "媒体已删除",
+  "subscriptionStatusNotImported": "未入库",
+  "subscriptionStatusAll": "全部",
+  "subscriptionSortFieldSubscribedAt": "订阅时间",
+  "subscriptionSortFieldReleaseDate": "发行日期",
+  "subscriptionSortFieldLastSearchedAt": "最近查询",
+  "subscriptionSortFieldAttemptCount": "没找到次数",
+  "subscriptionFilterTriggerSearch": "搜索「{query}」",
+  "@subscriptionFilterTriggerSearch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionFilterTriggerAll": "全部",
+  "subscriptionFilterSearchLabel": "搜索",
+  "subscriptionFilterSearchHint": "番号 / 标题，回车生效",
+  "subscriptionFilterSearchClearTooltip": "清除搜索",
+  "subscriptionFeedbackMovieSubscribed": "已订阅影片",
+  "subscriptionFeedbackMovieUnsubscribed": "已取消订阅影片",
+  "subscriptionFeedbackMovieBlockedByMedia": "请删除媒体后再取消订阅",
+  "subscriptionFeedbackActorSubscribed": "已订阅女优",
+  "subscriptionFeedbackActorUnsubscribed": "已取消订阅女优",
+  "subscriptionBatchSubscribeFailed": "批量订阅影片失败",
+  "subscriptionBatchSubscribedCount": "已订阅 {count} 部影片",
+  "@subscriptionBatchSubscribedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionBatchUnsubscribedCount": "已取消订阅 {count} 部影片",
+  "@subscriptionBatchUnsubscribedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionBatchSubscribedPartial": "已订阅 {count} 部，{skipped} 部未处理",
+  "@subscriptionBatchSubscribedPartial": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionBatchUnsubscribedPartial": "已取消订阅 {count} 部，{skipped} 部未处理",
+  "@subscriptionBatchUnsubscribedPartial": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionBatchSkippedCount": "{count} 部影片未处理",
+  "@subscriptionBatchSkippedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionForceUnsubscribeTitle": "强制取消订阅",
+  "subscriptionForceUnsubscribeMessage": "将删除这 {count} 部影片的所有媒体文件及记录，再取消订阅。失败时停止，已删除的媒体无法回滚。",
+  "@subscriptionForceUnsubscribeMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionForceUnsubscribeConfirmLabel": "删除并取消订阅",
+  "subscriptionBatchSkippedTitle": "部分影片未处理",
+  "subscriptionBatchSubscribedSkippedSummary": "已订阅 {count} 部，剩余 {skipped} 部因下列原因未处理",
+  "@subscriptionBatchSubscribedSkippedSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionBatchUnsubscribedSkippedSummary": "已取消订阅 {count} 部，剩余 {skipped} 部因下列原因未处理",
+  "@subscriptionBatchUnsubscribedSkippedSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionBatchAllSkippedSummary": "{count} 部影片因下列原因未处理",
+  "@subscriptionBatchAllSkippedSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionBatchSkippedHasMediaHeader": "已存在媒体，无法取消订阅",
+  "subscriptionBatchSkippedNotFoundHeader": "库中无此番号",
+  "subscriptionBatchForceDeleteLabel": "删除媒体并强制取消订阅",
+  "subscriptionSkippedNumbersCount": "{count} 部",
+  "@subscriptionSkippedNumbersCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionActionViewDownloads": "查看下载任务",
+  "subscriptionActionViewDownloadsSubtitle": "查看该影片的下载进度",
+  "subscriptionActionViewFiles": "查看文件",
+  "subscriptionActionViewFilesSubtitle": "查看下载任务里的文件",
+  "subscriptionActionRetriggerImport": "重新导入",
+  "subscriptionActionRetriggerImportSubtitle": "重提最新失败或跳过的导入任务",
+  "subscriptionActionSearchMagnet": "磁力搜索",
+  "subscriptionActionSearchMagnetSubtitle": "手动搜索资源并提交下载",
+  "subscriptionActionDeleteDownloads": "删除下载任务",
+  "subscriptionActionDeleteDownloadsSubtitle": "可选同时删除下载器里的文件",
+  "subscriptionActionUnsubscribe": "取消订阅",
+  "subscriptionActionUnsubscribeSubtitle": "不再自动查找资源，不影响已有文件",
+  "subscriptionImportMediaRemovedHint": "提示：该影片曾成功导入，媒体已从库中删除",
+  "subscriptionImportStatusHint": "提示：{status}",
+  "@subscriptionImportStatusHint": {
+    "placeholders": {
+      "status": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionRowNoReleaseInfo": "暂无发行与订阅信息",
+  "subscriptionRowMoreActions": "更多操作",
+  "subscriptionListTotalCount": "共 {count} 部",
+  "@subscriptionListTotalCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionListRefreshing": "刷新中",
+  "subscriptionSelectionSelectAll": "全选（{count}）",
+  "@subscriptionSelectionSelectAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionSelectionClearAll": "取消全选",
+  "subscriptionSelectionCount": "已选 {count} 部",
+  "@subscriptionSelectionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionBatchDeleteTasksLabel": "删除任务",
+  "subscriptionBatchUnsubscribeWithCount": "取消订阅（{count}）",
+  "@subscriptionBatchUnsubscribeWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionBatchQueryingDownloadTasks": "正在查询下载任务",
+  "subscriptionBatchNoDownloadTasks": "所选影片没有下载任务",
+  "subscriptionDownloadTasksLoadFailed": "下载任务加载失败",
+  "subscriptionBatchNoRetriggerTasks": "所选影片没有可重新导入的任务",
+  "subscriptionBatchRetriggerSubmitted": "已提交 {count} 个重新导入",
+  "@subscriptionBatchRetriggerSubmitted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionBatchRetriggerSubmittedSkipped": "已提交 {count} 个重新导入，{skipped} 个已跳过",
+  "@subscriptionBatchRetriggerSubmittedSkipped": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "skipped": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionBatchRetriggerSubmitFailed": "提交重新导入失败，请稍后重试",
+  "subscriptionBatchUnsubscribeConfirmTitle": "取消订阅 {count} 部影片？",
+  "@subscriptionBatchUnsubscribeConfirmTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "subscriptionBatchUnsubscribeConfirmMessage": "取消后它们不再自动找资源。已有本地媒体的影片会被跳过，不会删除任何文件。",
+  "subscriptionQueryExplanation": "订阅影片后，系统通过定时任务在索引器中搜索可下载资源，找到后自动提交下载。新片（发行 90 天内）每轮查询、不限次数；老片默认至多查 3 次，用尽则标记「已放弃」，需手动重置后重新排队。查询出错不消耗次数，下一轮自动重试。重置不会清除种子黑名单——已判死的种子不再重试，系统会去寻找新的种子。",
+  "subscriptionListEmptyFiltered": "当前筛选下没有订阅影片。",
+  "subscriptionEmptyNoSearchMatch": "没有匹配「{query}」的订阅影片。换个番号或标题片段再试。",
+  "@subscriptionEmptyNoSearchMatch": {
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionEmptyMissingTitle": "没有缺资源的订阅",
+  "subscriptionEmptyMissingMessage": "所有订阅影片要么已经拿到资源，要么还在正常查询中。",
+  "subscriptionEmptyExhaustedTitle": "没有被放弃的订阅",
+  "subscriptionEmptyExhaustedMessage": "没有影片因多次没找到资源而放弃，不需要手动重置。",
+  "subscriptionEmptyImportFailedTitle": "没有卡在导入的影片",
+  "subscriptionEmptyImportFailedMessage": "下载完成的影片都顺利入库了。",
+  "subscriptionEmptyFailedTitle": "索引器一切正常",
+  "subscriptionEmptyFailedMessage": "最近一轮资源查询没有出错。",
+  "subscriptionEmptyPendingTitle": "没有待查的订阅",
+  "subscriptionEmptyPendingMessage": "新订阅的影片会先落在这里，等下一轮定时任务查过就转到别的状态。",
+  "subscriptionEmptyDownloadingTitle": "没有正在下载的订阅",
+  "subscriptionEmptyDownloadingMessage": "找到种子的影片会出现在这里，进度可以去任务中心看。",
+  "subscriptionEmptyImportedTitle": "还没有入库的订阅影片",
+  "subscriptionEmptyImportedMessage": "资源下载并导入媒体库后，影片会归到这里。",
+  "subscriptionEmptyNoneTitle": "还没有订阅任何影片",
+  "subscriptionEmptyNoneMessage": "在影片列表或详情页点订阅，之后就能在这里跟进求片进度。",
+  "subscriptionEmptySeeAll": "查看全部订阅",
+  "subscriptionImportTaskSubmitted": "已提交导入任务",
+  "subscriptionImportSubmitFailed": "提交导入失败，请稍后重试",
+  "subscriptionDownloadTaskMissing": "下载任务已不存在",
+  "subscriptionFollowEmpty": "暂无关注影片",
+  "subscriptionFollowLoadFailed": "女优上新加载失败，请稍后重试",
+  "subscriptionFollowEmptyDescription": "暂无已订阅演员的近期影片。订阅演员并等待同步后，作品会展示在这里。",
+  "subscriptionRefreshFailed": "刷新失败",
+  "actorSubscriptionStatusAll": "全部",
+  "actorSubscriptionStatusSubscribed": "已订阅",
+  "actorSubscriptionStatusUnsubscribed": "未订阅",
+  "actorGenderAll": "全部",
+  "actorGenderFemale": "女优",
+  "actorGenderMale": "男优",
+  "actorSortFieldSubscribedAt": "最近订阅",
+  "actorSortFieldName": "名称",
+  "actorSortFieldMovieCount": "影片数",
+  "actorSortFieldPlayableMovieCount": "可播放影片数",
+  "actorSortFieldAge": "年龄",
+  "actorSortFieldHeight": "身高",
+  "actorSortFieldBust": "胸围",
+  "actorSortFieldWaist": "腰围",
+  "actorSortFieldHips": "臀围",
+  "actorSortFieldWaistHipRatio": "腰臀比",
+  "actorSortFieldCup": "罩杯",
+  "actorDetailNotFound": "未找到该女优",
+  "actorDetailLoadFailed": "女优详情暂时无法加载，请稍后重试",
+  "actorSubscribeFailed": "订阅女优失败",
+  "actorUnsubscribeFailed": "取消订阅女优失败",
+  "actorSearchCollapseTooltip": "收起搜索",
+  "actorSearchTooltip": "搜索女优",
+  "actorListEmpty": "暂无女优，去搜索看看吧",
+  "actorListEmptyFiltered": "当前筛选条件下暂无匹配女优",
+  "actorListAllTitle": "全部女优",
+  "actorListTotalCount": "{count} 位",
+  "@actorListTotalCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "actorLocalSubscriptionHint": "订阅演员后，系统会定时同步其作品列表；新作品仍需手动订阅影片。",
+  "actorCandidateImport": "导入",
+  "actorCandidateView": "查看",
+  "actorCandidateExisting": "已在库中",
+  "actorCandidateImportSuccess": "演员已导入",
+  "actorCandidateImportFailed": "导入演员失败",
+  "actorMergeTooltip": "合并女优",
+  "actorEditProfileTooltip": "编辑女优资料",
+  "actorMovieYearsLoadFailed": "年份加载失败",
+  "actorMergeCompleted": "已合并 {count} 位女优",
+  "@actorMergeCompleted": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "actorTagFilterLabel": "标签 · {count}",
+  "@actorTagFilterLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "actorMovieCountLabel": "{count} 部",
+  "@actorMovieCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "actorMoviesEmpty": "暂无影片数据",
+  "actorBirthdayLabel": "生日",
+  "actorBirthdayValue": "{year}年{month}月{day}日",
+  "@actorBirthdayValue": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "int"
+      },
+      "day": {
+        "type": "int"
+      }
+    }
+  },
+  "actorAgeLabel": "年龄",
+  "actorAgeValue": "{age}岁",
+  "@actorAgeValue": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "actorBirthplaceLabel": "出生地",
+  "actorBloodTypeLabel": "血型",
+  "actorHeightLabel": "身高",
+  "actorCupLabel": "罩杯",
+  "actorBustLabel": "胸围",
+  "actorWaistLabel": "腰围",
+  "actorHipsLabel": "臀围",
+  "actorProfileCollapseTooltip": "收起资料",
+  "actorProfileExpandTooltip": "展开资料",
+  "actorProfileEditorTitle": "编辑女优资料",
+  "actorProfileAliasLabel": "别名",
+  "actorProfileAliasHint": "填写一个别名，会优先展示别名。",
+  "actorProfileBasicSectionTitle": "基础资料",
+  "actorProfileGenderLabel": "性别",
+  "actorGenderFemaleOption": "女性",
+  "actorGenderMaleOption": "男性",
+  "actorProfileHeightLabel": "身高（cm）",
+  "actorProfileBustLabel": "胸围（cm）",
+  "actorProfileWaistLabel": "腰围（cm）",
+  "actorProfileHipsLabel": "臀围（cm）",
+  "actorProfileCupHint": "例如 C、F",
+  "actorProfileBloodTypeHint": "A、B、O 或 AB",
+  "actorProfileCurrentAvatar": "当前头像",
+  "actorProfileImageFormatHint": "支持 JPEG、PNG、WebP，保存时上传",
+  "actorProfilePickImage": "选择图片",
+  "actorProfileChangeImage": "更换图片",
+  "actorProfileImageUnreadable": "无法读取所选图片，请换一张再试",
+  "actorProfileImagePickerUnavailable": "图片选择器尚未加载，请完整重启应用后再试",
+  "actorProfileImageOpenFailed": "打开图片选择器失败，请稍后再试",
+  "actorProfileSaveFailed": "保存女优资料失败，请稍后重试",
+  "actorProfileAliasTooLong": "别名不能超过 255 个字符",
+  "actorProfileBirthdayFormatInvalid": "请输入 YYYY-MM-DD 格式的日期",
+  "actorProfileBirthdayInFuture": "生日不能晚于今天",
+  "actorProfilePositiveIntegerRequired": "请输入正整数",
+  "actorProfileCupFormatInvalid": "请输入 1 个大写英文字母",
+  "actorProfileTextTooLong": "内容不能超过 255 个字符",
+  "actorProfileBloodTypeFormatInvalid": "请输入 A、B、O 或 AB",
+  "actorMergeSearchFailed": "搜索女优失败，请稍后重试",
+  "actorMergeFailed": "合并女优失败，请稍后重试",
+  "actorMergeTitle": "合并女优",
+  "actorMergeSubtitle": "当前女优作为保留方；所选女优的影片、订阅与别名将并入当前女优，且不可撤销。",
+  "actorMergeSubmitLabel": "合并",
+  "actorMergeSubmitLabelWithCount": "合并 {count} 位女优",
+  "@actorMergeSubmitLabelWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "actorMergeSearchLabel": "搜索要合并进来的女优",
+  "actorMergeSearchHint": "输入名字，从下方结果中勾选",
+  "actorMergeSelectedSummary": "已选 {count} 位：{names}",
+  "@actorMergeSelectedSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "actorMergeEmptyResult": "未找到匹配的女优",
+  "actorTasteSubscribedTitle": "已订阅",
+  "actorTasteRecommendedTitle": "你可能想关注",
+  "actorTastePanelTitle": "常看女优",
+  "actorRefreshFailed": "刷新失败",
+  "discoveryActressReleaseTitle": "女优上新",
+  "@discoveryActressReleaseTitle": {},
+  "discoveryActressReleaseLoadFailed": "女优上新加载失败，请稍后重试",
+  "@discoveryActressReleaseLoadFailed": {},
+  "discoveryActressReleaseEmpty": "暂无已订阅演员的近期影片。订阅演员并等待同步后，作品会展示在这里。",
+  "@discoveryActressReleaseEmpty": {},
+  "discoveryHotNewTitle": "热门新片",
+  "@discoveryHotNewTitle": {},
+  "discoveryHotNewEmpty": "暂无热门新片，待更多影片积累热度后展示",
+  "@discoveryHotNewEmpty": {},
+  "discoveryHotActressBadge": "热门：{name}",
+  "@discoveryHotActressBadge": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "discoveryDailyTitle": "今日推荐",
+  "@discoveryDailyTitle": {},
+  "discoveryDailyEmpty": "暂无每日推荐，去搜索看看吧",
+  "@discoveryDailyEmpty": {},
+  "discoveryDailyLoadFailed": "今日推荐加载失败，请稍后重试",
+  "@discoveryDailyLoadFailed": {},
+  "discoveryMomentTitle": "推荐时刻",
+  "@discoveryMomentTitle": {},
+  "discoveryMomentEmpty": "暂无推荐时刻，播放时添加标记，等定时任务处理后展示",
+  "@discoveryMomentEmpty": {},
+  "discoveryRecommendedEmpty": "暂无推荐影片，去搜索看看吧",
+  "@discoveryRecommendedEmpty": {},
+  "discoveryTasteTitle": "观影偏好",
+  "@discoveryTasteTitle": {},
+  "discoveryTasteSuggestedActors": "你可能想关注",
+  "@discoveryTasteSuggestedActors": {},
+  "discoveryTasteFrequentActors": "常看女优",
+  "@discoveryTasteFrequentActors": {},
+  "discoveryTasteFrequentTags": "常看标签",
+  "@discoveryTasteFrequentTags": {},
+  "discoveryTagSemanticLabel": "查看标签「{name}」的影片",
+  "@discoveryTagSemanticLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "rankingAllBoards": "全部榜单",
+  "rankingListMoviesTitle": "榜单影片",
+  "@rankingAllBoards": {},
+  "rankingNoBoards": "暂无可用排行榜",
+  "@rankingNoBoards": {},
+  "rankingEmptyData": "暂无榜单数据",
+  "@rankingEmptyData": {},
+  "rankingFilterSource": "来源",
+  "@rankingFilterSource": {},
+  "rankingFilterBoard": "榜单",
+  "@rankingFilterBoard": {},
+  "rankingFilterPeriod": "周期",
+  "@rankingFilterPeriod": {},
+  "rankingPeriodDaily": "日榜",
+  "@rankingPeriodDaily": {},
+  "rankingPeriodWeekly": "周榜",
+  "@rankingPeriodWeekly": {},
+  "rankingPeriodMonthly": "月榜",
+  "@rankingPeriodMonthly": {},
+  "rankingPeriodAll": "总榜",
+  "@rankingPeriodAll": {},
+  "rankingPeriodCensored": "有码",
+  "@rankingPeriodCensored": {},
+  "rankingPeriodUncensored": "无码",
+  "@rankingPeriodUncensored": {},
+  "rankingPeriodYear": "{year}年",
+  "@rankingPeriodYear": {
+    "placeholders": {
+      "year": {
+        "type": "String"
+      }
+    }
+  },
+  "rankingSortFieldRank": "榜单名次",
+  "@rankingSortFieldRank": {},
+  "externalPlayerInAppTitle": "应用内播放器",
+  "@externalPlayerInAppTitle": {},
+  "externalPlayerInAppSubtitle": "使用 SakuraMedia 内置播放器",
+  "@externalPlayerInAppSubtitle": {},
+  "externalPlayerDetecting": "正在检测已安装的播放器…",
+  "@externalPlayerDetecting": {},
+  "externalPlayerNoneFound": "未发现外部播放器",
+  "@externalPlayerNoneFound": {},
+  "externalPlayerNoneFoundSubtitle": "安装网络视频播放器后，点击重新检测",
+  "@externalPlayerNoneFoundSubtitle": {},
+  "externalPlayerIntro": "选择播放器与播放方式，下次播放时生效。",
+  "@externalPlayerIntro": {},
+  "externalPlayerDefaultPlayer": "默认播放器",
+  "@externalPlayerDefaultPlayer": {},
+  "externalPlayerRescan": "重新检测",
+  "@externalPlayerRescan": {},
+  "externalPlayerGroupFooter": "选择外部播放器后，点击播放会直接打开该应用。",
+  "@externalPlayerGroupFooter": {},
+  "externalPlayerPlaybackMode": "播放模式",
+  "@externalPlayerPlaybackMode": {},
+  "externalPlayerModeFooter": "仅用于单个媒体的外部播放；合并播放和切片保持原有方式。所选模式不受媒体来源支持时会播放失败，不会自动切换。",
+  "@externalPlayerModeFooter": {},
+  "externalPlayerModeFollowBackendTitle": "默认",
+  "@externalPlayerModeFollowBackendTitle": {},
+  "externalPlayerModeFollowBackendDescription": "跟随后端提供的播放方式，不改变播放地址。",
+  "@externalPlayerModeFollowBackendDescription": {},
+  "externalPlayerModeProxyTitle": "代理（Proxy）",
+  "@externalPlayerModeProxyTitle": {},
+  "externalPlayerModeProxyDescription": "视频经服务器转发，兼容性更好；会占用服务器带宽。遇到直连或跨协议跳转失败时可尝试。",
+  "@externalPlayerModeProxyDescription": {},
+  "externalPlayerModeRedirectTitle": "直连",
+  "@externalPlayerModeRedirectTitle": {},
+  "externalPlayerModeRedirectDescription": "播放器直接连接媒体来源，减少服务器转发；需要播放器支持来源地址及重定向。",
+  "@externalPlayerModeRedirectDescription": {},
+  "externalPlayerUnavailable": "外部播放器不可用，已使用应用内播放",
+  "@externalPlayerUnavailable": {},
+  "sharedMovieCount": "{count} 部",
+  "@sharedMovieCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sharedMomentCount": "{count} 个",
+  "@sharedMomentCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sharedMore": "更多",
+  "@sharedMore": {},
+  "@sharedFilter": {},
+  "sharedRefreshFailed": "刷新失败",
+  "@sharedRefreshFailed": {},
+  "sharedFileTooLarge": "文件过大",
+  "@sharedFileTooLarge": {},
+  "sharedSortAscending": "升序",
+  "@sharedSortAscending": {},
+  "sharedSortDescending": "降序",
+  "@sharedSortDescending": {},
+  "sharedInteractionHeat": "热度",
+  "@sharedInteractionHeat": {},
+  "sharedInteractionScore": "评分",
+  "@sharedInteractionScore": {},
+  "sharedInteractionScoreNumber": "评分人数",
+  "@sharedInteractionScoreNumber": {},
+  "sharedInteractionWatchedCount": "看过人数",
+  "@sharedInteractionWatchedCount": {},
+  "sharedInteractionWantWatchCount": "想看人数",
+  "@sharedInteractionWantWatchCount": {},
+  "sharedInteractionCommentCount": "评论数",
+  "@sharedInteractionCommentCount": {},
+  "sharedInteractionUnlimited": "不限",
+  "@sharedInteractionUnlimited": {},
+  "sharedInteractionSummary": "互动数 · {count} 项",
+  "@sharedInteractionSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sharedBatchDeleteMedia": "批量删除媒体",
+  "@sharedBatchDeleteMedia": {},
+  "sharedBatchDeleteClip": "批量删除切片",
+  "@sharedBatchDeleteClip": {},
+  "sharedBatchDeleteMoment": "批量删除时刻",
+  "@sharedBatchDeleteMoment": {},
+  "sharedBatchDeleteVideo": "批量删除视频",
+  "@sharedBatchDeleteVideo": {},
+  "sharedBatchAddClipsToCollection": "批量加入切片合集",
+  "@sharedBatchAddClipsToCollection": {},
+  "sharedBatchRemoveClipsFromCollection": "批量移出切片合集",
+  "@sharedBatchRemoveClipsFromCollection": {},
+  "sharedBatchAddMomentsToCollection": "批量加入时刻合集",
+  "@sharedBatchAddMomentsToCollection": {},
+  "sharedBatchRemoveMomentsFromCollection": "批量移出时刻合集",
+  "@sharedBatchRemoveMomentsFromCollection": {},
+  "sharedBatchAddVideosToCollection": "批量加入视频合集",
+  "@sharedBatchAddVideosToCollection": {},
+  "sharedBatchRemoveVideosFromCollection": "批量移出视频合集",
+  "@sharedBatchRemoveVideosFromCollection": {},
+  "sharedBatchDeleteDownloadTask": "批量删除下载任务",
+  "@sharedBatchDeleteDownloadTask": {},
+  "sharedBatchTooManyItems": "{label}一次最多提交 {max} 项（当前 {count} 项），请减少选择后再试",
+  "@sharedBatchTooManyItems": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "max": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sharedBatchSubmitting": "{label}正在提交中，请稍候",
+  "@sharedBatchSubmitting": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedBatchSubmitFailed": "{label}提交失败，请稍后重试",
+  "@sharedBatchSubmitFailed": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "sharedBatchSubmitted": "已提交{label}（{count} 项），可在活动中心查看进度，完成后请刷新列表",
+  "@sharedBatchSubmitted": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMovieSelectionCount": "已选 {count} 部",
+  "@widgetMovieSelectionCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMovieDeselectAll": "取消全选",
+  "widgetMovieSelectAllWithCount": "全选({count})",
+  "@widgetMovieSelectAllWithCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMovieSubscribe": "订阅",
+  "widgetMovieUnsubscribe": "取消订阅",
+  "widgetMovieBlacklist": "屏蔽",
+  "widgetMovieBatchSubscribeTitle": "批量订阅",
+  "widgetMovieBatchUnsubscribeTitle": "批量取消订阅",
+  "widgetMovieBatchSubscribeMessage": "将订阅选中的 {count} 部影片。",
+  "@widgetMovieBatchSubscribeMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMovieBatchUnsubscribeMessage": "将取消选中的 {count} 部影片的订阅，存在本地媒体的影片会自动跳过。",
+  "@widgetMovieBatchUnsubscribeMessage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMovieBatchSubscribeFailed": "批量订阅失败",
+  "widgetMovieBatchUnsubscribeFailed": "批量取消订阅失败",
+  "widgetMovieBatchBlacklistTitle": "批量屏蔽",
+  "widgetMovieBatchBlacklistMessage": "已订阅影片无法屏蔽，请先取消订阅。屏蔽后将从正常列表和推荐中隐藏。",
+  "widgetMovieBatchBlacklistFailed": "批量屏蔽影片失败",
+  "widgetMovieFilterStatusTitle": "状态筛选",
+  "widgetMovieFilterResolutionTitle": "分辨率",
+  "widgetMovieFilterAll": "全部",
+  "widgetMovieFilterCollectionTypeTitle": "合集类型",
+  "widgetMovieFilterNumberSourceTitle": "番号来源",
+  "widgetMovieFilterInteractionTitle": "热度",
+  "widgetMovieFilterClear": "清空",
+  "widgetMovieFilterInteractionLoadFailed": "热度范围加载失败",
+  "widgetMovieFilterInteractionEmpty": "暂无可用的热度范围",
+  "widgetMovieFilterActorAgeTitle": "出演年龄",
+  "widgetMovieFilterYearTitle": "发行年份",
+  "widgetMovieFilterAllYears": "全部年份",
+  "widgetMovieFilterCollapseYears": "收起年份",
+  "widgetMovieFilterExpandAllYears": "展开全部年份",
+  "widgetMovieMagnetSearching": "搜索中",
+  "widgetMovieMagnetSearchResources": "搜索资源",
+  "widgetMovieMagnetSortDescHint": "当前降序，点击切换为升序",
+  "widgetMovieMagnetSortAscHint": "当前升序，点击切换为降序",
+  "widgetMovieMagnetEmptyHint": "搜索依赖系统设置中的下载器与索引器。",
+  "widgetMovieMagnetEmpty": "没有找到可用资源",
+  "widgetMovieMagnetSubmittedTo": "已提交到 {client}",
+  "@widgetMovieMagnetSubmittedTo": {
+    "placeholders": {
+      "client": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMovieMagnetDownloadExists": "下载任务已存在",
+  "widgetMovieMagnetSubmitFailed": "提交下载失败",
+  "widgetMovieMagnetIndexerLabel": "索引器",
+  "widgetMovieMagnetTypeLabel": "类型",
+  "widgetMovieMagnetSeedersLabel": "做种",
+  "widgetMovieMagnetSizeLabel": "体积",
+  "widgetMovieMagnetSourceUriLabel": "资源地址",
+  "widgetMovieMagnetUriCopied": "资源地址已复制",
+  "widgetMovieMagnetCopyFailed": "复制失败，请手动选择地址",
+  "widgetMovieMagnetSubmitDownload": "提交下载",
+  "widgetMovieMagnetUriMissing": "资源地址缺失",
+  "widgetMoviePlay": "播放",
+  "widgetMovieSubscribeMovie": "订阅影片",
+  "widgetMovieToggleCollectionType": "标记为合集/单体",
+  "widgetMovieBlacklistMovie": "屏蔽影片",
+  "widgetMovieEmptyList": "当前没有可展示的影片数据。",
+  "widgetMovieDurationWithDate": "{duration} · {date}",
+  "@widgetMovieDurationWithDate": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetActorFilterSubscriptionTitle": "订阅筛选",
+  "widgetActorFilterGenderTitle": "性别筛选",
+  "widgetActorFilterPlayableTitle": "播放筛选",
+  "widgetActorFilterHasPlayable": "有可播放影片",
+  "widgetActorFilterAll": "全部",
+  "widgetActorFilterOptionsLoadFailed": "资料筛选选项加载失败",
+  "widgetActorFilterUnlimited": "不限",
+  "widgetActorFilterNoProfileData": "{title}暂无可用资料",
+  "@widgetActorFilterNoProfileData": {
+    "placeholders": {
+      "title": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetActorFilterNoData": "暂无可用资料",
+  "widgetActorAgeLabel": "年龄",
+  "widgetActorAgeUnit": "岁",
+  "widgetActorHeightLabel": "身高",
+  "widgetActorCupLabel": "罩杯",
+  "widgetActorSearchHint": "搜索女优",
+  "widgetActorClearSearch": "清空搜索",
+  "widgetActorSortRelevance": "相关度",
+  "widgetActorSortRelevanceTooltip": "搜索时按相关度排序",
+  "widgetActorSortDisabledWhileSearching": "搜索中暂不可调整排序",
+  "widgetActorSort": "排序",
+  "widgetActorSubscribe": "订阅演员",
+  "widgetActorUnsubscribe": "取消订阅",
+  "widgetActorEmptyList": "当前没有可展示的女优数据。",
+  "widgetActorMovieCountLabel": "影片数",
+  "widgetActorBirthdayLabel": "出生年月",
+  "widgetActorBustLabel": "胸围",
+  "widgetActorWaistLabel": "腰围",
+  "widgetActorHipsLabel": "臀围",
+  "widgetActorAgeValue": "{age}岁",
+  "@widgetActorAgeValue": {
+    "placeholders": {
+      "age": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetActorBirthdayValue": "{year}年{month}月",
+  "@widgetActorBirthdayValue": {
+    "placeholders": {
+      "year": {
+        "type": "int"
+      },
+      "month": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetTagFilterTitle": "标签",
+  "widgetTagSelectorTitle": "选择标签",
+  "widgetTagSearchHint": "搜索标签",
+  "widgetTagClearAll": "清空",
+  "widgetTagMatchLabel": "匹配",
+  "widgetTagSearchResult": "搜索结果",
+  "widgetTagPopular": "热门标签",
+  "widgetTagCollapse": "收起",
+  "widgetTagExpandAll": "展开全部",
+  "widgetTagNoMatch": "未找到匹配的标签",
+  "widgetTagEmpty": "暂无标签",
+  "widgetMoviePlayerInfoTooltip": "播放信息",
+  "widgetMoviePlayerLockOrientation": "锁定横屏",
+  "widgetMoviePlayerUnlockOrientation": "跟随系统方向",
+  "widgetMoviePlayerPlaybackUnavailable": "暂时无法播放此媒体。",
+  "widgetMoviePlayerPlaybackFailed": "播放失败",
+  "widgetMoviePlayerNoSubtitle": "无可用字幕",
+  "widgetMoviePlayerSubtitle": "字幕",
+  "widgetMoviePlayerSpeed": "倍速",
+  "widgetMoviePlayerModePending": "确认中",
+  "widgetMoviePlayerModeUnconfirmed": "未确认",
+  "widgetMoviePlayerModeDirect": "直连",
+  "widgetMoviePlayerModeProxy": "后端代理",
+  "widgetMoviePlayerHttpStream": "HTTP 文件流",
+  "widgetMoviePlayerHardwareDecode": "硬件解码",
+  "widgetMoviePlayerHardwareDecodeWith": "硬件解码 ({value})",
+  "@widgetMoviePlayerHardwareDecodeWith": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMoviePlayerSoftwareDecode": "软件解码",
+  "widgetMoviePlayerAudioChannels": "{count} 声道",
+  "@widgetMoviePlayerAudioChannels": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "widgetMoviePlayerCounterTotal": "累计 {value}",
+  "@widgetMoviePlayerCounterTotal": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMoviePlayerCounterPerSecond": "近1s {value}",
+  "@widgetMoviePlayerCounterPerSecond": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMoviePlayerPeak": "峰值 {value}",
+  "@widgetMoviePlayerPeak": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "moviePlayerPrimaries": "原色域",
+  "moviePlayerGamma": "伽马",
+  "moviePlayerColorLight": "亮度",
+  "widgetMoviePlayerSubtitleLoadFailed": "加载字幕失败，请稍后重试",
+  "widgetMoviePlayerLoading": "正在加载影片…",
+  "widgetMoviePlayerSectionMedia": "媒体",
+  "widgetMoviePlayerStorageSource": "存储来源",
+  "widgetMoviePlayerMediaLibrary": "媒体库",
+  "widgetMoviePlayerFileSize": "文件大小",
+  "widgetMoviePlayerDuration": "时长",
+  "widgetMoviePlayerRecordedResolution": "记录分辨率",
+  "widgetMoviePlayerSectionDecode": "解码与动态范围",
+  "widgetMoviePlayerDecodeMode": "解码模式",
+  "widgetMoviePlayerDynamicRange": "动态范围",
+  "widgetMoviePlayerDynamicRangeDetail": "动态范围详情",
+  "widgetMoviePlayerSectionVideo": "视频",
+  "widgetMoviePlayerCodec": "编码",
+  "widgetMoviePlayerDecoder": "解码器",
+  "widgetMoviePlayerResolution": "分辨率",
+  "widgetMoviePlayerMediaFrameRate": "媒体帧率",
+  "widgetMoviePlayerFilterChainFrameRate": "滤镜链帧率",
+  "widgetMoviePlayerActualOutputFrameRate": "实际输出帧率(估算)",
+  "widgetMoviePlayerBitrate": "码率",
+  "widgetMoviePlayerRenderDropped": "渲染丢帧",
+  "widgetMoviePlayerDecodeDropped": "解码丢帧",
+  "widgetMoviePlayerDelayedFrames": "延迟帧",
+  "widgetMoviePlayerMistimedFrames": "时间失配帧",
+  "widgetMoviePlayerPixelFormat": "像素格式",
+  "widgetMoviePlayerSectionAudio": "音频",
+  "widgetMoviePlayerChannels": "声道",
+  "widgetMoviePlayerSampleRate": "采样率",
+  "widgetMoviePlayerCopied": "已复制",
+  "widgetMoviePlayerGatewayHost": "网关主机",
+  "widgetMoviePlayerGatewayPath": "网关路径",
+  "widgetMoviePlayerPlaybackMode": "播放模式",
+  "widgetMoviePlayerStreamType": "流类型",
+  "widgetMoviePlayerDemuxerFormat": "解复用格式",
+  "widgetMoviePlayerBuffer": "缓冲",
+  "widgetMoviePlayerDownloadRate": "下载速率",
+  "widgetMoviePlayerInterleave": "音视频交错",
+  "widgetMoviePlayerInterleaveAbnormal": "异常",
+  "widgetMoviePlayerInterleaveMaxDistance": "最大相距 {size}",
+  "@widgetMoviePlayerInterleaveMaxDistance": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMoviePlayerInterleaveRangePattern": "检测到远距离跳读，跨度 {size}",
+  "@widgetMoviePlayerInterleaveRangePattern": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMoviePlayerInterleaveWarning": "这个视频可能存在音视频交错异常的问题，无法正常播放",
+  "widgetMoviePlayerInterleaveDismiss": "关闭",
+  "widgetMoviePlayerSectionPlaybackChain": "播放链路",
+  "baseSelectPlaceholder": "请选择",
+  "baseSearchHint": "搜索",
+  "baseClearSearch": "清空",
+  "baseShowPassword": "显示密码",
+  "baseHidePassword": "隐藏密码",
+  "baseFilterAppliesImmediately": "筛选会立即生效",
+  "baseFilterReset": "重置",
+  "baseClose": "关闭",
+  "baseConfirm": "确认",
+  "baseEmptyData": "当前没有可展示的数据。",
+  "baseSortDefault": "默认",
+  "baseSortTooltip": "排序",
+  "baseSortTitle": "排序方式",
+  "baseSortDirectionTitle": "排序方向",
+  "baseFilterTooltip": "筛选",
+  "baseBatchCompleted": "已完成",
+  "baseBatchSummary": "成功 {succeeded} 个，失败 {failed} 个",
+  "@baseBatchSummary": {
+    "placeholders": {
+      "succeeded": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "baseBatchProgress": "处理中 {current}/{total}",
+  "@baseBatchProgress": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "baseActionFailed": "操作失败",
+  "baseFilterUpdateFailedTitle": "筛选结果更新失败",
+  "baseFilterUpdateFailedMessage": "暂时无法获取当前筛选结果，请稍后重试",
+  "baseFilterUpdateStale": "筛选结果更新失败，仍显示上一次结果",
+  "baseFilterResultsLoading": "筛选结果加载中",
+  "baseSelect": "选择",
+  "baseVideoLoading": "正在加载…",
+  "baseVideoBuffering": "正在缓冲…",
+  "baseVideoLoadingVideo": "正在加载视频…",
+  "baseResumePromptSemantic": "续播提示",
+  "baseResumeLastWatched": "上次看到",
+  "baseResumeContinue": "继续播放",
+  "baseResumeStartOver": "从头播放",
+  "baseExitFullscreen": "退出全屏",
+  "baseEnterFullscreen": "全屏",
+  "shellClientVersion": "客户端 {version}",
+  "@shellClientVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "shellServerVersion": "服务端 {version}",
+  "@shellServerVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "shellPluginUpdateCount": "{count} 个插件",
+  "@shellPluginUpdateCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "shellUpdatesAvailable": "发现可用更新",
+  "shellClientReleasePage": "客户端发布页",
+  "shellServerReleasePage": "服务端发布页",
+  "shellBrowserOpenFailedCopied": "无法打开浏览器，链接已复制",
+  "shellBrowserOpenFailed": "无法打开浏览器",
+  "shellSystemVersion": "系统版本",
+  "shellUpdateBadge": "有更新",
+  "shellAnnouncementsTitle": "公告",
+  "shellVersionTooltipNotice": "{version} · 有新公告",
+  "@shellVersionTooltipNotice": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "announcementLevelInfo": "提示",
+  "announcementLevelWarning": "警告",
+  "announcementLevelCritical": "重要",
+  "announcementCriticalDialogTitle": "重要公告",
+  "announcementAcknowledge": "我知道了",
+  "announcementReadMore": "查看详情",
+  "shellClientLabel": "客户端",
+  "shellServerLabel": "服务端",
+  "shellVersionTooltipUpdate": "{version} · 有更新",
+  "@shellVersionTooltipUpdate": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "shellViewPluginUpdates": "查看插件更新",
+  "shellBack": "返回",
+  "shellImagePickFailed": "选择图片失败",
+  "shellSearchHintExample": "如 SSNI-888、三上悠亚",
+  "shellThemeColor": "主题色",
+  "shellThemeModeSystem": "跟随系统 · 点击切换浅色",
+  "shellThemeModeLight": "浅色 · 点击切换深色",
+  "shellThemeModeDark": "深色 · 点击切换跟随系统",
+  "shellSignedIn": "已登录",
+  "shellLogout": "退出登录",
+  "shellRefreshFailed": "刷新失败",
+  "shellNavOverview": "概览",
+  "shellNavFavorites": "我的收藏",
+  "shellNavRecentlyPlayed": "最近播放",
+  "shellNavRecentViews": "最近浏览",
+  "shellNavMyRatings": "我的评分",
+  "shellNavTags": "标签",
+  "shellNavMediaLibraries": "媒体库",
+  "shellNavDownloaders": "下载器",
+  "shellNavIndexers": "索引器",
+  "shellNavMediaManagement": "媒体管理",
+  "shellNavMediaImport": "资源导入",
+  "shellNavDownloadTasks": "下载任务",
+  "shellNavTaskCenter": "任务中心",
+  "shellNavSubscriptions": "订阅管理",
+  "shellNavSystemMaintenance": "系统维护",
+  "shellNavPlugins": "插件",
+  "shellNavExternalPlayer": "外部播放器",
+  "shellNavAppearance": "外观",
+  "shellNavAccountSecurity": "账号安全",
+  "shellNavNotifications": "消息",
+  "shellDrawerGroupHome": "首页",
+  "shellDrawerGroupMyContent": "我的内容",
+  "shellDrawerGroupDownloadsTasks": "下载与任务",
+  "shellDrawerGroupMediaConnections": "媒体与连接",
+  "shellDrawerGroupSystemAccount": "系统与账户",
+  "shellWindowClose": "关闭",
+  "shellWindowMinimize": "最小化",
+  "shellWindowFullscreen": "全屏",
+  "errorLatestMovieListLoadFailed": "最新入库影片加载失败，请稍后重试",
+  "errorMovieListLoadFailed": "影片列表加载失败，请稍后重试",
+  "errorTagMovieListLoadFailed": "标签影片加载失败，请稍后重试",
+  "errorFollowedMovieListLoadFailed": "关注影片加载失败，请稍后重试",
+  "errorRecentlySubscribedMovieListLoadFailed": "最近订阅影片加载失败，请稍后重试",
+  "errorBlacklistedMovieListLoadFailed": "屏蔽影片加载失败，请稍后重试",
+  "errorSeriesMovieListLoadFailed": "系列影片加载失败，请稍后重试",
+  "errorMyRatingMovieListLoadFailed": "我的评分加载失败，请稍后重试",
+  "movieFilterStatusPlayable": "可播放",
+  "movieFilterNumberSourceRegular": "常规",
+  "movieFilterNumberSourceFc2": "FC2",
+  "movieFilterCollectionTypeSingle": "单体",
+  "movieSortReleaseDate": "发行时间",
+  "movieSortMyScore": "我的评分",
+  "movieFilterActorAgeRange": "{min} ~ {max} 岁",
+  "@movieFilterActorAgeRange": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      },
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "movieFilterActorAgeMin": "≥ {min} 岁",
+  "@movieFilterActorAgeMin": {
+    "placeholders": {
+      "min": {
+        "type": "int"
+      }
+    }
+  },
+  "movieFilterActorAgeMax": "≤ {max} 岁",
+  "@movieFilterActorAgeMax": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "movieFilterYearsLabel": "{first} 等 {count} 个年份",
+  "@movieFilterYearsLabel": {
+    "placeholders": {
+      "first": {
+        "type": "int"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "movieReviewSortHotly": "最热",
+  "movieReviewSortRecently": "最新",
+  "movieMagnetSortSeeders": "做种人数",
+  "movieMagnetSortPolicy": "策略推荐",
+  "commonMoveUp": "上移",
+  "commonMoveDown": "下移",
+  "configTabDownloadSelection": "选种策略",
+  "downloadSelectionOverviewTitle": "自动下载按选种策略筛选并排序资源",
+  "downloadSelectionOverviewDescription": "自动下载只会尝试符合策略的前 5 个资源；手动搜索会标出策略结果，但仍允许手动提交任意候选。",
+  "downloadSelectionScopeSection": "筛选范围",
+  "downloadSelectionIndexerKindsLabel": "索引器类型",
+  "downloadSelectionAny": "不限",
+  "downloadSelectionIndexerNamesLabel": "允许的索引器",
+  "downloadSelectionIndexerNamesPickerHint": "不选择任何索引器表示不限制；已失效的索引器会保留为警示项，便于移除。",
+  "downloadSelectionAllIndexers": "全部索引器",
+  "downloadSelectionIndexerUnavailable": "{name}（已失效）",
+  "@downloadSelectionIndexerUnavailable": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSelectionIndexerUnavailableWarning": "以下索引器已失效，请重新选择后再保存：{names}",
+  "@downloadSelectionIndexerUnavailableWarning": {
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSelectionNoIndexers": "还没有可用索引器",
+  "downloadSelectionClearSelection": "清空选择",
+  "downloadSelectionMinSizeLabel": "最小体积",
+  "downloadSelectionMaxSizeLabel": "最大体积",
+  "downloadSelectionNoLimitHint": "留空表示不限制",
+  "downloadSelectionSizeInvalid": "请输入有效体积",
+  "downloadSelectionMaxSizeTooSmall": "最大体积不能小于最小体积",
+  "downloadSelectionMinSeedersLabel": "最低做种数",
+  "downloadSelectionSeedersInvalid": "做种数必须是大于等于 0 的整数",
+  "downloadSelectionMaxAgeLabel": "最大发布天数",
+  "downloadSelectionMaxAgeInvalid": "发布天数必须是 1–36500 的整数",
+  "downloadSelectionKeywordSection": "关键词规则",
+  "downloadSelectionMatchTitle": "匹配资源标题",
+  "downloadSelectionMatchTitleHint": "使用原始发布标题匹配关键词",
+  "downloadSelectionMatchDescription": "匹配资源简介",
+  "downloadSelectionMatchDescriptionHint": "同时检查索引器返回的简介文本",
+  "downloadSelectionMatchFieldRequired": "标题和简介至少要启用一项",
+  "downloadSelectionRequiredGroups": "必选关键词组",
+  "downloadSelectionRequiredGroupsHint": "每个组都要命中；组内任一关键词命中即可。",
+  "downloadSelectionPreferredGroups": "偏好关键词组",
+  "downloadSelectionPreferredGroupsHint": "优先匹配靠前的组；匹配结果相同时再按排序规则比较。",
+  "downloadSelectionAddRequiredGroup": "添加必选组",
+  "downloadSelectionAddPreferredGroup": "添加偏好组",
+  "downloadSelectionEditKeywordGroup": "编辑关键词组",
+  "downloadSelectionExcludedTerms": "排除词",
+  "downloadSelectionExcludedTermsHint": "标题或简介命中任一排除词时，该资源不符合策略。",
+  "downloadSelectionNoExcludedTerms": "未设置排除词",
+  "downloadSelectionKeywordGroupEditorHint": "组内任一关键词命中即可；多个必选组之间需要全部命中。",
+  "downloadSelectionKeywordGroupLabel": "组名（可选）",
+  "downloadSelectionKeywordGroupLabelHint": "例如：清晰度",
+  "downloadSelectionTermsLabel": "关键词",
+  "downloadSelectionTermsHint": "每行一个关键词",
+  "downloadSelectionTermsHelper": "空行和重复词会被忽略。",
+  "downloadSelectionTermsRequired": "请至少填写一个关键词",
+  "downloadSelectionUnnamedGroup": "未命名组",
+  "downloadSelectionGroupNumber": "组 {number}",
+  "@downloadSelectionGroupNumber": {
+    "placeholders": {
+      "number": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionRankingSection": "排序规则",
+  "downloadSelectionRankingHint": "偏好组优先；此后按下方顺序依次比较。",
+  "downloadSelectionRankingSize": "体积从大到小",
+  "downloadSelectionRankingSeeders": "做种数从多到少",
+  "downloadSelectionRankingPublishedAt": "发布时间从新到旧",
+  "downloadSelectionRankingIndexerPriority": "索引器优先级",
+  "downloadSelectionRankingRequired": "至少保留一个排序规则",
+  "downloadSelectionPriorityIndexers": "索引器优先级",
+  "downloadSelectionPriorityIndexersHint": "选择索引器后返回页面，可用上下按钮调整顺序。",
+  "downloadSelectionNoPriorityIndexers": "尚未选择索引器",
+  "downloadSelectionIndexerPriorityRequired": "排序包含索引器优先级时，至少选择一个索引器",
+  "downloadSelectionPreviewSection": "策略预览",
+  "downloadSelectionPreviewHint": "预览使用当前未保存草稿，不会保存策略或创建下载任务。",
+  "downloadSelectionMovieNumber": "影片番号",
+  "downloadSelectionMovieNumberHint": "例如 ABC-001",
+  "downloadSelectionMovieNumberRequired": "请输入影片番号",
+  "downloadSelectionMovieNumberRecognized": "已识别为 {number}",
+  "@downloadSelectionMovieNumberRecognized": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSelectionRunPreview": "开始预览",
+  "downloadSelectionPreviewing": "预览中",
+  "downloadSelectionPreviewEmpty": "输入番号后使用当前草稿预览",
+  "downloadSelectionPreviewFailed": "策略预览失败，请稍后重试",
+  "downloadSelectionPreviewNoCandidates": "没有返回候选资源",
+  "downloadSelectionPreviewRaw": "原始候选 {count}",
+  "@downloadSelectionPreviewRaw": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionPreviewSystem": "系统可用 {count}",
+  "@downloadSelectionPreviewSystem": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionPreviewEligible": "符合策略 {count}",
+  "@downloadSelectionPreviewEligible": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionPreviewFiltered": "策略过滤 {count}",
+  "@downloadSelectionPreviewFiltered": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionPreviewSelected": "将自动选择此资源",
+  "downloadSelectionSeedersValue": "做种 {count}",
+  "@downloadSelectionSeedersValue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionCandidateRecommended": "策略推荐 #{rank}",
+  "@downloadSelectionCandidateRecommended": {
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionCandidateOutsideAttemptLimit": "符合策略 #{rank}，但超出自动尝试范围",
+  "@downloadSelectionCandidateOutsideAttemptLimit": {
+    "placeholders": {
+      "rank": {
+        "type": "int"
+      }
+    }
+  },
+  "downloadSelectionCandidateEligible": "符合选种策略",
+  "downloadSelectionCandidateFiltered": "不符合选种策略",
+  "downloadSelectionCandidatePreferred": "偏好：{label}",
+  "@downloadSelectionCandidatePreferred": {
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
+  },
+  "downloadSelectionCandidateManualHint": "自动下载会跳过此资源，但你仍可手动提交。",
+  "downloadSelectionSave": "保存策略",
+  "downloadSelectionDiscard": "放弃更改",
+  "downloadSelectionSaved": "选种策略已保存",
+  "downloadSelectionSaveFailed": "保存选种策略失败",
+  "downloadSelectionLoadFailed": "选种策略加载失败",
+  "downloadSelectionLoadFailedFallback": "选种策略加载失败，请稍后重试。",
+  "downloadSelectionVersionConflict": "选种策略已在其他页面或设备更新，当前草稿尚未覆盖线上配置。",
+  "downloadSelectionReloadLatest": "加载最新配置",
+  "downloadSelectionReloadTitle": "加载最新选种策略",
+  "downloadSelectionReloadMessage": "加载最新配置会丢弃当前未保存的修改，是否继续？",
+  "downloadSelectionReloadConfirm": "丢弃并加载",
+  "downloadSelectionDiscardTitle": "放弃未保存的修改",
+  "downloadSelectionDiscardMessage": "选种策略还有未保存的修改，离开后会丢失。",
+  "downloadSelectionDiscardConfirm": "放弃修改",
+  "movieSubtitleFallbackName": "字幕 {id}",
+  "@movieSubtitleFallbackName": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  }
+}

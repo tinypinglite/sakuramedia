@@ -1,0 +1,1887 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/core/network/api_exception.dart';
+import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/media/data/media_api.dart';
+import 'package:sakuramedia/features/movies/data/api/movies_api.dart';
+import 'package:sakuramedia/features/movies/data/dto/detail/movie_collection_type_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/detail/movie_review_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/listing/movie_subscription_batch_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/listing/parsed_movie_number_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/player/movie_subtitle_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
+import 'package:sakuramedia/l10n/app_localizations_en.dart';
+import 'package:sakuramedia/l10n/app_localizations_zh.dart';
+
+import '../../../../support/fake_http_client_adapter.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  late SessionStore sessionStore;
+  late ApiClient apiClient;
+  late MoviesApi moviesApi;
+  late MediaApi mediaApi;
+  late FakeHttpClientAdapter adapter;
+
+  setUp(() async {
+    sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+    await sessionStore.saveTokens(
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: DateTime.parse('2026-03-08T10:00:00Z'),
+    );
+    apiClient = ApiClient(sessionStore: sessionStore);
+    moviesApi = MoviesApi(apiClient: apiClient);
+    mediaApi = MediaApi(apiClient: apiClient);
+    adapter = FakeHttpClientAdapter();
+    apiClient.rawDio.httpClientAdapter = adapter;
+    apiClient.rawRefreshDio.httpClientAdapter = adapter;
+  });
+
+  tearDown(() {
+    apiClient.dispose();
+  });
+
+  test('getMovies sends movie library filters and parses response', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': [
+          <String, dynamic>{
+            'id': 77,
+            'movie_number': 'ABC-001',
+            'title': 'Movie 1',
+            'series_id': 7,
+            'series_name': 'Series 1',
+            'cover_image': null,
+            'release_date': '2024-01-02',
+            'duration_minutes': 120,
+            'heat': 9,
+            'is_subscribed': true,
+            'can_play': true,
+          },
+        ],
+        'page': 1,
+        'page_size': 24,
+        'total': 1,
+      },
+    );
+
+    final page = await moviesApi.getMovies(
+      status: MovieStatusFilter.unsubscribed,
+      collectionType: MovieCollectionTypeFilter.single,
+      sort: 'release_date:desc',
+      interaction: MovieInteractionFilter.initial.withRange(
+        MovieInteractionMetric.heat,
+        min: 1000,
+        max: 5000,
+      ),
+      actorAgeMin: 20,
+      actorAgeMax: 30,
+      query: '温泉 三上',
+      page: 1,
+      pageSize: 24,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters['status'], 'unsubscribed');
+    expect(request.uri.queryParameters['collection_type'], 'single');
+    expect(request.uri.queryParameters['sort'], 'release_date:desc');
+    expect(request.uri.queryParameters['heat_min'], '1000');
+    expect(request.uri.queryParameters['heat_max'], '5000');
+    expect(request.uri.queryParameters['actor_age_min'], '20');
+    expect(request.uri.queryParameters['actor_age_max'], '30');
+    expect(request.uri.queryParameters['query'], '温泉 三上');
+    expect(request.uri.queryParameters['actor_id'], isNull);
+    expect(request.uri.queryParameters['page'], '1');
+    expect(request.uri.queryParameters['page_size'], '24');
+    expect(page.items.single.id, 77);
+    expect(page.items.single.movieNumber, 'ABC-001');
+    expect(page.items.single.preferredTitle, 'Movie 1');
+    expect(page.items.single.seriesId, 7);
+    expect(page.items.single.seriesName, 'Series 1');
+    expect(page.items.single.heat, 9);
+  });
+
+  test('getMovies omits actor age params when unset', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 20,
+        'total': 0,
+      },
+    );
+
+    await moviesApi.getMovies();
+
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters['actor_age_min'], isNull);
+    expect(request.uri.queryParameters['actor_age_max'], isNull);
+  });
+
+  test('getMoviesBySeries sends series body and parses response', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/by-series',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': [
+          <String, dynamic>{
+            'movie_number': 'ABC-002',
+            'title': 'Movie 2',
+            'series_id': 12,
+            'series_name': 'S1 NO.1 STYLE',
+            'cover_image': null,
+            'release_date': '2026-03-10',
+            'duration_minutes': 120,
+            'heat': 8,
+            'is_subscribed': false,
+            'can_play': false,
+          },
+        ],
+        'page': 2,
+        'page_size': 24,
+        'total': 3,
+      },
+    );
+
+    final page = await moviesApi.getMoviesBySeries(
+      seriesId: 12,
+      page: 2,
+      pageSize: 24,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.path, '/movies/by-series');
+    expect(request.body, <String, dynamic>{
+      'series_id': 12,
+      'page': 2,
+      'page_size': 24,
+    });
+    expect(page.total, 3);
+    expect(page.items.single.movieNumber, 'ABC-002');
+    expect(page.items.single.seriesId, 12);
+    expect(page.items.single.seriesName, 'S1 NO.1 STYLE');
+  });
+
+  test('getMovies sends actor_id and years as stable desc CSV', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 24,
+        'total': 0,
+      },
+    );
+
+    await moviesApi.getMovies(
+      actorId: 7,
+      years: const <int>[2024, 2026],
+      page: 1,
+      pageSize: 24,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters['actor_id'], '7');
+    expect(request.uri.queryParameters['year'], '2026,2024');
+  });
+
+  test('getMovies joins tagIds into comma-separated tag_ids', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 24,
+        'total': 0,
+      },
+    );
+
+    await moviesApi.getMovies(
+      tagIds: const <int>[1, 2, 3],
+      page: 1,
+      pageSize: 24,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters['tag_ids'], '1,2,3');
+  });
+
+  test('getMovies omits tag_ids when tagIds is null or empty', () async {
+    adapter
+      ..enqueueJson(
+        method: 'GET',
+        path: '/movies',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'items': const <Map<String, dynamic>>[],
+          'page': 1,
+          'page_size': 24,
+          'total': 0,
+        },
+      )
+      ..enqueueJson(
+        method: 'GET',
+        path: '/movies',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'items': const <Map<String, dynamic>>[],
+          'page': 1,
+          'page_size': 24,
+          'total': 0,
+        },
+      );
+
+    await moviesApi.getMovies(page: 1, pageSize: 24);
+    await moviesApi.getMovies(tagIds: const <int>[], page: 1, pageSize: 24);
+
+    expect(
+      adapter.requests.every(
+        (request) => !request.uri.queryParameters.containsKey('tag_ids'),
+      ),
+      isTrue,
+    );
+  });
+
+  test(
+    'getMovies sends tag_match when tagIds and tagMatch are provided',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'items': const <Map<String, dynamic>>[],
+          'page': 1,
+          'page_size': 24,
+          'total': 0,
+        },
+      );
+
+      await moviesApi.getMovies(
+        tagIds: const <int>[1, 2],
+        tagMatch: TagMatchMode.and,
+        page: 1,
+        pageSize: 24,
+      );
+
+      final request = adapter.requests.single;
+      expect(request.uri.queryParameters['tag_ids'], '1,2');
+      expect(request.uri.queryParameters['tag_match'], 'and');
+    },
+  );
+
+  test('getMovies omits tag_match when tagIds is empty', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 24,
+        'total': 0,
+      },
+    );
+
+    await moviesApi.getMovies(
+      tagMatch: TagMatchMode.and,
+      page: 1,
+      pageSize: 24,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters.containsKey('tag_match'), isFalse);
+  });
+
+  test('getMovies sends media file tag filters and match mode', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 24,
+        'total': 0,
+      },
+    );
+
+    await moviesApi.getMovies(
+      mediaTagIds: const <int>[4, 9],
+      mediaTagMatch: TagMatchMode.and,
+      page: 1,
+      pageSize: 24,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters['media_tag_ids'], '4,9');
+    expect(request.uri.queryParameters['media_tag_match'], 'and');
+    expect(request.uri.queryParameters.containsKey('tag_ids'), isFalse);
+  });
+
+  test('getMovies omits media tag filters when selection is empty', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 24,
+        'total': 0,
+      },
+    );
+
+    await moviesApi.getMovies(
+      mediaTagIds: const <int>[],
+      mediaTagMatch: TagMatchMode.and,
+      page: 1,
+      pageSize: 24,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters.containsKey('media_tag_ids'), isFalse);
+    expect(request.uri.queryParameters.containsKey('media_tag_match'), isFalse);
+  });
+
+  test('getMovies omits optional filters when not provided', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 20,
+        'total': 0,
+      },
+    );
+
+    await moviesApi.getMovies(page: 1, pageSize: 20);
+
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters.containsKey('status'), isFalse);
+    expect(request.uri.queryParameters.containsKey('collection_type'), isFalse);
+    expect(request.uri.queryParameters.containsKey('sort'), isFalse);
+    expect(request.uri.queryParameters.containsKey('year'), isFalse);
+  });
+
+  test('getMovies sends blacklisted filter when requested', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': const <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 24,
+        'total': 0,
+      },
+    );
+
+    await moviesApi.getMovies(blacklisted: true, page: 1, pageSize: 24);
+
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters['blacklisted'], 'true');
+  });
+
+  test('getMovies converts backend error to ApiException', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies',
+      statusCode: 500,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
+      },
+    );
+
+    expect(
+      () => moviesApi.getMovies(
+        status: MovieStatusFilter.playable,
+        collectionType: MovieCollectionTypeFilter.all,
+        sort: 'added_at:desc',
+      ),
+      throwsA(
+        isA<ApiException>().having(
+          (ApiException error) => error.error?.code,
+          'error.code',
+          'server_error',
+        ),
+      ),
+    );
+  });
+
+  test(
+    'parseMovieNumber sends query body and parses success response',
+    () async {
+      adapter.enqueueJson(
+        method: 'POST',
+        path: '/movies/search/parse-number',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'query': 'abp123',
+          'parsed': true,
+          'movie_number': 'ABP-123',
+          'reason': null,
+        },
+      );
+
+      final result = await moviesApi.parseMovieNumber(query: 'abp123');
+
+      final request = adapter.requests.single;
+      expect(request.method, 'POST');
+      expect(request.path, '/movies/search/parse-number');
+      expect(request.body, <String, dynamic>{'query': 'abp123'});
+      expect(
+        result,
+        const ParsedMovieNumberDto(
+          query: 'abp123',
+          parsed: true,
+          movieNumber: 'ABP-123',
+          reason: null,
+        ),
+      );
+    },
+  );
+
+  test('parseMovieNumber parses failed response', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/search/parse-number',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'query': 'mikami',
+        'parsed': false,
+        'movie_number': null,
+        'reason': 'movie_number_not_found',
+      },
+    );
+
+    final result = await moviesApi.parseMovieNumber(query: 'mikami');
+
+    expect(result.parsed, isFalse);
+    expect(result.movieNumber, isNull);
+    expect(result.reason, 'movie_number_not_found');
+  });
+
+  test('parseMovieNumber converts backend error to ApiException', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/search/parse-number',
+      statusCode: 500,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
+      },
+    );
+
+    expect(
+      () => moviesApi.parseMovieNumber(query: 'abp123'),
+      throwsA(
+        isA<ApiException>().having(
+          (ApiException error) => error.error?.code,
+          'error.code',
+          'server_error',
+        ),
+      ),
+    );
+  });
+
+  test('getMovieCollectionStatus sends request and parses response', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABP-123/collection-status',
+      statusCode: 200,
+      body: <String, dynamic>{'movie_number': 'ABP-123', 'is_collection': true},
+    );
+
+    final status = await moviesApi.getMovieCollectionStatus(
+      movieNumber: 'ABP-123',
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'GET');
+    expect(request.path, '/movies/ABP-123/collection-status');
+    expect(status.movieNumber, 'ABP-123');
+    expect(status.isCollection, isTrue);
+  });
+
+  test(
+    'getMovieCollectionStatus converts backend error to ApiException',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABP-404/collection-status',
+        statusCode: 404,
+        body: <String, dynamic>{
+          'error': <String, dynamic>{
+            'code': 'movie_not_found',
+            'message': '影片不存在',
+          },
+        },
+      );
+
+      expect(
+        () => moviesApi.getMovieCollectionStatus(movieNumber: 'ABP-404'),
+        throwsA(
+          isA<ApiException>().having(
+            (ApiException error) => error.error?.code,
+            'error.code',
+            'movie_not_found',
+          ),
+        ),
+      );
+    },
+  );
+
+  test('updateMovieCollectionType sends payload and parses response', () async {
+    adapter.enqueueJson(
+      method: 'PATCH',
+      path: '/movies/collection-type',
+      statusCode: 200,
+      body: <String, dynamic>{'requested_count': 2, 'updated_count': 1},
+    );
+
+    final result = await moviesApi.updateMovieCollectionType(
+      movieNumbers: const <String>['ABP-123', 'ABP-404'],
+      collectionType: MovieCollectionType.single,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'PATCH');
+    expect(request.path, '/movies/collection-type');
+    expect(request.body, <String, dynamic>{
+      'movie_numbers': <String>['ABP-123', 'ABP-404'],
+      'collection_type': 'single',
+    });
+    expect(result.requestedCount, 2);
+    expect(result.updatedCount, 1);
+  });
+
+  test(
+    'updateMovieCollectionType converts backend error to ApiException',
+    () async {
+      adapter.enqueueJson(
+        method: 'PATCH',
+        path: '/movies/collection-type',
+        statusCode: 500,
+        body: <String, dynamic>{
+          'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
+        },
+      );
+
+      expect(
+        () => moviesApi.updateMovieCollectionType(
+          movieNumbers: const <String>['ABP-123'],
+          collectionType: MovieCollectionType.collection,
+        ),
+        throwsA(
+          isA<ApiException>().having(
+            (ApiException error) => error.error?.code,
+            'error.code',
+            'server_error',
+          ),
+        ),
+      );
+    },
+  );
+
+  test('searchOnlineMoviesStream parses completed SSE result', () async {
+    adapter.enqueueSse(
+      method: 'POST',
+      path: '/movies/metadata-imports',
+      chunks: <String>[
+        'event: search_started\n'
+            'data: {"movie_number":"ABP-123"}\n\n',
+        'event: movie_found\n'
+            'data: {"movies":[{"movie_number":"ABP-123","title":"title-ABP-123","cover_image":"https://example.com/cover.jpg"}],"total":1}\n\n',
+        'event: upsert_started\n'
+            'data: {"total":1}\n\n',
+        'event: completed\n'
+            'data: {"success":true,"movies":[{"movie_number":"ABP-123","title":"Movie 1","cover_image":null,"release_date":null,"duration_minutes":120,"is_subscribed":false,"can_play":true}],"failed_items":[],"stats":{"total":1,"created_count":1,"already_exists_count":0,"failed_count":0}}\n\n',
+      ],
+    );
+
+    final updates = await moviesApi
+        .searchOnlineMoviesStream(movieNumber: 'ABP-123')
+        .toList();
+
+    final request = adapter.requests.single;
+    expect(request.method, 'POST');
+    expect(request.path, '/movies/metadata-imports');
+    expect(request.body, <String, dynamic>{'movie_number': 'ABP-123'});
+    expect(updates.last.message, '在线搜索已完成');
+    expect(updates.last.success, isTrue);
+    expect(updates.last.results.single.movieNumber, 'ABP-123');
+  });
+
+  test('searchOnlineMoviesStream exposes metadata fallback errors', () async {
+    adapter.enqueueSse(
+      method: 'POST',
+      path: '/movies/metadata-imports',
+      chunks: <String>[
+        'event: movie_found\n'
+            'data: {"movies":[{"movie_number":"ABP-123","title":"fallback","cover_image":null}],"total":1,"source_errors":[{"source":"metadata_one","source_name":"Metadata One","reason":"metadata_fetch_failed","detail":"plugin offline"}]}\n\n',
+        'event: completed\n'
+            'data: {"success":true,"movies":[{"movie_number":"ABP-123","title":"fallback","cover_image":null,"release_date":null,"duration_minutes":0,"is_subscribed":false,"can_play":false}],"source_errors":[{"source":"metadata_one","source_name":"Metadata One","reason":"metadata_fetch_failed","detail":"plugin offline"}],"stats":{"total":1,"created_count":1,"already_exists_count":0,"failed_count":0}}\n\n',
+      ],
+    );
+
+    final updates = await moviesApi
+        .searchOnlineMoviesStream(movieNumber: 'ABP-123')
+        .toList();
+
+    expect(updates.first.sourceErrors.single.reason, 'metadata_fetch_failed');
+    expect(updates.last.sourceErrors.single.sourceName, 'Metadata One');
+  });
+
+  test('searchOnlineMoviesStream localizes progress messages', () async {
+    adapter.enqueueSse(
+      method: 'POST',
+      path: '/movies/metadata-imports',
+      chunks: <String>[
+        'event: search_started\n'
+            'data: {"movie_number":"ABP-123"}\n\n',
+        'event: completed\n'
+            'data: {"success":true,"movies":[],"failed_items":[],"stats":{"total":0,"created_count":0,"already_exists_count":0,"failed_count":0}}\n\n',
+      ],
+    );
+
+    final englishApi = MoviesApi(
+      apiClient: apiClient,
+      l10n: () => AppLocalizationsEn(),
+    );
+    final updates = await englishApi
+        .searchOnlineMoviesStream(movieNumber: 'ABP-123')
+        .toList();
+
+    expect(updates.first.message, 'Searching external sources for movies...');
+    expect(updates.last.message, 'Online search complete');
+  });
+
+  test(
+    'searchOnlineMoviesStream keeps not found as non-error completion',
+    () async {
+      adapter.enqueueSse(
+        method: 'POST',
+        path: '/movies/metadata-imports',
+        chunks: <String>[
+          'event: search_started\n'
+              'data: {"movie_number":"ABP-404"}\n\n',
+          'event: completed\n'
+              'data: {"success":false,"reason":"movie_not_found","movies":[]}\n\n',
+        ],
+      );
+
+      final updates = await moviesApi
+          .searchOnlineMoviesStream(movieNumber: 'ABP-404')
+          .toList();
+
+      expect(updates.last.success, isFalse);
+      expect(updates.last.reason, 'movie_not_found');
+      expect(updates.last.results, isEmpty);
+    },
+  );
+
+  test('searchOnlineMoviesStream supports chunked SSE events', () async {
+    adapter.enqueueSse(
+      method: 'POST',
+      path: '/movies/metadata-imports',
+      chunks: <String>[
+        'event: completed\n',
+        'data: {"success":true,"movies":[{"movie_number":"MovieA1",',
+        '"movie_number":"ABP-123","title":"Movie 1","cover_image":null,',
+        '"release_date":null,"duration_minutes":120,"is_subscribed":false,"can_play":true}],"failed_items":[],"stats":{"total":1,"created_count":1,"already_exists_count":0,"failed_count":0}}\n\n',
+      ],
+    );
+
+    final updates = await moviesApi
+        .searchOnlineMoviesStream(movieNumber: 'ABP-123')
+        .toList();
+
+    expect(updates.single.results.single.movieNumber, 'ABP-123');
+  });
+
+  test(
+    'searchOnlineMoviesStream converts invalid SSE payload to ApiException',
+    () async {
+      adapter.enqueueSse(
+        method: 'POST',
+        path: '/movies/metadata-imports',
+        chunks: <String>[
+          'event: completed\n'
+              'data: not-json\n\n',
+        ],
+      );
+
+      expect(
+        () =>
+            moviesApi.searchOnlineMoviesStream(movieNumber: 'ABP-123').toList(),
+        throwsA(isA<ApiException>()),
+      );
+    },
+  );
+
+  test('getLatestMovies parses paginated movie response', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/latest',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': [
+          <String, dynamic>{
+            'movie_number': 'ABC-001',
+            'title': 'Movie 1',
+            'cover_image': <String, dynamic>{'id': 10, 'origin': 'large.jpg'},
+            'thin_cover_image': <String, dynamic>{
+              'id': 11,
+              'origin': 'thin-large.jpg',
+            },
+            'release_date': '2024-01-02',
+            'duration_minutes': 120,
+            'is_subscribed': true,
+            'can_play': true,
+          },
+        ],
+        'page': 1,
+        'page_size': 8,
+        'total': 1,
+      },
+    );
+
+    final page = await moviesApi.getLatestMovies(page: 1, pageSize: 8);
+
+    expect(page.page, 1);
+    expect(page.pageSize, 8);
+    expect(page.total, 1);
+    expect(page.items.single.movieNumber, 'ABC-001');
+    expect(page.items.single.preferredTitle, 'Movie 1');
+    expect(page.items.single.coverImage?.origin, 'large.jpg');
+    expect(page.items.single.thinCoverImage?.origin, 'thin-large.jpg');
+    expect(page.items.single.releaseDate, DateTime.parse('2024-01-02'));
+    expect(page.items.single.canPlay, isTrue);
+  });
+
+  test('getLatestMovies converts backend error to ApiException', () async {
+    await sessionStore.clearSession();
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/latest',
+      statusCode: 401,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'unauthorized',
+          'message': 'Unauthorized',
+        },
+      },
+    );
+
+    expect(
+      () => moviesApi.getLatestMovies(page: 1, pageSize: 8),
+      throwsA(
+        isA<ApiException>().having(
+          (ApiException error) => error.error?.code,
+          'error.code',
+          'unauthorized',
+        ),
+      ),
+    );
+  });
+
+  test('getSubscribedActorsLatestMovies parses paginated response', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/subscribed-actors/latest',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'items': [
+          <String, dynamic>{
+            'movie_number': 'ABC-002',
+            'title': 'Movie 2',
+            'cover_image': null,
+            'release_date': '2026-03-10',
+            'duration_minutes': 130,
+            'is_subscribed': false,
+            'can_play': true,
+          },
+        ],
+        'page': 1,
+        'page_size': 10,
+        'total': 1,
+      },
+    );
+
+    final page = await moviesApi.getSubscribedActorsLatestMovies(
+      page: 1,
+      pageSize: 10,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.path, '/movies/subscribed-actors/latest');
+    expect(request.uri.queryParameters['page'], '1');
+    expect(request.uri.queryParameters['page_size'], '10');
+    expect(page.total, 1);
+    expect(page.items.single.movieNumber, 'ABC-002');
+    expect(page.items.single.releaseDate, DateTime.parse('2026-03-10'));
+  });
+
+  test('getSubscribedActorsLatestMovies converts backend error', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/subscribed-actors/latest',
+      statusCode: 500,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
+      },
+    );
+
+    expect(
+      () => moviesApi.getSubscribedActorsLatestMovies(page: 1, pageSize: 10),
+      throwsA(
+        isA<ApiException>().having(
+          (ApiException error) => error.error?.code,
+          'error.code',
+          'server_error',
+        ),
+      ),
+    );
+  });
+
+  test('getMovieDetail parses full movie detail response', () async {
+    final zh = AppLocalizationsZh();
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'id': 77,
+        'movie_number': 'ABC-001',
+        'title': 'Movie 1',
+        'cover_image': <String, dynamic>{'id': 10, 'origin': 'cover-large.jpg'},
+        'release_date': '2024-01-02',
+        'duration_minutes': 120,
+        'interaction_stats': <String, dynamic>{
+          'score': 4.5,
+          'watched_count': 12,
+          'want_watch_count': 23,
+          'comment_count': 34,
+          'score_number': 45,
+        },
+        'stats_source': 'legacy:host',
+        'stats_updated_at': null,
+        'heat': 27,
+        'is_collection': true,
+        'is_subscribed': false,
+        'is_blacklisted': true,
+        'can_play': true,
+        'series_id': 7,
+        'series_name': 'Series 1',
+        'maker_name': 'S1 NO.1 STYLE',
+        'director_name': '紋℃',
+        'summary': 'summary',
+        'actors': [
+          <String, dynamic>{
+            'id': 1,
+            'name': '三上悠亚',
+            'alias_name': '三上悠亚 / 鬼头桃菜',
+            'gender': 1,
+            'is_subscribed': false,
+            'profile_image': <String, dynamic>{
+              'id': 11,
+              'origin': 'actor-large.jpg',
+            },
+          },
+        ],
+        'tags': [
+          <String, dynamic>{'tag_id': 1, 'name': '剧情'},
+        ],
+        'thin_cover_image': <String, dynamic>{
+          'id': 12,
+          'origin': 'thin-large.jpg',
+        },
+        'plot_images': [
+          <String, dynamic>{'id': 13, 'origin': 'plot-large.jpg'},
+        ],
+        'merge_playback_candidates': [
+          <String, dynamic>{
+            'library_id': 9,
+            'library_name': 'VR 媒体库',
+            'provider_key': 'cloud115',
+            'segment_count': 2,
+          },
+        ],
+        'playlists': [
+          <String, dynamic>{
+            'id': 1,
+            'name': '最近播放',
+            'kind': 'recently_played',
+            'is_system': true,
+          },
+          <String, dynamic>{
+            'id': 2,
+            'name': '我的收藏',
+            'kind': 'custom',
+            'is_system': false,
+          },
+        ],
+        'favorite_playlist_id': 9,
+        'rankings': [
+          <String, dynamic>{
+            'source_key': 'javdb',
+            'source_name': 'JavDB',
+            'board_key': 'playback_all',
+            'board_name': '热播',
+            'period': 'daily',
+            'rank': 3,
+          },
+          <String, dynamic>{
+            'source_key': 'javdb',
+            'source_name': 'JavDB',
+            'board_key': 'top250',
+            'board_name': 'TOP250',
+            'period': '2026',
+            'rank': 28,
+          },
+        ],
+        'media_items': [
+          <String, dynamic>{
+            'media_id': 100,
+            'library_id': 1,
+            'play_url':
+                '/files/media/movies/ABC-001/video.mp4?expires=1700000900&signature=abc',
+            'provider_key': 'filesystem',
+            'file_name': 'ABC-001.mp4',
+            'resolution': '1920x1080',
+            'file_size_bytes': 1073741824,
+            'duration_seconds': 7200,
+            'valid': true,
+            'progress': <String, dynamic>{
+              'last_position_seconds': 600,
+              'last_watched_at': '2026-03-08T09:30:00',
+            },
+            'video_info': <String, dynamic>{
+              'container': <String, dynamic>{
+                'format_name': 'mpegts',
+                'duration_seconds': 7200,
+                'bit_rate': 22793091,
+                'size_bytes': 1073741824,
+              },
+              'video': <String, dynamic>{
+                'codec_name': 'h264',
+                'codec_long_name': 'H.264 / AVC',
+                'profile': 'High',
+                'bit_rate': null,
+                'width': 1920,
+                'height': 1080,
+                'frame_rate': 29.97,
+                'pixel_format': 'yuv420p',
+              },
+              'audio': <String, dynamic>{
+                'codec_name': 'aac',
+                'codec_long_name': 'AAC',
+                'profile': 'LC',
+                'bit_rate': 192000,
+                'sample_rate': 48000,
+                'channels': 2,
+                'channel_layout': 'stereo',
+              },
+              'subtitles': [
+                <String, dynamic>{
+                  'codec_name': 'ass',
+                  'codec_long_name': 'Advanced SubStation Alpha',
+                  'language': 'zh',
+                  'title': 'Chinese',
+                },
+              ],
+            },
+            'playback_deliveries': const <String>['proxy', 'redirect'],
+            'points': [
+              <String, dynamic>{
+                'point_id': 1,
+                'thumbnail_id': 66,
+                'offset_seconds': 120,
+                'image': <String, dynamic>{
+                  'id': 9100,
+                  'origin': 'point-large.webp',
+                },
+              },
+            ],
+          },
+        ],
+      },
+    );
+
+    final detail = await moviesApi.getMovieDetail(movieNumber: 'ABC-001');
+
+    expect(detail, isA<MovieDetailDto>());
+    expect(detail.id, 77);
+    expect(detail.movieNumber, 'ABC-001');
+    expect(detail.title, 'Movie 1');
+    expect(detail.preferredTitle, 'Movie 1');
+    expect(detail.interactionStats?['score'], 4.5);
+    expect(detail.interactionStats?['watched_count'], 12);
+    expect(detail.statsSource, 'legacy:host');
+    expect(detail.statsUpdatedAt, isNull);
+    expect(detail.heat, 27);
+    expect(detail.isBlacklisted, isTrue);
+    expect(detail.seriesId, 7);
+    expect(detail.seriesName, 'Series 1');
+    expect(detail.makerName, 'S1 NO.1 STYLE');
+    expect(detail.directorName, '紋℃');
+    expect(detail.summary, 'summary');
+    expect(detail.preferredDescription, 'summary');
+    expect(detail.coverImage?.origin, 'cover-large.jpg');
+    expect(detail.thinCoverImage?.origin, 'thin-large.jpg');
+    expect(detail.plotImages.single.origin, 'plot-large.jpg');
+    expect(detail.actors.single.aliasName, '三上悠亚 / 鬼头桃菜');
+    expect(detail.actors.single.gender, 1);
+    expect(detail.actors.single.isFemale, isTrue);
+    expect(detail.tags.single.name, '剧情');
+    expect(
+      detail.mediaItems.single.playUrl,
+      '/files/media/movies/ABC-001/video.mp4?expires=1700000900&signature=abc',
+    );
+    expect(detail.mediaItems.single.hasPlayableUrl, isTrue);
+    expect(detail.mediaItems.single.progress?.lastPositionSeconds, 600);
+    expect(detail.mediaItems.single.videoInfo?.video?.codecName, 'h264');
+    expect(detail.mediaItems.single.videoInfo?.video?.bitRate, isNull);
+    expect(detail.mediaItems.single.videoInfo?.container?.bitRate, 22793091);
+    expect(detail.mediaItems.single.videoInfo?.audio?.channels, 2);
+    expect(detail.mediaItems.single.videoInfo?.subtitles.single.language, 'zh');
+    expect(detail.mediaItems.single.points.single.thumbnailId, 66);
+    expect(detail.mediaItems.single.points.single.offsetSeconds, 120);
+    expect(detail.mergePlaybackCandidates.single.libraryId, 9);
+    expect(detail.mergePlaybackCandidates.single.providerKey, 'cloud115');
+    expect(detail.mergePlaybackCandidates.single.segmentCount, 2);
+    expect(
+      detail.mediaItems.single.points.single.image?.origin,
+      'point-large.webp',
+    );
+    expect(detail.playlists, hasLength(2));
+    expect(detail.playlists.first.name, '最近播放');
+    expect(detail.playlists.first.isSystem, isTrue);
+    expect(detail.playlists.last.kind, 'custom');
+    expect(detail.favoritePlaylistId, 9);
+    expect(detail.rankings, hasLength(2));
+    expect(detail.rankings.first.boardName, '热播');
+    expect(detail.rankings.first.periodLabel(zh), zh.rankingPeriodDaily);
+    expect(detail.rankings.first.rank, 3);
+    expect(detail.rankings.last.boardName, 'TOP250');
+    expect(detail.rankings.last.periodLabel(zh), zh.rankingPeriodYear('2026'));
+  });
+
+  test('getMergedPlayback requests the selected media library', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001/merged-playback',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'play_url':
+            '/media/merged-play/index.m3u8?media_ids=10,11&expires=1&signature=sig',
+      },
+    );
+
+    final playback = await moviesApi.getMergedPlayback(
+      movieNumber: 'ABC-001',
+      libraryId: 9,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'GET');
+    expect(request.path, '/movies/ABC-001/merged-playback');
+    expect(request.uri.queryParameters['library_id'], '9');
+    expect(playback.playUrl, contains('/media/merged-play/index.m3u8'));
+  });
+
+  test(
+    'getMovieDetail defaults actor gender to unknown when missing',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-003',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'movie_number': 'ABC-003',
+          'title': 'Movie 3',
+          'actors': [
+            <String, dynamic>{
+              'id': 3,
+              'name': '未知演员',
+              'alias_name': '',
+              'is_subscribed': false,
+              'profile_image': null,
+            },
+          ],
+          'tags': const <Map<String, dynamic>>[],
+          'plot_images': const <Map<String, dynamic>>[],
+          'media_items': const <Map<String, dynamic>>[],
+          'playlists': const <Map<String, dynamic>>[],
+        },
+      );
+
+      final detail = await moviesApi.getMovieDetail(movieNumber: 'ABC-003');
+
+      expect(detail.actors.single.gender, 0);
+      expect(detail.actors.single.isFemale, isFalse);
+    },
+  );
+
+  test('getSimilarMovies sends limit and parses similarity score', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001/similar',
+      statusCode: 200,
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'movie_number': 'SIM-001',
+          'title': 'Similar movie',
+          'cover_image': null,
+          'release_date': '2024-01-02',
+          'duration_minutes': 120,
+          'heat': 18,
+          'is_subscribed': true,
+          'can_play': true,
+          'similarity_score': 0.91,
+        },
+      ],
+    );
+
+    final movies = await moviesApi.getSimilarMovies(
+      movieNumber: 'ABC-001',
+      limit: 15,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'GET');
+    expect(request.path, '/movies/ABC-001/similar');
+    expect(request.uri.queryParameters['limit'], '15');
+    expect(movies.single.movieNumber, 'SIM-001');
+    expect(movies.single.similarityScore, 0.91);
+    expect(movies.single.isSubscribed, isTrue);
+    expect(movies.single.canPlay, isTrue);
+  });
+
+  test('getMovieDetail handles nullable detail sections', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-002',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'movie_number': 'ABC-002',
+        'title': 'Movie 2',
+        'cover_image': null,
+        'release_date': null,
+        'duration_minutes': 0,
+        'interaction_stats': null,
+        'stats_source': null,
+        'stats_updated_at': null,
+        'heat': 0,
+        'is_collection': false,
+        'is_subscribed': false,
+        'can_play': false,
+        'series_id': null,
+        'series_name': null,
+        'maker_name': null,
+        'director_name': null,
+        'summary': '',
+        'actors': [],
+        'tags': [],
+        'thin_cover_image': null,
+        'plot_images': [],
+        'media_items': [],
+      },
+    );
+
+    final detail = await moviesApi.getMovieDetail(movieNumber: 'ABC-002');
+
+    expect(detail.coverImage, isNull);
+    expect(detail.seriesId, isNull);
+    expect(detail.seriesName, '');
+    expect(detail.makerName, '');
+    expect(detail.directorName, '');
+    expect(detail.thinCoverImage, isNull);
+    expect(detail.plotImages, isEmpty);
+    expect(detail.mediaItems, isEmpty);
+  });
+
+  test('getMovieDetail trims summary for preferred description', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-020',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'movie_number': 'ABC-020',
+        'title': 'Movie 20',
+        'summary': '  summary fallback  ',
+        'actors': const <Map<String, dynamic>>[],
+        'tags': const <Map<String, dynamic>>[],
+        'plot_images': const <Map<String, dynamic>>[],
+        'playlists': const <Map<String, dynamic>>[],
+        'media_items': const <Map<String, dynamic>>[],
+      },
+    );
+
+    final detail = await moviesApi.getMovieDetail(movieNumber: 'ABC-020');
+
+    expect(detail.preferredDescription, 'summary fallback');
+  });
+
+  test(
+    'getMovieDetail preferred description is empty when summary is blank',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-022',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'movie_number': 'ABC-022',
+          'title': 'Movie 22',
+          'summary': '  ',
+          'actors': const <Map<String, dynamic>>[],
+          'tags': const <Map<String, dynamic>>[],
+          'plot_images': const <Map<String, dynamic>>[],
+          'playlists': const <Map<String, dynamic>>[],
+          'media_items': const <Map<String, dynamic>>[],
+        },
+      );
+
+      final detail = await moviesApi.getMovieDetail(movieNumber: 'ABC-022');
+
+      expect(detail.preferredDescription, isEmpty);
+    },
+  );
+
+  test('getMovieDetail handles missing video info sections', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-010',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'movie_number': 'ABC-010',
+        'title': 'Movie 10',
+        'actors': const <Map<String, dynamic>>[],
+        'tags': const <Map<String, dynamic>>[],
+        'plot_images': const <Map<String, dynamic>>[],
+        'playlists': const <Map<String, dynamic>>[],
+        'media_items': [
+          <String, dynamic>{
+            'media_id': 100,
+            'library_id': 1,
+            'play_url': '/files/media/movies/ABC-010/video.mp4',
+            'provider_key': 'filesystem',
+            'file_name': 'ABC-010.mp4',
+            'resolution': '1920x1080',
+            'file_size_bytes': 1073741824,
+            'duration_seconds': 7200,
+            'valid': true,
+            'video_info': <String, dynamic>{
+              'container': <String, dynamic>{'format_name': 'mp4'},
+              'video': <String, dynamic>{'codec_name': 'h264'},
+            },
+            'points': const <Map<String, dynamic>>[],
+            'playback_deliveries': const <String>['proxy'],
+          },
+        ],
+      },
+    );
+
+    final detail = await moviesApi.getMovieDetail(movieNumber: 'ABC-010');
+
+    expect(detail.mediaItems.single.videoInfo, isNotNull);
+    expect(detail.mediaItems.single.videoInfo?.container?.formatName, 'mp4');
+    expect(detail.mediaItems.single.videoInfo?.video?.codecName, 'h264');
+    expect(detail.mediaItems.single.videoInfo?.audio, isNull);
+    expect(detail.mediaItems.single.videoInfo?.subtitles, isEmpty);
+  });
+
+  test('getMovieDetail converts movie not found to ApiException', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-404',
+      statusCode: 404,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'movie_not_found',
+          'message': '影片不存在',
+        },
+      },
+    );
+
+    expect(
+      () => moviesApi.getMovieDetail(movieNumber: 'ABC-404'),
+      throwsA(
+        isA<ApiException>()
+            .having((ApiException error) => error.statusCode, 'statusCode', 404)
+            .having(
+              (ApiException error) => error.error?.code,
+              'error.code',
+              'movie_not_found',
+            ),
+      ),
+    );
+  });
+
+  test('getMovieReviews sends query and parses review list', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001/reviews',
+      statusCode: 200,
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'id': 1,
+          'score': 5,
+          'content': '很不错',
+          'created_at': '2026-03-10T08:00:00Z',
+          'username': 'tester',
+          'like_count': 8,
+          'watch_count': 15,
+        },
+      ],
+    );
+
+    final reviews = await moviesApi.getMovieReviews(
+      movieNumber: 'ABC-001',
+      page: 2,
+      pageSize: 5,
+      sort: MovieReviewSort.hotly,
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'GET');
+    expect(request.path, '/movies/ABC-001/reviews');
+    expect(request.uri.queryParameters['page'], '2');
+    expect(request.uri.queryParameters['page_size'], '5');
+    expect(request.uri.queryParameters['sort'], 'hotly');
+    expect(reviews, hasLength(1));
+    expect(reviews.single.score, 5);
+    expect(reviews.single.username, 'tester');
+    expect(reviews.single.createdAt, DateTime.parse('2026-03-10T08:00:00Z'));
+  });
+
+  test('getMovieReviews preserves backend ApiException payload', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-404/reviews',
+      statusCode: 404,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'movie_not_found',
+          'message': '影片不存在',
+        },
+      },
+    );
+
+    expect(
+      () => moviesApi.getMovieReviews(movieNumber: 'ABC-404'),
+      throwsA(
+        isA<ApiException>()
+            .having((ApiException error) => error.statusCode, 'statusCode', 404)
+            .having(
+              (ApiException error) => error.error?.code,
+              'error.code',
+              'movie_not_found',
+            ),
+      ),
+    );
+  });
+
+  test('getMovieSubtitles parses subtitle list response', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001/subtitles',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'movie_number': 'ABC-001',
+        'fetch_status': 'succeeded',
+        'last_attempted_at': '2026-04-10T09:00:00',
+        'last_succeeded_at': '2026-04-10T09:01:00',
+        'last_error': null,
+        'items': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'subtitle_id': 501,
+            'file_name': 'ABC-001.zh.srt',
+            'created_at': '2026-04-10T09:01:00',
+            'url': '/files/subtitles/501?expires=1700000900&signature=subtitle',
+          },
+        ],
+      },
+    );
+
+    final subtitles = await moviesApi.getMovieSubtitles(movieNumber: 'ABC-001');
+
+    expect(subtitles, isA<MovieSubtitleListDto>());
+    expect(subtitles.movieNumber, 'ABC-001');
+    expect(subtitles.fetchStatus, 'succeeded');
+    expect(subtitles.items, hasLength(1));
+    expect(subtitles.items.single.subtitleId, 501);
+    expect(subtitles.items.single.fileName, 'ABC-001.zh.srt');
+    expect(
+      subtitles.items.single.url,
+      '/files/subtitles/501?expires=1700000900&signature=subtitle',
+    );
+  });
+
+  test(
+    'getMovieSubtitles handles empty items and failed fetch state',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/movies/ABC-002/subtitles',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'movie_number': 'ABC-002',
+          'fetch_status': 'failed',
+          'last_attempted_at': '2026-04-10T09:00:00',
+          'last_succeeded_at': null,
+          'last_error': '字幕抓取失败',
+          'items': const <Map<String, dynamic>>[],
+        },
+      );
+
+      final subtitles = await moviesApi.getMovieSubtitles(
+        movieNumber: 'ABC-002',
+      );
+
+      expect(subtitles.fetchStatus, 'failed');
+      expect(subtitles.lastError, '字幕抓取失败');
+      expect(subtitles.items, isEmpty);
+    },
+  );
+
+  test('getMediaThumbnails parses thumbnail list response', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/100/thumbnails',
+      statusCode: 200,
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'thumbnail_id': 5,
+          'media_id': 100,
+          'offset_seconds': 10,
+          'image': <String, dynamic>{'id': 88, 'origin': 'thumb-large.webp'},
+          'width': 1280,
+          'height': 720,
+        },
+      ],
+    );
+
+    final thumbnails = await mediaApi.getMediaThumbnails(mediaId: 100);
+
+    expect(thumbnails, hasLength(1));
+    expect(thumbnails.single, isA<MovieMediaThumbnailDto>());
+    expect(thumbnails.single.thumbnailId, 5);
+    expect(thumbnails.single.mediaId, 100);
+    expect(thumbnails.single.offsetSeconds, 10);
+    expect(thumbnails.single.image.origin, 'thumb-large.webp');
+    expect(thumbnails.single.width, 1280);
+    expect(thumbnails.single.height, 720);
+    expect(adapter.requests.single.path, '/media/100/thumbnails');
+  });
+
+  test(
+    'getMediaThumbnails falls back to null width/height when backend omits them',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/100/thumbnails',
+        statusCode: 200,
+        body: <Map<String, dynamic>>[
+          <String, dynamic>{
+            'thumbnail_id': 5,
+            'media_id': 100,
+            'offset_seconds': 10,
+            'image': <String, dynamic>{'id': 88, 'origin': 'thumb-large.webp'},
+          },
+        ],
+      );
+
+      final thumbnails = await mediaApi.getMediaThumbnails(mediaId: 100);
+
+      expect(thumbnails.single.width, isNull);
+      expect(thumbnails.single.height, isNull);
+    },
+  );
+
+  test(
+    'getMediaThumbnails returns empty list when backend has no thumbnails',
+    () async {
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/media/100/thumbnails',
+        statusCode: 200,
+        body: const <Map<String, dynamic>>[],
+      );
+
+      final thumbnails = await mediaApi.getMediaThumbnails(mediaId: 100);
+
+      expect(thumbnails, isEmpty);
+    },
+  );
+
+  test('getMediaThumbnails preserves backend ApiException payload', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/404/thumbnails',
+      statusCode: 404,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'media_not_found',
+          'message': '资源不存在',
+        },
+      },
+    );
+
+    expect(
+      () => mediaApi.getMediaThumbnails(mediaId: 404),
+      throwsA(
+        isA<ApiException>()
+            .having((ApiException error) => error.statusCode, 'statusCode', 404)
+            .having(
+              (ApiException error) => error.error?.code,
+              'error.code',
+              'media_not_found',
+            ),
+      ),
+    );
+  });
+
+  test(
+    'updateMediaProgress sends position_seconds and parses response',
+    () async {
+      adapter.enqueueJson(
+        method: 'PUT',
+        path: '/media/100/progress',
+        statusCode: 200,
+        body: <String, dynamic>{
+          'media_id': 100,
+          'last_position_seconds': 615,
+          'last_watched_at': '2026-03-12T14:00:00',
+        },
+      );
+
+      final progress = await mediaApi.updateMediaProgress(
+        mediaId: 100,
+        positionSeconds: 615,
+      );
+
+      final request = adapter.requests.single;
+      expect(request.method, 'PUT');
+      expect(request.path, '/media/100/progress');
+      expect(request.body, <String, dynamic>{'position_seconds': 615});
+      expect(progress.lastPositionSeconds, 615);
+      expect(progress.lastWatchedAt, DateTime.parse('2026-03-12T14:00:00'));
+    },
+  );
+
+  test('updateMediaProgress preserves backend ApiException payload', () async {
+    await sessionStore.clearSession();
+    adapter.enqueueJson(
+      method: 'PUT',
+      path: '/media/100/progress',
+      statusCode: 401,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'unauthorized',
+          'message': 'Unauthorized',
+        },
+      },
+    );
+
+    expect(
+      () => mediaApi.updateMediaProgress(mediaId: 100, positionSeconds: 615),
+      throwsA(
+        isA<ApiException>().having(
+          (ApiException error) => error.error?.code,
+          'error.code',
+          'unauthorized',
+        ),
+      ),
+    );
+  });
+
+  test(
+    'subscribeMovie sends PUT request to movie subscription endpoint',
+    () async {
+      adapter.enqueueJson(
+        method: 'PUT',
+        path: '/movies/ABC-001/subscription',
+        statusCode: 204,
+      );
+
+      await moviesApi.subscribeMovie(movieNumber: 'ABC-001');
+
+      final request = adapter.requests.single;
+      expect(request.method, 'PUT');
+      expect(request.path, '/movies/ABC-001/subscription');
+      expect(request.uri.queryParameters, isEmpty);
+    },
+  );
+
+  test(
+    'unsubscribeMovie sends DELETE request with delete_media=false by default',
+    () async {
+      adapter.enqueueJson(
+        method: 'DELETE',
+        path: '/movies/ABC-001/subscription',
+        statusCode: 204,
+      );
+
+      await moviesApi.unsubscribeMovie(movieNumber: 'ABC-001');
+
+      final request = adapter.requests.single;
+      expect(request.method, 'DELETE');
+      expect(request.path, '/movies/ABC-001/subscription');
+      expect(request.uri.queryParameters['delete_media'], 'false');
+    },
+  );
+
+  test('batchSubscribeMovies posts movie_numbers and parses result', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/subscriptions',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'requested_count': 2,
+        'updated_count': 1,
+        'skipped_count': 1,
+        'skipped': <Map<String, dynamic>>[
+          <String, dynamic>{
+            'movie_number': 'NOT-EXIST-999',
+            'reason': 'movie_not_found',
+          },
+        ],
+      },
+    );
+
+    final result = await moviesApi.batchSubscribeMovies(
+      movieNumbers: const <String>['ABC-001', 'NOT-EXIST-999'],
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'POST');
+    expect(request.path, '/movies/subscriptions');
+    expect(request.body, <String, dynamic>{
+      'movie_numbers': <String>['ABC-001', 'NOT-EXIST-999'],
+    });
+    expect(result.requestedCount, 2);
+    expect(result.updatedCount, 1);
+    expect(result.skippedCount, 1);
+    expect(result.skipped, hasLength(1));
+    expect(result.skipped.single.movieNumber, 'NOT-EXIST-999');
+    expect(
+      result.skipped.single.reason,
+      MovieSubscriptionSkipReason.movieNotFound,
+    );
+  });
+
+  test(
+    'setMoviesBlacklisted uses the blacklist endpoint for both states',
+    () async {
+      adapter
+        ..enqueueJson(method: 'PUT', path: '/movies/blacklist', statusCode: 204)
+        ..enqueueJson(
+          method: 'DELETE',
+          path: '/movies/blacklist',
+          statusCode: 204,
+        );
+
+      await moviesApi.setMoviesBlacklisted(
+        movieNumbers: const <String>['ABC-001', 'ABC-002'],
+        isBlacklisted: true,
+      );
+      await moviesApi.setMoviesBlacklisted(
+        movieNumbers: const <String>['ABC-001'],
+        isBlacklisted: false,
+      );
+
+      expect(adapter.requests.map((request) => request.method), <String>[
+        'PUT',
+        'DELETE',
+      ]);
+      expect(adapter.requests.first.body, <String, dynamic>{
+        'movie_numbers': <String>['ABC-001', 'ABC-002'],
+      });
+      expect(adapter.requests.last.body, <String, dynamic>{
+        'movie_numbers': <String>['ABC-001'],
+      });
+    },
+  );
+
+  test('batchUnsubscribeMovies posts to unsubscriptions endpoint and parses '
+      'has_media skip reason', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/unsubscriptions',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'requested_count': 3,
+        'updated_count': 1,
+        'skipped_count': 2,
+        'skipped': <Map<String, dynamic>>[
+          <String, dynamic>{'movie_number': 'ABP-124', 'reason': 'has_media'},
+          <String, dynamic>{
+            'movie_number': 'NOT-EXIST-999',
+            'reason': 'movie_not_found',
+          },
+        ],
+      },
+    );
+
+    final result = await moviesApi.batchUnsubscribeMovies(
+      movieNumbers: const <String>['ABC-001', 'ABP-124', 'NOT-EXIST-999'],
+    );
+
+    final request = adapter.requests.single;
+    expect(request.method, 'POST');
+    expect(request.path, '/movies/unsubscriptions');
+    expect(request.body, <String, dynamic>{
+      'movie_numbers': <String>['ABC-001', 'ABP-124', 'NOT-EXIST-999'],
+    });
+    expect(result.updatedCount, 1);
+    expect(
+      result.movieNumbersSkippedBecause(MovieSubscriptionSkipReason.hasMedia),
+      <String>['ABP-124'],
+    );
+    expect(
+      result.movieNumbersSkippedBecause(
+        MovieSubscriptionSkipReason.movieNotFound,
+      ),
+      <String>['NOT-EXIST-999'],
+    );
+  });
+
+  test('getInteractionFilterOptions parses dynamic distribution', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/interaction-filter-options',
+      body: <String, dynamic>{
+        'movie_count': 2,
+        'heat': <String, dynamic>{'p999': 10839, 'max': 36278},
+        'heat_version': 'test-v1',
+      },
+    );
+
+    final options = await moviesApi.getInteractionFilterOptions();
+
+    expect(options.movieCount, 2);
+    expect(options.sliderMaxFor(MovieInteractionMetric.heat), 10839);
+    expect(options.heatVersion, 'test-v1');
+  });
+
+  test('unsubscribeMovie preserves backend ApiException payload', () async {
+    adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/movies/ABC-001/subscription',
+      statusCode: 409,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'movie_subscription_has_media',
+          'message': '影片存在媒体文件，若需取消订阅请传 delete_media=true',
+        },
+      },
+    );
+
+    expect(
+      () => moviesApi.unsubscribeMovie(movieNumber: 'ABC-001'),
+      throwsA(
+        isA<ApiException>().having(
+          (ApiException error) => error.error?.code,
+          'error.code',
+          'movie_subscription_has_media',
+        ),
+      ),
+    );
+  });
+
+  test('movie actor add/remove use idempotent no-content endpoints', () async {
+    adapter.enqueueJson(
+      method: 'PUT',
+      path: '/movies/ABC-001/actors/7',
+      statusCode: 204,
+    );
+    adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/movies/ABC-001/actors/7',
+      statusCode: 204,
+    );
+
+    await moviesApi.addMovieActor(movieNumber: 'ABC-001', actorId: 7);
+    await moviesApi.removeMovieActor(movieNumber: 'ABC-001', actorId: 7);
+
+    expect(adapter.requests, hasLength(2));
+    expect(adapter.requests[0].method, 'PUT');
+    expect(adapter.requests[0].path, '/movies/ABC-001/actors/7');
+    expect(adapter.requests[1].method, 'DELETE');
+    expect(adapter.requests[1].path, '/movies/ABC-001/actors/7');
+  });
+
+  test('refreshMovieMetadata posts to the refresh endpoint', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/ABC-001/metadata-refresh',
+      body: <String, dynamic>{
+        'id': 77,
+        'movie_number': 'ABC-001',
+        'title': 'Refreshed movie',
+        'release_date': '2024-01-02',
+        'duration_minutes': 120,
+        'is_collection': false,
+        'is_subscribed': false,
+        'is_blacklisted': false,
+        'can_play': false,
+        'summary': '',
+        'actors': <Map<String, dynamic>>[],
+        'tags': <Map<String, dynamic>>[],
+        'plot_images': <Map<String, dynamic>>[],
+        'media_items': <Map<String, dynamic>>[],
+        'playlists': <Map<String, dynamic>>[],
+      },
+    );
+
+    final detail = await moviesApi.refreshMovieMetadata(movieNumber: 'ABC-001');
+
+    expect(adapter.requests.single.method, 'POST');
+    expect(adapter.requests.single.path, '/movies/ABC-001/metadata-refresh');
+    expect(detail.title, 'Refreshed movie');
+  });
+
+  test('refreshMovieMetadata preserves backend ApiException payload', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/movies/ABC-001/metadata-refresh',
+      statusCode: 502,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{
+          'code': 'movie_metadata_refresh_failed',
+          'message': '刷新失败',
+        },
+      },
+    );
+
+    expect(
+      () => moviesApi.refreshMovieMetadata(movieNumber: 'ABC-001'),
+      throwsA(
+        isA<ApiException>().having(
+          (ApiException error) => error.error?.code,
+          'error.code',
+          'movie_metadata_refresh_failed',
+        ),
+      ),
+    );
+  });
+}

@@ -1,0 +1,139 @@
+name: Release iOS
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build iOS IPA and publish release
+    runs-on: macos-latest
+
+    env:
+      ARCHIVE_NAME: sakuramedia-ios-${{ github.ref_name }}-sidestore-ready.ipa
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.2
+          cache: true
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v6
+        with:
+          path: ~/Library/Caches/CocoaPods
+          key: cocoapods-ios-${{ hashFiles('ios/Podfile.lock') }}
+          restore-keys: cocoapods-ios-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build iOS app archive input (no codesign)
+        shell: bash
+        run: |
+          # 从 git tag 注入版本：v0.3.7 -> 0.3.7；pubspec 的 version 仅占位，实际以 tag 为准
+          # beta tag（如 v0.10.0-beta.1）的预发布段不符合 CFBundleShortVersionString，
+          # 平台版本号只取数字主号，beta 身份由 Release 与安装包文件名承载。
+          # --build-number 用 run_number 保证 CFBundleVersion 单调递增
+          VERSION="${GITHUB_REF_NAME#v}"
+          BUILD_NAME="${VERSION%%-*}"
+          flutter build ios --release --no-codesign --build-name="$BUILD_NAME" --build-number="${{ github.run_number }}"
+
+      - name: Pre-sign and collect SideStore-ready iOS IPA
+        run: |
+          mkdir -p dist
+          app_dir="build/ios/iphoneos"
+          shopt -s nullglob
+          apps=("${app_dir}"/*.app)
+          shopt -u nullglob
+
+          if [ "${#apps[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one .app in ${app_dir}, found ${#apps[@]}"
+            ls -la "${app_dir}" || true
+            printf 'Matched .app entries:\n'
+            if [ "${#apps[@]}" -gt 0 ]; then
+              printf '  %s\n' "${apps[@]}"
+            else
+              echo '  (none)'
+            fi
+            exit 1
+          fi
+
+          app_path="${apps[0]}"
+
+          sign_path() {
+            local target="$1"
+            echo "Signing: ${target}"
+            codesign --force --sign - --timestamp=none "${target}"
+          }
+
+          if [ -d "${app_path}/Frameworks" ]; then
+            while IFS= read -r framework; do
+              sign_path "${framework}"
+            done < <(find "${app_path}/Frameworks" -type d -name "*.framework" | sort)
+
+            while IFS= read -r dylib; do
+              sign_path "${dylib}"
+            done < <(find "${app_path}/Frameworks" -type f -name "*.dylib" | sort)
+          fi
+
+          if [ -d "${app_path}/PlugIns" ]; then
+            while IFS= read -r appex; do
+              if [ -d "${appex}/Frameworks" ]; then
+                while IFS= read -r appex_framework; do
+                  sign_path "${appex_framework}"
+                done < <(find "${appex}/Frameworks" -type d -name "*.framework" | sort)
+
+                while IFS= read -r appex_dylib; do
+                  sign_path "${appex_dylib}"
+                done < <(find "${appex}/Frameworks" -type f -name "*.dylib" | sort)
+              fi
+              sign_path "${appex}"
+            done < <(find "${app_path}/PlugIns" -type d -name "*.appex" | sort)
+          fi
+
+          sign_path "${app_path}"
+          codesign --verify --deep --strict "${app_path}"
+          codesign -dvv "${app_path}"
+
+          payload_root="$(mktemp -d)"
+          trap 'rm -rf "${payload_root}"' EXIT
+          mkdir -p "${payload_root}/Payload"
+          cp -R "${app_path}" "${payload_root}/Payload/"
+
+          archive_path="$(pwd)/dist/${ARCHIVE_NAME}"
+          rm -f "${archive_path}"
+          (
+            cd "${payload_root}"
+            zip -qry "${archive_path}" Payload
+          )
+
+          shasum -a 256 "${archive_path}" > "${archive_path}.sha256"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-release-${{ github.ref_name }}
+          path: |
+            dist/${{ env.ARCHIVE_NAME }}
+            dist/${{ env.ARCHIVE_NAME }}.sha256
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: sakuramedia ${{ github.ref_name }}
+          # Keep release notes generation in macOS workflow only to avoid duplicate
+          # "What's Changed" sections when multiple workflows publish the same tag.
+          generate_release_notes: false
+          files: |
+            dist/${{ env.ARCHIVE_NAME }}
+            dist/${{ env.ARCHIVE_NAME }}.sha256

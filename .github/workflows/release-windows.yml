@@ -1,0 +1,121 @@
+name: Release Windows
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build Windows installer and publish release
+    runs-on: windows-2022
+
+    env:
+      INSTALLER_NAME: sakuramedia-windows-${{ github.ref_name }}-setup-unsigned.exe
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.2
+          cache: true
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Windows release
+        # shell: bash —— Windows runner 默认 pwsh，指定 bash 以解析 ${GITHUB_REF_NAME#v}
+        shell: bash
+        run: |
+          # 从 git tag 注入版本：v0.3.7 -> 0.3.7；pubspec 的 version 仅占位，实际以 tag 为准
+          VERSION="${GITHUB_REF_NAME#v}"
+          flutter build windows --release --build-name="$VERSION"
+
+      - name: Package Windows installer
+        shell: pwsh
+        run: |
+          $releaseDir = "build/windows/x64/runner/Release"
+          $exePath = Join-Path $releaseDir "sakuramedia.exe"
+
+          if (-not (Test-Path $exePath)) {
+            Write-Error "Expected executable not found: $exePath"
+            if (Test-Path $releaseDir) {
+              Write-Host "Release directory contents:"
+              Get-ChildItem -Force $releaseDir
+            } else {
+              Write-Host "Release directory not found: $releaseDir"
+            }
+            exit 1
+          }
+
+          # Flutter 的 Release 目录默认不带 VC++ 运行时；补上这三个 DLL，没装过 VC++ Redist 的机器才能直接运行。
+          foreach ($dll in @("msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll")) {
+            $source = Join-Path $env:windir "System32\$dll"
+            if (-not (Test-Path $source)) {
+              Write-Error "VC++ runtime DLL not found on runner: $source"
+              exit 1
+            }
+            Copy-Item -Force $source (Join-Path $releaseDir $dll)
+          }
+
+          New-Item -ItemType Directory -Force -Path dist | Out-Null
+
+          $iscc = Join-Path ${env:ProgramFiles(x86)} "Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) {
+            $iscc = Join-Path $env:ProgramFiles "Inno Setup 6\ISCC.exe"
+          }
+          if (-not (Test-Path $iscc)) {
+            Write-Error "ISCC.exe not found"
+            exit 1
+          }
+
+          $version = $env:GITHUB_REF_NAME -replace '^v', ''
+          & $iscc `
+            "/DMyAppVersion=$version" `
+            "/DReleaseDir=$((Resolve-Path $releaseDir).Path)" `
+            "/DSetupIcon=$((Resolve-Path 'windows/runner/resources/app_icon.ico').Path)" `
+            "/DOutputDir=$((Resolve-Path 'dist').Path)" `
+            "packaging/windows/sakuramedia.iss"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "ISCC failed with exit code $LASTEXITCODE"
+            exit 1
+          }
+
+          $installerPath = Join-Path "dist" $env:INSTALLER_NAME
+          if (-not (Test-Path $installerPath)) {
+            Write-Error "Expected installer not found: $installerPath"
+            Get-ChildItem -Force dist
+            exit 1
+          }
+
+          $hash = (Get-FileHash -Algorithm SHA256 -Path $installerPath).Hash.ToLower()
+          "$hash  $($env:INSTALLER_NAME)" | Out-File -FilePath "$installerPath.sha256" -Encoding ascii
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release-${{ github.ref_name }}
+          path: |
+            dist/${{ env.INSTALLER_NAME }}
+            dist/${{ env.INSTALLER_NAME }}.sha256
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: sakuramedia ${{ github.ref_name }}
+          # Keep release notes generation in macOS workflow only to avoid duplicate
+          # "What's Changed" sections when multiple workflows publish the same tag.
+          generate_release_notes: false
+          files: |
+            dist/${{ env.INSTALLER_NAME }}
+            dist/${{ env.INSTALLER_NAME }}.sha256

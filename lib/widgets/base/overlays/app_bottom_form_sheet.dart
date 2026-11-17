@@ -1,0 +1,132 @@
+import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_binding.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
+
+/// 装进 [showAppBottomDrawer] 的表单外壳。
+///
+/// 承担多个 mobile 编辑抽屉共有的外壳结构：可滚动的标题/副标题/[body]，以及
+/// 常驻的通栏提交按钮。关闭由抽屉下拉、遮罩或系统返回承担，不再重复提供
+/// Cancel。键盘 inset 由抽屉外壳层统一兜底。
+///
+/// [body] 由调用方组装 —— 通常是 FormFields，也可以在其后追加页面所需的
+/// 校验提示或其他局部控件。
+class AppBottomFormSheet extends StatefulWidget {
+  const AppBottomFormSheet({
+    super.key,
+    required this.formKey,
+    required this.title,
+    this.subtitle,
+    required this.body,
+    required this.submitKey,
+    required this.isSubmitting,
+    required this.onSubmit,
+    this.submitLabel,
+    this.submitDisabled = false,
+    this.dismissController,
+  });
+
+  final GlobalKey<FormState> formKey;
+  final String title;
+  final String? subtitle;
+
+  /// 表单主体：一般是 FormFields；可在其内部自行追加探针 chips 等附加控件。
+  final Widget body;
+
+  /// 提交按钮 Key —— 必填，测试用。
+  final Key submitKey;
+
+  final String? submitLabel;
+
+  /// 驱动提交按钮的 spinner，并在提交期间锁定弹层，避免误关。
+  final bool isSubmitting;
+
+  /// 独立门控：即使 `!isSubmitting` 也可让提交禁用（如探针检测进行中）。
+  final bool submitDisabled;
+
+  final VoidCallback onSubmit;
+
+  /// 与承载抽屉共享的 dismiss controller；传入后提交状态会同步锁定弹层。
+  final AppModalDismissController? dismissController;
+
+  @override
+  State<AppBottomFormSheet> createState() => _AppBottomFormSheetState();
+}
+
+class _AppBottomFormSheetState extends State<AppBottomFormSheet>
+    with AppModalDismissBinding<AppBottomFormSheet> {
+  @override
+  AppModalDismissController? dismissControllerFor(AppBottomFormSheet widget) =>
+      widget.dismissController;
+
+  @override
+  bool isDismissLockedFor(AppBottomFormSheet widget) => widget.isSubmitting;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = appL10n(context);
+    final spacing = context.appSpacing;
+    final busy = widget.isSubmitting || widget.submitDisabled;
+    final resolvedSubtitle = widget.subtitle;
+
+    return AppModalDismissScope(
+      controller: boundDismissController,
+      child: Form(
+        key: widget.formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Flexible(
+              fit: FlexFit.loose,
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text(
+                      widget.title,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s16,
+                        weight: AppTextWeight.semibold,
+                        tone: AppTextTone.primary,
+                      ),
+                    ),
+                    if (resolvedSubtitle != null) ...[
+                      SizedBox(height: spacing.xs),
+                      Text(
+                        resolvedSubtitle,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s12,
+                          weight: AppTextWeight.regular,
+                          tone: AppTextTone.secondary,
+                        ),
+                      ),
+                    ],
+                    SizedBox(height: spacing.lg),
+                    widget.body,
+                    SizedBox(height: spacing.lg),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.only(top: spacing.md),
+              child: AppModalActionRow(
+                submitLabel: widget.submitLabel ?? l10n.commonSave,
+                submitKey: widget.submitKey,
+                isSubmitting: widget.isSubmitting,
+                submitDisabled: busy,
+                showCancel: false,
+                onSubmit: widget.onSubmit,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

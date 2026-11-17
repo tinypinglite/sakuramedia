@@ -1,0 +1,269 @@
+import 'dart:async';
+
+import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_orientation_lock.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_back_button.dart';
+
+class _MoviePlayerOverlayIconButton extends StatelessWidget {
+  const _MoviePlayerOverlayIconButton({
+    required this.buttonKey,
+    required this.icon,
+    required this.onPressed,
+    this.tooltip,
+  });
+
+  final Key buttonKey;
+  final IconData icon;
+  final VoidCallback onPressed;
+  final String? tooltip;
+
+  @override
+  Widget build(BuildContext context) {
+    final button = AppInteractiveSurface(
+      key: buttonKey,
+      onTap: onPressed,
+      child: SizedBox(
+        width: context.appOverlayTokens.playerBackBadgeMinHeight,
+        height: context.appOverlayTokens.playerBackBadgeMinHeight,
+        child: Icon(
+          icon,
+          size: context.appComponentTokens.iconSizeSm,
+          color: context.appTextPalette.onMedia,
+        ),
+      ),
+    );
+    if (tooltip == null || tooltip!.isEmpty) {
+      return button;
+    }
+    return Tooltip(message: tooltip!, child: button);
+  }
+}
+
+class MoviePlayerBackButton extends StatelessWidget {
+  const MoviePlayerBackButton({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppBackButton(
+      key: const Key('movie-player-back-button'),
+      variant: AppBackButtonVariant.mediaOverlay,
+      onPressed: onPressed,
+    );
+  }
+}
+
+class MoviePlayerInfoButton extends StatelessWidget {
+  const MoviePlayerInfoButton({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return _MoviePlayerOverlayIconButton(
+      buttonKey: const Key('movie-player-info-button'),
+      icon: Icons.info_outline_rounded,
+      onPressed: onPressed,
+      tooltip: AppLocalizations.of(context).widgetMoviePlayerInfoTooltip,
+    );
+  }
+}
+
+/// 移动端播放页的方向锁开关：锁定横屏 ↔ 跟随系统方向。
+///
+/// 锁定状态由页面持有的 [PlayerOrientationLock] 提供，按钮只负责展示和切换。
+/// 锁定时允许两个横屏方向（翻转 180° 仍跟随），解锁后横竖屏都可用。
+class MoviePlayerOrientationLockButton extends StatelessWidget {
+  const MoviePlayerOrientationLockButton({super.key, required this.lock});
+
+  final PlayerOrientationLock lock;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return ListenableBuilder(
+      listenable: lock,
+      builder: (context, _) {
+        final isLocked = lock.isLocked;
+        return _MoviePlayerOverlayIconButton(
+          buttonKey: const Key('movie-player-orientation-lock-button'),
+          icon: isLocked
+              ? Icons.screen_lock_rotation_rounded
+              : Icons.screen_rotation_rounded,
+          tooltip: isLocked
+              ? l10n.widgetMoviePlayerUnlockOrientation
+              : l10n.widgetMoviePlayerLockOrientation,
+          onPressed: () => unawaited(lock.toggle()),
+        );
+      },
+    );
+  }
+}
+
+class MoviePlayerCurrentNumberBadge extends StatelessWidget {
+  const MoviePlayerCurrentNumberBadge({
+    super.key,
+    required this.movieNumber,
+    this.compact = false,
+  });
+
+  final String movieNumber;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final overlayTokens = context.appOverlayTokens;
+    final resolvedMovieNumber = movieNumber.trim();
+    final maxWidth = compact ? 66.0 : overlayTokens.playerBackBadgeMaxWidth;
+
+    return Material(
+      type: MaterialType.transparency,
+      borderRadius: context.appRadius.pillBorder,
+      child: ConstrainedBox(
+        key: const Key('movie-player-current-number'),
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: SizedBox(
+          height: overlayTokens.playerBackBadgeMinHeight,
+          child: Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 6 : overlayTokens.controlTrailingGap,
+            ),
+            child: Align(
+              widthFactor: 1,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                resolvedMovieNumber,
+                style: resolveAppTextStyle(
+                  context,
+                  size: compact ? AppTextSize.s12 : AppTextSize.s14,
+                  tone: AppTextTone.onMedia,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                softWrap: false,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class MoviePlayerBackWithNumberControl extends StatelessWidget {
+  const MoviePlayerBackWithNumberControl({
+    super.key,
+    required this.onPressed,
+    required this.movieNumber,
+    this.compact = false,
+    this.flexibleNumber = false,
+  });
+
+  final VoidCallback onPressed;
+  final String movieNumber;
+  final bool compact;
+  final bool flexibleNumber;
+
+  @override
+  Widget build(BuildContext context) {
+    final badge = MoviePlayerCurrentNumberBadge(
+      movieNumber: movieNumber,
+      compact: compact,
+    );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        MoviePlayerBackButton(onPressed: onPressed),
+        SizedBox(width: context.appSpacing.xs / 2),
+        if (flexibleNumber) Flexible(child: badge) else badge,
+      ],
+    );
+  }
+}
+
+class MoviePlayerBackOverlay extends StatelessWidget {
+  const MoviePlayerBackOverlay({super.key, required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final overlayTokens = context.appOverlayTokens;
+    // Align(topLeft) 兜底：本组件可能被放进 `StackFit.expand` 的 Stack（如
+    // 播放器 readiness 蒙版层）而拿到「强制撑满」的 tight 约束。
+    // 若不收口，tight 约束会穿透到 SizedBox/Icon，把返回箭头 glyph 居中到屏幕正中。
+    // Align 在被撑满时给子节点宽松约束并左上对齐，保证按钮恒按自身大小贴左上角。
+    return Align(
+      alignment: Alignment.topLeft,
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(
+            left: overlayTokens.playerBackOverlayLeft,
+            top: overlayTokens.playerBackOverlayTop,
+          ),
+          child: MoviePlayerBackButton(onPressed: onPressed),
+        ),
+      ),
+    );
+  }
+}
+
+/// 禁止播放页所在路由的边缘滑退，同时保留系统返回和页面返回按钮。
+///
+/// `canPop: false` 会让 `CupertinoPage` 不注册侧滑返回；系统返回触发
+/// [onPopInvokedWithResult] 后再交给 [onBack]。因此 [onBack] 必须直接
+/// `pop`，不能调用会再次咨询 `PopScope` 的 `maybePop`。
+class PlayerSwipeBackGuard extends StatelessWidget {
+  const PlayerSwipeBackGuard({
+    super.key,
+    required this.onBack,
+    required this.child,
+    this.enabled = true,
+  });
+
+  final VoidCallback onBack;
+  final Widget child;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!enabled) {
+      return child;
+    }
+    return PopScope<void>(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) {
+          onBack();
+        }
+      },
+      child: child,
+    );
+  }
+}
+
+/// 把「播放器未就绪」UI（加载转圈 / 错误态 / 黑屏）包进 [Stack]，左上角叠一个
+/// 独立于 media_kit 的返回按钮。
+///
+/// 各播放页的返回按钮平时长在 media_kit `Video` 的控制层里，只有播放器组件渲染
+/// 出来后才存在；播放器还没就绪（拉流/解析地址/初始化）时若卡住，界面上就没有任何
+/// 返回入口。这些阶段统一用本函数兜底，确保任何时候都能退出。
+///
+/// 实际可点的按钮始终带 `Key('movie-player-back-button')`（在 [MoviePlayerBackButton]
+/// 内部），测试可据此点击；[backButtonKey] 仅用于给外层覆盖层一个稳定锚点。
+Widget wrapWithMoviePlayerBackButton({
+  required Widget child,
+  required VoidCallback onBackPressed,
+  Key? backButtonKey,
+}) {
+  return Stack(
+    children: [
+      Positioned.fill(child: child),
+      MoviePlayerBackOverlay(key: backButtonKey, onPressed: onBackPressed),
+    ],
+  );
+}

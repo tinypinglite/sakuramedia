@@ -1,0 +1,757 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/thumbnails/movie_media_thumbnail_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/player/movie_subtitle_dto.dart';
+
+import 'movie_player_provider_harness.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  late List<Map<String, Object?>> progressReports;
+  late List<int> thumbnailRequests;
+
+  MovieDetailDto buildMovieDetail({List<MovieMediaItemDto>? mediaItems}) {
+    return MovieDetailDto(
+      movieNumber: 'ABC-001',
+      title: 'Movie 1',
+      seriesName: '',
+      makerName: '',
+      directorName: '',
+      coverImage: null,
+      releaseDate: DateTime.parse('2026-03-08'),
+      durationMinutes: 120,
+      interactionStats: const <String, num>{'score': 4.5},
+      statsSource: 'legacy:host',
+      heat: 18,
+      isCollection: false,
+      isSubscribed: true,
+      canPlay: true,
+      summary: '',
+      thinCoverImage: null,
+      plotImages: const <MovieImageDto>[],
+      actors: const <MovieActorDto>[],
+      tags: const <MovieTagDto>[],
+      playlists: const <MoviePlaylistSummaryDto>[],
+      mediaItems:
+          mediaItems ??
+          <MovieMediaItemDto>[
+            MovieMediaItemDto(
+              mediaId: 100,
+              libraryId: 1,
+              providerKey: 'filesystem',
+              playUrl: '/files/media/movies/ABC-001/video.mp4',
+              fileName: 'ABC-001.mp4',
+              resolution: '1920x1080',
+              fileSizeBytes: 1024,
+              durationSeconds: 7200,
+              valid: true,
+              progress: const MovieMediaProgressDto(
+                lastPositionSeconds: 12,
+                lastWatchedAt: null,
+              ),
+              points: const <MovieMediaPointDto>[],
+            ),
+          ],
+    );
+  }
+
+  List<MovieMediaThumbnailDto> buildThumbnails() {
+    return <MovieMediaThumbnailDto>[
+      MovieMediaThumbnailDto(
+        thumbnailId: 1,
+        mediaId: 100,
+        offsetSeconds: 10,
+        image: const MovieImageDto(id: 10, origin: 'thumb-10.webp'),
+      ),
+      MovieMediaThumbnailDto(
+        thumbnailId: 2,
+        mediaId: 100,
+        offsetSeconds: 20,
+        image: const MovieImageDto(id: 11, origin: 'thumb-20.webp'),
+      ),
+      MovieMediaThumbnailDto(
+        thumbnailId: 3,
+        mediaId: 100,
+        offsetSeconds: 35,
+        image: const MovieImageDto(id: 12, origin: 'thumb-35.webp'),
+      ),
+    ];
+  }
+
+  test(
+    'load keeps the backend signed play URL on the selected media',
+    () async {
+      final controller = MoviePlayerHarness(
+        movieNumber: 'ABC-001',
+        baseUrl: 'https://api.example.com',
+        fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+        fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        updateMediaProgress:
+            ({required mediaId, required positionSeconds}) async =>
+                MovieMediaProgressDto(
+                  lastPositionSeconds: positionSeconds,
+                  lastWatchedAt: null,
+                ),
+      );
+      addTearDown(controller.dispose);
+
+      await controller.load();
+
+      expect(
+        controller.selectedMedia?.playUrl,
+        '/files/media/movies/ABC-001/video.mp4',
+      );
+    },
+  );
+
+  MovieSubtitleListDto buildSubtitleList({
+    String fetchStatus = 'succeeded',
+    String? lastError,
+    List<MovieSubtitleItemDto>? items,
+  }) {
+    return MovieSubtitleListDto(
+      movieNumber: 'ABC-001',
+      fetchStatus: fetchStatus,
+      lastAttemptedAt: DateTime.parse('2026-04-10T09:00:00'),
+      lastSucceededAt: fetchStatus == 'succeeded'
+          ? DateTime.parse('2026-04-10T09:01:00')
+          : null,
+      lastError: lastError,
+      items:
+          items ??
+          const <MovieSubtitleItemDto>[
+            MovieSubtitleItemDto(
+              subtitleId: 501,
+              fileName: 'ABC-001.zh.srt',
+              createdAt: null,
+              url: '/files/subtitles/501?expires=1700000900&signature=subtitle',
+            ),
+          ],
+    );
+  }
+
+  setUp(() {
+    progressReports = <Map<String, Object?>>[];
+    thumbnailRequests = <int>[];
+  });
+
+  test('load fetches thumbnails for selected media', () async {
+    final controller = MoviePlayerHarness(
+      movieNumber: 'ABC-001',
+      baseUrl: 'https://api.example.com',
+      fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+      fetchMediaThumbnails: ({required mediaId}) async {
+        thumbnailRequests.add(mediaId);
+        return buildThumbnails();
+      },
+      fetchMovieSubtitles: ({required movieNumber}) async =>
+          buildSubtitleList(),
+      updateMediaProgress:
+          ({required mediaId, required positionSeconds}) async {
+            progressReports.add(<String, Object?>{
+              'mediaId': mediaId,
+              'positionSeconds': positionSeconds,
+            });
+            return MovieMediaProgressDto(
+              lastPositionSeconds: positionSeconds,
+              lastWatchedAt: DateTime.parse('2026-03-12T10:20:00Z'),
+            );
+          },
+    );
+    addTearDown(controller.dispose);
+
+    await controller.load();
+
+    expect(controller.selectedMedia?.mediaId, 100);
+    expect(controller.thumbnails, hasLength(3));
+    expect(thumbnailRequests, <int>[100]);
+    expect(controller.currentPlaybackSeconds, 0);
+    expect(controller.initialPlaybackPosition, isNull);
+    expect(controller.resumePlaybackPosition, const Duration(seconds: 12));
+    expect(controller.isResumeDecisionPending, isTrue);
+    expect(controller.activeThumbnailIndex, 0);
+  });
+
+  test(
+    'load falls back to first playable media when initial media is invalid',
+    () async {
+      final controller = MoviePlayerHarness(
+        movieNumber: 'ABC-001',
+        baseUrl: 'https://api.example.com',
+        initialMediaId: 999,
+        fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(
+          mediaItems: <MovieMediaItemDto>[
+            MovieMediaItemDto(
+              mediaId: 90,
+              libraryId: 1,
+              providerKey: 'filesystem',
+              playUrl: '',
+              fileName: 'missing.mp4',
+              resolution: '1920x1080',
+              fileSizeBytes: 100,
+              durationSeconds: 7200,
+              valid: true,
+              progress: null,
+              points: const <MovieMediaPointDto>[],
+            ),
+            MovieMediaItemDto(
+              mediaId: 100,
+              libraryId: 1,
+              providerKey: 'filesystem',
+              playUrl: '/files/media/movies/ABC-001/video.mp4',
+              fileName: 'ABC-001.mp4',
+              resolution: '1920x1080',
+              fileSizeBytes: 100,
+              durationSeconds: 7200,
+              valid: true,
+              progress: null,
+              points: const <MovieMediaPointDto>[],
+            ),
+          ],
+        ),
+        fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles: ({required movieNumber}) async =>
+            buildSubtitleList(),
+        updateMediaProgress:
+            ({required mediaId, required positionSeconds}) async {
+              return MovieMediaProgressDto(
+                lastPositionSeconds: positionSeconds,
+                lastWatchedAt: null,
+              );
+            },
+      );
+      addTearDown(controller.dispose);
+
+      await controller.load();
+
+      expect(controller.selectedMedia?.mediaId, 100);
+    },
+  );
+
+  test('thumbnail load failure does not block resolved playback url', () async {
+    final controller = MoviePlayerHarness(
+      movieNumber: 'ABC-001',
+      baseUrl: 'https://api.example.com',
+      fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+      fetchMediaThumbnails: ({required mediaId}) async {
+        throw Exception('boom');
+      },
+      fetchMovieSubtitles: ({required movieNumber}) async =>
+          buildSubtitleList(),
+      updateMediaProgress:
+          ({required mediaId, required positionSeconds}) async {
+            return MovieMediaProgressDto(
+              lastPositionSeconds: positionSeconds,
+              lastWatchedAt: null,
+            );
+          },
+    );
+    addTearDown(controller.dispose);
+
+    await controller.load();
+
+    expect(
+      controller.resolvedPlayUrl,
+      'https://api.example.com/files/media/movies/ABC-001/video.mp4',
+    );
+    expect(controller.thumbnailErrorMessage, isNotNull);
+    expect(controller.thumbnails, isEmpty);
+  });
+
+  test(
+    'load resolves subtitle options and keeps subtitle disabled by default',
+    () async {
+      final controller = MoviePlayerHarness(
+        movieNumber: 'ABC-001',
+        baseUrl: 'https://api.example.com',
+        fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+        fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles: ({required movieNumber}) async =>
+            buildSubtitleList(),
+        updateMediaProgress:
+            ({required mediaId, required positionSeconds}) async {
+              return MovieMediaProgressDto(
+                lastPositionSeconds: positionSeconds,
+                lastWatchedAt: null,
+              );
+            },
+      );
+      addTearDown(controller.dispose);
+
+      await controller.load();
+
+      expect(controller.subtitleFetchStatus, 'succeeded');
+      expect(controller.selectedSubtitleId, isNull);
+      expect(controller.subtitleOptions, hasLength(1));
+      expect(controller.subtitleOptions.single.subtitleId, 501);
+      expect(
+        controller.subtitleOptions.single.resolvedUrl,
+        'https://api.example.com/files/subtitles/501?expires=1700000900&signature=subtitle',
+      );
+    },
+  );
+
+  test('subtitle load failure does not block resolved playback url', () async {
+    final controller = MoviePlayerHarness(
+      movieNumber: 'ABC-001',
+      baseUrl: 'https://api.example.com',
+      fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+      fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      fetchMovieSubtitles: ({required movieNumber}) async {
+        throw Exception('subtitle boom');
+      },
+      updateMediaProgress:
+          ({required mediaId, required positionSeconds}) async {
+            return MovieMediaProgressDto(
+              lastPositionSeconds: positionSeconds,
+              lastWatchedAt: null,
+            );
+          },
+    );
+    addTearDown(controller.dispose);
+
+    await controller.load();
+
+    expect(
+      controller.resolvedPlayUrl,
+      'https://api.example.com/files/media/movies/ABC-001/video.mp4',
+    );
+    expect(controller.subtitleFetchStatus, 'failed');
+    expect(controller.subtitleErrorMessage, '请稍后重试。');
+    expect(controller.subtitleOptions, isEmpty);
+  });
+
+  test('setSelectedSubtitleId only accepts known subtitle ids', () async {
+    final controller = MoviePlayerHarness(
+      movieNumber: 'ABC-001',
+      baseUrl: 'https://api.example.com',
+      fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+      fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      fetchMovieSubtitles: ({required movieNumber}) async =>
+          buildSubtitleList(),
+      updateMediaProgress:
+          ({required mediaId, required positionSeconds}) async {
+            return MovieMediaProgressDto(
+              lastPositionSeconds: positionSeconds,
+              lastWatchedAt: null,
+            );
+          },
+    );
+    addTearDown(controller.dispose);
+
+    await controller.load();
+
+    controller.setSelectedSubtitleId(999);
+    expect(controller.selectedSubtitleId, isNull);
+
+    controller.setSelectedSubtitleId(501);
+    expect(controller.selectedSubtitleId, 501);
+
+    controller.setSelectedSubtitleId(null);
+    expect(controller.selectedSubtitleId, isNull);
+  });
+
+  test(
+    'thumbnail columns use auto value until user overrides manually',
+    () async {
+      final controller = MoviePlayerHarness(
+        movieNumber: 'ABC-001',
+        baseUrl: 'https://api.example.com',
+        fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+        fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles: ({required movieNumber}) async =>
+            buildSubtitleList(),
+        updateMediaProgress:
+            ({required mediaId, required positionSeconds}) async {
+              return MovieMediaProgressDto(
+                lastPositionSeconds: positionSeconds,
+                lastWatchedAt: null,
+              );
+            },
+      );
+      addTearDown(controller.dispose);
+
+      expect(controller.thumbnailColumns, isNull);
+
+      controller.applyAutoThumbnailColumns(4);
+      expect(controller.thumbnailColumns, 4);
+
+      controller.setThumbnailColumns(2);
+      expect(controller.thumbnailColumns, 2);
+
+      controller.applyAutoThumbnailColumns(5);
+      expect(controller.thumbnailColumns, 2);
+    },
+  );
+
+  test(
+    'thumbnail scroll lock is enabled by default and can be toggled',
+    () async {
+      final controller = MoviePlayerHarness(
+        movieNumber: 'ABC-001',
+        baseUrl: 'https://api.example.com',
+        fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+        fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles: ({required movieNumber}) async =>
+            buildSubtitleList(),
+        updateMediaProgress:
+            ({required mediaId, required positionSeconds}) async {
+              return MovieMediaProgressDto(
+                lastPositionSeconds: positionSeconds,
+                lastWatchedAt: null,
+              );
+            },
+      );
+      addTearDown(controller.dispose);
+
+      var notifications = 0;
+      controller.addListener(() {
+        notifications += 1;
+      });
+
+      expect(controller.isThumbnailScrollLocked, isTrue);
+
+      controller.toggleThumbnailScrollLock();
+      expect(controller.isThumbnailScrollLocked, isFalse);
+
+      controller.toggleThumbnailScrollLock();
+      expect(controller.isThumbnailScrollLocked, isTrue);
+      expect(notifications, 2);
+    },
+  );
+
+  test('handlePlaybackPosition updates active thumbnail index', () async {
+    final controller = MoviePlayerHarness(
+      movieNumber: 'ABC-001',
+      baseUrl: 'https://api.example.com',
+      fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+      fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      fetchMovieSubtitles: ({required movieNumber}) async =>
+          buildSubtitleList(),
+      updateMediaProgress:
+          ({required mediaId, required positionSeconds}) async {
+            return MovieMediaProgressDto(
+              lastPositionSeconds: positionSeconds,
+              lastWatchedAt: null,
+            );
+          },
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    controller.handlePlaybackPosition(const Duration(seconds: 34));
+    expect(controller.activeThumbnailIndex, 1);
+
+    controller.handlePlaybackPosition(const Duration(seconds: 35));
+    expect(controller.activeThumbnailIndex, 2);
+  });
+
+  test(
+    'handlePlaybackPosition ignores duplicate seconds without notifying page listeners',
+    () async {
+      final controller = MoviePlayerHarness(
+        movieNumber: 'ABC-001',
+        baseUrl: 'https://api.example.com',
+        fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+        fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles: ({required movieNumber}) async =>
+            buildSubtitleList(),
+        updateMediaProgress:
+            ({required mediaId, required positionSeconds}) async {
+              return MovieMediaProgressDto(
+                lastPositionSeconds: positionSeconds,
+                lastWatchedAt: null,
+              );
+            },
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      var pageNotifications = 0;
+      controller.addListener(() {
+        pageNotifications += 1;
+      });
+
+      controller.handlePlaybackPosition(const Duration(seconds: 30));
+      controller.handlePlaybackPosition(const Duration(seconds: 30));
+
+      expect(controller.currentPlaybackSeconds, 30);
+      expect(pageNotifications, 0);
+    },
+  );
+
+  test(
+    'handlePlaybackPosition keeps page listeners silent when active index does not change',
+    () async {
+      final controller = MoviePlayerHarness(
+        movieNumber: 'ABC-001',
+        baseUrl: 'https://api.example.com',
+        fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+        fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles: ({required movieNumber}) async =>
+            buildSubtitleList(),
+        updateMediaProgress:
+            ({required mediaId, required positionSeconds}) async {
+              return MovieMediaProgressDto(
+                lastPositionSeconds: positionSeconds,
+                lastWatchedAt: null,
+              );
+            },
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      var pageNotifications = 0;
+      controller.addListener(() {
+        pageNotifications += 1;
+      });
+
+      controller.handlePlaybackPosition(const Duration(seconds: 15));
+
+      expect(controller.currentPlaybackSeconds, 15);
+      expect(controller.activeThumbnailIndex, 0);
+      expect(pageNotifications, 0);
+    },
+  );
+
+  test('active thumbnail notifier emits only when index changes', () async {
+    final controller = MoviePlayerHarness(
+      movieNumber: 'ABC-001',
+      baseUrl: 'https://api.example.com',
+      fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+      fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      fetchMovieSubtitles: ({required movieNumber}) async =>
+          buildSubtitleList(),
+      updateMediaProgress:
+          ({required mediaId, required positionSeconds}) async {
+            return MovieMediaProgressDto(
+              lastPositionSeconds: positionSeconds,
+              lastWatchedAt: null,
+            );
+          },
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    final activeIndexChanges = <int?>[];
+    controller.activeThumbnailIndexListenable.addListener(() {
+      activeIndexChanges.add(controller.activeThumbnailIndexListenable.value);
+    });
+
+    controller.handlePlaybackPosition(const Duration(seconds: 19));
+    controller.handlePlaybackPosition(const Duration(seconds: 20));
+    controller.handlePlaybackPosition(const Duration(seconds: 24));
+    controller.handlePlaybackPosition(const Duration(seconds: 35));
+
+    expect(activeIndexChanges, <int?>[1, 2]);
+  });
+
+  test(
+    'stored progress becomes a resume prompt instead of a startup seek',
+    () async {
+      final controller = MoviePlayerHarness(
+        movieNumber: 'ABC-001',
+        baseUrl: 'https://api.example.com',
+        fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+        fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles: ({required movieNumber}) async =>
+            buildSubtitleList(),
+        updateMediaProgress:
+            ({required mediaId, required positionSeconds}) async {
+              return MovieMediaProgressDto(
+                lastPositionSeconds: positionSeconds,
+                lastWatchedAt: null,
+              );
+            },
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+
+      expect(controller.initialPlaybackPosition, isNull);
+      expect(controller.resumePlaybackPosition, const Duration(seconds: 12));
+
+      controller.handlePlaybackPosition(const Duration(seconds: 35));
+
+      expect(controller.currentPlaybackSeconds, 35);
+      expect(controller.resumePlaybackPosition, const Duration(seconds: 12));
+    },
+  );
+
+  test('explicit entry position bypasses the resume prompt', () async {
+    final controller = MoviePlayerHarness(
+      movieNumber: 'ABC-001',
+      baseUrl: 'https://api.example.com',
+      initialPositionSeconds: 90,
+      fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+      fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      fetchMovieSubtitles: ({required movieNumber}) async =>
+          buildSubtitleList(),
+      updateMediaProgress:
+          ({required mediaId, required positionSeconds}) async =>
+              MovieMediaProgressDto(
+                lastPositionSeconds: positionSeconds,
+                lastWatchedAt: null,
+              ),
+    );
+    addTearDown(controller.dispose);
+
+    await controller.load();
+
+    expect(controller.initialPlaybackPosition, const Duration(seconds: 90));
+    expect(controller.resumePlaybackPosition, isNull);
+    expect(controller.isResumeDecisionPending, isFalse);
+  });
+
+  test('reload resumes from an explicit retry position', () async {
+    final controller = MoviePlayerHarness(
+      movieNumber: 'ABC-001',
+      baseUrl: 'https://api.example.com',
+      initialPositionSeconds: 90,
+      fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+      fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      fetchMovieSubtitles: ({required movieNumber}) async =>
+          buildSubtitleList(),
+      updateMediaProgress:
+          ({required mediaId, required positionSeconds}) async =>
+              MovieMediaProgressDto(
+                lastPositionSeconds: positionSeconds,
+                lastWatchedAt: null,
+              ),
+    );
+    addTearDown(controller.dispose);
+
+    await controller.load(startupPosition: const Duration(seconds: 245));
+
+    expect(controller.initialPlaybackPosition, const Duration(seconds: 245));
+    expect(controller.resumePlaybackPosition, isNull);
+    expect(controller.isResumeDecisionPending, isFalse);
+    expect(controller.currentPlaybackSeconds, 245);
+  });
+
+  test('flushPlaybackProgress reports pending position once', () async {
+    final controller = MoviePlayerHarness(
+      movieNumber: 'ABC-001',
+      baseUrl: 'https://api.example.com',
+      fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+      fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      fetchMovieSubtitles: ({required movieNumber}) async =>
+          buildSubtitleList(),
+      updateMediaProgress:
+          ({required mediaId, required positionSeconds}) async {
+            progressReports.add(<String, Object?>{
+              'mediaId': mediaId,
+              'positionSeconds': positionSeconds,
+            });
+            return MovieMediaProgressDto(
+              lastPositionSeconds: positionSeconds,
+              lastWatchedAt: null,
+            );
+          },
+    );
+    addTearDown(controller.dispose);
+    await controller.load();
+
+    controller.handlePlaybackPosition(const Duration(seconds: 42));
+    await controller.flushPlaybackProgress();
+    expect(progressReports, isEmpty);
+
+    controller.resolveResumePrompt();
+
+    await controller.flushPlaybackProgress();
+    await controller.flushPlaybackProgress();
+
+    expect(progressReports, hasLength(1));
+    expect(progressReports.single['positionSeconds'], 42);
+  });
+
+  group('clip selection', () {
+    Future<MoviePlayerHarness> buildLoadedController() async {
+      final controller = MoviePlayerHarness(
+        movieNumber: 'ABC-001',
+        baseUrl: 'https://api.example.com',
+        fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+        fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+        fetchMovieSubtitles: ({required movieNumber}) async =>
+            buildSubtitleList(),
+        updateMediaProgress:
+            ({required mediaId, required positionSeconds}) async =>
+                MovieMediaProgressDto(
+                  lastPositionSeconds: positionSeconds,
+                  lastWatchedAt: null,
+                ),
+      );
+      addTearDown(controller.dispose);
+      await controller.load();
+      return controller;
+    }
+
+    test(
+      'toggling enters mode, releases scroll lock, clears on exit',
+      () async {
+        final controller = await buildLoadedController();
+        expect(controller.clipSelectionMode, isFalse);
+
+        controller.toggleClipSelectionMode();
+        expect(controller.clipSelectionMode, isTrue);
+        expect(controller.isThumbnailScrollLocked, isFalse);
+
+        controller.handleClipSelectionTap(0);
+        controller.toggleClipSelectionMode();
+        expect(controller.clipSelectionMode, isFalse);
+        expect(controller.clipStartIndex, isNull);
+        expect(controller.clipEndIndex, isNull);
+      },
+    );
+
+    test('first/second/third tap cycle start and end points', () async {
+      final controller = await buildLoadedController();
+      controller.toggleClipSelectionMode();
+
+      controller.handleClipSelectionTap(0);
+      expect(controller.clipStartIndex, 0);
+      expect(controller.clipEndIndex, isNull);
+      expect(controller.canCreateClip, isFalse);
+
+      controller.handleClipSelectionTap(2);
+      expect(controller.clipStartIndex, 0);
+      expect(controller.clipEndIndex, 2);
+      expect(controller.canCreateClip, isTrue);
+      // 缩略图 offset 10 与 35 → 时长 25 秒。
+      expect(controller.clipSelectionDurationSeconds, 25);
+      expect(controller.clipStartThumbnail?.thumbnailId, 1);
+      expect(controller.clipEndThumbnail?.thumbnailId, 3);
+
+      controller.handleClipSelectionTap(1);
+      expect(controller.clipStartIndex, 1);
+      expect(controller.clipEndIndex, isNull);
+      expect(controller.canCreateClip, isFalse);
+    });
+
+    test(
+      'tapping the same thumbnail twice does not complete a range',
+      () async {
+        final controller = await buildLoadedController();
+        controller.toggleClipSelectionMode();
+
+        controller.handleClipSelectionTap(1);
+        controller.handleClipSelectionTap(1);
+        expect(controller.clipStartIndex, 1);
+        expect(controller.clipEndIndex, isNull);
+        expect(controller.canCreateClip, isFalse);
+      },
+    );
+
+    test('clearClipSelection resets both endpoints', () async {
+      final controller = await buildLoadedController();
+      controller.toggleClipSelectionMode();
+      controller.handleClipSelectionTap(0);
+      controller.handleClipSelectionTap(2);
+
+      controller.clearClipSelection();
+      expect(controller.clipStartIndex, isNull);
+      expect(controller.clipEndIndex, isNull);
+    });
+  });
+}

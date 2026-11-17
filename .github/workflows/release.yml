@@ -1,0 +1,60 @@
+name: Release
+
+# 总调度：push 一个 v* tag 触发本工作流，先统一跑一遍测试（scripts/test.sh），
+# 通过后并行调起各平台的构建/发布。
+# 单独重跑某个平台时，可到对应 Release Xxx 工作流用 workflow_dispatch 手动触发（不带测试闸门）。
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+# 子工作流要发布 GitHub Release，需要 contents: write；
+# 可复用工作流的有效权限受此处上限约束。
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.2
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        run: bash scripts/test.sh
+
+  macos:
+    name: macOS
+    needs: test
+    uses: ./.github/workflows/release-macos.yml
+    secrets: inherit
+
+  windows:
+    name: Windows
+    needs: test
+    uses: ./.github/workflows/release-windows.yml
+    secrets: inherit
+
+  android:
+    name: Android
+    needs: test
+    uses: ./.github/workflows/release-android.yml
+    secrets: inherit
+
+  ios:
+    name: iOS
+    needs: test
+    uses: ./.github/workflows/release-ios.yml
+    secrets: inherit

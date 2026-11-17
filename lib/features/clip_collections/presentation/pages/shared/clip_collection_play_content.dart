@@ -1,0 +1,350 @@
+import 'dart:async';
+
+import 'package:material_ui/material_ui.dart';
+import 'package:go_router/go_router.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sakuramedia/widgets/domain/media/media_playback_info_button.dart';
+import 'package:sakuramedia/features/shared/presentation/providers/collection_playback_handoff_provider.dart';
+import 'package:sakuramedia/features/clip_collections/presentation/providers/clip_collections_api_provider.dart';
+import 'package:sakuramedia/features/clips/presentation/providers/clips_api_provider.dart';
+import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
+import 'package:sakuramedia/core/format/media_timecode.dart';
+import 'package:sakuramedia/core/media/media_url_resolver.dart';
+import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/features/clips/data/dto/media_clip_dto.dart';
+import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
+import 'package:sakuramedia/widgets/domain/collections/playback/collection_episode_queue_item.dart';
+import 'package:sakuramedia/widgets/domain/collections/playback/collection_filmstrip_controller.dart';
+import 'package:sakuramedia/widgets/domain/collections/playback/collection_play_split_layout.dart';
+import 'package:sakuramedia/widgets/domain/collections/playback/collection_playback_page_mixin.dart';
+import 'package:sakuramedia/widgets/domain/collections/playback/episode_selector_overlay.dart';
+import 'package:sakuramedia/widgets/domain/movies/player/merged_position_indicator.dart';
+import 'package:sakuramedia/widgets/domain/movies/player/movie_player_back_overlay.dart';
+import 'package:sakuramedia/widgets/domain/movies/player/movie_player_controls.dart';
+import 'package:sakuramedia/widgets/base/media/video/themed_video_player.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_app_fullscreen.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_orientation_lock.dart';
+import 'package:sakuramedia/widgets/base/media/video/throttling_player.dart';
+
+/// 切片合集连播共享实现：media_kit 播放器（原生 Playlist 自动连播）占满画面，
+/// 底部控制条「选集」按钮唤出右侧滑出的剧集面板（当前高亮 / 点击跳转）。
+class ClipCollectionPlayContent extends ConsumerStatefulWidget {
+  const ClipCollectionPlayContent({
+    super.key,
+    required this.collectionId,
+    this.startIndex = 0,
+    this.useTouchOptimizedControls = false,
+    this.orientationLock,
+  });
+
+  final int collectionId;
+  final int startIndex;
+
+  /// 触摸优化控件开关：移动壳传 `true`（点击唤出控制条），桌面默认 `false`（hover 唤出）。
+  final bool useTouchOptimizedControls;
+
+  /// 移动壳传入的方向锁状态；桌面壳不传，顶栏不显示锁定按钮。
+  final PlayerOrientationLock? orientationLock;
+
+  @override
+  ConsumerState<ClipCollectionPlayContent> createState() =>
+      _ClipCollectionPlayContentState();
+}
+
+class _ClipCollectionPlayContentState
+    extends ConsumerState<ClipCollectionPlayContent>
+    with
+        CollectionPlaybackPageMixin<ClipCollectionPlayContent>,
+        PlayerAppFullscreenStateMixin<ClipCollectionPlayContent> {
+  List<MediaClipDto> _clips = const <MediaClipDto>[];
+  bool _isLoading = true;
+  String? _errorMessage;
+
+  @override
+  bool get applySystemFullscreenForAppFullscreen =>
+      !widget.useTouchOptimizedControls;
+
+  @override
+  void initState() {
+    super.initState();
+    currentIndex = widget.startIndex;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  @override
+  void dispose() {
+    disposePlayerAppFullscreen();
+    disposePlayback();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final handoff = ref.read(collectionPlaybackHandoffProvider);
+    final api = ref.read(clipCollectionsApiProvider);
+    final clipsApi = ref.read(clipsApiProvider);
+    final baseUrl = ref.read(sessionStoreProvider).baseUrl;
+    try {
+      // 优先用详情页「交接」来的切片（自带 streamUrl）：详情→连播零额外请求、秒开；
+      // 取不到（深链/刷新）才自行并发分页拉全。
+      final clips =
+          handoff.takeClips(collectionId: widget.collectionId) ??
+          await api.getAllCollectionClips(
+            collectionId: widget.collectionId,
+            pageSize: 50,
+          );
+      final medias = <Media>[];
+      final playableClips = <MediaClipDto>[];
+      // 与 playableClips 平行：每集时长（秒），合并模式累加为虚拟总时长 + 反向定位。
+      final playableDurations = <int>[];
+      // startIndex 基于原始切片顺序；前面有不可播切片被跳过时，索引需重映射到实际
+      // 可播列表（与视频连播页 resolvedStartIndex 对齐，否则会起播错位的切片）。
+      var resolvedStartIndex = 0;
+      for (var i = 0; i < clips.length; i++) {
+        if (i == widget.startIndex) {
+          resolvedStartIndex = medias.length;
+        }
+        final clip = clips[i];
+        final url = resolveMediaUrl(rawUrl: clip.streamUrl, baseUrl: baseUrl);
+        if (url == null || url.isEmpty) {
+          continue;
+        }
+        medias.add(Media(url));
+        playableClips.add(clip);
+        playableDurations.add(clip.durationSeconds);
+      }
+      if (!mounted) {
+        return;
+      }
+      if (medias.isEmpty) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = AppLocalizations.of(
+            context,
+          ).clipCollectionNoPlayableClips;
+        });
+        return;
+      }
+      final startIndex = resolvedStartIndex.clamp(0, medias.length - 1);
+      final player = ThrottlingPlayer();
+      final videoController = VideoController(
+        player,
+        configuration: const VideoControllerConfiguration(hwdec: 'auto'),
+      );
+      // 「整部合集」关键帧面板：按可播切片顺序逐集拉关键帧（切片自身时间轴 offset）。
+      final clipIds = playableClips
+          .map((clip) => clip.clipId)
+          .toList(growable: false);
+      final filmstrip = CollectionFilmstripController(
+        episodeCount: clipIds.length,
+        frameLoader: (episodeIndex) async {
+          final thumbnails = await clipsApi.getClipThumbnails(
+            clipId: clipIds[episodeIndex],
+          );
+          return thumbnails
+              .map(
+                (thumbnail) => (
+                  offsetSeconds: thumbnail.offsetSeconds,
+                  image: thumbnail.image,
+                  // 切片帧无对应 media（时刻基于 media），id 填 0 即不支持「添加时刻」。
+                  mediaId: 0,
+                  thumbnailId: 0,
+                  // 切片缩略图后端暂未返尺寸；面板按 16:9 占位即可（与历史一致）。
+                  width: null,
+                  height: null,
+                ),
+              )
+              .toList();
+        },
+      );
+      setState(() {
+        _clips = playableClips;
+        attachPlayback(
+          player: player,
+          videoController: videoController,
+          filmstrip: filmstrip,
+          startIndex: startIndex,
+          episodeDurationsSeconds: List<int>.unmodifiable(playableDurations),
+        );
+        _isLoading = false;
+      });
+      // 优先拉起播集的关键帧，当前集高亮立即可用。
+      unawaited(filmstrip.start(priorityEpisode: startIndex));
+      await player.open(Playlist(medias, index: startIndex));
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isLoading = false;
+        _errorMessage = apiErrorMessage(
+          error,
+          fallback: AppLocalizations.of(context).clipCollectionPlayLoadFailed,
+          l10n: AppLocalizations.of(context),
+        );
+      });
+    }
+  }
+
+  void _handleBack() {
+    if (context.canPop()) {
+      context.pop();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return PlayerSwipeBackGuard(
+      enabled: widget.useTouchOptimizedControls,
+      onBack: _handleBack,
+      child: Scaffold(
+        backgroundColor: Colors.black,
+        body: PlayerAppFullscreenScope(
+          isFullscreen: isAppFullscreen,
+          onToggle: toggleAppFullscreen,
+          child: _buildBody(context),
+        ),
+      ),
+    );
+  }
+
+  String _currentClipTitle() {
+    final l10n = AppLocalizations.of(context);
+    if (currentIndex < 0 || currentIndex >= _clips.length) {
+      return l10n.clipCollectionContinuousPlay;
+    }
+    return _clips[currentIndex].displayTitle(l10n);
+  }
+
+  Widget _buildBody(BuildContext context) {
+    if (_isLoading) {
+      return wrapWithMoviePlayerBackButton(
+        onBackPressed: _handleBack,
+        child: const Center(
+          child: VideoLoadingIndicator(
+            key: Key('clip-collection-play-loading'),
+          ),
+        ),
+      );
+    }
+    if (_errorMessage != null) {
+      return wrapWithMoviePlayerBackButton(
+        onBackPressed: _handleBack,
+        child: Center(
+          child: AppErrorState(
+            title: AppLocalizations.of(context).clipCollectionPlayLoadFailed,
+            message: _errorMessage!,
+            retryKey: const Key('clip-collection-play-error-retry'),
+            onRetry: _retryLoad,
+          ),
+        ),
+      );
+    }
+    final videoController = this.videoController;
+    if (videoController == null) {
+      return wrapWithMoviePlayerBackButton(
+        onBackPressed: _handleBack,
+        child: const Center(child: VideoLoadingIndicator()),
+      );
+    }
+    // 左：原沉浸式播放器 + 「选集」浮层（原样保留）；右：「整部合集」关键帧面板。
+    return CollectionPlaySplitLayout(
+      keyPrefix: 'clip-collection',
+      collapsible: true,
+      panelAvailable: filmstrip != null,
+      collapseWhenPortrait: widget.useTouchOptimizedControls,
+      left: Stack(
+        children: [
+          Positioned.fill(
+            child: PlayerAppFullscreenDoubleTap(
+              enabled: !widget.useTouchOptimizedControls,
+              child: _buildPlayerSurface(context, videoController),
+            ),
+          ),
+          EpisodeSelectorOverlay(
+            isOpen: isEpisodePanelOpen,
+            itemCount: _clips.length,
+            currentIndex: currentIndex,
+            title: AppLocalizations.of(
+              context,
+            ).clipCollectionEpisodePanelTitle(_clips.length),
+            onClose: closeEpisodePanel,
+            itemBuilder: (context, index) {
+              final clip = _clips[index];
+              return CollectionEpisodeQueueItem(
+                itemKey: Key('clip-collection-play-queue-item-$index'),
+                coverUrl: clip.coverImage?.origin,
+                coverStyle: CollectionQueueCoverStyle.cover,
+                title: clip.displayTitle(AppLocalizations.of(context)),
+                subtitle: formatMediaTimecode(clip.durationSeconds),
+                isCurrent: index == currentIndex,
+                onTap: () {
+                  closeEpisodePanel();
+                  jumpTo(index);
+                },
+              );
+            },
+          ),
+        ],
+      ),
+      right: buildFilmstripPanel(),
+    );
+  }
+
+  void _retryLoad() {
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+    unawaited(_load());
+  }
+
+  Widget _buildPlayerSurface(
+    BuildContext context,
+    VideoController videoController,
+  ) {
+    final progressIndicator = MergedPositionIndicator(
+      player: player!,
+      episodeDurationsSeconds: episodeDurationsSeconds,
+      onSeekGlobalSeconds: seekToGlobalSeconds,
+    );
+    return ThemedVideoPlayer(
+      videoController: videoController,
+      useTouchOptimizedControls: widget.useTouchOptimizedControls,
+      videoKey: const Key('clip-collection-play-video'),
+      displaySeekBar: false,
+      disableNativeFullscreen: true,
+      reservePanelToggleSpace: true,
+      orientationLock: widget.orientationLock,
+      topControls: [
+        ...buildMoviePlayerTopControls(
+          movieNumber: _currentClipTitle(),
+          onBackPressed: _handleBack,
+          trailingControls: <Widget>[
+            MediaPlaybackInfoButton(player: videoController.player),
+          ],
+          orientationLock: widget.orientationLock,
+        ),
+      ],
+      bottomControls: buildCollectionPlayBottomControls(
+        useTouchOptimizedControls: widget.useTouchOptimizedControls,
+        onOpenEpisodes: openEpisodePanel,
+        progressIndicator: progressIndicator,
+      ),
+      // 全屏由 media_kit push 独立路由，页面级「选集」浮层不在其内，按钮点了
+      // 也看不到——全屏态去掉该按钮，避免死按钮。换集需先退出全屏。
+      fullscreenBottomControls: buildCollectionPlayBottomControls(
+        useTouchOptimizedControls: widget.useTouchOptimizedControls,
+        onOpenEpisodes: openEpisodePanel,
+        includeEpisodeButton: false,
+        progressIndicator: progressIndicator,
+      ),
+    );
+  }
+}

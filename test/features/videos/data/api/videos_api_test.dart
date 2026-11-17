@@ -1,0 +1,240 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/media/data/media_api.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_item_detail_dto.dart';
+import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
+
+import '../../../../support/fake_http_client_adapter.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  late SessionStore sessionStore;
+  late ApiClient apiClient;
+  late VideosApi videosApi;
+  late MediaApi mediaApi;
+  late FakeHttpClientAdapter adapter;
+
+  setUp(() async {
+    sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+    await sessionStore.saveTokens(
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: DateTime.parse('2026-03-08T10:00:00Z'),
+    );
+    apiClient = ApiClient(sessionStore: sessionStore);
+    videosApi = VideosApi(apiClient: apiClient);
+    mediaApi = MediaApi(apiClient: apiClient);
+    adapter = FakeHttpClientAdapter();
+    apiClient.rawDio.httpClientAdapter = adapter;
+    apiClient.rawRefreshDio.httpClientAdapter = adapter;
+  });
+
+  tearDown(() {
+    apiClient.dispose();
+  });
+
+  test('getVideos 编码 query/sort/uncollected 并解析分页', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/videos',
+      body: <String, dynamic>{
+        'items': <dynamic>[
+          <String, dynamic>{
+            'id': 1,
+            'title': '视频一',
+            'summary': '',
+            'cover_image': null,
+            'release_date': '2026-01-01T00:00:00',
+            'media_count': 2,
+            'can_play': true,
+            'created_at': '2026-01-02T03:04:05',
+            'updated_at': '2026-01-02T03:04:05',
+          },
+        ],
+        'page': 1,
+        'page_size': 20,
+        'total': 1,
+      },
+    );
+
+    final result = await videosApi.getVideos(
+      query: '关键词',
+      sort: 'created_at:desc',
+      uncollected: true,
+    );
+
+    expect(result.total, 1);
+    expect(result.items, hasLength(1));
+    expect(result.items.first.title, '视频一');
+    expect(result.items.first.mediaCount, 2);
+    expect(result.items.first.canPlay, isTrue);
+
+    final recorded = adapter.requests.single;
+    expect(recorded.uri.queryParameters['query'], '关键词');
+    expect(recorded.uri.queryParameters['sort'], 'created_at:desc');
+    expect(recorded.uri.queryParameters['uncollected'], 'true');
+    // 后端已移除 videos 域标签/人物筛选，不应再下发这两个 key。
+    expect(recorded.uri.queryParameters.containsKey('tag_id'), isFalse);
+    expect(recorded.uri.queryParameters.containsKey('person_id'), isFalse);
+  });
+
+  test('getVideos 默认不下发 uncollected', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/videos',
+      body: <String, dynamic>{
+        'items': <dynamic>[],
+        'page': 1,
+        'page_size': 20,
+        'total': 0,
+      },
+    );
+
+    await videosApi.getVideos();
+
+    expect(
+      adapter.requests.single.uri.queryParameters.containsKey('uncollected'),
+      isFalse,
+    );
+  });
+
+  test('getVideoDetail 复用 MovieMediaItemDto 解析 media_items（含进度与时刻）', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/videos/7',
+      body: <String, dynamic>{
+        'id': 7,
+        'title': '详情视频',
+        'summary': '简介',
+        'cover_image': null,
+        'release_date': null,
+        'media_count': 1,
+        'can_play': true,
+        'created_at': '2026-01-02T03:04:05',
+        'updated_at': '2026-01-02T03:04:05',
+        'media_items': <dynamic>[
+          <String, dynamic>{
+            'media_id': 31,
+            'library_id': 1,
+            'playback_deliveries': <String>['proxy'],
+            'play_url': '/files/videos/7/clip.mp4?sig=abc',
+            'path': '/data/videos/7/clip.mp4',
+            'storage_mode': 'local',
+            'resolution': '1080p',
+            'file_size_bytes': 1048576,
+            'duration_seconds': 600,
+            'valid': true,
+            'progress': <String, dynamic>{
+              'last_position_seconds': 120,
+              'last_watched_at': '2026-01-03T10:00:00',
+            },
+            'points': <dynamic>[
+              <String, dynamic>{
+                'point_id': 41,
+                'thumbnail_id': 51,
+                'offset_seconds': 90,
+                'image': null,
+              },
+            ],
+            'video_info': null,
+          },
+        ],
+      },
+    );
+
+    final detail = await videosApi.getVideoDetail(videoId: 7);
+
+    expect(detail, isA<VideoItemDetailDto>());
+    expect(detail.id, 7);
+    expect(detail.mediaItems, hasLength(1));
+
+    final media = detail.mediaItems.single;
+    expect(media.mediaId, 31);
+    expect(media.playUrl, '/files/videos/7/clip.mp4?sig=abc');
+    expect(media.hasPlayableUrl, isTrue);
+    expect(media.durationSeconds, 600);
+    expect(media.progress?.lastPositionSeconds, 120);
+    expect(media.points.single.offsetSeconds, 90);
+  });
+
+  test('updateMediaProgress 写回普通视频媒体进度', () async {
+    adapter.enqueueJson(
+      method: 'PUT',
+      path: '/media/31/progress',
+      body: <String, dynamic>{
+        'last_position_seconds': 125,
+        'last_watched_at': '2026-01-03T10:05:00',
+      },
+    );
+
+    final progress = await mediaApi.updateMediaProgress(
+      mediaId: 31,
+      positionSeconds: 125,
+    );
+
+    expect(progress.lastPositionSeconds, 125);
+    expect(adapter.requests.single.body, <String, dynamic>{
+      'position_seconds': 125,
+    });
+  });
+
+  test('getMediaThumbnails parses PornBox thumbnail list', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/media/31/thumbnails',
+      body: <Map<String, dynamic>>[
+        <String, dynamic>{
+          'thumbnail_id': 51,
+          'media_id': 31,
+          'offset_seconds': 90,
+          'image': <String, dynamic>{
+            'id': 88,
+            'origin': 'thumb-large.webp',
+          },
+          'width': 1280,
+          'height': 720,
+        },
+      ],
+    );
+
+    final thumbnails = await mediaApi.getMediaThumbnails(mediaId: 31);
+
+    expect(thumbnails, hasLength(1));
+    expect(thumbnails.single.thumbnailId, 51);
+    expect(thumbnails.single.offsetSeconds, 90);
+    expect(thumbnails.single.image.origin, 'thumb-large.webp');
+    expect(adapter.requests.single.path, '/media/31/thumbnails');
+  });
+
+  test(
+    'setVideoCover sends cover thumbnail id and parses updated detail',
+    () async {
+      adapter.enqueueJson(
+        method: 'PATCH',
+        path: '/videos/7',
+        body: <String, dynamic>{
+          'id': 7,
+          'title': '详情视频',
+          'cover_image': <String, dynamic>{
+            'id': 88,
+            'origin': 'cover.webp',
+          },
+          'media_count': 1,
+          'can_play': true,
+          'media_items': const <dynamic>[],
+        },
+      );
+
+      final detail = await videosApi.setVideoCover(videoId: 7, thumbnailId: 51);
+
+      expect(detail.id, 7);
+      expect(detail.coverImage?.origin, 'cover.webp');
+      expect(adapter.requests.single.body, <String, dynamic>{
+        'cover_thumbnail_id': 51,
+      });
+    },
+  );
+}

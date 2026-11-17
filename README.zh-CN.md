@@ -185,6 +185,10 @@ NAS 不是必须的：后端可以跑在任何能长期运行 Docker 的机器�
 
 > 如果 SakuraMedia 对你有帮助，欢迎[点个 Star](https://github.com/tinypinglite/sakuramedia/stargazers)，让更多人发现它。
 
+## 从源码构建
+
+客户端使用 Flutter 开发：开发环境为 3.47.9，发布工作流固定 3.47.2。执行 `flutter pub get` 和 `flutter gen-l10n` 后，用 `./scripts/test.sh` 跑全量测试，再用 `flutter build <platform>` 构建；各平台的打包步骤见 `.github/workflows/release-*.yml`。
+
 ## 适合谁
 
 **适合**：有 NAS、迷你主机、服务器或 VPS 等可长期运行的环境，希望把影片发现、下载、导入和观看放在一个地方的人。
@@ -204,6 +208,7 @@ NAS 不是必须的：后端可以跑在任何能长期运行 Docker 的机器�
 - [点一个 Star](https://github.com/tinypinglite/sakuramedia/stargazers)，让更多人看到这个项目。
 - 帮助改进 [Wiki](https://tinypinglite.github.io/sakuramedia/zh-CN/) 和文档。
 - 开发插件：查看 [插件开发文档](https://tinypinglite.github.io/sakuramedia/zh-CN/guide/plugin-development)；上架插件市场请前往 [sakuramedia-plugin-market](https://github.com/tinypinglite/sakuramedia-plugin-market)。
+- 欢迎提交 bug 修复或新功能 PR；客户端源码就在本仓库。
 
 本项目不需要捐赠；Star、文档和插件都是帮助。
 

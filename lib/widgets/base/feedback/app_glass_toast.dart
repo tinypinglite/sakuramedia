@@ -1,0 +1,168 @@
+import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_backend.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_flat_style.dart';
+import 'package:sakuramedia/widgets/base/layout/glass/app_glass_flat_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
+
+enum AppToastTone { neutral, success, warning, error, info }
+
+class AppGlassToast extends StatelessWidget {
+  const AppGlassToast({
+    super.key,
+    required this.message,
+    this.tone = AppToastTone.neutral,
+  });
+
+  final String message;
+  final AppToastTone tone;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.appToastTokens;
+    final highContrast = MediaQuery.maybeHighContrastOf(context) ?? false;
+    final flat = AppSurfaceStyleScope.of(context) == AppSurfaceStyle.flat;
+    final content = _buildContent(context);
+    final padding = EdgeInsets.symmetric(
+      horizontal: tokens.horizontalPadding,
+      vertical: tokens.verticalPadding,
+    );
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: tokens.horizontalScreenInset),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: tokens.maxWidth,
+          minWidth: tokens.minWidth,
+          minHeight: tokens.minHeight,
+        ),
+        child: flat
+            ? _buildFlatSurface(
+                padding: padding,
+                borderRadius: tokens.borderRadius,
+                child: content,
+              )
+            : highContrast
+            ? _buildSolidSurface(
+                context,
+                padding: padding,
+                borderRadius: tokens.borderRadiusValue,
+                child: content,
+              )
+            : _buildGlassSurface(
+                padding: padding,
+                borderRadius: tokens.borderRadius,
+                child: content,
+              ),
+      ),
+    );
+  }
+
+  Widget _buildFlatSurface({
+    required EdgeInsets padding,
+    required double borderRadius,
+    required Widget child,
+  }) {
+    return AppGlassFlatSurface(
+      borderRadius: BorderRadius.circular(borderRadius),
+      padding: padding,
+      role: AppFlatSurfaceRole.overlay,
+      child: child,
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    final tokens = context.appToastTokens;
+    final textStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s16,
+      weight: AppTextWeight.medium,
+      tone: AppTextTone.primary,
+    ).copyWith(fontSize: tokens.textSize, height: 1.35);
+    final text = Text(
+      message,
+      textAlign: tone == AppToastTone.neutral
+          ? TextAlign.center
+          : TextAlign.start,
+      style: textStyle,
+    );
+    final icon = _toneIcon;
+    if (icon == null) {
+      return ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: tokens.maxWidth - tokens.horizontalPadding * 2,
+        ),
+        child: text,
+      );
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: <Widget>[
+        Icon(
+          icon,
+          size: context.appComponentTokens.iconSizeSm,
+          color: _toneColor(context.appTextPalette),
+        ),
+        SizedBox(width: context.appSpacing.sm),
+        Flexible(child: text),
+      ],
+    );
+  }
+
+  Widget _buildGlassSurface({
+    required EdgeInsets padding,
+    required double borderRadius,
+    required Widget child,
+  }) {
+    return AppGlassContainerBackend(
+      borderRadius: borderRadius,
+      role: AppGlassRole.overlay,
+      child: Padding(padding: padding, child: child),
+    );
+  }
+
+  Widget _buildSolidSurface(
+    BuildContext context, {
+    required EdgeInsets padding,
+    required BorderRadius borderRadius,
+    required Widget child,
+  }) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: context.appColors.surfaceElevated,
+        borderRadius: borderRadius,
+        border: Border.all(color: context.appColors.borderStrong),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: context.appShadows.color.withValues(alpha: 0.16),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Padding(padding: padding, child: child),
+    );
+  }
+
+  IconData? get _toneIcon {
+    return switch (tone) {
+      AppToastTone.neutral => null,
+      AppToastTone.success => Icons.check_rounded,
+      AppToastTone.warning => Icons.warning_amber_rounded,
+      AppToastTone.error => Icons.error_outline_rounded,
+      AppToastTone.info => Icons.info_outline_rounded,
+    };
+  }
+
+  Color _toneColor(AppTextPalette palette) {
+    return switch (tone) {
+      AppToastTone.neutral => palette.primary,
+      AppToastTone.success => palette.success,
+      AppToastTone.warning => palette.warning,
+      AppToastTone.error => palette.error,
+      AppToastTone.info => palette.info,
+    };
+  }
+}

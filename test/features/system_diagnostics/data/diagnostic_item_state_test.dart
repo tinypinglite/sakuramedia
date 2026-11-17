@@ -1,0 +1,92 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_fix_target.dart';
+import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_item_kind.dart';
+import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_item_state.dart';
+import 'package:sakuramedia/features/system_diagnostics/data/diagnostic_item_status.dart';
+
+void main() {
+  group('DiagnosticItemState factories', () {
+    test('notTested factory 只保留 kind/key/name，其他字段留空', () {
+      final state = DiagnosticItemState.notTested(
+        kind: DiagnosticItemKind.mediaLibrary,
+        itemKey: 'media-library',
+        displayName: '媒体库',
+      );
+
+      expect(state.status, DiagnosticItemStatus.notTested);
+      expect(state.summary, isNull);
+      expect(state.cause, isNull);
+      expect(state.fixTarget, isNull);
+    });
+
+    test('probing factory 落 probing 态', () {
+      final state = DiagnosticItemState.probing(
+        kind: DiagnosticItemKind.joyTag,
+        itemKey: 'joytag',
+        displayName: 'JoyTag 推理',
+      );
+      expect(state.status, DiagnosticItemStatus.probing);
+    });
+
+    test('healthy factory 保留 elapsedMs 与 summary', () {
+      final state = DiagnosticItemState.healthy(
+        kind: DiagnosticItemKind.joyTag,
+        itemKey: 'joytag',
+        displayName: 'JoyTag',
+        elapsedMs: 42,
+        summary: '连通正常',
+      );
+      expect(state.status, DiagnosticItemStatus.healthy);
+      expect(state.elapsedMs, 42);
+      expect(state.summary, '连通正常');
+    });
+
+    test('unhealthy factory 强制要求 cause/fixHint 两段', () {
+      final state = DiagnosticItemState.unhealthy(
+        kind: DiagnosticItemKind.indexer,
+        itemKey: 'indexer-1',
+        displayName: '索引器',
+        cause: '连接失败',
+        fixHint: '检查索引器配置',
+        fixTarget: const DiagnosticFixTarget.configurationTabKey(
+          'configuration-tab-indexers',
+        ),
+      );
+      expect(state.cause, isNotNull);
+      expect(state.fixHint, isNotNull);
+      expect(
+        state.fixTarget?.configurationTabKey,
+        'configuration-tab-indexers',
+      );
+    });
+
+    test('blocked factory 必须给 blockedByLabel 和 summary', () {
+      final state = DiagnosticItemState.blocked(
+        kind: DiagnosticItemKind.indexer,
+        itemKey: 'indexer',
+        displayName: '索引器',
+        blockedByLabel: '媒体库',
+        summary: '等待 媒体库 就绪',
+      );
+      expect(state.status, DiagnosticItemStatus.blocked);
+      expect(state.blockedByLabel, '媒体库');
+      expect(state.summary, contains('媒体库'));
+    });
+  });
+
+  group('DiagnosticFixTarget', () {
+    test('相同 tabKey 视为相等', () {
+      const a = DiagnosticFixTarget.configurationTabKey(
+        'configuration-tab-indexers',
+      );
+      const b = DiagnosticFixTarget.configurationTabKey(
+        'configuration-tab-indexers',
+      );
+      const c = DiagnosticFixTarget.configurationTabKey(
+        'configuration-tab-media-libraries',
+      );
+      expect(a, equals(b));
+      expect(a == c, isFalse);
+    });
+  });
+}

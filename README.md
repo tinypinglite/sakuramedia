@@ -188,6 +188,10 @@ Get the client from [GitHub Releases](https://github.com/tinypinglite/sakuramedi
 
 > If SakuraMedia has been useful to you, [a star](https://github.com/tinypinglite/sakuramedia/stargazers) helps more people find it.
 
+## Build from source
+
+The client is a Flutter app. Development uses Flutter 3.47.9; the release workflow is pinned to 3.47.2. After `flutter pub get` and `flutter gen-l10n`, run the full test suite with `./scripts/test.sh`, then build with `flutter build <platform>`. Platform-specific packaging steps are in `.github/workflows/release-*.yml`.
+
 ## Who it's for
 
 **A good fit**: you have a NAS, mini PC, server, or VPS that can run around the clock, and you want movie discovery, downloading, importing, and watching in one place.
@@ -207,6 +211,7 @@ Get the client from [GitHub Releases](https://github.com/tinypinglite/sakuramedi
 - [Star the project](https://github.com/tinypinglite/sakuramedia/stargazers) so more people find it.
 - Help improve the [Wiki](https://tinypinglite.github.io/sakuramedia/) and the docs.
 - Build plugins: see the [plugin development guide](https://tinypinglite.github.io/sakuramedia/guide/plugin-development); list one in the [plugin market](https://github.com/tinypinglite/sakuramedia-plugin-market).
+- Send PRs for bug fixes or new features; the client source is in this repository.
 
 The project doesn't need donations; stars, docs, and plugins are all help.
 

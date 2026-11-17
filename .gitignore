@@ -1,0 +1,90 @@
+# Agent 本地指令,不入库
+AGENTS.md
+
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+# macOS SwiftPM 依赖解析文件由 Flutter 本地生成，不随功能提交。
+macos/**/xcshareddata/swiftpm/Package.resolved
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+devtools_options.yaml
+
+# Generated Flutter localizations (run `flutter gen-l10n`)
+lib/l10n/app_localizations*.dart
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+android/key.properties
+android/keystore/
+
+# Python helper scripts
+__pycache__/
+
+# 本地资源和临时图片不纳入版本库；品牌资源例外，随应用打包。
+assets/*
+!assets/brand/
+!assets/brand/**
+
+.vscode
+.worktrees/
+
+.claude
+.mcp.json
+
+# Serena MCP(符号级代码导航)本地缓存/配置/日志,不进版本库
+.serena/
+
+.codex
+.agents
+
+# 本地环境变量(图片模糊等运行时开关),通过 `--dart-define-from-file=.env` 注入
+.env
+.env.local
+
+docs/refactor
+
+# 全量测试的 bundle 入口,由 scripts/test.sh 每次跑测前重新生成(见 tool/gen_test_bundles.dart)
+/test_bundles/
+
+# UI 预览脚本(*_preview.dart)是本地临时验证文件,不入版本库(见 AGENTS.md)
+test/**/*_preview.dart
+
+Podfile.lock

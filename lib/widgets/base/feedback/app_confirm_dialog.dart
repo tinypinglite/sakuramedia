@@ -1,0 +1,196 @@
+import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
+import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
+
+/// 统一的二次确认弹窗：标题 + 正文 + 「取消 / 确认」两个按钮。
+///
+/// 取代此前各页面手写的同构 `AlertDialog` / `AppDesktopDialog` / 手撸删除抽屉。
+/// 确认返回 `true`，取消 / 点遮罩 / 下滑关闭返回 `false`（恒非空，调用方可直接
+/// `if (!confirmed) return;`）。
+///
+/// - [danger] 为 `true` 时确认按钮用危险红色（删除类不可恢复操作）。
+/// - [dialogKey] / [confirmKey] / [cancelKey] 用于沿用各处既有的测试 key；
+///   drawer 分支下 [dialogKey] 透传为 `drawerKey`。
+/// - [extraContent] 在正文与按钮之间插入自定义内容（如带 key 的路径文本），
+///   `null` 时不渲染。
+/// - [variant] 决定壳体；默认 [AppAdaptiveModalVariant.auto]。
+/// - [onConfirm] 传了 → 点确认后内部把确认按钮置 `isLoading`、禁用取消，
+///   `await onConfirm()` 成功后 pop(true)；抛异常时 toast 兜底 + 恢复按钮状态、
+///   **不 pop**。不传则保持旧行为：点确认立即 pop(true) 由 caller 自行调 API。
+/// - [failureFallback] 是 [onConfirm] 异常时 toast 的兜底文案（默认取当前语言的
+///   `baseActionFailed`），通过 `apiErrorMessage(error, fallback: failureFallback)`
+///   解析后展示。
+Future<bool> showAppConfirmDialog(
+  BuildContext context, {
+  required String title,
+  required String message,
+  String? confirmLabel,
+  String? cancelLabel,
+  bool danger = false,
+  Key? dialogKey,
+  Key? confirmKey,
+  Key? cancelKey,
+  Widget? extraContent,
+  AppAdaptiveModalVariant variant = AppAdaptiveModalVariant.auto,
+  Future<void> Function()? onConfirm,
+  String? failureFallback,
+}) async {
+  final l10n = appL10n(context);
+  Widget buildBody(BuildContext _) => _ConfirmBody(
+    title: title,
+    message: message,
+    confirmLabel: confirmLabel ?? l10n.baseConfirm,
+    cancelLabel: cancelLabel ?? l10n.commonCancel,
+    danger: danger,
+    confirmKey: confirmKey,
+    cancelKey: cancelKey,
+    extraContent: extraContent,
+    onConfirm: onConfirm,
+    failureFallback: failureFallback ?? l10n.baseActionFailed,
+  );
+
+  final confirmed = await showAppAdaptiveModal<bool>(
+    context: context,
+    variant: variant,
+    modalKey: dialogKey,
+    desktopWidth: context.appLayoutTokens.dialogWidthSm,
+    mobileMaxHeightFactor: 0.42,
+    desktopOnClose: () => Navigator.of(context, rootNavigator: true).maybePop(),
+    builder: buildBody,
+  );
+  return confirmed ?? false;
+}
+
+/// dialog 与 drawer 两个壳共享的正文 + 双按钮布局，同时承载 `onConfirm` 的 loading 状态。
+class _ConfirmBody extends StatefulWidget {
+  const _ConfirmBody({
+    required this.title,
+    required this.message,
+    required this.confirmLabel,
+    required this.cancelLabel,
+    required this.danger,
+    required this.confirmKey,
+    required this.cancelKey,
+    required this.extraContent,
+    required this.onConfirm,
+    required this.failureFallback,
+  });
+
+  final String title;
+  final String message;
+  final String confirmLabel;
+  final String cancelLabel;
+  final bool danger;
+  final Key? confirmKey;
+  final Key? cancelKey;
+  final Widget? extraContent;
+  final Future<void> Function()? onConfirm;
+  final String failureFallback;
+
+  @override
+  State<_ConfirmBody> createState() => _ConfirmBodyState();
+}
+
+class _ConfirmBodyState extends State<_ConfirmBody> {
+  bool _isConfirming = false;
+
+  Future<void> _handleConfirm() async {
+    if (_isConfirming) {
+      return;
+    }
+    final onConfirm = widget.onConfirm;
+    if (onConfirm == null) {
+      Navigator.of(context).pop(true);
+      return;
+    }
+    setState(() => _isConfirming = true);
+    try {
+      await onConfirm();
+      if (!mounted) {
+        return;
+      }
+      Navigator.of(context).pop(true);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _isConfirming = false);
+      showToast(
+        apiErrorMessage(
+          error,
+          fallback: widget.failureFallback,
+          l10n: appL10n(context),
+        ),
+        tone: AppToastTone.error,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    // onConfirm 进行中禁止下拉/遮罩/系统返回键关闭弹窗，防止 API 副作用
+    // 与 modal dismiss 竞态导致本地状态不同步。取消按钮同时被禁用。
+    return PopScope<bool>(
+      canPop: !_isConfirming,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.title,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s18,
+              weight: AppTextWeight.semibold,
+              tone: AppTextTone.primary,
+            ),
+          ),
+          SizedBox(height: spacing.lg),
+          Flexible(
+            fit: FlexFit.loose,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    widget.message,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s14,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.secondary,
+                    ),
+                  ),
+                  if (widget.extraContent != null) ...[
+                    SizedBox(height: spacing.md),
+                    widget.extraContent!,
+                  ],
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: spacing.xl),
+          AppModalActionRow(
+            cancelKey: widget.cancelKey,
+            submitKey: widget.confirmKey,
+            cancelLabel: widget.cancelLabel,
+            submitLabel: widget.confirmLabel,
+            isSubmitting: _isConfirming,
+            submitVariant: widget.danger
+                ? AppButtonVariant.danger
+                : AppButtonVariant.primary,
+            onCancel: () => Navigator.of(context).pop(false),
+            onSubmit: _handleConfirm,
+          ),
+        ],
+      ),
+    );
+  }
+}

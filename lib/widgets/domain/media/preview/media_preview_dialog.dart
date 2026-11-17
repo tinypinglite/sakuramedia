@@ -1,0 +1,819 @@
+import 'package:sakuramedia/features/status/presentation/providers/server_capabilities_provider.dart';
+import 'dart:math' as math;
+
+import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sakuramedia/app/app_platform.dart';
+import 'package:sakuramedia/core/format/media_timecode.dart';
+import 'package:sakuramedia/core/media/image_save_service.dart';
+import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
+import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
+import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
+import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
+import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
+import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
+import 'package:sakuramedia/widgets/domain/media/media_center_play_button.dart';
+import 'package:sakuramedia/widgets/domain/media/preview/media_preview_action_grid.dart';
+import 'package:sakuramedia/widgets/domain/media/preview/preview_image_stage.dart';
+import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_thumbnail.dart';
+
+class MediaPreviewItem {
+  const MediaPreviewItem({
+    required this.imageUrl,
+    required this.fileName,
+    required this.mediaId,
+    required this.movieNumber,
+    this.videoItemId,
+    required this.thumbnailId,
+    required this.offsetSeconds,
+    this.scoreText,
+    this.pointId,
+  });
+
+  final String imageUrl;
+  final String fileName;
+  final int mediaId;
+  // JAV 项带番号；视频项为 null，借 videoItemId 区分。
+  final String? movieNumber;
+  final int? videoItemId;
+  final int thumbnailId;
+  final int offsetSeconds;
+  final String? scoreText;
+  final int? pointId;
+
+  bool get isVideo => videoItemId != null && videoItemId! > 0;
+}
+
+/// 预览层关闭后，由调用页面执行的外部跳转动作。
+///
+/// 保存与标记由预览层自身处理；相似图、播放、影片详情与加入合集必须先关闭
+/// 当前 Dialog/Drawer，避免新路由或新的 root 弹层被旧预览的 pop 一并关闭。
+enum MediaPreviewAction {
+  searchSimilar,
+  addToCollection,
+  play,
+  openMovieDetail,
+}
+
+Future<MediaPreviewAction?> showMediaPreviewOverlay({
+  required BuildContext context,
+  required AppAdaptiveModalVariant variant,
+  required WidgetBuilder builder,
+  Key? drawerKey,
+}) {
+  final insetPadding = EdgeInsets.symmetric(
+    horizontal: context.appSpacing.xxxl,
+    vertical: context.appSpacing.xxl,
+  );
+  return showAppAdaptiveModal<MediaPreviewAction>(
+    context: context,
+    variant: variant,
+    dialogKey: const Key('image-search-result-preview-dialog'),
+    drawerKey: drawerKey,
+    desktopContentKey: const Key('image-search-result-preview-dialog-content'),
+    desktopWidth: context.appComponentTokens.movieDetailDialogWidth,
+    desktopHeight: math.min(
+      context.appComponentTokens.movieDetailDialogMinHeight,
+      math.max(0.0, MediaQuery.sizeOf(context).height - insetPadding.vertical),
+    ),
+    desktopInsetPadding: insetPadding,
+    mobileMaxHeightFactor: 0.7,
+    drawerIgnoreTopSafeArea: true,
+    builder: builder,
+  );
+}
+
+class MediaPreviewDialog extends ConsumerStatefulWidget {
+  const MediaPreviewDialog({
+    super.key,
+    required this.item,
+    this.availableActions = const <MediaPreviewAction>{},
+    this.onPointRemoved,
+    this.closeOnPointRemoved = false,
+    this.useInlineNavigation = false,
+    this.onActorSelected,
+  });
+
+  final MediaPreviewItem item;
+  final Set<MediaPreviewAction> availableActions;
+  final VoidCallback? onPointRemoved;
+  final bool closeOnPointRemoved;
+  final bool useInlineNavigation;
+
+  /// Records the selected actor before the overlay closes; navigation belongs
+  /// to the caller after awaiting the overlay.
+  final ValueChanged<int>? onActorSelected;
+
+  @override
+  ConsumerState<MediaPreviewDialog> createState() => _MediaPreviewDialogState();
+}
+
+class _MediaPreviewDialogState extends ConsumerState<MediaPreviewDialog> {
+  final ScrollController _actorScrollController = ScrollController();
+  MovieDetailDto? _movieDetail;
+  int? _pointId;
+  bool _isLoadingMovieDetail = true;
+  bool _isLoadingMediaPoints = true;
+  bool _isSavingImage = false;
+  bool _isTogglingPoint = false;
+  String? _movieDetailErrorMessage;
+  String? _mediaPointsErrorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _pointId = widget.item.pointId;
+    _loadData();
+  }
+
+  @override
+  void dispose() {
+    _actorScrollController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadData() async {
+    await Future.wait(<Future<void>>[_loadMovieDetail(), _loadMediaPoints()]);
+  }
+
+  Future<void> _loadMovieDetail() async {
+    final movieNumber = widget.item.movieNumber;
+    if (widget.item.isVideo || movieNumber == null || movieNumber.isEmpty) {
+      // 视频时刻没有番号，直接跳过 JAV 详情拉取；UI 自然隐藏影片信息区。
+      setState(() {
+        _isLoadingMovieDetail = false;
+        _movieDetailErrorMessage = null;
+      });
+      return;
+    }
+    setState(() {
+      _isLoadingMovieDetail = true;
+      _movieDetailErrorMessage = null;
+    });
+    try {
+      final movieDetail = await ref
+          .read(moviesApiProvider)
+          .getMovieDetail(movieNumber: movieNumber);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _movieDetail = movieDetail;
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _movieDetailErrorMessage = apiErrorMessage(
+          error,
+          fallback: AppLocalizations.of(
+            context,
+          ).widgetMediaMovieDetailLoadFailed,
+          l10n: AppLocalizations.of(context),
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingMovieDetail = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _loadMediaPoints() async {
+    if (_pointId != null) {
+      setState(() => _isLoadingMediaPoints = false);
+      return;
+    }
+    if (widget.item.mediaId <= 0) {
+      setState(() {
+        _isLoadingMediaPoints = false;
+        _mediaPointsErrorMessage = AppLocalizations.of(
+          context,
+        ).widgetMediaMissingMediaId;
+      });
+      return;
+    }
+
+    setState(() {
+      _isLoadingMediaPoints = true;
+      _mediaPointsErrorMessage = null;
+    });
+    try {
+      final points = await ref
+          .read(mediaApiProvider)
+          .getMediaPoints(mediaId: widget.item.mediaId);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _pointId = null;
+        for (final point in points) {
+          if (point.thumbnailId == widget.item.thumbnailId) {
+            _pointId = point.pointId;
+            break;
+          }
+        }
+      });
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _mediaPointsErrorMessage = apiErrorMessage(
+          error,
+          fallback: AppLocalizations.of(context).widgetMediaMarksLoadFailed,
+          l10n: AppLocalizations.of(context),
+        );
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingMediaPoints = false;
+        });
+      }
+    }
+  }
+
+  bool get _canTogglePoint =>
+      !_isLoadingMediaPoints &&
+      _mediaPointsErrorMessage == null &&
+      (_pointId != null ||
+          (widget.item.mediaId > 0 && widget.item.thumbnailId > 0));
+
+  bool get _canSearchSimilar =>
+      widget.availableActions.contains(MediaPreviewAction.searchSimilar);
+
+  bool get _canAddToCollection =>
+      widget.availableActions.contains(MediaPreviewAction.addToCollection) &&
+      (_pointId != null ||
+          (widget.item.mediaId > 0 && widget.item.thumbnailId > 0));
+
+  bool get _canPlay =>
+      widget.item.mediaId > 0 &&
+      widget.availableActions.contains(MediaPreviewAction.play);
+
+  bool get _canOpenMovieDetail =>
+      !widget.item.isVideo &&
+      widget.availableActions.contains(MediaPreviewAction.openMovieDetail);
+
+  bool get _isLoadingPreviewData =>
+      _isLoadingMovieDetail || _isLoadingMediaPoints;
+
+  int get _loadingActionCount {
+    var count = 3; // 相似图片、保存、标记
+    if (_canAddToCollection) {
+      count++;
+    }
+    if (_canPlay && !widget.useInlineNavigation) {
+      count++;
+    }
+    if (_canOpenMovieDetail && !widget.useInlineNavigation) {
+      count++;
+    }
+    return count;
+  }
+
+  bool _isBottomDrawer(BuildContext context) =>
+      AppAdaptiveModalShellScope.maybeIsDrawer(context);
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isBottomDrawer(context)) {
+      final screenHeight = MediaQuery.sizeOf(context).height;
+      final previewHeight = math.min(
+        320.0,
+        math.max(220.0, screenHeight * 0.32),
+      );
+      return _buildPreviewContent(context, previewHeight: previewHeight);
+    }
+
+    final dialogHeight = math.min(
+      context.appComponentTokens.movieDetailDialogMinHeight,
+      math.max(
+        0.0,
+        MediaQuery.sizeOf(context).height - context.appSpacing.xxl * 2,
+      ),
+    );
+    return _buildPreviewContent(context, previewHeight: dialogHeight * 0.5);
+  }
+
+  Widget _buildPreviewContent(
+    BuildContext context, {
+    required double previewHeight,
+  }) {
+    final spacing = context.appSpacing;
+    final l10n = AppLocalizations.of(context);
+    final movieInfoSection = _buildMovieInfoSection(context);
+    final actionsSection = MediaPreviewActionGrid(
+      key: const Key('image-search-result-preview-actions'),
+      layout: MediaPreviewActionGridLayout.horizontalScroll,
+      spacing: spacing.xs,
+      tileWidth: 64,
+      isLoading: _isLoadingPreviewData,
+      loadingItemCount: _loadingActionCount,
+      actions: [
+        if (ref.watch(imageSearchEnabledProvider))
+          MediaPreviewActionItem(
+            label: l10n.widgetMediaActionSearchSimilar,
+            icon: Icons.image_search_outlined,
+            onTap: _canSearchSimilar ? _handleSearchSimilar : null,
+          ),
+        MediaPreviewActionItem(
+          label: l10n.commonSave,
+          icon: Icons.download_outlined,
+          isLoading: _isSavingImage,
+          onTap: _handleSaveToLocal,
+        ),
+        MediaPreviewActionItem(
+          label: _pointId == null
+              ? l10n.widgetMediaActionAddMark
+              : l10n.widgetMediaActionRemoveMark,
+          icon: _pointId == null
+              ? Icons.bookmark_add_outlined
+              : Icons.bookmark_remove_outlined,
+          isLoading: _isTogglingPoint,
+          onTap: _canTogglePoint ? _handleTogglePoint : null,
+        ),
+        MediaPreviewActionItem(
+          label: l10n.widgetMediaActionAddToCollection,
+          icon: Icons.collections_bookmark_outlined,
+          visible: _canAddToCollection,
+          onTap: _handleAddToCollection,
+        ),
+        MediaPreviewActionItem(
+          label: l10n.widgetMediaActionPlay,
+          icon: Icons.play_circle_outline_rounded,
+          visible: _canPlay && !widget.useInlineNavigation,
+          onTap: _canPlay ? _handlePlay : null,
+        ),
+        MediaPreviewActionItem(
+          label: l10n.widgetMediaActionMovieDetail,
+          icon: Icons.info_outline_rounded,
+          visible:
+              _canOpenMovieDetail &&
+              (!widget.useInlineNavigation ||
+                  (!_isLoadingMovieDetail && _movieDetailErrorMessage != null)),
+          onTap: _canOpenMovieDetail ? _handleOpenMovieDetail : null,
+        ),
+      ],
+    );
+
+    if (_isBottomDrawer(context)) {
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final maxPreviewHeight = math.max(
+            140.0,
+            constraints.maxHeight * 0.34,
+          );
+          final resolvedPreviewHeight = math.min(
+            previewHeight,
+            maxPreviewHeight,
+          );
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                PreviewImageStage(
+                  stageKey: const Key('image-search-result-preview-hero'),
+                  imageUrl: widget.item.imageUrl,
+                  height: resolvedPreviewHeight,
+                  onClose: () => Navigator.of(context).pop(),
+                  showCloseButton: false,
+                  enablePinchToFullscreen: isMobileAppPlatform(),
+                  fullscreenImageKey: const Key(
+                    'image-search-result-preview-fullscreen-image',
+                  ),
+                  overlayChild: _canPlay
+                      ? MediaCenterPlayButton(
+                          buttonKey: const Key('media-preview-center-play'),
+                          onTap: _handlePlay,
+                        )
+                      : null,
+                ),
+                Container(
+                  key: const Key('image-search-result-preview-summary'),
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(
+                    // horizontal: spacing.lg,
+                    vertical: spacing.sm,
+                  ),
+                  // color: context.appColors.surfaceMuted,
+                  child: Text(
+                    _summaryText,
+                    textAlign: TextAlign.center,
+                    style: resolveAppTextStyle(
+                      context,
+                      size: AppTextSize.s12,
+                      weight: AppTextWeight.regular,
+                      tone: AppTextTone.muted,
+                    ),
+                  ),
+                ),
+                movieInfoSection,
+                SizedBox(height: context.appSpacing.sm),
+                // Divider(height: 1, color: context.appColors.borderSubtle),
+                actionsSection,
+              ],
+            ),
+          );
+        },
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        PreviewImageStage(
+          stageKey: const Key('image-search-result-preview-hero'),
+          imageUrl: widget.item.imageUrl,
+          height: previewHeight,
+          onClose: () => Navigator.of(context).pop(),
+          showCloseButton: false,
+          enablePinchToFullscreen: false,
+          overlayChild: _canPlay
+              ? MediaCenterPlayButton(
+                  buttonKey: const Key('media-preview-center-play'),
+                  onTap: _handlePlay,
+                )
+              : null,
+        ),
+        Container(
+          key: const Key('image-search-result-preview-summary'),
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(
+            horizontal: spacing.lg,
+            vertical: spacing.sm,
+          ),
+          color: context.appColors.surfaceMuted,
+          child: Text(
+            _summaryText,
+            textAlign: TextAlign.center,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s14,
+              weight: AppTextWeight.regular,
+              tone: AppTextTone.secondary,
+            ),
+          ),
+        ),
+        Expanded(child: SingleChildScrollView(child: movieInfoSection)),
+        // Divider(height: 1, color: context.appColors.borderSubtle),
+        actionsSection,
+      ],
+    );
+  }
+
+  String get _summaryText {
+    final l10n = AppLocalizations.of(context);
+    final scoreText = widget.item.scoreText;
+    final fragments = <String>[
+      if (widget.item.pointId != null && widget.item.mediaId <= 0)
+        l10n.widgetMediaSourceDeleted,
+    ];
+    if (scoreText != null && scoreText.isNotEmpty) {
+      fragments.add(l10n.widgetMediaSimilarityLabel(scoreText));
+    }
+    final movieNumber = widget.item.movieNumber;
+    if (widget.item.isVideo) {
+      fragments.add(l10n.widgetMediaVideoLabel('${widget.item.videoItemId}'));
+    } else if (movieNumber != null && movieNumber.isNotEmpty) {
+      fragments.add(l10n.widgetMediaMovieNumberLabel(movieNumber));
+    }
+    fragments.add(
+      l10n.widgetMediaTimestampLabel(
+        formatMediaTimecode(widget.item.offsetSeconds),
+      ),
+    );
+    return fragments.join(' | ');
+  }
+
+  Widget _buildMovieInfoSection(BuildContext context) {
+    if (_isLoadingMovieDetail && _movieDetail == null) {
+      // loading 用占位影片渲染真实信息区，由 [AppSkeletonizer] 灰化。
+      return AppSkeletonizer(
+        enabled: true,
+        child: _buildMovieInfo(context, movieDetailPlaceholder()),
+      );
+    }
+    if (_movieDetailErrorMessage != null) {
+      return AppEmptyState(
+        message: _movieDetailErrorMessage!,
+        onRetry: _loadMovieDetail,
+      );
+    }
+
+    final movie = _movieDetail;
+    if (movie == null) {
+      return const SizedBox.shrink();
+    }
+    return _buildMovieInfo(context, movie);
+  }
+
+  Widget _buildMovieInfo(BuildContext context, MovieDetailDto movie) {
+    final spacing = context.appSpacing;
+    return Column(
+      key: const Key('image-search-result-preview-movie-info-section'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _MediaPreviewSectionDivider(
+          key: const Key('image-search-result-preview-movie-info-divider-top'),
+        ),
+        Padding(
+          padding: EdgeInsets.symmetric(vertical: spacing.md),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              AppInteractiveSurface(
+                key: const Key('image-search-result-preview-movie-cover'),
+                focusRingRadius: context.appRadius.mdBorder,
+                onTap: widget.useInlineNavigation && _canOpenMovieDetail
+                    ? _handleOpenMovieDetail
+                    : null,
+                child: movie.coverImage == null
+                    ? ClipRRect(
+                        borderRadius: context.appRadius.mdBorder,
+                        child: SizedBox(
+                          width: 88,
+                          height: 80,
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: context.appColors.surfaceMuted,
+                            ),
+                            child: const Center(
+                              child: Icon(Icons.movie_outlined),
+                            ),
+                          ),
+                        ),
+                      )
+                    : MoviePlotThumbnail(
+                        url: movie.coverImage!.origin,
+                        maxHeight: 80,
+                        fit: BoxFit.cover,
+                        borderRadius: context.appRadius.mdBorder,
+                        fallbackAspectRatio: 0.72,
+                      ),
+              ),
+              if (movie.actors.isNotEmpty) ...[
+                SizedBox(width: spacing.sm),
+                Expanded(
+                  child: _MovieActorStrip(
+                    actors: movie.actors,
+                    controller: _actorScrollController,
+                    onActorTap: widget.onActorSelected == null
+                        ? null
+                        : (actorId) {
+                            widget.onActorSelected!(actorId);
+                            Navigator.of(context).pop();
+                          },
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        _MediaPreviewSectionDivider(
+          key: const Key(
+            'image-search-result-preview-movie-info-divider-bottom',
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _handleSearchSimilar() {
+    if (!_canSearchSimilar) {
+      return;
+    }
+    Navigator.of(context).pop(MediaPreviewAction.searchSimilar);
+  }
+
+  Future<void> _handleSaveToLocal() async {
+    if (_isSavingImage) {
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    setState(() => _isSavingImage = true);
+    try {
+      final result =
+          await ImageSaveService(
+            fetchBytes: ref.read(apiClientProvider).getBytes,
+          ).saveImageFromUrl(
+            imageUrl: widget.item.imageUrl,
+            fileName: widget.item.fileName,
+            dialogTitle: l10n.widgetMediaActionSaveToLocal,
+            l10n: l10n,
+          );
+      if (mounted && result.status == ImageSaveStatus.success) {
+        showToast(
+          result.message ?? l10n.widgetMediaImageSaved,
+          tone: AppToastTone.success,
+        );
+      }
+      if (mounted && result.status == ImageSaveStatus.failed) {
+        showToast(
+          result.message ?? l10n.widgetMediaSaveImageFailed,
+          tone: AppToastTone.error,
+        );
+      }
+    } catch (error) {
+      if (mounted) {
+        showToast(
+          apiErrorMessage(
+            error,
+            fallback: l10n.widgetMediaSaveImageFailed,
+            l10n: l10n,
+          ),
+          tone: AppToastTone.error,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSavingImage = false);
+      }
+    }
+  }
+
+  Future<void> _handleTogglePoint() async {
+    if (_isTogglingPoint || !_canTogglePoint) {
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    setState(() => _isTogglingPoint = true);
+    try {
+      final pointId = _pointId;
+      if (pointId == null) {
+        final point = await ref
+            .read(mediaApiProvider)
+            .createMediaPoint(
+              mediaId: widget.item.mediaId,
+              thumbnailId: widget.item.thumbnailId,
+            );
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _pointId = point.pointId;
+        });
+        showToast(l10n.widgetMediaMarkAdded, tone: AppToastTone.success);
+      } else {
+        await ref.read(mediaApiProvider).deleteMediaPoint(pointId: pointId);
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _pointId = null;
+        });
+        widget.onPointRemoved?.call();
+        showToast(l10n.widgetMediaMarkRemoved, tone: AppToastTone.success);
+        if (widget.closeOnPointRemoved) {
+          Navigator.of(context).pop();
+        }
+      }
+    } catch (error) {
+      if (mounted) {
+        showToast(
+          apiErrorMessage(
+            error,
+            fallback: l10n.widgetMediaMarkUpdateFailed,
+            l10n: l10n,
+          ),
+          tone: AppToastTone.error,
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isTogglingPoint = false);
+      }
+    }
+  }
+
+  void _handlePlay() {
+    debugPrint(
+      '[player-debug] preview_play_tap movie=${widget.item.movieNumber} mediaId=${widget.item.mediaId} offsetSeconds=${widget.item.offsetSeconds} presentation=${_isBottomDrawer(context) ? 'drawer' : 'dialog'}',
+    );
+    Navigator.of(context).pop(MediaPreviewAction.play);
+  }
+
+  void _handleAddToCollection() {
+    if (!_canAddToCollection) {
+      return;
+    }
+    Navigator.of(context).pop(MediaPreviewAction.addToCollection);
+  }
+
+  void _handleOpenMovieDetail() {
+    Navigator.of(context).pop(MediaPreviewAction.openMovieDetail);
+  }
+}
+
+class _MediaPreviewSectionDivider extends StatelessWidget {
+  const _MediaPreviewSectionDivider({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Divider(
+      height: 1,
+      thickness: 1,
+      color: context.appColors.borderSubtle.fadedBy(0.72),
+    );
+  }
+}
+
+class _MovieActorStrip extends StatelessWidget {
+  const _MovieActorStrip({
+    required this.actors,
+    required this.controller,
+    this.onActorTap,
+  });
+
+  final List<MovieActorDto> actors;
+  final ScrollController controller;
+  final ValueChanged<int>? onActorTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    final tokens = context.appComponentTokens;
+    final itemHeight =
+        tokens.movieDetailActorAvatarSize +
+        spacing.xs +
+        spacing.lg +
+        spacing.sm;
+
+    return SizedBox(
+      key: const Key('image-search-result-preview-actor-strip'),
+      height: itemHeight,
+      child: ScrollConfiguration(
+        behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+        child: ListView.separated(
+          key: const Key('image-search-result-preview-actor-list'),
+          controller: controller,
+          scrollDirection: Axis.horizontal,
+          primary: false,
+          itemCount: actors.length,
+          separatorBuilder: (_, __) => SizedBox(width: spacing.sm),
+          itemBuilder: (context, index) {
+            final actor = actors[index];
+            final tooltip = actor.displayName;
+            final itemKey = actor.id > 0
+                ? Key('image-search-result-preview-actor-${actor.id}')
+                : Key('image-search-result-preview-actor-index-$index');
+
+            return Tooltip(
+              message: tooltip,
+              child: AppInteractiveSurface(
+                key: itemKey,
+                enabled: actor.id > 0 && onActorTap != null,
+                focusRingRadius: context.appRadius.smBorder,
+                semanticLabel: tooltip,
+                onTap: actor.id > 0 && onActorTap != null
+                    ? () => onActorTap!(actor.id)
+                    : null,
+                child: SizedBox(
+                  // width: tokens.movieDetailActorCardWidth,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ActorAvatar(
+                        imageUrl: actor.profileImage?.origin,
+                        size: tokens.movieDetailActorAvatarSize,
+                      ),
+                      SizedBox(height: spacing.sm),
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: tokens.movieDetailActorCardWidth,
+                        ),
+                        child: Text(
+                          actor.displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: resolveAppTextStyle(
+                            context,
+                            size: AppTextSize.s12,
+                            tone: AppTextTone.secondary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,120 @@
+name: Release Android
+
+on:
+  workflow_call:
+  workflow_dispatch:
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build Android APK and publish release
+    runs-on: ubuntu-latest
+
+    env:
+      ARCHIVE_NAME: sakuramedia-android-${{ github.ref_name }}-release-signed.apk
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.2
+          cache: true
+
+      - name: Cache Gradle
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('android/**/*.gradle*', 'android/gradle/wrapper/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Validate Android signing secrets
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          missing=0
+          for key in ANDROID_KEYSTORE_BASE64 ANDROID_STORE_PASSWORD ANDROID_KEY_ALIAS ANDROID_KEY_PASSWORD; do
+            if [ -z "${!key}" ]; then
+              echo "::error::Missing required GitHub secret: ${key}"
+              missing=1
+            fi
+          done
+
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Prepare Android release signing files
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          mkdir -p android/keystore
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/keystore/release.jks
+
+          if [ ! -s android/keystore/release.jks ]; then
+            echo "::error::Decoded keystore file is empty."
+            exit 1
+          fi
+
+          {
+            printf 'storePassword=%s\n' "$ANDROID_STORE_PASSWORD"
+            printf 'keyPassword=%s\n' "$ANDROID_KEY_PASSWORD"
+            printf 'keyAlias=%s\n' "$ANDROID_KEY_ALIAS"
+            printf 'storeFile=%s\n' "keystore/release.jks"
+          } > android/key.properties
+
+      - name: Build Android release APK
+        shell: bash
+        run: |
+          # 从 git tag 注入版本：v0.3.7 -> 0.3.7；pubspec 的 version 仅占位，实际以 tag 为准
+          # --build-number 用 run_number 保证 versionCode 单调递增
+          VERSION="${GITHUB_REF_NAME#v}"
+          # 只打 arm64：胖包带 3 套架构原生库（media_kit 的 libmpv 每套 ~12MB）会到 110MB+，arm64 单架构约 40MB
+          flutter build apk --release --target-platform android-arm64 --build-name="$VERSION" --build-number="${{ github.run_number }}"
+
+      - name: Package release APK
+        run: |
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/${ARCHIVE_NAME}"
+          sha256sum "dist/${ARCHIVE_NAME}" > "dist/${ARCHIVE_NAME}.sha256"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-release-${{ github.ref_name }}
+          path: |
+            dist/${{ env.ARCHIVE_NAME }}
+            dist/${{ env.ARCHIVE_NAME }}.sha256
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: sakuramedia ${{ github.ref_name }}
+          # Keep release notes generation in macOS workflow only to avoid duplicate
+          # "What's Changed" sections when multiple workflows publish the same tag.
+          generate_release_notes: false
+          files: |
+            dist/${{ env.ARCHIVE_NAME }}
+            dist/${{ env.ARCHIVE_NAME }}.sha256

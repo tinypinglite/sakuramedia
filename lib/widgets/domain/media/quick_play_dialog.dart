@@ -1,0 +1,301 @@
+import 'dart:async';
+
+import 'package:material_ui/material_ui.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
+import 'package:sakuramedia/widgets/domain/media/media_playback_info_button.dart';
+import 'package:sakuramedia/core/media/media_url_resolver.dart';
+import 'package:sakuramedia/core/media/playback_source.dart';
+import 'package:sakuramedia/core/network/api_error_message.dart';
+import 'package:sakuramedia/features/videos/presentation/actions/video_playback_launcher.dart';
+import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/media/video/themed_video_player.dart';
+import 'package:sakuramedia/widgets/base/media/video/throttling_player.dart';
+import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
+
+class QuickPlayMedia {
+  const QuickPlayMedia(this.url, {this.httpHeaders, this.providerKey});
+
+  final String url;
+  final Map<String, String>? httpHeaders;
+  final String? providerKey;
+}
+
+/// 「点小图 → 弹小窗立刻播」的桌面轻量播放弹窗。
+///
+/// 切片、时刻缩略图等轻量入口都走它——不同入口只负责提供各自的播放地址，
+/// 具体播放骨架保持一致。
+///
+/// 完整观看仍走各自域的独立播放页(自持 seek / subtitle / progress-report)。
+class QuickPlayDialog extends StatefulWidget {
+  const QuickPlayDialog({
+    super.key,
+    required this.title,
+    required this.fallbackTitle,
+    required this.videoKey,
+    required this.resolveMedia,
+    required this.noPlayableMessage,
+    this.errorFallback,
+    this.guardInitialSeek = false,
+    this.subtitle,
+  });
+
+  final String title;
+
+  /// 标题 trim 后为空时的兜底文案('切片' / '视频' 等)。
+  final String fallbackTitle;
+
+  /// 内部 [ThemedVideoPlayer] 的 videoKey——测试锚点,原两 dialog 各有各的值。
+  final Key videoKey;
+
+  /// 拿到实际播放地址与请求头；返回 null / 空地址 = 无可播，弹 [AppEmptyState]。
+  final Future<QuickPlayMedia?> Function(BuildContext context) resolveMedia;
+
+  /// [resolveMedia] 返回 null / 空地址时的空态文案。
+  final String noPlayableMessage;
+
+  /// [resolveMedia] throw 时的兜底错误文案；为空时用通用加载失败文案。
+  final String? errorFallback;
+
+  /// 完整媒体启用初始化 seek 保护；切片是本地产物，保持关闭。
+  final bool guardInitialSeek;
+
+  /// 标题下方的可选副内容槽（例如「所属合集」chip 行）。为空则不留空隙。
+  final Widget? subtitle;
+
+  @override
+  State<QuickPlayDialog> createState() => _QuickPlayDialogState();
+}
+
+class _QuickPlayDialogState extends State<QuickPlayDialog> {
+  Player? _player;
+  VideoController? _controller;
+  bool _loading = true;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _load());
+  }
+
+  Future<void> _load() async {
+    try {
+      final media = await widget.resolveMedia(context);
+      if (!mounted) {
+        return;
+      }
+      if (media == null || media.url.isEmpty) {
+        setState(() {
+          _loading = false;
+          _errorMessage = widget.noPlayableMessage;
+        });
+        return;
+      }
+      final player = ThrottlingPlayer();
+      final controller = VideoController(
+        player,
+        configuration: const VideoControllerConfiguration(hwdec: 'auto'),
+      );
+      setState(() {
+        _loading = false;
+        _player = player;
+        _controller = controller;
+      });
+      await _openMedia(player, media);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      final l10n = AppLocalizations.of(context);
+      setState(() {
+        _loading = false;
+        _errorMessage = apiErrorMessage(
+          error,
+          fallback: _errorFallback,
+          l10n: l10n,
+        );
+      });
+    }
+  }
+
+  void _retry() {
+    _player?.dispose();
+    _player = null;
+    _controller = null;
+    setState(() {
+      _loading = true;
+      _errorMessage = null;
+    });
+    unawaited(_load());
+  }
+
+  String get _errorFallback =>
+      widget.errorFallback ??
+      AppLocalizations.of(context).widgetMediaLoadFailed;
+
+  Future<void> _openMedia(Player player, QuickPlayMedia media) async {
+    try {
+      await player.open(
+        Media(
+          media.url,
+          extras: playbackExtrasForProvider(media.providerKey),
+          httpHeaders: media.httpHeaders,
+        ),
+      );
+    } catch (error) {
+      _showPlaybackError(error);
+    }
+  }
+
+  void _showPlaybackError(Object error) {
+    if (!mounted) {
+      return;
+    }
+    final l10n = AppLocalizations.of(context);
+    setState(() {
+      _errorMessage = apiErrorMessage(
+        error,
+        fallback: _errorFallback,
+        l10n: l10n,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _player?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    final title = widget.title.trim();
+    return AppDesktopDialog(
+      width: context.appComponentTokens.clipPlayerDialogWidth,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.only(right: spacing.xl),
+            child: Text(
+              title.isEmpty ? widget.fallbackTitle : title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s16,
+                weight: AppTextWeight.semibold,
+                tone: AppTextTone.primary,
+              ),
+            ),
+          ),
+          if (widget.subtitle != null) ...[
+            SizedBox(height: spacing.sm),
+            widget.subtitle!,
+          ],
+          SizedBox(height: spacing.md),
+          ClipRRect(
+            borderRadius: context.appRadius.smBorder,
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: ColoredBox(color: Colors.black, child: _buildVideo()),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVideo() {
+    if (_errorMessage != null) {
+      return Center(
+        child: AppErrorState(
+          key: const Key('quick-play-error-state'),
+          title: AppLocalizations.of(context).baseActionFailed,
+          message: _errorMessage!,
+          onRetry: _retry,
+          retryKey: const Key('quick-play-retry-button'),
+          variant: AppStatePanelVariant.section,
+        ),
+      );
+    }
+    final controller = _controller;
+    if (_loading || controller == null) {
+      return const Center(child: VideoLoadingIndicator());
+    }
+    return ThemedVideoPlayer(
+      videoController: controller,
+      useTouchOptimizedControls: false,
+      guardInitialSeek: widget.guardInitialSeek,
+      videoKey: widget.videoKey,
+      topControls: [
+        const Spacer(),
+        MediaPlaybackInfoButton(player: controller.player),
+      ],
+      bottomControls: const <Widget>[
+        MaterialPlayOrPauseButton(),
+        MaterialDesktopVolumeButton(),
+        MaterialPositionIndicator(),
+        Spacer(),
+        MaterialFullscreenButton(),
+      ],
+    );
+  }
+}
+
+/// 时刻卡「小图快播」入口——先取详情、拿首个可播源。
+///
+/// [subtitle] 是标题下方的可选副内容槽，由调用方组装（例如 videos feature
+/// 页面塞 `VideoCollectionChips` 展示所属合集，并在 chip 点击回调里
+/// `Navigator.of(context, rootNavigator: true).pop()` 先关 dialog 再跳转）。
+/// moments 等无附加上下文的入口留空即可。
+Future<void> showVideoQuickPlayDialog(
+  BuildContext context, {
+  required int videoId,
+  required String title,
+  Widget? subtitle,
+}) async {
+  if (await tryLaunchExternalVideoPlayback(
+    context,
+    videoId: videoId,
+    title: title,
+  )) {
+    return;
+  }
+  if (!context.mounted) {
+    return;
+  }
+  final l10n = AppLocalizations.of(context);
+  return showAppDialog<void>(
+    context: context,
+    builder: (dialogContext) => QuickPlayDialog(
+      title: title,
+      fallbackTitle: l10n.widgetMediaVideo,
+      videoKey: const Key('video-quick-play-video'),
+      noPlayableMessage: l10n.widgetMediaNoPlayableMedia,
+      guardInitialSeek: true,
+      subtitle: subtitle,
+      resolveMedia: (innerContext) async {
+        final source = await resolveVideoPlaybackMedia(
+          innerContext,
+          videoId: videoId,
+        );
+        if (source == null) {
+          return null;
+        }
+        return QuickPlayMedia(
+          withPlaybackAttemptId(source.url),
+          httpHeaders: source.httpHeaders,
+          providerKey: source.providerKey,
+        );
+      },
+    ),
+  );
+}

@@ -1,0 +1,344 @@
+import 'package:sakuramedia/features/videos/presentation/providers/video_mutation_events_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:sakuramedia/core/network/api_client.dart';
+import 'package:sakuramedia/core/network/api_exception.dart';
+import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/videos/data/api/video_collections_api.dart';
+import 'package:sakuramedia/features/videos/data/api/videos_api.dart';
+import 'package:sakuramedia/features/videos/presentation/controllers/listing/video_filter_state.dart';
+import 'package:sakuramedia/features/videos/presentation/providers/video_collection_detail_provider.dart';
+import 'package:sakuramedia/features/videos/presentation/providers/videos_api_provider.dart';
+
+import '../../../../support/fake_http_client_adapter.dart';
+
+Map<String, dynamic> _collectionBody() => <String, dynamic>{
+  'id': 3,
+  'name': '连播合集',
+  'description': '',
+  'item_count': 2,
+  'created_at': '2026-01-02T03:04:05',
+  'updated_at': '2026-01-02T03:04:05',
+};
+
+// 成员端点已分页：返回 {items, page, page_size, total} 信封。两条成员、total=2，
+// getAllCollectionItems 一次请求即取满（不再翻页）。
+Map<String, dynamic> _itemsBody() => <String, dynamic>{
+  'page': 1,
+  'page_size': 100,
+  'total': 2,
+  'items': <dynamic>[
+    <String, dynamic>{
+      'position': 0,
+      'video': <String, dynamic>{
+        'id': 1,
+        'title': '第一段',
+        'media_count': 1,
+        'can_play': true,
+        'created_at': '2026-01-02T03:04:05',
+        'updated_at': '2026-01-02T03:04:05',
+      },
+    },
+    <String, dynamic>{
+      'position': 1,
+      'video': <String, dynamic>{
+        'id': 2,
+        'title': '第二段',
+        'media_count': 1,
+        'can_play': true,
+        'created_at': '2026-01-02T03:04:05',
+        'updated_at': '2026-01-02T03:04:05',
+      },
+    },
+  ],
+};
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  late SessionStore sessionStore;
+  late ApiClient apiClient;
+  late FakeHttpClientAdapter adapter;
+  late ProviderContainer container;
+
+  setUp(() async {
+    sessionStore = SessionStore.inMemory();
+    await sessionStore.saveBaseUrl('https://api.example.com');
+    await sessionStore.saveTokens(
+      accessToken: 'access-token',
+      refreshToken: 'refresh-token',
+      expiresAt: DateTime.parse('2026-03-08T10:00:00Z'),
+    );
+    apiClient = ApiClient(sessionStore: sessionStore);
+    adapter = FakeHttpClientAdapter();
+    apiClient.rawDio.httpClientAdapter = adapter;
+    apiClient.rawRefreshDio.httpClientAdapter = adapter;
+    container = ProviderContainer(
+      overrides: [
+        videoCollectionsApiProvider.overrideWithValue(
+          VideoCollectionsApi(apiClient: apiClient),
+        ),
+        videosApiProvider.overrideWithValue(VideosApi(apiClient: apiClient)),
+      ],
+      retry: (_, __) => null,
+    );
+  });
+
+  tearDown(() {
+    container.dispose();
+    apiClient.dispose();
+    sessionStore.dispose();
+  });
+
+  void keepAlive() {
+    // autoDispose family：挂监听者保活，避免两次 read 之间被释放重建。
+    final subscription = container.listen(
+      videoCollectionDetailProvider(3),
+      (_, __) {},
+    );
+    addTearDown(subscription.close);
+  }
+
+  void enqueueLoad() {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/video-collections/3',
+      body: _collectionBody(),
+    );
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/video-collections/3/videos',
+      body: _itemsBody(),
+    );
+  }
+
+  test('removeVideo 成功：乐观移除并返回 null', () async {
+    enqueueLoad();
+    adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/video-collections/3/videos/1',
+      statusCode: 204,
+      body: const <String, dynamic>{},
+    );
+
+    keepAlive();
+    await container.read(videoCollectionDetailProvider(3).future);
+
+    final error = await container
+        .read(videoCollectionDetailProvider(3).notifier)
+        .removeVideo(1);
+
+    expect(error, isNull);
+    final state = container.read(videoCollectionDetailProvider(3)).requireValue;
+    expect(state.items.map((item) => item.video.id).toList(), <int>[2]);
+  });
+
+  test('removeVideo 失败：回滚并返回错误消息', () async {
+    enqueueLoad();
+    adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/video-collections/3/videos/1',
+      statusCode: 500,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
+      },
+    );
+
+    keepAlive();
+    await container.read(videoCollectionDetailProvider(3).future);
+
+    final error = await container
+        .read(videoCollectionDetailProvider(3).notifier)
+        .removeVideo(1);
+
+    expect(error, isNotNull);
+    final state = container.read(videoCollectionDetailProvider(3)).requireValue;
+    // 失败回滚，成员仍在。
+    expect(state.items.map((item) => item.video.id).toList(), <int>[1, 2]);
+  });
+
+  test('deleteVideo 成功：乐观移除该成员', () async {
+    enqueueLoad();
+    adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/videos/1',
+      statusCode: 204,
+      body: const <String, dynamic>{},
+    );
+
+    keepAlive();
+    await container.read(videoCollectionDetailProvider(3).future);
+
+    await container
+        .read(videoCollectionDetailProvider(3).notifier)
+        .deleteVideo(1);
+    final state = container.read(videoCollectionDetailProvider(3)).requireValue;
+    expect(state.items.map((item) => item.video.id).toList(), <int>[2]);
+    expect(adapter.requests.last.path, '/videos/1');
+  });
+
+  test('deleteVideo 失败：回滚并抛出原始错误', () async {
+    enqueueLoad();
+    adapter.enqueueJson(
+      method: 'DELETE',
+      path: '/videos/1',
+      statusCode: 500,
+      body: <String, dynamic>{
+        'error': <String, dynamic>{'code': 'server_error', 'message': 'boom'},
+      },
+    );
+
+    keepAlive();
+    await container.read(videoCollectionDetailProvider(3).future);
+
+    await expectLater(
+      container
+          .read(videoCollectionDetailProvider(3).notifier)
+          .deleteVideo(1),
+      throwsA(isA<ApiException>()),
+    );
+    final state = container.read(videoCollectionDetailProvider(3)).requireValue;
+    // 失败回滚，成员仍在。
+    expect(state.items.map((item) => item.video.id).toList(), <int>[1, 2]);
+  });
+
+  test('默认手动顺序：build 不带 sort 参数', () async {
+    enqueueLoad();
+
+    keepAlive();
+    final state = await container.read(videoCollectionDetailProvider(3).future);
+
+    expect(state.sort.isManual, isTrue);
+    expect(state.sort.field, isNull);
+    expect(state.sort.apiValue, isNull);
+    final itemsRequest = adapter.requests.firstWhere(
+      (request) => request.path == '/video-collections/3/videos',
+    );
+    expect(itemsRequest.uri.queryParameters.containsKey('sort'), isFalse);
+  });
+
+  test('applySort 切到非手动字段：带 sort 查询且退出手动顺序', () async {
+    enqueueLoad();
+    // 切到「时长降序」后按新排序重拉成员。
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/video-collections/3/videos',
+      body: _itemsBody(),
+    );
+
+    keepAlive();
+    await container.read(videoCollectionDetailProvider(3).future);
+
+    final update = container
+        .read(videoCollectionDetailProvider(3).notifier)
+        .applySort(
+          field: VideoSortField.duration,
+          direction: SortDirection.desc,
+        );
+
+    final pending = container
+        .read(videoCollectionDetailProvider(3))
+        .requireValue;
+    expect(pending.sort.field, VideoSortField.duration);
+    expect(pending.sort.direction, SortDirection.desc);
+    expect(pending.filterUpdate.isWaiting, isTrue);
+    expect(pending.items, isNotEmpty);
+    expect(adapter.hitCount('GET', '/video-collections/3/videos'), 1);
+
+    await update;
+
+    final state = container.read(videoCollectionDetailProvider(3)).requireValue;
+    expect(state.sort.isManual, isFalse);
+    expect(state.sort.field, VideoSortField.duration);
+    expect(state.sort.direction, SortDirection.desc);
+    // 「播放全部」透传给连播页的排序表达式，与拉取成员时使用的一致。
+    expect(state.sort.apiValue, 'duration:desc');
+    expect(adapter.requests.last.uri.queryParameters['sort'], 'duration:desc');
+  });
+
+  test('applySort 切回手动顺序：去掉 sort 查询并恢复手动顺序', () async {
+    enqueueLoad();
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/video-collections/3/videos',
+      body: _itemsBody(),
+    );
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/video-collections/3/videos',
+      body: _itemsBody(),
+    );
+
+    keepAlive();
+    await container.read(videoCollectionDetailProvider(3).future);
+    await container
+        .read(videoCollectionDetailProvider(3).notifier)
+        .applySort(field: VideoSortField.title);
+    expect(
+      container
+          .read(videoCollectionDetailProvider(3))
+          .requireValue
+          .sort
+          .isManual,
+      isFalse,
+    );
+
+    await container
+        .read(videoCollectionDetailProvider(3).notifier)
+        .applySort(field: null);
+
+    final state = container.read(videoCollectionDetailProvider(3)).requireValue;
+    expect(state.sort.isManual, isTrue);
+    expect(state.sort.apiValue, isNull);
+    // 最后一次拉取不带 sort（手动顺序）。
+    expect(
+      adapter.requests.last.uri.queryParameters.containsKey('sort'),
+      isFalse,
+    );
+  });
+  test('播放页移出/删除事件原位同步详情，加入和其它合集事件不误删', () async {
+    enqueueLoad();
+    keepAlive();
+    await container.read(videoCollectionDetailProvider(3).future);
+    final events = container.read(videoMutationEventsProvider.notifier);
+    events.reportCollectionMembershipChanged(videoId: 1, collectionId: 3);
+    await container.pump();
+    expect(
+      container.read(videoCollectionDetailProvider(3)).requireValue.items,
+      hasLength(2),
+    );
+    events.reportCollectionMembershipChanged(
+      videoId: 1,
+      collectionId: 4,
+      removedFromCollection: true,
+    );
+    await container.pump();
+    expect(
+      container.read(videoCollectionDetailProvider(3)).requireValue.items,
+      hasLength(2),
+    );
+    events.reportCollectionMembershipChanged(
+      videoId: 1,
+      collectionId: 3,
+      removedFromCollection: true,
+    );
+    await container.pump();
+    expect(
+      container
+          .read(videoCollectionDetailProvider(3))
+          .requireValue
+          .items
+          .single
+          .video
+          .id,
+      2,
+    );
+    events.reportDeleted(2);
+    await container.pump();
+    expect(
+      container.read(videoCollectionDetailProvider(3)).requireValue.items,
+      isEmpty,
+    );
+    expect(adapter.requests, hasLength(2));
+  });
+}

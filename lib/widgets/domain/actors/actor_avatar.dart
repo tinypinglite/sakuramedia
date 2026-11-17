@@ -1,0 +1,48 @@
+import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+
+class ActorAvatar extends StatelessWidget {
+  const ActorAvatar({
+    super.key,
+    required this.imageUrl,
+    required this.size,
+    this.placeholderKey,
+  });
+
+  final String? imageUrl;
+  final double size;
+  final Key? placeholderKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = imageUrl != null && imageUrl!.isNotEmpty;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: ClipOval(
+        child: hasImage
+            ? MaskedImage(
+                url: imageUrl!,
+                fit: BoxFit.cover,
+                placeholderBuilder: _buildPlaceholder,
+                errorBuilder: (context, error, stackTrace) =>
+                    _buildPlaceholder(context),
+              )
+            : _buildPlaceholder(context),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholder(BuildContext context) {
+    return DecoratedBox(
+      key: placeholderKey,
+      decoration: BoxDecoration(color: context.appColors.surfaceMuted),
+      child: Icon(
+        Icons.person_outline_rounded,
+        color: context.appTextPalette.muted,
+      ),
+    );
+  }
+}

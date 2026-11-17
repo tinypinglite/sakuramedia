@@ -1,0 +1,40 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "retry_days": {
+      "default": 3,
+      "maximum": 365,
+      "minimum": 1,
+      "title": "重试间隔（天）",
+      "type": "integer"
+    },
+    "max_attempts": {
+      "default": 3,
+      "maximum": 100,
+      "minimum": 1,
+      "title": "最大尝试次数",
+      "type": "integer"
+    },
+    "subscribed_only": {
+      "default": false,
+      "title": "仅处理已订阅女优",
+      "type": "boolean"
+    },
+    "request_interval_seconds": {
+      "default": 1,
+      "maximum": 60,
+      "minimum": 0.2,
+      "title": "请求间隔（秒）",
+      "type": "number"
+    },
+    "timeout_seconds": {
+      "default": 20,
+      "maximum": 120,
+      "minimum": 1,
+      "title": "请求超时（秒）",
+      "type": "integer"
+    }
+  },
+  "title": "Settings",
+  "type": "object"
+}

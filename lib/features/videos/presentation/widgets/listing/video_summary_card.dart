@@ -1,0 +1,174 @@
+import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/core/format/file_size.dart';
+import 'package:sakuramedia/core/format/media_timecode.dart';
+import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
+import 'package:sakuramedia/features/videos/data/dto/video_item_list_item_dto.dart';
+import 'package:sakuramedia/features/videos/presentation/video_display_title.dart';
+import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_cover_hover_info.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_cover_card.dart';
+import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+
+/// 非 JAV 视频列表卡片：整卡即封面，收起态不铺任何文字。
+///
+/// 与 `MovieSummaryCard` / `ClipGridCard` 同属一套「封面即卡片」范式：桌面端指针
+/// 悬停时底部渐显压暗层，标题、时长/大小与靠左的播放键自下而上淡入；触摸端没有
+/// hover（移动端靠点击弹动作抽屉、长按多选），停在收起态。悬停展开/收起与封面推近
+/// 由 [AppCoverHoverInfo] 提供——与 JAV 影片卡同为 180ms ease-out，系统开启
+/// 「减弱动态效果」时退化为瞬时切换。
+///
+/// 加入合集 / 跳到合集 / 删除等动作走 `showVideoActions`——由 onTap 回调统一承载，
+/// 卡片本身不再挂右键 / 长按上下文菜单。
+///
+/// 与 [MovieListItemDto] 平行，但去掉订阅/热度/番号等 JAV 概念，主键为
+/// [VideoItemListItemDto.id]。
+class VideoSummaryCard extends StatelessWidget {
+  const VideoSummaryCard({
+    super.key,
+    required this.video,
+    this.onTap,
+    this.onLongPress,
+    this.onPlay,
+    this.onThumbnails,
+    this.onAddToCollection,
+    this.onDelete,
+    this.selectionMode = false,
+    this.isSelected = false,
+    this.onSelectedChanged,
+  });
+
+  final VideoItemListItemDto video;
+
+  /// 点击卡片：桌面走动作弹窗、移动走 sheet；两端弹窗内承载播放/加入合集/删除等。
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
+
+  /// 悬停面板里的播放主按钮回调；为 `null` 或 [VideoItemListItemDto.canPlay]
+  /// 为 false 时不显示按钮。
+  final VoidCallback? onPlay;
+
+  /// 悬停面板里的「缩略图」动作；为 `null` 时不显示按钮。
+  final VoidCallback? onThumbnails;
+
+  /// 悬停面板里的「加入合集」动作；为 `null` 时不显示按钮。
+  final VoidCallback? onAddToCollection;
+
+  /// 悬停面板里的「删除」动作；为 `null` 时不显示按钮。
+  final VoidCallback? onDelete;
+
+  /// 选择模式:整卡点击改为切换选中,不展开悬停面板,叠加勾选标记。
+  final bool selectionMode;
+
+  /// 当前是否被选中（仅 [selectionMode] 下有意义）。
+  final bool isSelected;
+
+  /// 选择模式下切换选中态的回调，入参为切换后的目标值。
+  final ValueChanged<bool>? onSelectedChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final handleTap = selectionMode
+        ? onSelectedChanged == null
+              ? null
+              : () => onSelectedChanged!(!isSelected)
+        : onTap;
+
+    return KeyedSubtree(
+      key: Key('video-summary-card-${video.id}'),
+      child: AppInteractiveSurface(
+        key: selectionMode
+            ? Key('video-summary-card-select-${video.id}')
+            : Key('video-summary-card-tap-${video.id}'),
+        onTap: handleTap,
+        onLongPress: onLongPress,
+        child: AppCoverCard(
+          hoverEnabled: !selectionMode,
+          selectionMode: selectionMode,
+          isSelected: isSelected,
+          cover: _VideoCover(videoId: video.id, coverImage: video.coverImage),
+          infoBuilder: (context) => _buildHoverInfo(context),
+        ),
+      ),
+    );
+  }
+
+  /// 悬停展开内容：单行「标题 + 时长 · 大小」，下方一整行动作按钮
+  /// （播放 / 缩略图 / 加入合集 / 删除，按回调是否为空显隐）。
+  Widget _buildHoverInfo(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return AppCoverHoverPanel(
+      key: Key('video-summary-card-info-${video.id}'),
+      info: AppCoverHoverInfoRow(
+        label: video.displayTitle(l10n),
+        meta: _metaLine(),
+      ),
+      actions: [
+        if (onPlay != null && video.canPlay)
+          AppCoverHoverActionButton(
+            key: Key('video-summary-card-play-${video.id}'),
+            icon: Icons.play_arrow_rounded,
+            onTap: onPlay,
+            primary: true,
+            tooltip: l10n.videoPlay,
+          ),
+        if (onThumbnails != null)
+          AppCoverHoverActionButton(
+            key: Key('video-summary-card-thumbnails-${video.id}'),
+            icon: Icons.photo_library_outlined,
+            onTap: onThumbnails,
+            tooltip: l10n.videoThumbnails,
+          ),
+        if (onAddToCollection != null)
+          AppCoverHoverActionButton(
+            key: Key('video-summary-card-add-collection-${video.id}'),
+            icon: Icons.playlist_add_rounded,
+            onTap: onAddToCollection,
+            tooltip: l10n.videoAddToCollection,
+          ),
+        if (onDelete != null)
+          AppCoverHoverActionButton(
+            key: Key('video-summary-card-delete-${video.id}'),
+            icon: Icons.delete_outline_rounded,
+            onTap: onDelete,
+            tooltip: l10n.commonDelete,
+          ),
+      ],
+    );
+  }
+
+  /// 副信息行：时长 · 大小；两者都缺时返回 `null`（不渲染该行）。
+  String? _metaLine() {
+    final parts = <String>[
+      if (video.durationSeconds > 0) formatMediaTimecode(video.durationSeconds),
+      if (video.fileSizeBytes > 0) formatFileSize(video.fileSizeBytes),
+    ];
+    return parts.isEmpty ? null : parts.join(' · ');
+  }
+}
+
+class _VideoCover extends StatelessWidget {
+  const _VideoCover({required this.videoId, required this.coverImage});
+
+  final int videoId;
+  final MovieImageDto? coverImage;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.appColors;
+    final coverUrl = coverImage?.origin.trim();
+
+    if (coverUrl != null && coverUrl.isNotEmpty) {
+      // 瀑布流网格按 coverWidth/coverHeight 切 tile，cover 填满不再留底色；
+      // 罕见极端比例（探测缺失走 16:9 fallback、与真实比例差距大）会少量裁切。
+      return MaskedImage(url: coverUrl, fit: BoxFit.cover);
+    }
+
+    // 纯图片卡缺图态统一为 muted 纯色块：不带渐变 / 居中图标。
+    return ColoredBox(
+      key: Key('video-summary-card-placeholder-$videoId'),
+      color: colors.surfaceMuted,
+    );
+  }
+}

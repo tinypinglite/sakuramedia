@@ -1,0 +1,147 @@
+import 'package:material_ui/material_ui.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/domain/collections/collection_picker_results.dart';
+
+/// 从一个合集列表里选一个目标合集。返回选中的合集；取消返回 `null`。
+///
+/// 只负责「选中并返回」，实际成员写入由调用方执行（批量加入合集场景）。
+/// 切片、时刻、视频三处的「加入合集」选择器共用此组件，各域只提供数据源、
+/// 行文案和「新建合集」入口；数据源经 [watchCollections] 监听各自 overview
+/// provider，与列表页共享缓存。
+Future<T?> showCollectionTargetPicker<T extends Object>({
+  required BuildContext context,
+  required AsyncValue<List<T>> Function(WidgetRef ref) watchCollections,
+  required int Function(T value) idOf,
+  required String Function(T value) nameOf,
+  required String Function(T value) countTextOf,
+  required String optionKeyPrefix,
+  required Future<T?> Function(BuildContext context, bool isDrawer) onCreate,
+  int? excludedCollectionId,
+  AppAdaptiveModalVariant variant = AppAdaptiveModalVariant.auto,
+  Key? drawerKey,
+  String? searchHint,
+  String? emptyMessage,
+  String? noMatchMessage,
+  String? createAndAddLabel,
+}) {
+  final l10n = AppLocalizations.of(context);
+  return showAppAdaptiveModal<T>(
+    context: context,
+    variant: variant,
+    drawerKey: drawerKey,
+    desktopWidth: 420,
+    mobileMaxHeightFactor: 0.7,
+    showDesktopCloseButton: true,
+    builder: (_) => _CollectionTargetPicker<T>(
+      watchCollections: watchCollections,
+      idOf: idOf,
+      nameOf: nameOf,
+      countTextOf: countTextOf,
+      optionKeyPrefix: optionKeyPrefix,
+      onCreate: onCreate,
+      excludedCollectionId: excludedCollectionId,
+      searchHint: searchHint ?? l10n.widgetCollectionPickerSearchHint,
+      emptyMessage: emptyMessage ?? l10n.widgetCollectionPickerEmpty,
+      noMatchMessage: noMatchMessage ?? l10n.widgetCollectionPickerNoMatch,
+      createAndAddLabel:
+          createAndAddLabel ?? l10n.widgetCollectionPickerCreateAndAdd,
+    ),
+  );
+}
+
+class _CollectionTargetPicker<T extends Object> extends ConsumerStatefulWidget {
+  const _CollectionTargetPicker({
+    required this.watchCollections,
+    required this.idOf,
+    required this.nameOf,
+    required this.countTextOf,
+    required this.optionKeyPrefix,
+    required this.onCreate,
+    required this.excludedCollectionId,
+    required this.searchHint,
+    required this.emptyMessage,
+    required this.noMatchMessage,
+    required this.createAndAddLabel,
+  });
+
+  final AsyncValue<List<T>> Function(WidgetRef ref) watchCollections;
+  final int Function(T value) idOf;
+  final String Function(T value) nameOf;
+  final String Function(T value) countTextOf;
+
+  /// 行测试锚点前缀，最终 Key 为 `<前缀><合集 id>`。
+  final String optionKeyPrefix;
+
+  /// 「新建合集并加入」入口，返回新建的合集；[isDrawer] 为当前弹层壳形态。
+  final Future<T?> Function(BuildContext context, bool isDrawer) onCreate;
+
+  /// 不在列表中显示的合集 id（从合集详情页发起「加入其它合集」时排除自身）。
+  final int? excludedCollectionId;
+  final String searchHint;
+  final String emptyMessage;
+  final String noMatchMessage;
+  final String createAndAddLabel;
+
+  @override
+  ConsumerState<_CollectionTargetPicker<T>> createState() =>
+      _CollectionTargetPickerState<T>();
+}
+
+class _CollectionTargetPickerState<T extends Object>
+    extends ConsumerState<_CollectionTargetPicker<T>> {
+  Future<void> _createAndPick() async {
+    final isDrawer = AppAdaptiveModalShellScope.maybeIsDrawer(context);
+    final created = await widget.onCreate(context, isDrawer);
+    if (created != null && mounted) {
+      Navigator.of(context).pop(created);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CollectionPickerResults<T>(
+      collections: widget.watchCollections(ref),
+      chrome: (
+        keyPrefix: 'collection-target-picker',
+        emptyMessage: widget.emptyMessage,
+      ),
+      nameOf: widget.nameOf,
+      searchHint: widget.searchHint,
+      noMatchMessage: widget.noMatchMessage,
+      where: (collection) =>
+          widget.idOf(collection) != widget.excludedCollectionId,
+      rowsBuilder: (context, visible) => [
+        for (final collection in visible)
+          AppPickerIosRow(
+            optionKey: Key(
+              '${widget.optionKeyPrefix}${widget.idOf(collection)}',
+            ),
+            title: widget.nameOf(collection),
+            trailingText: widget.countTextOf(collection),
+            trailingIcon: Icon(
+              Icons.chevron_right_rounded,
+              size: 18,
+              color: context.appTextPalette.muted,
+            ),
+            onTap: () => Navigator.of(context).pop(collection),
+          ),
+        _buildCreateRow(context),
+      ],
+    );
+  }
+
+  Widget _buildCreateRow(BuildContext context) {
+    final accent = Theme.of(context).colorScheme.primary;
+    return AppPickerIosRow(
+      leading: Icon(Icons.add_circle_outline_rounded, color: accent),
+      title: widget.createAndAddLabel,
+      titleColor: accent,
+      onTap: _createAndPick,
+      optionKey: const Key('collection-target-picker-create-button'),
+    );
+  }
+}
