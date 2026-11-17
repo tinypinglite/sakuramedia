@@ -69,7 +69,6 @@ allowed_min_video_file_size = 268435456
 import_image_root_path = "/data/cache/assets"
 media_clip_root_path = "/data/media-clips"
 media_clip_max_duration_seconds = 900
-media_clip_ffmpeg_timeout_seconds = 120
 ```
 
 | Field | Purpose |
@@ -78,7 +77,6 @@ media_clip_ffmpeg_timeout_seconds = 120
 | `import_image_root_path` | Directory where images are cached during import. |
 | `media_clip_root_path` | Directory where clip files are stored. |
 | `media_clip_max_duration_seconds` | Maximum allowed duration of a single clip, 900 seconds by default. |
-| `media_clip_ffmpeg_timeout_seconds` | Timeout for one ffmpeg clip operation, 120 seconds by default. |
 
 Collection detection for movies is handled by an installed plugin. Go to "System Settings → Plugins" to install, enable and configure the corresponding plugin.
 

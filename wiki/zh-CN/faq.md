@@ -162,7 +162,7 @@ docker exec -it --user app -w /app sakuramedia python -m src.start.commands rese
 
 ### 为什么切片过长或生成失败？
 
-单个切片时长受 `media_clip_max_duration_seconds` 限制，ffmpeg 执行时间受 `media_clip_ffmpeg_timeout_seconds` 限制。调整方式见[配置说明](/zh-CN/guide/config#media)。
+单个切片时长受 `media_clip_max_duration_seconds` 限制。调整方式见[配置说明](/zh-CN/guide/config#media)。
 
 ### 视频合集可以连续播放吗？
 

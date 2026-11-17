@@ -69,7 +69,6 @@ allowed_min_video_file_size = 268435456
 import_image_root_path = "/data/cache/assets"
 media_clip_root_path = "/data/media-clips"
 media_clip_max_duration_seconds = 900
-media_clip_ffmpeg_timeout_seconds = 120
 ```
 
 | 字段 | 作用 |
@@ -78,7 +77,6 @@ media_clip_ffmpeg_timeout_seconds = 120
 | `import_image_root_path` | 导入时缓存图片的目录。 |
 | `media_clip_root_path` | 切片文件存储目录。 |
 | `media_clip_max_duration_seconds` | 单个切片允许的最大时长，默认 900 秒。 |
-| `media_clip_ffmpeg_timeout_seconds` | 单次 ffmpeg 切片超时，默认 120 秒。 |
 
 影片合集判定由已安装插件负责。进入「系统设置 → 插件」安装、启用并配置对应插件。
 

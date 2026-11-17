@@ -162,7 +162,7 @@ Clips are standalone mp4 files stored in `[media].media_clip_root_path` (default
 
 ### Why is a clip too long or failing to generate?
 
-A single clip's duration is limited by `media_clip_max_duration_seconds`, and ffmpeg execution time is limited by `media_clip_ffmpeg_timeout_seconds`. See [Configuration](/guide/config#media) for how to adjust them.
+A single clip's duration is limited by `media_clip_max_duration_seconds`. See [Configuration](/guide/config#media) for how to adjust it.
 
 ### Can a video collection play continuously?
 
