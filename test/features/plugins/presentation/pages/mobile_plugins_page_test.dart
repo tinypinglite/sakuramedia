@@ -123,35 +123,4 @@ void main() {
       findsOneWidget,
     );
   });
-
-  testWidgets('mobile plugin page exposes the global proxy entry', (
-    tester,
-  ) async {
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/plugins',
-      body: <Map<String, dynamic>>[],
-    );
-
-    await pumpPreviewApp(
-      tester,
-      home: const MobilePluginsPage(),
-      size: const Size(390, 844),
-      theme: buildSakuraMobileThemeData(),
-      platform: TargetPlatform.android,
-      appPlatform: AppPlatform.mobile,
-      bundle: bundle,
-      extraOverrides: <Override>[
-        pluginsApiProvider.overrideWithValue(
-          PluginsApi(apiClient: bundle.apiClient),
-        ),
-      ],
-    );
-
-    await tester.tap(find.byKey(const Key('mobile-network-proxy-entry')));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('network-proxy-sheet')), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
 }

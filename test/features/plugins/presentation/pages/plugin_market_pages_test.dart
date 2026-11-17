@@ -153,27 +153,4 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
-
-  testWidgets('mobile market exposes the global proxy entry', (tester) async {
-    enqueueMarket();
-
-    await pumpPreviewApp(
-      tester,
-      home: const MobilePluginMarketPage(),
-      size: const Size(390, 844),
-      theme: buildSakuraMobileThemeData(),
-      platform: TargetPlatform.android,
-      appPlatform: AppPlatform.mobile,
-      bundle: bundle,
-      extraOverrides: pluginsApiOverride(),
-    );
-
-    await tester.tap(
-      find.byKey(const Key('mobile-plugin-market-network-proxy-button')),
-    );
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('network-proxy-sheet')), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
 }

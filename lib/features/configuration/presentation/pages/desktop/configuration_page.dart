@@ -14,6 +14,7 @@ import 'package:sakuramedia/features/configuration/presentation/providers/config
 import 'package:sakuramedia/features/configuration/presentation/providers/download_selection_policy_provider.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/system_maintenance_section.dart';
 import 'package:sakuramedia/features/configuration/presentation/widgets/shared/appearance_settings_content.dart';
+import 'package:sakuramedia/features/configuration/presentation/widgets/shared/client_proxy_settings_content.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_channel.dart';
 import 'package:sakuramedia/features/external_player/presentation/widgets/external_player_settings_content.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/desktop/blacklisted_movies_section.dart';
@@ -180,6 +181,14 @@ class _DesktopConfigurationPageState
           icon: Icons.build_outlined,
         ),
         builder: (active) => SystemMaintenanceSection(active: active),
+      ),
+      _ConfigurationTab(
+        category: _ConfigurationCategory(
+          itemKey: const Key('configuration-tab-client-proxy'),
+          label: l10n.clientProxyTitle,
+          icon: Icons.settings_ethernet_rounded,
+        ),
+        builder: (active) => const ClientProxySettingsContent(),
       ),
       // 媒体维护 / 媒体管理已迁出：并入侧边栏「管理 > 媒体管理」独立页（三 tab）。
     ];

@@ -104,7 +104,10 @@ extension AppNavigation on BuildContext {
   }
 }
 
-List<AppDrawerSection> mobileDrawerSections(AppLocalizations l10n) {
+List<AppDrawerSection> mobileDrawerSections(
+  AppLocalizations l10n, {
+  required VoidCallback onClientProxyTap,
+}) {
   return <AppDrawerSection>[
     AppDrawerSection(
       id: 'home',
@@ -267,6 +270,12 @@ List<AppDrawerSection> mobileDrawerSections(AppLocalizations l10n) {
           routeId: AppRouteId.mobileSettingsAppearance,
           label: l10n.shellNavAppearance,
           icon: Icons.palette_outlined,
+        ),
+        AppDrawerEntry(
+          key: 'client-proxy',
+          onTap: onClientProxyTap,
+          label: l10n.clientProxyTitle,
+          icon: Icons.settings_ethernet_rounded,
         ),
         AppDrawerEntry(
           key: 'account-security',

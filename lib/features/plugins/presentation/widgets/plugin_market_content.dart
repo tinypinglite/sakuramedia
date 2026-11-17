@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/format/app_number_format.dart';
@@ -15,7 +13,6 @@ import 'package:sakuramedia/features/plugins/presentation/widgets/plugin_market_
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button.dart';
-import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_mobile_section_error.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_section_error.dart';
@@ -24,7 +21,6 @@ import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
-import 'package:sakuramedia/widgets/domain/settings/network_proxy_dialog.dart';
 
 /// 插件市场内容：桌面分栏与移动页面共用，仅通过 [mobile] 区分布局。
 class PluginMarketContent extends ConsumerWidget {
@@ -117,19 +113,7 @@ class PluginMarketContent extends ConsumerWidget {
         notice,
         SizedBox(height: mobile ? spacing.md : spacing.lg),
         if (mobile)
-          Row(
-            children: [
-              Expanded(child: search),
-              SizedBox(width: spacing.sm),
-              AppIconButton(
-                key: const Key('mobile-plugin-market-network-proxy-button'),
-                tooltip: l10n.networkProxyTitle,
-                semanticLabel: l10n.networkProxyTitle,
-                icon: const Icon(Icons.settings_ethernet_rounded),
-                onPressed: () => unawaited(showNetworkProxyDialog(context)),
-              ),
-            ],
-          )
+          search
         else
           Row(
             children: [

@@ -41,33 +41,4 @@ void main() {
 
     expect(find.byKey(const Key('plugin-test-dialog')), findsOneWidget);
   });
-
-  testWidgets('desktop plugin page exposes the global proxy entry', (
-    tester,
-  ) async {
-    final session = await buildLoggedInSessionStore();
-    final bundle = await createTestApiBundle(session);
-    addTearDown(bundle.dispose);
-    addTearDown(session.dispose);
-    bundle.adapter.enqueueJson(
-      method: 'GET',
-      path: '/system/plugins',
-      body: <Map<String, dynamic>>[],
-    );
-
-    await pumpPreviewApp(
-      tester,
-      home: const DesktopPluginsSection(active: true),
-      size: const Size(1100, 760),
-      theme: buildSakuraDesktopThemeData(),
-      platform: TargetPlatform.macOS,
-      bundle: bundle,
-    );
-
-    await tester.tap(find.byKey(const Key('plugins-network-proxy-button')));
-    await tester.pumpAndSettle();
-
-    expect(find.byKey(const Key('network-proxy-dialog')), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
 }

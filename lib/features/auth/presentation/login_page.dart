@@ -1780,7 +1780,7 @@ class _LoginLanguageSwitcher extends StatelessWidget {
   }
 }
 
-/// 登录页顶栏的全局网络代理入口；登录前也能修改，避免代理配错后无法恢复。
+/// 登录页顶栏的客户端代理入口；登录前也能修改，避免代理配错后无法恢复。
 class _LoginNetworkProxyButton extends StatelessWidget {
   const _LoginNetworkProxyButton({required this.enabled});
 
@@ -1790,9 +1790,9 @@ class _LoginNetworkProxyButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     return Semantics(
-      label: l10n.networkProxyTitle,
+      label: l10n.clientProxyTitle,
       child: Tooltip(
-        message: l10n.networkProxyTitle,
+        message: l10n.clientProxyTitle,
         child: AppInteractiveSurface(
           key: const Key('login-network-proxy-button'),
           enabled: enabled,
@@ -1807,7 +1807,7 @@ class _LoginNetworkProxyButton extends StatelessWidget {
               heightFactor: 1,
               child: _LoginTopBarPill(
                 icon: Icons.settings_ethernet_rounded,
-                label: l10n.networkProxyTitle,
+                label: l10n.clientProxyTitle,
                 showArrow: false,
                 showLabel: false,
               ),

@@ -42,15 +42,22 @@ class AppDrawerSection {
 class AppDrawerEntry {
   const AppDrawerEntry({
     required this.key,
-    required this.routeId,
+    this.routeId,
+    this.onTap,
     required this.label,
     required this.icon,
     this.badge,
     this.visible,
-  });
+  }) : assert(routeId != null || onTap != null, '条目必须能导航或触发动作');
 
   final String key;
-  final AppRouteId routeId;
+
+  /// 点击后跳转的路由；纯动作条目为 null。
+  final AppRouteId? routeId;
+
+  /// 纯动作条目点击后的回调，优先于 [routeId]。
+  final VoidCallback? onTap;
+
   final String label;
   final IconData icon;
   final AppDrawerBadge? badge;

@@ -8,7 +8,7 @@ import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
 
-/// 打开全局 HTTP 代理设置：桌面弹窗 / 移动底部抽屉。
+/// 打开客户端 HTTP 代理设置：桌面弹窗 / 移动底部抽屉。
 Future<void> showNetworkProxyDialog(BuildContext context) {
   return showAppAdaptiveModal<void>(
     context: context,
@@ -20,7 +20,7 @@ Future<void> showNetworkProxyDialog(BuildContext context) {
   );
 }
 
-/// 全局 HTTP 代理地址编辑；空输入保存表示清除代理。
+/// 客户端 HTTP 代理地址编辑；空输入保存表示清除代理。
 class NetworkProxyDialog extends ConsumerStatefulWidget {
   const NetworkProxyDialog({super.key});
 
@@ -80,7 +80,7 @@ class _NetworkProxyDialogState extends ConsumerState<NetworkProxyDialog> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              l10n.networkProxyTitle,
+              l10n.clientProxyTitle,
               style: resolveAppTextStyle(
                 context,
                 size: AppTextSize.s16,
@@ -88,12 +88,21 @@ class _NetworkProxyDialogState extends ConsumerState<NetworkProxyDialog> {
                 tone: AppTextTone.primary,
               ),
             ),
+            SizedBox(height: spacing.xs),
+            Text(
+              l10n.clientProxyDescription,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                tone: AppTextTone.secondary,
+              ),
+            ),
             SizedBox(height: spacing.md),
             AppTextField(
               fieldKey: const Key('network-proxy-field'),
               controller: _addressController,
-              label: l10n.networkProxyAddressLabel,
-              hintText: l10n.networkProxyAddressHint,
+              label: l10n.clientProxyAddressLabel,
+              hintText: l10n.clientProxyAddressHint,
               keyboardType: TextInputType.url,
               textInputAction: TextInputAction.done,
               onFieldSubmitted: (_) => _submit(),
@@ -103,7 +112,7 @@ class _NetworkProxyDialogState extends ConsumerState<NetworkProxyDialog> {
                   return null;
                 }
                 return parseNetworkProxyAddress(raw) == null
-                    ? l10n.networkProxyInvalidAddress
+                    ? l10n.clientProxyInvalidAddress
                     : null;
               },
             ),

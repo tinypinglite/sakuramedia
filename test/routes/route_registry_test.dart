@@ -109,19 +109,31 @@ void main() {
       AppRouteId.mobilePornbox,
     ]);
 
-    final drawerSections = mobileDrawerSections(l10n);
+    var clientProxyTaps = 0;
+    final drawerSections = mobileDrawerSections(
+      l10n,
+      onClientProxyTap: () => clientProxyTaps++,
+    );
     expect(drawerSections.length, 5);
     final drawerEntries = drawerSections
         .expand((section) => section.entries)
         .toList(growable: false);
-    expect(drawerEntries.length, 23);
+    expect(drawerEntries.length, 24);
     expect(
       drawerEntries.map((entry) => entry.key).toSet().length,
       drawerEntries.length,
     );
     for (final entry in drawerEntries) {
-      expect(() => appRoutes.byId(entry.routeId), returnsNormally);
+      if (entry.routeId case final routeId?) {
+        expect(() => appRoutes.byId(routeId), returnsNormally);
+      }
     }
+
+    final clientProxyEntry = drawerEntries.singleWhere(
+      (entry) => entry.key == 'client-proxy',
+    );
+    clientProxyEntry.onTap!();
+    expect(clientProxyTaps, 1);
 
     final subpages = appRoutes.definitions
         .where((definition) => definition.subpageChrome != null)

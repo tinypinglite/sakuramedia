@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cupertino_ui/cupertino_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -12,6 +14,7 @@ import 'package:sakuramedia/routes/app_route.dart';
 import 'package:sakuramedia/routes/app_route_registry.dart';
 import 'package:sakuramedia/routes/app_route_target.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/domain/settings/network_proxy_dialog.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_ambient_backdrop.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_shell.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_subpage_shell.dart';
@@ -184,9 +187,13 @@ class _MobileRootShellScopeState extends ConsumerState<_MobileRootShellScope> {
       drawer: enableOverviewDrawer
           ? MobileOverviewDrawer(
               hostContext: context,
-              sections: mobileDrawerSections(l10n),
+              sections: mobileDrawerSections(
+                l10n,
+                onClientProxyTap: () =>
+                    unawaited(showNetworkProxyDialog(context)),
+              ),
               onSelected: (entry) =>
-                  AppRouteTarget(id: entry.routeId).push(context),
+                  AppRouteTarget(id: entry.routeId!).push(context),
               onLogout: () => context.logOut(),
               onOpenPluginUpdates: () => AppRouteTarget(
                 id: AppRouteId.mobileSettingsPlugins,

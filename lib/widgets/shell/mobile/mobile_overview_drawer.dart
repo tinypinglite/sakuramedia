@@ -147,6 +147,10 @@ class MobileOverviewDrawer extends ConsumerWidget {
 
   /// 先收起抽屉，下一帧再交给宿主跳转（宿主 context 仍在时）。
   void _selectEntry(BuildContext context, AppDrawerEntry entry) {
+    if (entry.onTap case final onTap?) {
+      _closeThen(context, onTap);
+      return;
+    }
     _closeThen(context, () => onSelected(entry));
   }
 

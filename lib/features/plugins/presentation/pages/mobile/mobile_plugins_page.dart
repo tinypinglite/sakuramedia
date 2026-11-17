@@ -26,7 +26,6 @@ import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
-import 'package:sakuramedia/widgets/domain/settings/network_proxy_dialog.dart';
 
 /// 移动端插件管理页：卡片列表、操作抽屉、zip 安装和配置编辑。
 class MobilePluginsPage extends ConsumerStatefulWidget {
@@ -147,8 +146,6 @@ class _MobilePluginsPageState extends ConsumerState<MobilePluginsPage> {
                             ),
                           ],
                         ),
-                        SizedBox(height: spacing.md),
-                        const _MobileNetworkProxyEntry(),
                         SizedBox(height: spacing.md),
                         Row(
                           children: [
@@ -296,55 +293,6 @@ class _MobilePluginsPageState extends ConsumerState<MobilePluginsPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-/// 移动插件页的全局网络代理入口。
-class _MobileNetworkProxyEntry extends StatelessWidget {
-  const _MobileNetworkProxyEntry();
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    final spacing = context.appSpacing;
-    return AppContentCard(
-      padding: EdgeInsets.zero,
-      child: AppInteractiveSurface(
-        key: const Key('mobile-network-proxy-entry'),
-        onTap: () => unawaited(showNetworkProxyDialog(context)),
-        child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: spacing.md,
-            vertical: spacing.md,
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.settings_ethernet_rounded,
-                size: context.appComponentTokens.iconSizeMd,
-                color: context.appTextPalette.secondary,
-              ),
-              SizedBox(width: spacing.md),
-              Expanded(
-                child: Text(
-                  l10n.networkProxyTitle,
-                  style: resolveAppTextStyle(
-                    context,
-                    size: AppTextSize.s14,
-                    tone: AppTextTone.primary,
-                  ),
-                ),
-              ),
-              Icon(
-                Icons.chevron_right_rounded,
-                size: context.appComponentTokens.iconSizeSm,
-                color: context.appTextPalette.muted,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
