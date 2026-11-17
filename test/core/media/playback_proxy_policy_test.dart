@@ -16,15 +16,17 @@ void main() {
     expect(policy.defaultUpstreamHeaders['Referer'], 'https://115.com/');
   });
 
-  test('local and guangyapan stay explicitly disabled', () {
-    expect(
-      playbackProxyPolicyForProvider(localPlaybackProviderKey).enabled,
-      isFalse,
-    );
-    expect(
-      playbackProxyPolicyForProvider(guangyapanPlaybackProviderKey).enabled,
-      isFalse,
-    );
+  test('local and guangyapan opt in so their ranges are observable', () {
+    for (final providerKey in <String>[
+      localPlaybackProviderKey,
+      guangyapanPlaybackProviderKey,
+    ]) {
+      final policy = playbackProxyPolicyForProvider(providerKey);
+      expect(policy.enabled, isTrue);
+      expect(policy.maxConcurrentUpstreamRequests, 1);
+      expect(policy.upstreamWindowBytes, 128 * 1024 * 1024);
+      expect(policy.keepAlive, isTrue);
+    }
     expect(playbackProxyPolicyForProvider('unknown').enabled, isFalse);
   });
 
@@ -38,7 +40,33 @@ void main() {
     );
 
     expect(playbackProviderKeyForMedia(media), localPlaybackProviderKey);
-    expect(playbackProxyPolicyForMedia(media).enabled, isFalse);
+    expect(playbackProxyPolicyForMedia(media).enabled, isTrue);
+  });
+
+  test('local and guangyapan cache keys drop signed URL volatility', () {
+    for (final providerKey in <String>[
+      localPlaybackProviderKey,
+      guangyapanPlaybackProviderKey,
+    ]) {
+      final policy = playbackProxyPolicyForProvider(providerKey);
+      final first = playbackProxyCacheKey(
+        providerKey: providerKey,
+        policy: policy,
+        url:
+            'https://api.test/media/42/play/?expires=1&signature=a'
+            '&delivery=proxy&playback_attempt_id=one',
+      );
+      final second = playbackProxyCacheKey(
+        providerKey: providerKey,
+        policy: policy,
+        url:
+            'https://api.test/media/42/play/?expires=2&signature=b'
+            '&delivery=proxy&playback_attempt_id=two',
+      );
+
+      expect(first, '$providerKey:api.test/media/42/play/');
+      expect(second, first);
+    }
   });
 
   test('cloud115 user agent remains a fallback for unmarked media', () {

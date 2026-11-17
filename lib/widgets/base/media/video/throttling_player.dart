@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:media_kit/media_kit.dart';
 import 'package:sakuramedia/core/media/media_source_metadata.dart';
+import 'package:sakuramedia/core/media/playback_interleave.dart';
 import 'package:sakuramedia/core/media/playback_proxy_policy.dart';
 import 'package:sakuramedia/core/media/playback_range_proxy.dart';
 import 'package:sakuramedia/core/media/playback_source.dart';
@@ -58,8 +61,38 @@ class ThrottlingPlayer extends Player {
   bool _seekInFlight = false;
   bool _proxiedProfileApplied = false;
   final PlaybackRangeProxy? playbackProxy;
-  PlaybackRangeProxy? _activeProxy;
-  final Set<String> _activeProxyKeys = <String>{};
+  final Map<String, PlaybackRangeProxy> _activeProxies =
+      <String, PlaybackRangeProxy>{};
+  final Map<PlaybackRangeProxy, StreamSubscription<PlaybackInterleaveSignal>>
+  _interleaveSubscriptions =
+      <PlaybackRangeProxy, StreamSubscription<PlaybackInterleaveSignal>>{};
+  final StreamController<PlaybackInterleaveSignal> _interleaveController =
+      StreamController<PlaybackInterleaveSignal>.broadcast();
+
+  /// 当前播放会话的音视频交错异常事件。
+  Stream<PlaybackInterleaveSignal> get interleaveSignals =>
+      _interleaveController.stream;
+
+  /// 当前生效的 loopback 代理缓存 key；没有走代理时为 null。
+  String? get activePlaybackProxyKey {
+    final playlist = state.playlist;
+    final index = playlist.index;
+    if (index < 0 || index >= playlist.medias.length) {
+      return null;
+    }
+    return Uri.tryParse(playlist.medias[index].uri)?.queryParameters['k'];
+  }
+
+  void _bindInterleaveSignals(PlaybackRangeProxy proxy) {
+    if (_interleaveSubscriptions.containsKey(proxy)) {
+      return;
+    }
+    _interleaveSubscriptions[proxy] = proxy.interleaveSignals.listen((signal) {
+      if (!_interleaveController.isClosed) {
+        _interleaveController.add(signal);
+      }
+    }, onError: (_) {});
+  }
 
   @override
   Future<void> open(Playable playable, {bool play = true}) async {
@@ -79,12 +112,18 @@ class ThrottlingPlayer extends Player {
   @override
   Future<void> dispose() async {
     _releaseAllProxyKeys();
+    for (final subscription in _interleaveSubscriptions.values) {
+      unawaited(subscription.cancel());
+    }
+    _interleaveSubscriptions.clear();
+    if (!_interleaveController.isClosed) {
+      await _interleaveController.close();
+    }
     await super.dispose();
   }
 
   void _releaseUnusedProxyKeys(Playable playable) {
-    final proxy = _activeProxy;
-    if (proxy == null) {
+    if (_activeProxies.isEmpty) {
       return;
     }
     final retainedKeys = <String>{};
@@ -99,30 +138,18 @@ class ThrottlingPlayer extends Player {
         retainedKeys.add(key);
       }
     }
-    final releasedKeys = <String>[];
-    for (final key in _activeProxyKeys) {
+    for (final key in _activeProxies.keys.toList(growable: false)) {
       if (!retainedKeys.contains(key)) {
-        proxy.release(key);
-        releasedKeys.add(key);
+        _activeProxies.remove(key)?.release(key);
       }
-    }
-    _activeProxyKeys.removeAll(releasedKeys);
-    if (_activeProxyKeys.isEmpty) {
-      _activeProxy = null;
     }
   }
 
   void _releaseAllProxyKeys() {
-    final proxy = _activeProxy;
-    final keys = _activeProxyKeys.toList(growable: false);
-    _activeProxy = null;
-    _activeProxyKeys.clear();
-    if (proxy == null) {
-      return;
+    for (final entry in _activeProxies.entries) {
+      entry.value.release(entry.key);
     }
-    for (final key in keys) {
-      proxy.release(key);
-    }
+    _activeProxies.clear();
   }
 
   static String? _localRangeProxyKey(String url) {
@@ -153,6 +180,7 @@ class ThrottlingPlayer extends Player {
         final proxy =
             playbackProxy ??
             await LoopbackRangePlaybackProxy.shared(config.policy);
+        _bindInterleaveSignals(proxy);
         final cacheKey = playbackProxyCacheKey(
           providerKey: config.providerKey,
           policy: config.policy,
@@ -163,8 +191,7 @@ class ThrottlingPlayer extends Player {
           headers: media.httpHeaders ?? const <String, String>{},
           cacheKey: cacheKey,
         );
-        _activeProxy = proxy;
-        _activeProxyKeys.add(cacheKey);
+        _activeProxies[cacheKey] = proxy;
         wrapped.add(
           Media(
             localUrl.toString(),
@@ -255,6 +282,10 @@ class ThrottlingPlayer extends Player {
 
   @override
   Future<void> seek(Duration duration) async {
+    final activeKey = activePlaybackProxyKey;
+    if (activeKey != null) {
+      _activeProxies[activeKey]?.noteUserSeek();
+    }
     if (_seekInFlight) {
       // 覆盖：拖动连打时只保留最新目标，中间的中间态直接丢弃
       _pendingSeek = duration;

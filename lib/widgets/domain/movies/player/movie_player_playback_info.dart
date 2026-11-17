@@ -67,6 +67,8 @@ typedef MoviePlayerPlaybackInfoSnapshot = ({
   String? playbackStreamTypeLabel,
   String? playbackSourceBufferLabel,
   String? playbackSourceDownloadRateLabel,
+  String? interleaveStatusLabel,
+  String? interleaveDetailLabel,
 });
 
 const MoviePlayerPlaybackInfoSnapshot moviePlayerPlaybackInfoSnapshotEmpty = (
@@ -96,6 +98,8 @@ const MoviePlayerPlaybackInfoSnapshot moviePlayerPlaybackInfoSnapshotEmpty = (
   playbackStreamTypeLabel: null,
   playbackSourceBufferLabel: null,
   playbackSourceDownloadRateLabel: null,
+  interleaveStatusLabel: null,
+  interleaveDetailLabel: null,
 );
 
 MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
@@ -121,6 +125,8 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
   double? bufferCacheDurationSeconds,
   int? bufferForwardBytes,
   double? downloadRateBytesPerSecond,
+  String? interleaveStatusLabel,
+  String? interleaveDetailLabel,
 }) {
   final decodingMode = _resolveDecodingMode(
     hwdecCurrent: hwdecCurrent,
@@ -203,6 +209,8 @@ MoviePlayerPlaybackInfoSnapshot buildMoviePlayerPlaybackInfoSnapshot({
     playbackSourceDownloadRateLabel: _formatDownloadRateLabel(
       downloadRateBytesPerSecond,
     ),
+    interleaveStatusLabel: interleaveStatusLabel,
+    interleaveDetailLabel: interleaveDetailLabel,
   );
 }
 
@@ -790,11 +798,15 @@ class _MoviePlayerPlaybackInfoRowData {
     required this.valueKey,
     this.copyable = false,
     this.copyButtonKey,
+    this.warning = false,
   });
 
   final String label;
   final String value;
   final Key valueKey;
+
+  /// 是否用错误色强调该行（例如音视频交错异常）。
+  final bool warning;
 
   /// 是否在行末显示复制按钮，点击后把 [value] 写入剪贴板并 toast 提示。
   final bool copyable;
@@ -816,6 +828,7 @@ class _MoviePlayerPlaybackInfoRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final warning = data.warning;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -826,7 +839,8 @@ class _MoviePlayerPlaybackInfoRow extends StatelessWidget {
             style: resolveAppTextStyle(
               context,
               size: AppTextSize.s12,
-              tone: AppTextTone.secondary,
+              weight: warning ? AppTextWeight.medium : AppTextWeight.regular,
+              tone: warning ? AppTextTone.error : AppTextTone.secondary,
             ),
           ),
         ),
@@ -838,7 +852,8 @@ class _MoviePlayerPlaybackInfoRow extends StatelessWidget {
             style: resolveAppTextStyle(
               context,
               size: AppTextSize.s12,
-              tone: AppTextTone.primary,
+              weight: warning ? AppTextWeight.semibold : AppTextWeight.regular,
+              tone: warning ? AppTextTone.error : AppTextTone.primary,
             ),
           ),
         ),
@@ -900,6 +915,15 @@ List<Widget> _buildPlaybackRouteSection(
       value: info.playbackDemuxerFormatLabel,
       valueKey: const Key('movie-player-info-value-playback-demuxer-format'),
     ),
+    if (info.interleaveStatusLabel case final status?)
+      _MoviePlayerPlaybackInfoRowData(
+        label: l10n.widgetMoviePlayerInterleave,
+        value: info.interleaveDetailLabel == null
+            ? status
+            : '$status · ${info.interleaveDetailLabel}',
+        valueKey: const Key('movie-player-info-value-interleave'),
+        warning: true,
+      ),
     if (info.playbackSourceBufferLabel case final buffer?)
       _MoviePlayerPlaybackInfoRowData(
         label: l10n.widgetMoviePlayerBuffer,

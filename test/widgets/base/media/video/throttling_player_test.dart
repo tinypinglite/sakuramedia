@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:sakuramedia/core/media/media_source_metadata.dart';
+import 'package:sakuramedia/core/media/playback_interleave.dart';
 import 'package:sakuramedia/core/media/playback_range_proxy.dart';
 import 'package:sakuramedia/core/media/playback_source.dart';
 import 'package:sakuramedia/core/media/playback_user_agent.dart';
@@ -221,7 +222,7 @@ void main() {
       Playlist([
         Media(
           originalUrl,
-          extras: playbackExtrasForProvider(localPlaybackProviderKey),
+          extras: playbackExtrasForProvider('unknown'),
           httpHeaders: const {'User-Agent': defaultPlaybackUserAgent},
         ),
       ]),
@@ -230,6 +231,47 @@ void main() {
     expect(nativePlayer.state.playlist.medias.single.uri, originalUrl);
     expect(proxy.requests, isEmpty);
     expect(nativePlayer.properties, isEmpty);
+  });
+
+  test('local 和 guangyapan 媒体打开前也改写到 loopback 地址', () async {
+    final proxy = _FakePlaybackRangeProxy();
+    player = ThrottlingPlayer(
+      platformPlayer: nativePlayer,
+      playbackProxy: proxy,
+    );
+
+    await player!.open(
+      Playlist([
+        Media(
+          'http://api.local/media/44/play/?expires=1&signature=a'
+          '&delivery=proxy',
+          extras: playbackExtrasForProvider(localPlaybackProviderKey),
+          httpHeaders: const {'User-Agent': defaultPlaybackUserAgent},
+        ),
+        Media(
+          'http://api.local/media/45/play/?expires=1&signature=b'
+          '&delivery=redirect',
+          extras: playbackExtrasForProvider(guangyapanPlaybackProviderKey),
+          httpHeaders: const {'User-Agent': defaultPlaybackUserAgent},
+        ),
+      ]),
+    );
+
+    final medias = nativePlayer.state.playlist.medias;
+    expect(
+      medias.map((media) => media.uri),
+      everyElement(startsWith('http://127.0.0.1:1234/v?k=')),
+    );
+    expect(proxy.requests.map((request) => request.cacheKey), <String>[
+      'local:api.local/media/44/play/',
+      'guangyapan:api.local/media/45/play/',
+    ]);
+    expect(nativePlayer.properties, <String, String>{
+      'cache-on-disk': 'no',
+      'cache-secs': '20',
+      'demuxer-max-bytes': '134217728',
+      'demuxer-max-back-bytes': '67108864',
+    });
   });
 
   test('同一播放器从 Cloud115 切回普通媒体时恢复 media_kit 默认缓存策略', () async {
@@ -276,6 +318,13 @@ class _FakePlaybackRangeProxy implements PlaybackRangeProxy {
   void release(String cacheKey) {
     releasedKeys.add(cacheKey);
   }
+
+  @override
+  Stream<PlaybackInterleaveSignal> get interleaveSignals =>
+      const Stream<PlaybackInterleaveSignal>.empty();
+
+  @override
+  void noteUserSeek() {}
 
   @override
   Future<void> dispose() async {}

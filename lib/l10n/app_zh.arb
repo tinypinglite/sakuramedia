@@ -5540,6 +5540,26 @@
   "widgetMoviePlayerDemuxerFormat": "解复用格式",
   "widgetMoviePlayerBuffer": "缓冲",
   "widgetMoviePlayerDownloadRate": "下载速率",
+  "widgetMoviePlayerInterleave": "音视频交错",
+  "widgetMoviePlayerInterleaveAbnormal": "异常",
+  "widgetMoviePlayerInterleaveMaxDistance": "最大相距 {size}",
+  "@widgetMoviePlayerInterleaveMaxDistance": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMoviePlayerInterleaveRangePattern": "检测到远距离跳读，跨度 {size}",
+  "@widgetMoviePlayerInterleaveRangePattern": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMoviePlayerInterleaveWarning": "这个视频可能存在音视频交错异常的问题，无法正常播放",
+  "widgetMoviePlayerInterleaveDismiss": "关闭",
   "widgetMoviePlayerSectionPlaybackChain": "播放链路",
   "baseSelectPlaceholder": "请选择",
   "baseSearchHint": "搜索",

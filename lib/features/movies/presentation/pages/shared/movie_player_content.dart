@@ -13,6 +13,7 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
+import 'package:sakuramedia/core/media/playback_interleave.dart';
 import 'package:sakuramedia/core/media/playback_user_agent.dart';
 import 'package:sakuramedia/core/media/playback_source.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
@@ -736,7 +737,7 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
 class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
   static final Random _playbackAttemptRandom = Random.secure();
 
-  late final Player _player;
+  late final ThrottlingPlayer _player;
   late final VideoController _controller;
   final ValueNotifier<bool> _isSurfaceReady = ValueNotifier<bool>(false);
   late final MoviePlayerNativeStatsSampler _statsSampler;
@@ -758,6 +759,9 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
   StreamSubscription<VideoParams>? _videoParamsSubscription;
   StreamSubscription<AudioParams>? _audioParamsSubscription;
   StreamSubscription<double?>? _audioBitrateSubscription;
+  StreamSubscription<PlaybackInterleaveSignal>? _interleaveSubscription;
+  PlaybackInterleaveSignal? _interleaveSignal;
+  bool _interleaveBannerDismissed = false;
   int _openRequestId = 0;
   bool _hasPlaybackError = false;
   bool _retryInFlight = false;
@@ -836,6 +840,9 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     _audioBitrateSubscription = _player.stream.audioBitrate.listen(
       _statsSampler.updateAudioBitrate,
     );
+    _interleaveSubscription = _player.interleaveSignals.listen(
+      _handleInterleaveSignal,
+    );
     _rateSubscription = _player.stream.rate.listen(
       _playbackRate.onRateStreamEvent,
     );
@@ -874,6 +881,9 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
         oldWidget.playerUserAgent != widget.playerUserAgent ||
         oldWidget.playerProviderKey != widget.playerProviderKey) {
       _statsSampler.updateContext(originalUrl: widget.resolvedUrl);
+      _statsSampler.updateInterleaveSignal(null);
+      _interleaveSignal = null;
+      _interleaveBannerDismissed = false;
       _playbackRate.resetMobileDisplayForNewMedia(_player.state.rate);
       _closeAllMobileDrawers();
       _hasPlaybackError = false;
@@ -912,6 +922,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     _videoParamsSubscription?.cancel();
     _audioParamsSubscription?.cancel();
     _audioBitrateSubscription?.cancel();
+    _interleaveSubscription?.cancel();
     _statsSampler.dispose();
     _resumePrompt.removeListener(_handleResumePromptChanged);
     _resumePrompt.dispose();
@@ -954,6 +965,14 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     final startupPosition = retryingFromPlayback
         ? retryPosition
         : widget.initialPosition;
+    // 原地重试是一次新的播放会话；不清掉旧信号的话，_handleInterleaveSignal
+    // 会因为 _interleaveSignal != null 把新会话的信号全部丢弃。
+    if (mounted && (_interleaveSignal != null || _interleaveBannerDismissed)) {
+      setState(() {
+        _interleaveSignal = null;
+        _interleaveBannerDismissed = false;
+      });
+    }
     _statsSampler.reset();
     _startupSeek.begin(startupPosition);
     _pendingInitialSeek = null;
@@ -1085,6 +1104,70 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     if (!_resumePrompt.isResolved && widget.resumePosition != null) {
       _resumePrompt.show();
     }
+  }
+
+  void _handleInterleaveSignal(PlaybackInterleaveSignal signal) {
+    if (!mounted || _interleaveSignal != null) {
+      return;
+    }
+    final activeKey = _player.activePlaybackProxyKey;
+    if (activeKey == null || signal.cacheKey != activeKey) {
+      return;
+    }
+    setState(() {
+      _interleaveSignal = signal;
+      _interleaveBannerDismissed = false;
+    });
+    _statsSampler.updateInterleaveSignal(signal);
+  }
+
+  void _dismissInterleaveBanner() {
+    if (!mounted || _interleaveBannerDismissed) {
+      return;
+    }
+    setState(() => _interleaveBannerDismissed = true);
+  }
+
+  Widget _buildInterleaveWarningBar(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    final colorScheme = Theme.of(context).colorScheme;
+    final textColor = colorScheme.onErrorContainer;
+    return Container(
+      key: const Key('movie-player-interleave-warning'),
+      padding: EdgeInsets.only(
+        left: context.appSpacing.md,
+        top: context.appSpacing.sm,
+        bottom: context.appSpacing.sm,
+        right: context.appSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: colorScheme.errorContainer,
+        borderRadius: context.appRadius.mdBorder,
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.warning_amber_rounded, size: 18, color: textColor),
+          SizedBox(width: context.appSpacing.sm),
+          Expanded(
+            child: Text(
+              l10n.widgetMoviePlayerInterleaveWarning,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+              ).copyWith(color: textColor),
+            ),
+          ),
+          IconButton(
+            tooltip: l10n.widgetMoviePlayerInterleaveDismiss,
+            onPressed: _dismissInterleaveBanner,
+            visualDensity: VisualDensity.compact,
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+            icon: Icon(Icons.close, size: 16, color: textColor),
+          ),
+        ],
+      ),
+    );
   }
 
   void _handleResumePromptChanged() {
@@ -1371,6 +1454,19 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       fit: StackFit.expand,
       children: [
         videoSurface,
+        if (_interleaveSignal != null && !_interleaveBannerDismissed)
+          Positioned(
+            // 顶栏从 safeArea + playerControlBarTopInset 开始，行高 56；
+            // 再留一个 sm 间距，避免提示条压住返回/播放信息按钮。
+            top:
+                MediaQuery.of(context).padding.top +
+                context.appOverlayTokens.playerControlBarTopInset +
+                56 +
+                context.appSpacing.sm,
+            left: context.appSpacing.md,
+            right: context.appSpacing.md,
+            child: _buildInterleaveWarningBar(context),
+          ),
         if (_resumePrompt.isVisible && widget.resumePosition != null)
           PlaybackResumePromptOverlay(
             position: widget.resumePosition!,

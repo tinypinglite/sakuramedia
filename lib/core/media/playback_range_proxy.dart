@@ -3,8 +3,12 @@ import 'dart:collection';
 import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
+import 'package:sakuramedia/core/media/mp4_layout_parser.dart';
+import 'package:sakuramedia/core/media/playback_interleave.dart';
 import 'package:sakuramedia/core/media/playback_proxy_policy.dart';
+import 'package:sakuramedia/core/media/playback_range_health_detector.dart';
 
 /// Resolves a provider source URL to a loopback URL whose upstream reads follow
 /// the provider's [PlaybackProxyPolicy].
@@ -20,6 +24,15 @@ abstract interface class PlaybackRangeProxy {
   /// 播放器切换媒体或销毁时调用。取消会同步释放该会话占用的上游闸门，
   /// 避免旧媒体在播放器已经断开后继续阻塞新媒体。
   void release(String cacheKey);
+
+  /// 播放过程中检测到的音视频交错异常。
+  ///
+  /// 代理按 provider 共享，同一实例的事件会广播给所有监听者；调用方通过
+  /// 事件的 [PlaybackInterleaveSignal.cacheKey] 过滤当前媒体。
+  Stream<PlaybackInterleaveSignal> get interleaveSignals;
+
+  /// 用户拖动进度条时清空运行时检测窗口，避免一次长跳转被当成异常。
+  void noteUserSeek();
 
   Future<void> dispose();
 }
@@ -49,6 +62,8 @@ class LoopbackRangePlaybackProxy implements PlaybackRangeProxy {
   final ReceivePort _responsePort;
   final ReceivePort _exitPort;
   final void Function(String message)? _onLog;
+  final StreamController<PlaybackInterleaveSignal> _interleaveController =
+      StreamController<PlaybackInterleaveSignal>.broadcast();
   final Map<int, Completer<Uri>> _pendingLocalUrls = <int, Completer<Uri>>{};
   late final StreamSubscription<Object?> _responseSubscription;
   late final StreamSubscription<Object?> _exitSubscription;
@@ -128,6 +143,10 @@ class LoopbackRangePlaybackProxy implements PlaybackRangeProxy {
     );
   }
 
+  @override
+  Stream<PlaybackInterleaveSignal> get interleaveSignals =>
+      _interleaveController.stream;
+
   void _handleResponse(Object? message) {
     if (message is! Map) {
       return;
@@ -137,6 +156,31 @@ class LoopbackRangePlaybackProxy implements PlaybackRangeProxy {
         final text = message['message'];
         if (text is String) {
           _onLog?.call(text);
+        }
+        break;
+      case 'interleave':
+        final key = message['key'];
+        final source = message['source'];
+        final maxDistanceBytes = message['maxDistanceBytes'];
+        final spanBytes = message['spanBytes'];
+        final ratio = message['ratio'];
+        if (key is String &&
+            source is String &&
+            maxDistanceBytes is int &&
+            spanBytes is int &&
+            !_interleaveController.isClosed) {
+          _interleaveController.add(
+            PlaybackInterleaveSignal(
+              cacheKey: key,
+              source: PlaybackInterleaveSource.values.firstWhere(
+                (value) => value.name == source,
+                orElse: () => PlaybackInterleaveSource.rangePattern,
+              ),
+              maxDistanceBytes: maxDistanceBytes,
+              spanBytes: spanBytes,
+              ratio: ratio is num ? ratio.toDouble() : null,
+            ),
+          );
         }
         break;
       case 'localUrlResult':
@@ -198,6 +242,9 @@ class LoopbackRangePlaybackProxy implements PlaybackRangeProxy {
     }
     _pendingLocalUrls.clear();
     _disposeCompleter?.complete();
+    if (!_interleaveController.isClosed) {
+      unawaited(_interleaveController.close());
+    }
     unawaited(_responseSubscription.cancel());
     unawaited(_exitSubscription.cancel());
     _responsePort.close();
@@ -242,6 +289,14 @@ class LoopbackRangePlaybackProxy implements PlaybackRangeProxy {
   }
 
   @override
+  void noteUserSeek() {
+    if (_disposed) {
+      return;
+    }
+    _controlPort.send(const <String, Object?>{'type': 'userSeek'});
+  }
+
+  @override
   Future<void> dispose() async {
     if (_disposed) {
       return;
@@ -268,6 +323,9 @@ class LoopbackRangePlaybackProxy implements PlaybackRangeProxy {
       }
       _pendingLocalUrls.clear();
       _forgetSharedInstance();
+      if (!_interleaveController.isClosed) {
+        await _interleaveController.close();
+      }
     }
   }
 }
@@ -276,24 +334,57 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
   static const int _downstreamFlushBytes = 256 * 1024;
   static const Duration _downstreamFlushInterval = Duration(milliseconds: 16);
 
-  _LoopbackRangePlaybackProxyWorker._(this.policy, this._server, this._onLog);
+  _LoopbackRangePlaybackProxyWorker._(
+    this.policy,
+    this._server,
+    this._onLog,
+    this._onInterleave,
+  );
 
   final PlaybackProxyPolicy policy;
   final HttpServer _server;
   final void Function(String message)? _onLog;
+  final void Function(PlaybackInterleaveSignal signal)? _onInterleave;
   final Map<String, _PlaybackOrigin> _origins = <String, _PlaybackOrigin>{};
   final Set<_StreamSession> _sessions = <_StreamSession>{};
+  final Map<String, PlaybackRangeHealthDetector> _interleaveDetectors =
+      <String, PlaybackRangeHealthDetector>{};
+  final Map<String, int> _knownTotals = <String, int>{};
+  final Map<String, _MoovCapture> _moovCaptures = <String, _MoovCapture>{};
+  final Set<String> _staticInterleaveChecked = <String>{};
+  final Set<String> _staticParseInFlight = <String>{};
+  final Set<String> _staticCaptureClosed = <String>{};
+  static const int _captureBudgetBytes = 64 * 1024 * 1024;
+  static const int _captureBudgetKeys = 2;
   bool _disposed = false;
 
   static Future<_LoopbackRangePlaybackProxyWorker> create({
     required PlaybackProxyPolicy policy,
     void Function(String message)? onLog,
+    void Function(PlaybackInterleaveSignal signal)? onInterleave,
   }) async {
     assert(policy.enabled);
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    final proxy = _LoopbackRangePlaybackProxyWorker._(policy, server, onLog);
+    final proxy = _LoopbackRangePlaybackProxyWorker._(
+      policy,
+      server,
+      onLog,
+      onInterleave,
+    );
     server.listen(proxy._handle, onError: (_) {});
     return proxy;
+  }
+
+  @override
+  Stream<PlaybackInterleaveSignal> get interleaveSignals =>
+      const Stream<PlaybackInterleaveSignal>.empty();
+
+  @override
+  void noteUserSeek() {
+    final now = DateTime.now();
+    for (final detector in _interleaveDetectors.values) {
+      detector.resetForSeek(now);
+    }
   }
 
   @override
@@ -327,6 +418,12 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
       }
     }
     _origins.remove(cacheKey);
+    _interleaveDetectors.remove(cacheKey);
+    _knownTotals.remove(cacheKey);
+    _moovCaptures.remove(cacheKey);
+    _staticInterleaveChecked.remove(cacheKey);
+    _staticParseInFlight.remove(cacheKey);
+    _staticCaptureClosed.remove(cacheKey);
   }
 
   Future<void> _handle(HttpRequest request) async {
@@ -351,6 +448,9 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
     // A player may keep the previous loopback request open after a seek.
     // Abort it explicitly so its upstream window cannot block the new seek.
     _cancelSessionsForKey(key);
+    if (range != null && request.method != 'HEAD') {
+      _recordInterleaveRange(key, range);
+    }
     final session = _StreamSession(key, origin, policy);
     _sessions.add(session);
     try {
@@ -411,6 +511,7 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
     } finally {
       session.close();
       _sessions.remove(session);
+      _maybeParseMoov(key);
     }
   }
 
@@ -420,6 +521,151 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
         session.cancel();
       }
     }
+  }
+
+  void _recordInterleaveRange(String key, _RangeRequest range) {
+    if (_staticInterleaveChecked.contains(key)) {
+      return;
+    }
+    final total = _knownTotals[key];
+    final start =
+        range.start ??
+        (total != null && range.suffixLength != null
+            ? math.max(0, total - range.suffixLength!)
+            : null);
+    if (start == null) {
+      return;
+    }
+    final windowEnd = start + policy.upstreamWindowBytes - 1;
+    final requestedEnd = range.end;
+    // 播放器常用 `bytes=N-`；实际请求长度未知，不能用代理内部的 128MB
+    // 窗口冒充请求大小，否则检测器的 medianLength 会被抬到数百 MB。
+    final end = range.start != null && requestedEnd == null
+        ? start
+        : requestedEnd == null
+        ? (total != null ? math.min(total - 1, windowEnd) : windowEnd)
+        : (total != null ? math.min(requestedEnd, total - 1) : requestedEnd);
+    if (end < start) {
+      return;
+    }
+    final detector = _interleaveDetectors.putIfAbsent(
+      key,
+      PlaybackRangeHealthDetector.new,
+    );
+    final signal = detector.add(
+      cacheKey: key,
+      start: start,
+      end: end,
+      at: DateTime.now(),
+    );
+    if (signal != null) {
+      _onInterleave?.call(signal);
+    }
+  }
+
+  void _captureMoovBytes(String key, int offset, List<int> bytes) {
+    if (bytes.isEmpty ||
+        _staticInterleaveChecked.contains(key) ||
+        _staticCaptureClosed.contains(key) ||
+        _staticParseInFlight.contains(key)) {
+      return;
+    }
+    final total = _knownTotals[key];
+    if (total == null || total <= 0) {
+      return;
+    }
+    final typed = bytes is Uint8List ? bytes : Uint8List.fromList(bytes);
+    final capture = _moovCaptures.putIfAbsent(
+      key,
+      () => _MoovCapture(total: total),
+    );
+    capture.add(offset, typed);
+    if (capture.clearlyNotMp4 ?? false) {
+      _moovCaptures.remove(key);
+      _staticCaptureClosed.add(key);
+      return;
+    }
+    _trimCaptureBudget(keepKey: key);
+  }
+
+  /// 播放列表会一次性注册所有 key，自动连播又不经过 ThrottlingPlayer.open()，
+  /// 所以用一个全局预算兜底，避免每一集各留一份 head/tail 捕获。
+  void _trimCaptureBudget({required String keepKey}) {
+    var totalAllocated = 0;
+    for (final capture in _moovCaptures.values) {
+      totalAllocated += capture.allocatedBytes;
+    }
+    if (totalAllocated <= _captureBudgetBytes &&
+        _moovCaptures.length <= _captureBudgetKeys) {
+      return;
+    }
+    for (final key in _moovCaptures.keys.toList(growable: false)) {
+      if (key == keepKey) {
+        continue;
+      }
+      final removed = _moovCaptures.remove(key);
+      if (removed != null) {
+        totalAllocated -= removed.allocatedBytes;
+        // 被淘汰的 key 不再重新捕获；运行时检测仍然保留。
+        _staticCaptureClosed.add(key);
+      }
+      if (totalAllocated <= _captureBudgetBytes &&
+          _moovCaptures.length <= _captureBudgetKeys) {
+        break;
+      }
+    }
+  }
+
+  void _maybeParseMoov(String key) {
+    if (_disposed ||
+        _staticInterleaveChecked.contains(key) ||
+        _staticCaptureClosed.contains(key) ||
+        _staticParseInFlight.contains(key)) {
+      return;
+    }
+    final capture = _moovCaptures[key];
+    if (capture == null || !capture.hasNewBytes) {
+      return;
+    }
+    final moov = capture.takeMoov();
+    if (moov == null) {
+      return;
+    }
+    _moovCaptures.remove(key);
+    _staticParseInFlight.add(key);
+    unawaited(_parseMoov(key, moov));
+  }
+
+  Future<void> _parseMoov(String key, Uint8List moov) async {
+    Mp4InterleaveMetrics? metrics;
+    try {
+      metrics = await Isolate.run(() => Mp4LayoutParser.analyze(moov));
+    } catch (_) {
+      metrics = null;
+    }
+    _staticParseInFlight.remove(key);
+    if (_disposed || !_origins.containsKey(key)) {
+      return;
+    }
+    // 静态解析只尝试一次；失败时关闭捕获，但保留运行时检测。
+    _staticCaptureClosed.add(key);
+    if (metrics == null) {
+      return;
+    }
+    _staticInterleaveChecked.add(key);
+    _interleaveDetectors.remove(key);
+    if (!metrics.isAbnormal) {
+      return;
+    }
+    _onInterleave?.call(
+      PlaybackInterleaveSignal(
+        cacheKey: key,
+        source: PlaybackInterleaveSource.mp4Layout,
+        maxDistanceBytes: metrics.maxDistanceBytes,
+        spanBytes: metrics.spanP90Bytes,
+        ratio: metrics.ratioP90,
+      ),
+    );
   }
 
   Future<void> _serveForwardRange(
@@ -443,6 +689,7 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
         await _discardResponse(session, opened.response);
         throw const HttpException('upstream did not report total length');
       }
+      _knownTotals[session.key] = knownTotal;
       final end = requestedEnd == null
           ? knownTotal - 1
           : math.min(requestedEnd, knownTotal - 1);
@@ -513,6 +760,7 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
     if (total == null || total <= 0) {
       throw const HttpException('upstream did not report total length');
     }
+    _knownTotals[session.key] = total;
 
     final start = range == null
         ? 0
@@ -715,6 +963,7 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
         }
         final take = math.min(remaining, data.length);
         final bytes = take == data.length ? data : data.sublist(0, take);
+        _captureMoovBytes(session.key, start + received, bytes);
         try {
           session.responseStarted = true;
           response.add(bytes);
@@ -754,6 +1003,7 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
       }
       _log('↓ window $start-$end ${received}B');
     }
+    _maybeParseMoov(session.key);
   }
 
   Future<void> _discardResponse(
@@ -796,6 +1046,7 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
 
   static bool _shouldRetry(int statusCode) =>
       statusCode == HttpStatus.forbidden ||
+      statusCode == HttpStatus.gone ||
       statusCode == HttpStatus.tooManyRequests ||
       statusCode >= 500;
 
@@ -845,6 +1096,12 @@ class _LoopbackRangePlaybackProxyWorker implements PlaybackRangeProxy {
       origin.gate.close();
     }
     _origins.clear();
+    _interleaveDetectors.clear();
+    _knownTotals.clear();
+    _moovCaptures.clear();
+    _staticInterleaveChecked.clear();
+    _staticParseInFlight.clear();
+    _staticCaptureClosed.clear();
     try {
       await _server.close(force: true);
     } catch (_) {}
@@ -869,6 +1126,14 @@ Future<void> _proxyIsolateMain(List<Object?> args) async {
               'message': message,
             })
           : null,
+      onInterleave: (signal) => responsePort.send(<String, Object?>{
+        'type': 'interleave',
+        'key': signal.cacheKey,
+        'source': signal.source.name,
+        'maxDistanceBytes': signal.maxDistanceBytes,
+        'spanBytes': signal.spanBytes,
+        'ratio': signal.ratio,
+      }),
     );
     worker = activeWorker;
     readyPort.send(<String, Object?>{
@@ -922,6 +1187,8 @@ Future<void> _proxyIsolateMain(List<Object?> args) async {
         if (cacheKey is String) {
           activeWorker.release(cacheKey);
         }
+      } else if (type == 'userSeek') {
+        activeWorker.noteUserSeek();
       } else if (type == 'dispose') {
         disposed = true;
         await activeWorker.dispose();
@@ -1154,4 +1421,354 @@ class _ProxyTimeout implements Exception {
 
 class _SessionCancelled implements Exception {
   const _SessionCancelled();
+}
+
+/// 从播放器实际读到的字节里抓取 moov。
+///
+/// 只保留文件头、尾各 32MB，不额外发起上游请求；播放器读不全 moov 时
+/// 静默放弃，继续用运行时 Range 模式检测。
+class _MoovCapture {
+  _MoovCapture({required this.total});
+
+  static const int _regionCap = 32 * 1024 * 1024;
+
+  final int total;
+  final _MoovRangeBuffer _head = _MoovRangeBuffer(
+    maxBytes: _regionCap,
+    keepFront: true,
+  );
+  final _MoovRangeBuffer _tail = _MoovRangeBuffer(
+    maxBytes: _regionCap,
+    keepFront: false,
+  );
+  int _revision = 0;
+  int _scannedRevision = 0;
+
+  bool get hasNewBytes => _revision != _scannedRevision;
+
+  int get allocatedBytes => _head.allocatedBytes + _tail.allocatedBytes;
+
+  /// null = 未知；true = 明确的非 MP4 容器；false = 已知的 MP4/MOV 顶层 box。
+  /// 识别为非 MP4 后停止捕获，避免 MKV/AVI 每集白留 64MB。
+  bool? get clearlyNotMp4 {
+    final head = _head.bytes;
+    if (head == null || _head.start != 0 || head.length < 8) {
+      return null;
+    }
+    final type = String.fromCharCodes(head.sublist(4, 8));
+    if (_mp4TopLevelTypes.contains(type)) {
+      return false;
+    }
+    return _looksLikeKnownNonMp4(head) ? true : null;
+  }
+
+  static const Set<String> _mp4TopLevelTypes = <String>{
+    'ftyp',
+    'moov',
+    'mdat',
+    'free',
+    'skip',
+    'wide',
+    'pnot',
+    'uuid',
+    'meta',
+    'udta',
+    'moof',
+    'mfra',
+    'sidx',
+    'styp',
+    'emsg',
+    'mvex',
+  };
+
+  static bool _looksLikeKnownNonMp4(Uint8List head) {
+    if (head[0] == 0x1A &&
+        head[1] == 0x45 &&
+        head[2] == 0xDF &&
+        head[3] == 0xA3) {
+      return true; // Matroska / WebM
+    }
+    if (head[0] == 0x30 &&
+        head[1] == 0x26 &&
+        head[2] == 0xB2 &&
+        head[3] == 0x75) {
+      return true; // ASF / WMV
+    }
+    if (head[0] == 0x00 &&
+        head[1] == 0x00 &&
+        head[2] == 0x01 &&
+        head[3] == 0xBA) {
+      return true; // MPEG-PS
+    }
+    if (head[0] == 0x4F &&
+        head[1] == 0x67 &&
+        head[2] == 0x67 &&
+        head[3] == 0x53) {
+      return true; // Ogg
+    }
+    if (head[0] == 0x46 && head[1] == 0x4C && head[2] == 0x56) {
+      return true; // FLV
+    }
+    if (head[0] == 0x52 &&
+        head[1] == 0x49 &&
+        head[2] == 0x46 &&
+        head[3] == 0x46) {
+      return true; // RIFF / AVI
+    }
+    if (head[0] == 0x47 && head.length >= 189 && head[188] == 0x47) {
+      return true; // MPEG-TS：两个 188 字节包同步字节
+    }
+    if (head.length >= 197 && head[4] == 0x47 && head[196] == 0x47) {
+      return true; // M2TS：192 字节包，4 字节 TP_extra_header
+    }
+    return false;
+  }
+
+  void add(int offset, Uint8List bytes) {
+    if (bytes.isEmpty) {
+      return;
+    }
+    var added = false;
+    if (offset < _regionCap) {
+      final take = math.min(bytes.length, _regionCap - offset);
+      if (take > 0) {
+        _head.add(offset, Uint8List.sublistView(bytes, 0, take));
+        added = true;
+      }
+    }
+    final tailStart = math.max(0, total - _regionCap);
+    final from = math.max(offset, tailStart);
+    final to = math.min(offset + bytes.length, total);
+    if (to > from) {
+      _tail.add(from, Uint8List.sublistView(bytes, from - offset, to - offset));
+      added = true;
+    }
+    if (added) {
+      _revision++;
+    }
+  }
+
+  Uint8List? takeMoov() {
+    _scannedRevision = _revision;
+    final head = _moovFromStart(_head);
+    if (head != null) {
+      return head;
+    }
+    return _moovFromTail(_tail, total);
+  }
+
+  static Uint8List? _moovFromStart(_MoovRangeBuffer buffer) {
+    final bytes = buffer.bytes;
+    if (bytes == null || buffer.start != 0) {
+      return null;
+    }
+    final data = ByteData.sublistView(bytes);
+    var position = 0;
+    while (position + 8 <= bytes.length) {
+      var size = data.getUint32(position, Endian.big);
+      final type = _fourcc(data, position + 4);
+      var headerSize = 8;
+      if (size == 1) {
+        if (position + 16 > bytes.length) {
+          return null;
+        }
+        size = _readUint64(data, position + 8);
+        headerSize = 16;
+      } else if (size == 0) {
+        size = bytes.length - position;
+      }
+      if (size < headerSize || position + size > bytes.length) {
+        return null;
+      }
+      if (type == 'moov') {
+        return _copyRange(bytes, position, position + size);
+      }
+      position += size;
+    }
+    return null;
+  }
+
+  static Uint8List? _moovFromTail(_MoovRangeBuffer buffer, int total) {
+    final bytes = buffer.bytes;
+    if (bytes == null) {
+      return null;
+    }
+    final data = ByteData.sublistView(bytes);
+    final base = buffer.start;
+    for (var index = 4; index + 4 <= bytes.length; index++) {
+      if (bytes[index] != 0x6d ||
+          bytes[index + 1] != 0x6f ||
+          bytes[index + 2] != 0x6f ||
+          bytes[index + 3] != 0x76) {
+        continue;
+      }
+      final boxStart = index - 4;
+      var size = data.getUint32(boxStart, Endian.big);
+      var headerSize = 8;
+      if (size == 1) {
+        if (boxStart + 16 > bytes.length) {
+          continue;
+        }
+        size = _readUint64(data, boxStart + 8);
+        headerSize = 16;
+      } else if (size == 0) {
+        size = bytes.length - boxStart;
+      }
+      if (size < headerSize || boxStart + size > bytes.length) {
+        continue;
+      }
+      if (base + boxStart + size > total) {
+        continue;
+      }
+      return _copyRange(bytes, boxStart, boxStart + size);
+    }
+    return null;
+  }
+
+  static Uint8List _copyRange(Uint8List bytes, int start, int end) =>
+      Uint8List.fromList(Uint8List.sublistView(bytes, start, end));
+
+  static String _fourcc(ByteData data, int offset) {
+    if (offset + 4 > data.lengthInBytes) {
+      return '';
+    }
+    return String.fromCharCodes(<int>[
+      data.getUint8(offset),
+      data.getUint8(offset + 1),
+      data.getUint8(offset + 2),
+      data.getUint8(offset + 3),
+    ]);
+  }
+
+  static int _readUint64(ByteData data, int offset) =>
+      (data.getUint32(offset, Endian.big) << 32) |
+      data.getUint32(offset + 4, Endian.big);
+}
+
+/// 一段连续的文件字节。只保留文件头或文件尾的窗口，避免为探测另开请求。
+class _MoovRangeBuffer {
+  _MoovRangeBuffer({required this.maxBytes, required this.keepFront});
+
+  final int maxBytes;
+  final bool keepFront;
+  Uint8List _data = Uint8List(0);
+  int _length = 0;
+  int _start = 0;
+
+  Uint8List? get bytes =>
+      _length == 0 ? null : Uint8List.sublistView(_data, 0, _length);
+
+  int get allocatedBytes => _data.length;
+
+  int get start => _start;
+
+  void add(int offset, Uint8List bytes) {
+    if (bytes.isEmpty) {
+      return;
+    }
+    if (_length == 0) {
+      _reset(offset, bytes);
+      return;
+    }
+    final end = _start + _length;
+    if (offset == end) {
+      _append(bytes);
+      return;
+    }
+    if (offset < _start) {
+      if (offset + bytes.length < _start) {
+        // 与前一段不连续：不要用零填充假装连续，直接保留更新的一段。
+        _reset(offset, bytes);
+        return;
+      }
+      final mergedStart = math.min(offset, _start);
+      final mergedEnd = math.max(end, offset + bytes.length);
+      final merged = Uint8List(mergedEnd - mergedStart);
+      merged.setRange(0, bytes.length, bytes);
+      merged.setRange(
+        _start - mergedStart,
+        _start - mergedStart + _length,
+        Uint8List.sublistView(_data, 0, _length),
+      );
+      _data = merged;
+      _length = merged.length;
+      _start = mergedStart;
+      _trim();
+      return;
+    }
+    if (offset > end) {
+      _reset(offset, bytes);
+      return;
+    }
+    final newEnd = offset + bytes.length;
+    if (newEnd > end) {
+      _append(Uint8List.sublistView(bytes, end - offset));
+    }
+  }
+
+  void _append(Uint8List bytes) {
+    if (bytes.isEmpty) {
+      return;
+    }
+    var required = _length + bytes.length;
+    if (required > maxBytes) {
+      if (keepFront) {
+        final take = maxBytes - _length;
+        if (take <= 0) {
+          return;
+        }
+        bytes = Uint8List.sublistView(bytes, 0, take);
+        required = maxBytes;
+      } else {
+        final drop = required - maxBytes;
+        _data = Uint8List.fromList(Uint8List.sublistView(_data, drop, _length));
+        _length -= drop;
+        _start += drop;
+        required = _length + bytes.length;
+      }
+    }
+    if (_data.length < required) {
+      var capacity = _data.isEmpty ? 64 * 1024 : _data.length * 2;
+      if (capacity > maxBytes) {
+        capacity = maxBytes;
+      }
+      if (capacity < required) {
+        capacity = required;
+      }
+      final grown = Uint8List(capacity);
+      grown.setRange(0, _length, _data);
+      _data = grown;
+    }
+    _data.setRange(_length, required, bytes);
+    _length = required;
+  }
+
+  void _reset(int offset, Uint8List bytes) {
+    if (bytes.length > maxBytes) {
+      if (keepFront) {
+        bytes = Uint8List.sublistView(bytes, 0, maxBytes);
+      } else {
+        final drop = bytes.length - maxBytes;
+        offset += drop;
+        bytes = Uint8List.sublistView(bytes, drop);
+      }
+    }
+    _start = offset;
+    _data = Uint8List.fromList(bytes);
+    _length = bytes.length;
+  }
+
+  void _trim() {
+    if (_length <= maxBytes) {
+      return;
+    }
+    if (keepFront) {
+      _length = maxBytes;
+    } else {
+      final drop = _length - maxBytes;
+      _data = Uint8List.fromList(Uint8List.sublistView(_data, drop, _length));
+      _length -= drop;
+      _start += drop;
+    }
+  }
 }

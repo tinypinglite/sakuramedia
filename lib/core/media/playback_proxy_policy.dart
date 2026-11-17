@@ -4,9 +4,9 @@ import 'package:sakuramedia/core/media/playback_user_agent.dart';
 
 /// Transport policy for the loopback byte-range proxy.
 ///
-/// Being able to proxy every source does not mean every source should be
-/// proxied. Providers opt in only when their playback endpoint needs the
-/// proxy's concurrency or header behavior.
+/// Providers opt in when their playback endpoint needs the proxy's transport
+/// behavior, or when the client should observe range traffic for playback
+/// diagnostics such as A/V interleaving detection.
 class PlaybackProxyPolicy {
   const PlaybackProxyPolicy({
     required this.providerKey,
@@ -92,6 +92,13 @@ class PlaybackProxyPolicy {
   );
 }
 
+const Set<String> _signedPlaybackVolatileQueryKeys = <String>{
+  'expires',
+  'signature',
+  'playback_attempt_id',
+  'delivery',
+};
+
 const PlaybackProxyPolicy cloud115PlaybackProxyPolicy = PlaybackProxyPolicy(
   providerKey: cloud115PlaybackProviderKey,
   enabled: true,
@@ -117,18 +124,36 @@ const PlaybackProxyPolicy cloud115PlaybackProxyPolicy = PlaybackProxyPolicy(
   },
 );
 
+/// 本地库由后端以 signed URL 读文件；套一层 loopback 代理用于统一缓冲策略
+/// 和音视频交错检测。
+const PlaybackProxyPolicy localPlaybackProxyPolicy = PlaybackProxyPolicy(
+  providerKey: localPlaybackProviderKey,
+  enabled: true,
+  defaultUpstreamHeaders: <String, String>{
+    'User-Agent': defaultPlaybackUserAgent,
+  },
+  volatileQueryKeys: _signedPlaybackVolatileQueryKeys,
+);
+
+/// 光鸭播放地址先指向后端 signed URL，再由后端 302 到 CDN；直链支持 Range，
+/// 可以用同一个 loopback 代理做检测。
+const PlaybackProxyPolicy guangyapanPlaybackProxyPolicy = PlaybackProxyPolicy(
+  providerKey: guangyapanPlaybackProviderKey,
+  enabled: true,
+  defaultUpstreamHeaders: <String, String>{
+    'User-Agent': defaultPlaybackUserAgent,
+  },
+  volatileQueryKeys: _signedPlaybackVolatileQueryKeys,
+);
+
 const PlaybackProxyPolicy _disabledPlaybackProxyPolicy =
     PlaybackProxyPolicy.disabled('');
 
 PlaybackProxyPolicy playbackProxyPolicyForProvider(String? providerKey) =>
     switch (providerKey?.trim()) {
       cloud115PlaybackProviderKey => cloud115PlaybackProxyPolicy,
-      localPlaybackProviderKey => const PlaybackProxyPolicy.disabled(
-        localPlaybackProviderKey,
-      ),
-      guangyapanPlaybackProviderKey => const PlaybackProxyPolicy.disabled(
-        guangyapanPlaybackProviderKey,
-      ),
+      localPlaybackProviderKey => localPlaybackProxyPolicy,
+      guangyapanPlaybackProviderKey => guangyapanPlaybackProxyPolicy,
       _ => _disabledPlaybackProxyPolicy,
     };
 

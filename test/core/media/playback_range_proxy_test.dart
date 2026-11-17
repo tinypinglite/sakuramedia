@@ -4,8 +4,11 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sakuramedia/core/media/playback_interleave.dart';
 import 'package:sakuramedia/core/media/playback_proxy_policy.dart';
 import 'package:sakuramedia/core/media/playback_range_proxy.dart';
+
+import 'mp4_layout_fixture.dart';
 
 const _cloud115UserAgent = 'Mozilla/5.0; Darwin/10.0; UDown/39.1.0';
 
@@ -19,6 +22,144 @@ void main() {
 
   tearDown(() {
     HttpOverrides.global = previousHttpOverrides;
+  });
+
+  for (final fastStart in <bool>[false, true]) {
+    test('moov 交错异常时静态解析发出信号（${fastStart ? 'faststart' : '尾部'}）', () async {
+      final file = buildMp4TestFile(abnormal: true, fastStart: fastStart);
+      final origin = await _RangeOrigin.start(bodyBytes: file.bytes);
+      final proxy = await LoopbackRangePlaybackProxy.create(
+        policy: cloud115PlaybackProxyPolicy.copyWith(
+          upstreamWindowBytes: 64 * 1024,
+          cooldown: Duration.zero,
+        ),
+      );
+      addTearDown(() async {
+        await proxy.dispose();
+        await origin.stop();
+      });
+      final signals = <PlaybackInterleaveSignal>[];
+      final subscription = proxy.interleaveSignals.listen(signals.add);
+      addTearDown(subscription.cancel);
+
+      final localUrl = await proxy.localUrlFor(
+        origin.startUrl,
+        headers: const <String, String>{'User-Agent': _cloud115UserAgent},
+        cacheKey: 'moov-layout',
+      );
+      final response = await _get(
+        localUrl,
+        range: fastStart
+            ? 'bytes=0-${file.moovStart + file.moovLength - 1}'
+            : 'bytes=${file.moovStart}-${file.bytes.length - 1}',
+      );
+
+      expect(response.statusCode, HttpStatus.partialContent);
+      expect(
+        response.body,
+        hasLength(
+          fastStart ? file.moovStart + file.moovLength : file.moovLength,
+        ),
+      );
+      await _waitUntil(() => signals.isNotEmpty);
+      expect(signals.single.cacheKey, 'moov-layout');
+      expect(signals.single.source, PlaybackInterleaveSource.mp4Layout);
+      expect(signals.single.maxDistanceBytes, greaterThan(4000000000));
+    });
+  }
+
+  test('先读尾部 free 再读 moov 仍能静态解析', () async {
+    final file = buildMp4TestFile(
+      abnormal: true,
+      trailingFreeBytes: 1024 * 1024,
+    );
+    final origin = await _RangeOrigin.start(bodyBytes: file.bytes);
+    final proxy = await LoopbackRangePlaybackProxy.create(
+      policy: cloud115PlaybackProxyPolicy.copyWith(
+        upstreamWindowBytes: 64 * 1024,
+        cooldown: Duration.zero,
+      ),
+    );
+    addTearDown(() async {
+      await proxy.dispose();
+      await origin.stop();
+    });
+    final signals = <PlaybackInterleaveSignal>[];
+    final subscription = proxy.interleaveSignals.listen(signals.add);
+    addTearDown(subscription.cancel);
+
+    final localUrl = await proxy.localUrlFor(
+      origin.startUrl,
+      headers: const <String, String>{'User-Agent': _cloud115UserAgent},
+      cacheKey: 'moov-after-free',
+    );
+    final tailResponse = await _get(
+      localUrl,
+      range:
+          'bytes=${file.bytes.length - 64 * 1024}-'
+          '${file.bytes.length - 1}',
+    );
+    expect(tailResponse.statusCode, HttpStatus.partialContent);
+
+    final moovResponse = await _get(
+      localUrl,
+      range:
+          'bytes=${file.moovStart}-'
+          '${file.moovStart + file.moovLength - 1}',
+    );
+    expect(moovResponse.statusCode, HttpStatus.partialContent);
+    await _waitUntil(() => signals.isNotEmpty);
+    expect(signals.single.source, PlaybackInterleaveSource.mp4Layout);
+  });
+
+  test('非 MP4 容器读到 moov 字节也不会做静态解析', () async {
+    final moov = buildMoov(
+      videoOffsets: <int>[
+        for (var index = 0; index < 300; index++) index * 10000000,
+      ],
+      audioOffsets: <int>[
+        for (var index = 0; index < 300; index++) 5000000000 + index * 10000000,
+      ],
+      useCo64: true,
+    );
+    final body =
+        (BytesBuilder()
+              ..add(<int>[0x1A, 0x45, 0xDF, 0xA3, 0x01, 0x00, 0x00, 0x00])
+              ..add(List<int>.filled(1024 * 1024, 0))
+              ..add(moov))
+            .takeBytes();
+    final origin = await _RangeOrigin.start(bodyBytes: body);
+    final proxy = await LoopbackRangePlaybackProxy.create(
+      policy: cloud115PlaybackProxyPolicy.copyWith(
+        upstreamWindowBytes: 64 * 1024,
+        cooldown: Duration.zero,
+      ),
+    );
+    addTearDown(() async {
+      await proxy.dispose();
+      await origin.stop();
+    });
+    final signals = <PlaybackInterleaveSignal>[];
+    final subscription = proxy.interleaveSignals.listen(signals.add);
+    addTearDown(subscription.cancel);
+
+    final localUrl = await proxy.localUrlFor(
+      origin.startUrl,
+      headers: const <String, String>{'User-Agent': _cloud115UserAgent},
+      cacheKey: 'not-mp4',
+    );
+    final headResponse = await _get(localUrl, range: 'bytes=0-65535');
+    expect(headResponse.statusCode, HttpStatus.partialContent);
+
+    final moovStart = body.length - moov.length;
+    final tailResponse = await _get(
+      localUrl,
+      range: 'bytes=$moovStart-${body.length - 1}',
+    );
+    expect(tailResponse.statusCode, HttpStatus.partialContent);
+
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    expect(signals, isEmpty);
   });
 
   test('follows redirect, forwards UA and retries one 403', () async {
@@ -46,6 +187,35 @@ void main() {
     expect(response.body, origin.bytes.sublist(0, 64 * 1024));
     expect(origin.videoRequestCount, greaterThanOrEqualTo(2));
     expect(origin.userAgents, everyElement(_cloud115UserAgent));
+  });
+
+  test('retries a 410 expired upstream range', () async {
+    final origin = await _RangeOrigin.start(
+      failFirstVideoRequest: true,
+      failFirstVideoStatus: HttpStatus.gone,
+    );
+    final proxy = await LoopbackRangePlaybackProxy.create(
+      policy: cloud115PlaybackProxyPolicy.copyWith(
+        upstreamWindowBytes: 64 * 1024,
+        retryDelay: const Duration(milliseconds: 20),
+        cooldown: Duration.zero,
+      ),
+    );
+    addTearDown(() async {
+      await proxy.dispose();
+      await origin.stop();
+    });
+
+    final localUrl = await proxy.localUrlFor(
+      origin.startUrl,
+      headers: const <String, String>{'User-Agent': _cloud115UserAgent},
+      cacheKey: 'gone-retry',
+    );
+    final response = await _get(localUrl, range: 'bytes=0-65535');
+
+    expect(response.statusCode, HttpStatus.partialContent);
+    expect(response.body, origin.bytes.sublist(0, 64 * 1024));
+    expect(origin.videoRequestCount, greaterThanOrEqualTo(2));
   });
 
   test('new seek cancels the previous local request', () async {
@@ -416,6 +586,7 @@ class _RangeOrigin {
     this._server,
     this.bytes, {
     required this.failFirstVideoRequest,
+    required this.failFirstVideoStatus,
     required this.responseDelay,
     required this.stallFirstVideoBody,
     required this.stallFirstVideoAfterHeaders,
@@ -426,6 +597,7 @@ class _RangeOrigin {
   final HttpServer _server;
   final Uint8List bytes;
   final bool failFirstVideoRequest;
+  final int failFirstVideoStatus;
   final Duration responseDelay;
   final bool stallFirstVideoBody;
   final bool stallFirstVideoAfterHeaders;
@@ -442,20 +614,25 @@ class _RangeOrigin {
 
   static Future<_RangeOrigin> start({
     bool failFirstVideoRequest = false,
+    int failFirstVideoStatus = HttpStatus.forbidden,
     Duration responseDelay = Duration.zero,
     bool stallFirstVideoBody = false,
     bool stallFirstVideoAfterHeaders = false,
     int initialBodyBytes = 0,
     Duration bodyChunkDelay = Duration.zero,
+    Uint8List? bodyBytes,
   }) async {
-    final bytes = Uint8List.fromList(
-      List<int>.generate(2 * 1024 * 1024, (index) => index % 251),
-    );
+    final bytes =
+        bodyBytes ??
+        Uint8List.fromList(
+          List<int>.generate(2 * 1024 * 1024, (index) => index % 251),
+        );
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     final origin = _RangeOrigin._(
       server,
       bytes,
       failFirstVideoRequest: failFirstVideoRequest,
+      failFirstVideoStatus: failFirstVideoStatus,
       responseDelay: responseDelay,
       stallFirstVideoBody: stallFirstVideoBody,
       stallFirstVideoAfterHeaders: stallFirstVideoAfterHeaders,
@@ -496,9 +673,13 @@ class _RangeOrigin {
     if (userAgent != null) {
       userAgents.add(userAgent);
     }
-    if (userAgent != _cloud115UserAgent ||
-        (failFirstVideoRequest && videoRequestCount == 1)) {
+    if (userAgent != _cloud115UserAgent) {
       response.statusCode = HttpStatus.forbidden;
+      await response.close();
+      return;
+    }
+    if (failFirstVideoRequest && videoRequestCount == 1) {
+      response.statusCode = failFirstVideoStatus;
       await response.close();
       return;
     }

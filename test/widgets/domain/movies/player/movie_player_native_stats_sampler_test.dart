@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:sakuramedia/core/media/playback_interleave.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_native_stats_sampler.dart';
 
 void main() {
@@ -86,5 +87,39 @@ void main() {
       sampler.snapshot.value.playbackGatewayRequestPathLabel,
       '/media/2/play/',
     );
+  });
+
+  test('exposes interleave diagnostics in the playback info', () {
+    final sampler = MoviePlayerNativeStatsSampler(
+      readNativeProperty: (_) async => null,
+      originalUrl: 'https://backend.example/media/1/play/',
+    );
+    addTearDown(sampler.dispose);
+
+    sampler.updateInterleaveSignal(
+      const PlaybackInterleaveSignal(
+        cacheKey: 'media-1',
+        source: PlaybackInterleaveSource.mp4Layout,
+        maxDistanceBytes: 5 * 1024 * 1024 * 1024,
+        spanBytes: 4 * 1024 * 1024 * 1024,
+      ),
+    );
+
+    expect(sampler.snapshot.value.interleaveStatusLabel, '异常');
+    expect(sampler.snapshot.value.interleaveDetailLabel, contains('最大相距'));
+
+    sampler.updateInterleaveSignal(
+      const PlaybackInterleaveSignal(
+        cacheKey: 'media-1',
+        source: PlaybackInterleaveSource.rangePattern,
+        maxDistanceBytes: 0,
+        spanBytes: 1024 * 1024 * 1024,
+      ),
+    );
+    expect(sampler.snapshot.value.interleaveDetailLabel, contains('远距离跳读'));
+
+    sampler.reset();
+    expect(sampler.snapshot.value.interleaveStatusLabel, isNull);
+    expect(sampler.snapshot.value.interleaveDetailLabel, isNull);
   });
 }

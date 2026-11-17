@@ -5387,6 +5387,26 @@
   "widgetMoviePlayerDemuxerFormat": "Demuxer format",
   "widgetMoviePlayerBuffer": "Buffer",
   "widgetMoviePlayerDownloadRate": "Download rate",
+  "widgetMoviePlayerInterleave": "Audio/video interleaving",
+  "widgetMoviePlayerInterleaveAbnormal": "Abnormal",
+  "widgetMoviePlayerInterleaveMaxDistance": "Max distance {size}",
+  "@widgetMoviePlayerInterleaveMaxDistance": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMoviePlayerInterleaveRangePattern": "Detected long-distance reads, span {size}",
+  "@widgetMoviePlayerInterleaveRangePattern": {
+    "placeholders": {
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "widgetMoviePlayerInterleaveWarning": "This video may have an audio/video interleaving problem and may not play properly",
+  "widgetMoviePlayerInterleaveDismiss": "Dismiss",
   "widgetMoviePlayerSectionPlaybackChain": "Playback chain",
   "baseSelectPlaceholder": "Select",
   "baseSearchHint": "Search",

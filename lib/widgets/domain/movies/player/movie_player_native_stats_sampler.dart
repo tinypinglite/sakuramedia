@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:media_kit/media_kit.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
+import 'package:sakuramedia/core/media/playback_interleave.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/l10n/app_localizations_zh.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
@@ -136,6 +138,7 @@ class MoviePlayerNativeStatsSampler {
   double? _downloadRateBytesPerSecond;
   int? _previousDemuxerForwardBytes;
   DateTime? _previousDemuxerBytesSampleAt;
+  PlaybackInterleaveSignal? _interleaveSignal;
 
   /// 播放模式文案；后端确认前显示当前语言的「确认中」。
   late String _playbackModeLabel;
@@ -177,6 +180,15 @@ class MoviePlayerNativeStatsSampler {
     _refreshSnapshot();
   }
 
+  /// 播放链路检测到音视频交错异常时更新信息面板。
+  void updateInterleaveSignal(PlaybackInterleaveSignal? signal) {
+    if (identical(_interleaveSignal, signal)) {
+      return;
+    }
+    _interleaveSignal = signal;
+    _refreshSnapshot();
+  }
+
   /// 换片/来源变化时同步快照上下文;不清采样字段,需要清时另调 [reset]。
   void updateContext({required String originalUrl}) {
     _originalUrl = originalUrl;
@@ -209,6 +221,7 @@ class MoviePlayerNativeStatsSampler {
     _previousDemuxerForwardBytes = null;
     _previousDemuxerBytesSampleAt = null;
     _playbackModeLabel = _l10n.widgetMoviePlayerModePending;
+    _interleaveSignal = null;
     _refreshSnapshot();
   }
 
@@ -325,11 +338,28 @@ class MoviePlayerNativeStatsSampler {
       bufferCacheDurationSeconds: _demuxerCacheDurationSeconds,
       bufferForwardBytes: _demuxerForwardBytes,
       downloadRateBytesPerSecond: _downloadRateBytesPerSecond,
+      interleaveStatusLabel: _interleaveSignal == null
+          ? null
+          : _l10n.widgetMoviePlayerInterleaveAbnormal,
+      interleaveDetailLabel: _buildInterleaveDetailLabel(_interleaveSignal),
     );
     if (_snapshotNotifier.value == snapshot) {
       return;
     }
     _snapshotNotifier.value = snapshot;
+  }
+
+  String? _buildInterleaveDetailLabel(PlaybackInterleaveSignal? signal) {
+    if (signal == null) {
+      return null;
+    }
+    final size = formatFileSize(signal.effectiveDistanceBytes);
+    return switch (signal.source) {
+      PlaybackInterleaveSource.mp4Layout =>
+        _l10n.widgetMoviePlayerInterleaveMaxDistance(size),
+      PlaybackInterleaveSource.rangePattern =>
+        _l10n.widgetMoviePlayerInterleaveRangePattern(size),
+    };
   }
 
   double? _computeDownloadRatePerSecond({
