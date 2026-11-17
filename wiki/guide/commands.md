@@ -11,13 +11,13 @@ Run all of the following commands inside the backend container. The container na
 ### Reset the account
 
 ```bash
-docker exec -it --user app -w /app sakuramedia python -m src.start.commands reset-account
+docker exec -it --user app -w /app sakuramedia python /app/cli.py reset-account
 ```
 
 You can also pass the new credentials directly:
 
 ```bash
-docker exec --user app -w /app sakuramedia python -m src.start.commands reset-account --username admin --password 'your-new-password'
+docker exec --user app -w /app sakuramedia python /app/cli.py reset-account --username admin --password 'your-new-password'
 ```
 
 The command overwrites the account in the database and clears refresh tokens, so signed-in clients have to log in again.
@@ -27,19 +27,19 @@ The command overwrites the account in the database and clears refresh tokens, so
 ### Initialize the database
 
 ```bash
-docker exec --user app -w /app sakuramedia python -m src.start.commands initdb
+docker exec --user app -w /app sakuramedia python /app/cli.py initdb
 ```
 
 ### Apply the database schema
 
 ```bash
-docker exec --user app -w /app sakuramedia python -m src.start.commands migrate
+docker exec --user app -w /app sakuramedia python /app/cli.py migrate
 ```
 
 ### Wait for the database to be ready
 
 ```bash
-docker exec --user app -w /app sakuramedia python -m src.start.commands wait-db --timeout 60 --interval 2
+docker exec --user app -w /app sakuramedia python /app/cli.py wait-db --timeout 60 --interval 2
 ```
 
 ## Triggering background tasks manually
@@ -47,11 +47,11 @@ docker exec --user app -w /app sakuramedia python -m src.start.commands wait-db 
 The `aps` subcommand puts tasks into the Task Center, where you can check progress and results:
 
 ```bash
-docker exec --user app -w /app sakuramedia python -m src.start.commands aps sync-subscribed-actor-movies
-docker exec --user app -w /app sakuramedia python -m src.start.commands aps auto-download-subscribed-movies
-docker exec --user app -w /app sakuramedia python -m src.start.commands aps sync-download-tasks
-docker exec --user app -w /app sakuramedia python -m src.start.commands aps auto-import-download-tasks
-docker exec --user app -w /app sakuramedia python -m src.start.commands aps generate-media-thumbnails
+docker exec --user app -w /app sakuramedia python /app/cli.py aps sync-subscribed-actor-movies
+docker exec --user app -w /app sakuramedia python /app/cli.py aps auto-download-subscribed-movies
+docker exec --user app -w /app sakuramedia python /app/cli.py aps sync-download-tasks
+docker exec --user app -w /app sakuramedia python /app/cli.py aps auto-import-download-tasks
+docker exec --user app -w /app sakuramedia python /app/cli.py aps generate-media-thumbnails
 ```
 
 See [Background Tasks](/guide/tasks) for the full list of task names and default schedules. Tasks registered by plugins also appear automatically in the `aps` command group.
@@ -60,20 +60,20 @@ See [Background Tasks](/guide/tasks) for the full list of task names and default
 
 ```bash
 # List plugins
-docker exec --user app -w /app sakuramedia python -m src.start.commands plugins list
+docker exec --user app -w /app sakuramedia python /app/cli.py plugins list
 
 # Install from a directory or a zip package
-docker exec --user app -w /app sakuramedia python -m src.start.commands plugins install /path/to/plugin.zip
+docker exec --user app -w /app sakuramedia python /app/cli.py plugins install /path/to/plugin.zip
 
 # Enable or disable
-docker exec --user app -w /app sakuramedia python -m src.start.commands plugins enable plugin_id
-docker exec --user app -w /app sakuramedia python -m src.start.commands plugins disable plugin_id
+docker exec --user app -w /app sakuramedia python /app/cli.py plugins enable plugin_id
+docker exec --user app -w /app sakuramedia python /app/cli.py plugins disable plugin_id
 
 # Remove
-docker exec --user app -w /app sakuramedia python -m src.start.commands plugins remove plugin_id
+docker exec --user app -w /app sakuramedia python /app/cli.py plugins remove plugin_id
 
 # Validate a plugin directory
-docker exec --user app -w /app sakuramedia python -m src.start.commands plugins check /path/to/plugin
+docker exec --user app -w /app sakuramedia python /app/cli.py plugins check /path/to/plugin
 ```
 
 After changing plugins, restart the `api` and `aps` services as instructed by the command output.
@@ -83,7 +83,7 @@ After changing plugins, restart the `api` and `aps` services as instructed by th
 Generate covers for movies that lack a thin cover image:
 
 ```bash
-docker exec --user app -w /app sakuramedia python -m src.start.commands backfill-movie-thin-cover-images
+docker exec --user app -w /app sakuramedia python /app/cli.py backfill-movie-thin-cover-images
 ```
 
 Imports of regular movies and videos are started from "Manage → Media Import" in the client. Source browsing is provided by the media library provider, and the submitted data contains a `source_ref` that the provider understands.

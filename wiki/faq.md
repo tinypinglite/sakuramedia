@@ -61,7 +61,7 @@ Connection settings for indexers, download providers and media providers are sti
 Run `reset-account` in the backend container to rebuild the account with a new username and password:
 
 ```bash
-docker exec -it --user app -w /app sakuramedia python -m src.start.commands reset-account
+docker exec -it --user app -w /app sakuramedia python /app/cli.py reset-account
 ```
 
 You can also pass `--username` and `--password` directly. The command clears refresh tokens, so clients that were signed in need to sign in again. See [Common commands](/guide/commands#reset-the-account).

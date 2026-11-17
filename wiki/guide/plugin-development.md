@@ -6,6 +6,8 @@ outline: [2, 3]
 
 SakuraMedia plugins are Python packages running inside the backend process. This article covers the backend's current **Host API 18**; the host accepts only plugins declaring API **18**. A plugin's `manifest.json` and the `plugin_id` and `version` in the `register()` return value must match; for Host API declaration rules see [Version compatibility](#version-compatibility).
 
+Runnable examples, the manifest JSON Schema and type stubs are in [`plugin-sdk/`](https://github.com/tinypinglite/sakuramediabe/tree/main/plugin-sdk) in the backend repository.
+
 Plugins are not a frontend extension mechanism. You cannot currently register pages, UI components, HTTP routes, event hooks, or middleware, and you should not access the host database directly. Use only the public contracts listed here; binding to internal implementations such as `src.model` or `src.service` will break your plugin when the host is refactored.
 
 ## Choosing a plugin type
@@ -381,7 +383,7 @@ The host calls enabled metadata sources in `plugins.enabled` order. When a plugi
 
 The callback only delivers results; don't call `context.import_movie_by_number()` inside it, or you'll re-enter the same fallback chain.
 
-For a complete implementation, see the [JavBus metadata plugin](https://github.com/tinypinglite/sakuramedia_javbus_metadata).
+See the runnable public example [`example_hello_metadata`](https://github.com/tinypinglite/sakuramediabe/tree/main/plugin-sdk/examples/example_hello_metadata); the official JavBus plugin is distributed as a compiled build and its source is not public.
 
 ### Actor movie lists (optional)
 
@@ -431,7 +433,7 @@ Declare `test_movie_number` on `PluginRegistration` when the plugin exposes meta
 
 Ranking plugins declare `PluginExtension(key="discovery.ranking_source", data=...)` in `extensions`. `PluginRankingSource` contains a globally unique `source_key` and one or more `PluginRankingBoard`; each board's `fetch_numbers(period)` returns a list of movie numbers, and the order is the ranking.
 
-The plugin is responsible for accessing external sites and registering its own sync job; the host handles board storage, movie detail import, and the public API. See the [More Movie Rankings plugin](https://github.com/tinypinglite/sakuramedia_more_rank_movies).
+The plugin is responsible for accessing external sites and registering its own sync job; the host handles board storage, movie detail import, and the public API. See the runnable public example [`example_ranking_source`](https://github.com/tinypinglite/sakuramediabe/tree/main/plugin-sdk/examples/example_ranking_source).
 
 ## Media providers
 
@@ -496,15 +498,20 @@ After staging, the host checks that the source is unchanged, then switches the m
 
 Expected provider failures use `ProviderOperationError(provider_key, operation, code, safe_message, retryable)`. `code` supports `invalid_config`, `authentication_failed`, `source_not_found`, `task_not_managed`, `source_blacklisted`, `unsupported`, and `unavailable`. For example, use `task_not_managed` when refusing to delete a task not managed by this download client; `safe_message` is shown externally and should not contain cookies, passwords, or internal paths.
 
-See the [Local Storage & qBittorrent provider](https://github.com/tinypinglite/sakuramedia_local_provider) and the [115 provider](https://github.com/tinypinglite/sakuramedia_115_provider) for reference implementations.
+Official providers (Local Storage & qBittorrent, 115, and others) are distributed as compiled builds with no public source; the contract and optional-capability tables above are the complete implementation reference. More runnable examples are in [`plugin-sdk/examples`](https://github.com/tinypinglite/sakuramediabe/tree/main/plugin-sdk/examples).
 
 ## Development, installation, and troubleshooting
 
-Check a plugin directory from the root of the SakuraMediaBE repository:
+Check a plugin directory inside the host container (no host source or database required):
 
 ```bash
-uv run python -m src.start.commands plugins check /path/to/example_plugin
+docker run --rm \
+  -v "/path/to/example_plugin:/work/example_plugin" \
+  tinyping/sakuramediabe:v0.15.7 \
+  python /app/cli.py plugins check /work/example_plugin
 ```
+
+The mounted directory name must equal `plugin_id`, and the directory must be writable because `plugins check` creates `data/` inside it. Replace the image tag with the host version you actually run.
 
 When publishing a zip, `manifest.json` and `__init__.py` must be at the zip root, without an extra directory level. After installation, plugins without dependencies only need the API and job services restarted; plugins that declare `dependencies` must restart the full container.
 
@@ -569,7 +576,7 @@ class Settings(BaseModel):
     )
 ```
 
-For how to read catalogs, follow the sample plugin `sakuramedia_more_rank_movies`'s `translations.py`: `text_map(key)` returns `{locale: text}`, and `text(key, locale, default)` returns the source text; when a file or key is missing they return an empty dict or a fallback value instead of failing at import time.
+For how to read catalogs, follow the public example `plugin-sdk/examples/example_hello_metadata/translations.py`: `text_map(key)` returns `{locale: text}`, and `text(key, locale, default)` returns the source text; when a file or key is missing they return an empty dict or a fallback value instead of failing at import time.
 
 ### Runtime text: `context.i18n.t()`
 
@@ -598,7 +605,7 @@ New plugins should declare the manifest's `host_api_version` as `18`, and keep u
 
 On request paths, the host determines the current language from `Accept-Language`, then the user's `User.language` preference, and finally the default `zh-CN`; background jobs have no request context and read the single account's `User.language` when they run. Plugins do not need to parse request headers themselves.
 
-Use `sakuramedia_more_rank_movies` as the sample: the manifest and `plugin.py` declare the display name, `boards.py` declares board names, `sync_jobs.py` declares task parameters and field titles, and the sync job uses `t()` to generate progress text.
+Use the public examples `example_hello_metadata` and `example_ranking_source` as samples: the manifest and `plugin.py` declare the display name, settings and board names use `*_i18n` fields, and the sync job uses `context.i18n.t()` to generate progress text.
 
 ## Version compatibility
 

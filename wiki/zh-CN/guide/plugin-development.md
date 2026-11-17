@@ -6,6 +6,8 @@ outline: [2, 3]
 
 SakuraMedia 插件是运行在后端进程内的 Python 包。本文对应当前后端的 **Host API 18**，宿主只接受 API **18** 的插件。插件的 `manifest.json` 与 `register()` 返回值中的 `plugin_id`、插件 `version` 必须一致；Host API 的声明规则见[版本兼容](#版本兼容)。
 
+可运行的示例、manifest JSON Schema 和类型存根见后端公开仓的 [`plugin-sdk/`](https://github.com/tinypinglite/sakuramediabe/tree/main/plugin-sdk)。
+
 插件不是前端扩展机制。当前不能注册页面、UI 组件、HTTP 路由、事件钩子或中间件，也不应直接访问宿主数据库。请只使用本文列出的公开契约；绑定 `src.model`、`src.service` 等内部实现会使插件随宿主重构失效。
 
 ## 选择插件类型
@@ -381,7 +383,7 @@ def register(context: PluginContext) -> PluginRegistration:
 
 回调只负责交付结果，不要在其中调用 `context.import_movie_by_number()`，否则会重新进入相同的兜底链路。
 
-完整实现可参考 [JavBus 元数据插件](https://github.com/tinypinglite/sakuramedia_javbus_metadata)。
+可运行的公开示例见 [`example_hello_metadata`](https://github.com/tinypinglite/sakuramediabe/tree/main/plugin-sdk/examples/example_hello_metadata)；官方 JavBus 插件以编译产物分发，源码未公开。
 
 ### 演员作品列表（可选）
 
@@ -431,7 +433,7 @@ def fetch_actor_movies(
 
 排行榜插件在 `extensions` 中声明 `PluginExtension(key="discovery.ranking_source", data=...)`。`PluginRankingSource` 包含全局唯一的 `source_key` 和一个或多个 `PluginRankingBoard`；每个榜单的 `fetch_numbers(period)` 返回番号列表，顺序即排名。
 
-插件负责访问外部站点并注册自己的同步任务；宿主负责榜单存储、影片详情导入和对外 API。可参考 [更多影片榜单插件](https://github.com/tinypinglite/sakuramedia_more_rank_movies)。
+插件负责访问外部站点并注册自己的同步任务；宿主负责榜单存储、影片详情导入和对外 API。可运行的公开示例见 [`example_ranking_source`](https://github.com/tinypinglite/sakuramediabe/tree/main/plugin-sdk/examples/example_ranking_source)。
 
 ## 媒体 Provider
 
@@ -496,15 +498,20 @@ bundle 必须声明：
 
 可预期的 Provider 失败使用 `ProviderOperationError(provider_key, operation, code, safe_message, retryable)`。`code` 支持 `invalid_config`、`authentication_failed`、`source_not_found`、`task_not_managed`、`source_blacklisted`、`unsupported`、`unavailable`。例如拒绝删除不归该下载器管理的任务时使用 `task_not_managed`；`safe_message` 会对外展示，不应包含 Cookie、密码或内部路径。
 
-可参考 [本地存储与 qBittorrent Provider](https://github.com/tinypinglite/sakuramedia_local_provider) 和 [115 Provider](https://github.com/tinypinglite/sakuramedia_115_provider)。
+官方 Provider（本地存储与 qBittorrent、115 等）以编译产物分发，源码未公开；上面的契约表和可选能力表是完整实现依据。更多可运行示例见 [`plugin-sdk/examples`](https://github.com/tinypinglite/sakuramediabe/tree/main/plugin-sdk/examples)。
 
 ## 开发、安装与排错
 
-在 SakuraMediaBE 仓库根目录检查插件目录：
+在宿主容器里检查插件目录（不需要宿主源码或数据库）：
 
 ```bash
-uv run python -m src.start.commands plugins check /path/to/example_plugin
+docker run --rm \
+  -v "/path/to/example_plugin:/work/example_plugin" \
+  tinyping/sakuramediabe:v0.15.7 \
+  python /app/cli.py plugins check /work/example_plugin
 ```
+
+挂载目录名必须等于 `plugin_id`，目录要可写（`plugins check` 会在其中创建 `data/`）。镜像 tag 换成你实际使用的宿主版本即可。
 
 发布 zip 时，`manifest.json` 和 `__init__.py` 必须位于 zip 根目录，不能额外包一层目录。安装后，无依赖插件重启 API 和任务服务即可；声明了 `dependencies` 的插件必须完整重启容器。
 
@@ -567,7 +574,7 @@ class Settings(BaseModel):
     )
 ```
 
-语言包读取方式可直接参考样板插件 `sakuramedia_more_rank_movies` 的 `translations.py`：`text_map(key)` 返回 `{locale: text}`，`text(key, locale, default)` 返回源文案；文件或 key 缺失时返回空字典或兜底值，不会在导入期失败。
+语言包读取方式可直接参考公开示例 `plugin-sdk/examples/example_hello_metadata/translations.py`：`text_map(key)` 返回 `{locale: text}`，`text(key, locale, default)` 返回源文案；文件或 key 缺失时返回空字典或兜底值，不会在导入期失败。
 
 ### 运行时文本：`context.i18n.t()`
 
@@ -596,7 +603,7 @@ reporter.emit(
 
 请求路径上，宿主按 `Accept-Language`、其次用户的 `User.language` 偏好、最后默认 `zh-CN` 决定当前语言；后台任务没有请求上下文，执行时读取单账号的 `User.language`。插件不需要自己解析请求头。
 
-以 `sakuramedia_more_rank_movies` 为样板：manifest 与 `plugin.py` 声明展示名，`boards.py` 声明榜单名，`sync_jobs.py` 声明任务参数和字段标题，同步任务里用 `t()` 生成进度文本。
+以公开示例 `example_hello_metadata` 和 `example_ranking_source` 为样板：manifest 与 `plugin.py` 声明展示名，设置项和榜单名通过 `*_i18n` 字段声明，同步任务里用 `context.i18n.t()` 生成进度文本。
 
 ## 版本兼容
 

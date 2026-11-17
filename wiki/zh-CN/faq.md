@@ -61,7 +61,7 @@ JavLibrary 的镜像站域名可配置，默认为 `www.f101w.com`。
 在后端容器运行 `reset-account`，用新的用户名和密码重建账号：
 
 ```bash
-docker exec -it --user app -w /app sakuramedia python -m src.start.commands reset-account
+docker exec -it --user app -w /app sakuramedia python /app/cli.py reset-account
 ```
 
 也可以使用 `--username` 和 `--password` 直接传参。命令会清空 refresh token，已登录客户端需要重新登录。详见[常用命令](/zh-CN/guide/commands#重置账号)。
