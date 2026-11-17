@@ -496,7 +496,7 @@ bundle 必须声明：
 
 可预期的 Provider 失败使用 `ProviderOperationError(provider_key, operation, code, safe_message, retryable)`。`code` 支持 `invalid_config`、`authentication_failed`、`source_not_found`、`task_not_managed`、`source_blacklisted`、`unsupported`、`unavailable`。例如拒绝删除不归该下载器管理的任务时使用 `task_not_managed`；`safe_message` 会对外展示，不应包含 Cookie、密码或内部路径。
 
-完整类型签名以 [后端 Provider 协议源码](https://github.com/tinypinglite/sakuramediabe/blob/main/src/plugins/provider_protocol.py) 为准。可参考 [本地存储与 qBittorrent Provider](https://github.com/tinypinglite/sakuramedia_local_provider) 和 [115 Provider](https://github.com/tinypinglite/sakuramedia_115_provider)。
+可参考 [本地存储与 qBittorrent Provider](https://github.com/tinypinglite/sakuramedia_local_provider) 和 [115 Provider](https://github.com/tinypinglite/sakuramedia_115_provider)。
 
 ## 开发、安装与排错
 

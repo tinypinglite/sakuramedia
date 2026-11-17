@@ -496,7 +496,7 @@ After staging, the host checks that the source is unchanged, then switches the m
 
 Expected provider failures use `ProviderOperationError(provider_key, operation, code, safe_message, retryable)`. `code` supports `invalid_config`, `authentication_failed`, `source_not_found`, `task_not_managed`, `source_blacklisted`, `unsupported`, and `unavailable`. For example, use `task_not_managed` when refusing to delete a task not managed by this download client; `safe_message` is shown externally and should not contain cookies, passwords, or internal paths.
 
-For complete type signatures, refer to the [backend provider protocol source](https://github.com/tinypinglite/sakuramediabe/blob/main/src/plugins/provider_protocol.py). See the [Local Storage & qBittorrent provider](https://github.com/tinypinglite/sakuramedia_local_provider) and the [115 provider](https://github.com/tinypinglite/sakuramedia_115_provider).
+See the [Local Storage & qBittorrent provider](https://github.com/tinypinglite/sakuramedia_local_provider) and the [115 provider](https://github.com/tinypinglite/sakuramedia_115_provider) for reference implementations.
 
 ## Development, installation, and troubleshooting
 
