@@ -6,7 +6,7 @@ import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
 
 part 'playlist_mutation_events_provider.g.dart';
 
-enum PlaylistMutationKind { updated, deleted }
+enum PlaylistMutationKind { created, updated, deleted }
 
 /// 一次播放列表变更事件的载荷。
 @immutable
@@ -19,7 +19,7 @@ class PlaylistMutationChange {
 
   final PlaylistMutationKind kind;
 
-  /// 仅 [PlaylistMutationKind.updated] 时有意义。
+  /// 仅 [PlaylistMutationKind.created] / [PlaylistMutationKind.updated] 时有意义。
   final PlaylistDto? playlist;
 
   /// 仅 [PlaylistMutationKind.deleted] 时有意义。
@@ -41,6 +41,16 @@ class PlaylistMutationEvents extends _$PlaylistMutationEvents {
   Stream<PlaylistMutationChange> build() {
     ref.onDispose(_controller.close);
     return _controller.stream;
+  }
+
+  void reportCreated(PlaylistDto playlist) {
+    if (_controller.isClosed) return;
+    _controller.add(
+      PlaylistMutationChange(
+        kind: PlaylistMutationKind.created,
+        playlist: playlist,
+      ),
+    );
   }
 
   void reportUpdated(PlaylistDto playlist) {

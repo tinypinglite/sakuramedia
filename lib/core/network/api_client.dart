@@ -110,6 +110,33 @@ class ApiClient {
     return _asJsonMap(response.data);
   }
 
+  static const Duration _healthCheckTimeout = Duration(seconds: 5);
+
+  /// 免鉴权探活 `/healthz`，供等待后端重启时轮询。
+  ///
+  /// 同时返回后端进程的 `boot_id`（旧后端可能没有）；任何失败都返回
+  /// `healthy: false`，且不会产生连接失败事件。
+  Future<({bool healthy, String? bootId})> fetchHealth() async {
+    try {
+      final response = await _request<Map<String, dynamic>>(
+        method: 'GET',
+        path: '/healthz',
+        requiresAuth: false,
+        connectTimeout: _healthCheckTimeout,
+        receiveTimeout: _healthCheckTimeout,
+        reportConnectionFailure: false,
+      );
+      final data = _asJsonMap(response.data);
+      final bootId = data['boot_id'];
+      return (
+        healthy: data['status'] == 'ok',
+        bootId: bootId is String && bootId.isNotEmpty ? bootId : null,
+      );
+    } on ApiException {
+      return (healthy: false, bootId: null);
+    }
+  }
+
   /// 请求文本响应，不按 JSON 解析（无论响应 `Content-Type`）。
   ///
   /// 用于 content-type 非 JSON 但内容是 JSON 的接口（如 GitHub raw
@@ -323,6 +350,7 @@ class ApiClient {
     dynamic data,
     Map<String, dynamic>? queryParameters,
     bool requiresAuth = true,
+    bool reportConnectionFailure = true,
     ResponseType? responseType,
     Duration? connectTimeout,
     Duration? receiveTimeout,
@@ -343,7 +371,10 @@ class ApiClient {
           receiveTimeout: receiveTimeout,
           headers: headers,
           validateStatus: validateStatus,
-          extra: <String, dynamic>{'requiresAuth': requiresAuth},
+          extra: <String, dynamic>{
+            'requiresAuth': requiresAuth,
+            'reportConnectionFailure': reportConnectionFailure,
+          },
         ),
       );
     } on DioException catch (error) {
@@ -521,7 +552,10 @@ class ApiClient {
         transportFailureKind: transportFailureKind,
         baseUrl: _requestTarget(error.requestOptions),
       );
+      final shouldReportConnectionFailure =
+          error.requestOptions.extra['reportConnectionFailure'] != false;
       if (transportFailureKind == ApiTransportFailureKind.connection &&
+          shouldReportConnectionFailure &&
           !_connectionFailures.isClosed) {
         _connectionFailures.add(exception);
       }

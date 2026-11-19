@@ -127,6 +127,9 @@ class _OverviewPlaylistBanner extends ConsumerWidget {
       key: Key('mobile-overview-playlist-${playlist.id}'),
       title: playlist.name,
       coverImageUrl: coverImageUrl,
+      badgeLabel: playlist.isSmart
+          ? AppLocalizations.of(context).playlistSmartBadge
+          : null,
       onTap: () =>
           MobileRoutes.playlistDetail(playlistId: playlist.id).push(context),
     );

@@ -44,10 +44,35 @@ class _TopBarSearchActionsState extends ConsumerState<TopBarSearchActions> {
   final FocusNode _focusNode = FocusNode(debugLabel: 'topbar-search');
 
   @override
+  void initState() {
+    super.initState();
+    HardwareKeyboard.instance.addHandler(_handleGlobalShortcut);
+  }
+
+  @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleGlobalShortcut);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
+  }
+
+  /// Cmd/Ctrl+K 聚焦顶栏搜索。搜索框的 FocusNode 是组件私有状态，
+  /// 用全局键盘处理器避免把 focus 请求穿到 shell。
+  bool _handleGlobalShortcut(KeyEvent event) {
+    if (event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.keyK) {
+      return false;
+    }
+    final keyboard = HardwareKeyboard.instance;
+    if (!keyboard.isMetaPressed && !keyboard.isControlPressed) {
+      return false;
+    }
+    _focusNode.requestFocus();
+    _controller.selection = TextSelection.collapsed(
+      offset: _controller.text.length,
+    );
+    return true;
   }
 
   void _clearAndUnfocus() {

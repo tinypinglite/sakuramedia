@@ -1205,8 +1205,8 @@
     }
   },
   "pluginDeleteFailed": "Failed to delete plugin",
-  "pluginRestartNoticeTitle": "Backend restart needed later",
-  "pluginRestartNoticeInstalledMessage": "The plugin package \"{name}\" has been installed. You'll need to restart the backend container later for the change to take effect. After the container restarts, fully quit and reopen the app.",
+  "pluginRestartNoticeTitle": "Backend restart required",
+  "pluginRestartNoticeInstalledMessage": "The plugin package \"{name}\" has been installed. Restart the backend to apply the change.",
   "@pluginRestartNoticeInstalledMessage": {
     "placeholders": {
       "name": {
@@ -1214,7 +1214,7 @@
       }
     }
   },
-  "pluginRestartNoticeUpgradedMessage": "Plugin \"{name}\" has been updated. You'll need to restart the backend container later for the change to take effect. After the container restarts, fully quit and reopen the app.",
+  "pluginRestartNoticeUpgradedMessage": "Plugin \"{name}\" has been updated. Restart the backend to apply the change.",
   "@pluginRestartNoticeUpgradedMessage": {
     "placeholders": {
       "name": {
@@ -1222,7 +1222,7 @@
       }
     }
   },
-  "pluginRestartNoticeDeletedMessage": "Plugin \"{name}\" has been deleted. You'll need to restart the backend container later for the change to take effect. After the container restarts, fully quit and reopen the app.",
+  "pluginRestartNoticeDeletedMessage": "Plugin \"{name}\" has been deleted. Restart the backend to apply the change.",
   "@pluginRestartNoticeDeletedMessage": {
     "placeholders": {
       "name": {
@@ -1230,7 +1230,7 @@
       }
     }
   },
-  "pluginRestartNoticeEnabledMessage": "Plugin \"{name}\" has been enabled. You'll need to restart the backend container later for the change to take effect. After the container restarts, fully quit and reopen the app.",
+  "pluginRestartNoticeEnabledMessage": "Plugin \"{name}\" has been enabled. Restart the backend to apply the change.",
   "@pluginRestartNoticeEnabledMessage": {
     "placeholders": {
       "name": {
@@ -1238,7 +1238,7 @@
       }
     }
   },
-  "pluginRestartNoticeDisabledMessage": "Plugin \"{name}\" has been disabled. You'll need to restart the backend container later for the change to take effect. After the container restarts, fully quit and reopen the app.",
+  "pluginRestartNoticeDisabledMessage": "Plugin \"{name}\" has been disabled. Restart the backend to apply the change.",
   "@pluginRestartNoticeDisabledMessage": {
     "placeholders": {
       "name": {
@@ -1246,7 +1246,7 @@
       }
     }
   },
-  "pluginRestartNoticeSettingsSavedMessage": "Settings for plugin \"{name}\" have been saved. You'll need to restart the backend container later for the change to take effect. After the container restarts, fully quit and reopen the app.",
+  "pluginRestartNoticeSettingsSavedMessage": "Settings for plugin \"{name}\" have been saved. Restart the backend to apply the change.",
   "@pluginRestartNoticeSettingsSavedMessage": {
     "placeholders": {
       "name": {
@@ -1254,9 +1254,14 @@
       }
     }
   },
-  "pluginRestartNoticeBindingsSavedMessage": "Plugin source bindings have been saved. You'll need to restart the backend container later for the change to take effect. After the container restarts, fully quit and reopen the app.",
-  "pluginRestartNoticeMetadataOrderSavedMessage": "Metadata source order has been saved. You'll need to restart the backend container later for the change to take effect. After the container restarts, fully quit and reopen the app.",
-  "pluginRestartNoticeConfirm": "Got it",
+  "pluginRestartNoticeBindingsSavedMessage": "Plugin source bindings have been saved. Restart the backend to apply the change.",
+  "pluginRestartNoticeMetadataOrderSavedMessage": "Metadata source order has been saved. Restart the backend to apply the change.",
+  "pluginRestartNoticeLater": "Later",
+  "pluginRestartNoticeRestartNow": "Restart now",
+  "pluginRestartNoticeBusy": "Applying changes and waiting for the backend to restart…",
+  "pluginRestartNoticeSuccess": "Backend restarted. Changes are now active.",
+  "pluginRestartNoticeWaitTimeout": "Timed out waiting for the backend to restart. Please try again.",
+  "pluginRestartNoticeApplyFailed": "Failed to restart the backend",
   "pluginMarketInstallMessage": "Download v{version} from {repo} and install \"{name}\".",
   "@pluginMarketInstallMessage": {
     "placeholders": {
@@ -2095,7 +2100,8 @@
   "overviewMore": "More",
   "overviewRecentlyAdded": "Recently added",
   "overviewRecentlySubscribed": "Recently subscribed",
-  "overviewRecentlyPlayed": "Recently played",
+  "overviewContinueWatching": "Continue watching",
+  "overviewContinueWatchingEmpty": "Nothing unfinished right now",
   "overviewNoLatestMovies": "No movies in your library yet. Try a search.",
   "overviewNoSubscribedMovies": "No subscribed movies yet",
   "overviewMovieCount": "Movies: {count}",
@@ -2710,6 +2716,25 @@
   "playlistEditTitle": "Edit playlist",
   "playlistUpdateFailed": "Failed to update the playlist",
   "playlistUpdatedToast": "Playlist updated",
+  "playlistSmartBadge": "Smart",
+  "playlistTypeCustomTitle": "Standard playlist",
+  "playlistTypeCustomDescription": "Add movies manually; members stay fixed",
+  "playlistTypeSmartTitle": "Smart playlist",
+  "playlistTypeSmartDescription": "Members update automatically from filters",
+  "smartPlaylistCreateTitle": "New smart playlist",
+  "smartPlaylistEditTitle": "Edit smart playlist",
+  "smartPlaylistNameLabel": "Playlist name",
+  "smartPlaylistNameHint": "e.g. Unwatched favorites",
+  "smartPlaylistBasicInfoTitle": "Basics",
+  "smartPlaylistActorsTitle": "Actresses",
+  "smartPlaylistAddActorsAction": "Add actresses",
+  "smartPlaylistTypeSectionTitle": "Type",
+  "smartPlaylistSortTitle": "Sort",
+  "smartPlaylistSortFieldTitle": "Sort field",
+  "smartPlaylistSortDirectionTitle": "Sort direction",
+  "smartPlaylistResolutionRequiresPlayable": "Select the Playable status to filter by resolution",
+  "smartPlaylistCreateFailed": "Failed to save the smart playlist",
+  "smartPlaylistCreatedToast": "Saved as a smart playlist",
   "playlistPickerLoadFailed": "Failed to load playlists",
   "playlistNoMatch": "No matching playlists",
   "playlistSearchHint": "Search playlists",
@@ -3530,6 +3555,12 @@
   "movieActionBlacklistConfirm": "Block",
   "movieActionBlacklistMovieFailed": "Failed to block the movie",
   "movieActionMovieBlacklisted": "Movie blocked",
+  "movieActionMarkWatched": "Mark as watched",
+  "movieActionPlayInApp": "Play in app this time",
+  "movieActionMarkUnwatched": "Mark as unwatched",
+  "movieWatchStateMarkedWatched": "Marked as watched",
+  "movieWatchStateMarkedUnwatched": "Marked as unwatched",
+  "movieWatchStateUpdateFailed": "Failed to update watch status",
   "movieActionRefreshMetadata": "Refresh metadata",
   "movieActionRefreshMetadataDescription": "Refreshing fetches the movie again from the current metadata source and updates automatically managed fields, cast, tags, and images. Manually managed or claimed fields are preserved.",
   "movieActionRefreshMetadataDescriptionManualActors": "Refreshing fetches the movie again and updates automatically managed fields, tags, and images. The cast list is managed manually and will not be overwritten.",
@@ -4004,6 +4035,8 @@
   "mediaImportTabJav": "JAV movies",
   "mediaImportTabVideo": "Videos",
   "mediaImportViewTasksAction": "View import tasks",
+  "mediaImportLastTaskTitle": "Latest import",
+  "mediaImportLastTaskLoadFailed": "Failed to load the import task status",
   "mediaImportTaskSubmitted": "Import task #{id} submitted. Check the progress in the task center.",
   "@mediaImportTaskSubmitted": {
     "placeholders": {
@@ -5177,6 +5210,10 @@
   "widgetMovieBatchBlacklistMessage": "Subscribed movies cannot be blacklisted. Unsubscribe first. Blacklisted movies are hidden from normal lists and recommendations.",
   "widgetMovieBatchBlacklistFailed": "Batch blacklist failed",
   "widgetMovieFilterStatusTitle": "Status",
+  "movieFilterWatchStatusTitle": "Watch status",
+  "movieFilterWatchUnwatched": "Unwatched",
+  "movieFilterWatchWatching": "Watching",
+  "movieFilterWatchWatched": "Watched",
   "widgetMovieFilterResolutionTitle": "Resolution",
   "widgetMovieFilterAll": "All",
   "widgetMovieFilterCollectionTypeTitle": "Collection type",
@@ -5353,6 +5390,11 @@
   "moviePlayerPrimaries": "Primaries",
   "moviePlayerGamma": "Gamma",
   "moviePlayerColorLight": "Light",
+  "moviePlayerSubtitleSettingsTitle": "Subtitle settings",
+  "moviePlayerSubtitleSizeLabel": "Subtitle size",
+  "moviePlayerSubtitlePositionLabel": "Subtitle position",
+  "moviePlayerSubtitleSettingsReset": "Reset",
+  "moviePlayerSubtitleSettingsDone": "Done",
   "widgetMoviePlayerSubtitleLoadFailed": "Failed to load subtitles, please try again later",
   "widgetMoviePlayerLoading": "Loading movie…",
   "widgetMoviePlayerSectionMedia": "Media",

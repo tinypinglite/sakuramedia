@@ -5,10 +5,13 @@ import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 
 enum MovieDetailActionType {
   castToDevice,
+  playInApp,
   toggleSubscription,
   toggleFavorite,
   openMagnetSearch,
   toggleCollectionType,
+  markWatched,
+  markUnwatched,
   toggleBlacklist,
   refreshMetadata,
 }
@@ -34,7 +37,9 @@ List<MovieDetailActionDescriptor> buildMovieDetailActionDescriptors({
   required bool isSubscribed,
   required bool isCollection,
   required bool isBlacklisted,
+  bool isWatched = false,
   bool canCast = false,
+  bool defaultUsesExternalPlayer = false,
   String? castSessionLabel,
 }) {
   return <MovieDetailActionDescriptor>[
@@ -43,6 +48,12 @@ List<MovieDetailActionDescriptor> buildMovieDetailActionDescriptors({
         type: MovieDetailActionType.castToDevice,
         label: castSessionLabel ?? l10n.castPickerTitle,
         icon: Icons.cast_rounded,
+      ),
+    if (defaultUsesExternalPlayer)
+      MovieDetailActionDescriptor(
+        type: MovieDetailActionType.playInApp,
+        label: l10n.movieActionPlayInApp,
+        icon: Icons.play_circle_outline_rounded,
       ),
     if (!isBlacklisted)
       MovieDetailActionDescriptor(
@@ -68,6 +79,15 @@ List<MovieDetailActionDescriptor> buildMovieDetailActionDescriptors({
       icon: isCollection
           ? Icons.video_library_outlined
           : Icons.collections_bookmark_outlined,
+    ),
+    MovieDetailActionDescriptor(
+      type: isWatched
+          ? MovieDetailActionType.markUnwatched
+          : MovieDetailActionType.markWatched,
+      label: isWatched
+          ? l10n.movieActionMarkUnwatched
+          : l10n.movieActionMarkWatched,
+      icon: isWatched ? Icons.remove_done_rounded : Icons.done_all_rounded,
     ),
     if (isBlacklisted || !isSubscribed)
       MovieDetailActionDescriptor(

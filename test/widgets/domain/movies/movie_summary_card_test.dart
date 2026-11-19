@@ -23,9 +23,35 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets('unfinished watch progress renders a visible fill', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _wrap(
+        statsEnabled: false,
+        watchProgress: const MovieWatchProgressDto(
+          mediaId: 1,
+          positionSeconds: 50,
+          durationSeconds: 100,
+          lastWatchedAt: null,
+          finished: false,
+        ),
+      ),
+    );
+
+    final fill = find.byKey(const Key('movie-summary-card-progress-fill-1'));
+    expect(fill, findsOneWidget);
+    final size = tester.getSize(fill);
+    expect(size.height, greaterThan(0));
+    expect(size.width, greaterThan(0));
+  });
 }
 
-Widget _wrap({required bool statsEnabled}) {
+Widget _wrap({
+  required bool statsEnabled,
+  MovieWatchProgressDto? watchProgress,
+}) {
   return ProviderScope(
     overrides: [statsFeaturesEnabledProvider.overrideWithValue(statsEnabled)],
     child: MaterialApp(
@@ -52,6 +78,7 @@ Widget _wrap({required bool statsEnabled}) {
                 heat: 100,
                 isSubscribed: false,
                 canPlay: false,
+                watchProgress: watchProgress,
               ),
             ),
           ),

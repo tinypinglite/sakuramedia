@@ -388,6 +388,9 @@ MovieMediaProgressDto _$MovieMediaProgressDtoFromJson(
   lastWatchedAt: const DateTimeJsonConverter().fromJson(
     json['last_watched_at'],
   ),
+  finished: json['finished'] == null
+      ? false
+      : const BoolJsonConverter().fromJson(json['finished']),
 );
 
 MovieMediaPointDto _$MovieMediaPointDtoFromJson(Map<String, dynamic> json) =>

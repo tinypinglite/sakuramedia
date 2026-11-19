@@ -1,12 +1,15 @@
 import 'dart:async';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit_video/media_kit_video.dart';
+import 'package:sakuramedia/core/media/providers/player_subtitle_preference_provider.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
 import 'package:sakuramedia/widgets/base/media/video/initial_seek_guard.dart';
 import 'package:sakuramedia/widgets/base/media/video/playback_resume_prompt.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_orientation_lock.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_screen_orientation.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_subtitle_view_configuration.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_system_controls.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_controls_theme.dart';
 import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dart';
@@ -27,7 +30,7 @@ import 'package:sakuramedia/widgets/base/media/video/video_loading_indicator.dar
 ///
 /// 顶/底控制条由调用方按场景传入（合集有上一首/下一首、单片/弹窗没有），
 /// 本组件只负责把它们装进统一主题并渲染 [Video]。
-class ThemedVideoPlayer extends StatefulWidget {
+class ThemedVideoPlayer extends ConsumerStatefulWidget {
   const ThemedVideoPlayer({
     super.key,
     required this.videoController,
@@ -65,6 +68,9 @@ class ThemedVideoPlayer extends StatefulWidget {
   final List<Widget>? fullscreenBottomControls;
 
   /// 透传给内部 [Video] 的 Key，用于保留现有测试锚点（如 `clip-player-video`）。
+  ///
+  /// 普通 Key 会包在 [Video] 外层；[GlobalKey<VideoState>] 直接挂到 [Video]，
+  /// 调用方仍可通过它进入全屏或控制字幕。
   final Key? videoKey;
 
   final BoxFit fit;
@@ -102,10 +108,10 @@ class ThemedVideoPlayer extends StatefulWidget {
   final PlayerOrientationLock? orientationLock;
 
   @override
-  State<ThemedVideoPlayer> createState() => _ThemedVideoPlayerState();
+  ConsumerState<ThemedVideoPlayer> createState() => _ThemedVideoPlayerState();
 }
 
-class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
+class _ThemedVideoPlayerState extends ConsumerState<ThemedVideoPlayer> {
   int _guardRequestId = 0;
   int _firstFrameRequestId = 0;
   late bool _seekEnabled;
@@ -116,6 +122,9 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
   StreamSubscription<Duration>? _positionSubscription;
   Duration? _lastPromptPosition;
   DateTime? _lastPromptPositionAt;
+
+  /// 调用方传普通 Key 时仍需要一个 GlobalKey 才能重设媒体库的字幕 padding。
+  final GlobalKey<VideoState> _fallbackVideoStateKey = GlobalKey<VideoState>();
 
   @override
   void initState() {
@@ -305,6 +314,32 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
   Widget build(BuildContext context) {
     final l10n = appL10n(context);
     final theme = Theme.of(context);
+    final subtitlePreference =
+        ref.watch(playerSubtitlePreferenceControllerProvider).value ??
+        const PlayerSubtitlePreference();
+    final subtitleConfiguration = buildPlayerSubtitleViewConfiguration(
+      context: context,
+      preference: subtitlePreference,
+    );
+    final externalVideoKey = widget.videoKey;
+    final videoStateKey = externalVideoKey is GlobalKey<VideoState>
+        ? externalVideoKey
+        : _fallbackVideoStateKey;
+    ref.listen(playerSubtitlePreferenceControllerProvider, (previous, next) {
+      final preference = next.value;
+      if (preference == null || !mounted) {
+        return;
+      }
+      final configuration = buildPlayerSubtitleViewConfiguration(
+        context: context,
+        preference: preference,
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        videoStateKey.currentState?.setSubtitleViewPadding(
+          configuration.padding,
+        );
+      });
+    });
     final fullscreenBottom =
         widget.fullscreenBottomControls ?? widget.bottomControls;
     // 首帧前由本组件的加载浮层统一反馈，避免和 media_kit 的 buffering 指示器重叠。
@@ -345,6 +380,26 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
       seekEnabled: _seekEnabled,
       showBufferingIndicator: showBufferingIndicator,
     );
+    final videoSurface = Video(
+      key: videoStateKey,
+      controller: widget.videoController,
+      fit: widget.fit,
+      fill: widget.fill,
+      subtitleViewConfiguration: subtitleConfiguration,
+      controls: resolveMoviePlayerVideoControlsBuilder(
+        useTouchOptimizedControls: widget.useTouchOptimizedControls,
+        mobileControlsReady: _systemControlsReady,
+      ),
+      // 移动端全屏方向跟随页面方向锁：锁定则保持横屏，解锁则跟随系统；
+      // 退出全屏同样按当前锁定状态恢复，避免解锁后被重新锁回横屏。
+      // 桌面保持 media_kit 默认（原生窗口全屏）。
+      onEnterFullscreen: widget.useTouchOptimizedControls
+          ? _applyOrientationLock
+          : defaultEnterNativeFullscreen,
+      onExitFullscreen: widget.useTouchOptimizedControls
+          ? _applyOrientationLock
+          : defaultExitNativeFullscreen,
+    );
     return MaterialVideoControlsTheme(
       normal: mobileThemeData,
       fullscreen: mobileFullscreenThemeData,
@@ -356,25 +411,10 @@ class _ThemedVideoPlayerState extends State<ThemedVideoPlayer> {
           children: [
             IgnorePointer(
               ignoring: widget.guardInitialSeek && !_seekEnabled,
-              child: Video(
-                key: widget.videoKey,
-                controller: widget.videoController,
-                fit: widget.fit,
-                fill: widget.fill,
-                controls: resolveMoviePlayerVideoControlsBuilder(
-                  useTouchOptimizedControls: widget.useTouchOptimizedControls,
-                  mobileControlsReady: _systemControlsReady,
-                ),
-                // 移动端全屏方向跟随页面方向锁：锁定则保持横屏，解锁则跟随系统；
-                // 退出全屏同样按当前锁定状态恢复，避免解锁后被重新锁回横屏。
-                // 桌面保持 media_kit 默认（原生窗口全屏）。
-                onEnterFullscreen: widget.useTouchOptimizedControls
-                    ? _applyOrientationLock
-                    : defaultEnterNativeFullscreen,
-                onExitFullscreen: widget.useTouchOptimizedControls
-                    ? _applyOrientationLock
-                    : defaultExitNativeFullscreen,
-              ),
+              child:
+                  externalVideoKey != null && externalVideoKey != videoStateKey
+                  ? KeyedSubtree(key: externalVideoKey, child: videoSurface)
+                  : videoSurface,
             ),
             if (!_initialFrameReady)
               IgnorePointer(

@@ -427,10 +427,14 @@ class MovieMediaProgressDto {
   const MovieMediaProgressDto({
     required this.lastPositionSeconds,
     required this.lastWatchedAt,
+    this.finished = false,
   });
 
   final int lastPositionSeconds;
   final DateTime? lastWatchedAt;
+
+  /// 后端按统一口径判好的“已看完”，详情页标记动作和续播提示共用。
+  final bool finished;
 
   factory MovieMediaProgressDto.fromJson(Map<String, dynamic> json) =>
       _$MovieMediaProgressDtoFromJson(json);

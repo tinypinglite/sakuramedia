@@ -114,6 +114,12 @@ class ActivityApi {
     return response.map(TaskRunDto.fromJson).toList(growable: false);
   }
 
+  /// 单条任务运行详情；导入页用它轮询最近一次提交的进度。
+  Future<TaskRunDto> getTaskRun(int taskRunId) async {
+    final response = await _apiClient.get('/system/task-runs/$taskRunId');
+    return TaskRunDto.fromJson(response);
+  }
+
   Future<PaginatedResponseDto<TaskRunDto>> getTaskRuns({
     int page = 1,
     int pageSize = 20,

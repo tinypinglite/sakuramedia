@@ -18,10 +18,14 @@ class MediaTagFilterSection extends ConsumerWidget {
     super.key,
     required this.filter,
     required this.onChanged,
+    this.selectionStyle = AppFilterChipSelectionStyle.neutral,
   });
 
   final MovieFilterState filter;
   final ValueChanged<MovieFilterState> onChanged;
+
+  /// 选中 chips 的配色；卡片表单里用 [AppFilterChipSelectionStyle.accent]。
+  final AppFilterChipSelectionStyle selectionStyle;
 
   void _toggleTag(int tagId) {
     final next = List<int>.of(filter.mediaTagIds);
@@ -116,6 +120,7 @@ class MediaTagFilterSection extends ConsumerWidget {
                   key: Key('movie-media-tag-filter-${tag.id}'),
                   label: tag.name,
                   selected: filter.mediaTagIds.contains(tag.id),
+                  selectionStyle: selectionStyle,
                   onPressed: () => _toggleTag(tag.id),
                 ),
             ],

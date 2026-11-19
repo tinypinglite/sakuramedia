@@ -98,6 +98,7 @@ List<Widget> buildMoviePlayerDesktopBottomControls({
   required ValueListenable<bool> isApplyingListenable,
   required Future<void> Function(int? subtitleId) onSubtitleSelected,
   required Future<void> Function() onSubtitleReloadRequested,
+  required VoidCallback onSubtitleSettingsTap,
 }) {
   return <Widget>[
     const MaterialPlayOrPauseButton(),
@@ -114,6 +115,7 @@ List<Widget> buildMoviePlayerDesktopBottomControls({
       isApplyingListenable: isApplyingListenable,
       onSubtitleSelected: onSubtitleSelected,
       onReloadRequested: onSubtitleReloadRequested,
+      onOpenSettings: onSubtitleSettingsTap,
     ),
     const PlayerAppFullscreenButton(),
   ];

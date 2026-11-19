@@ -9,6 +9,7 @@ import 'package:sakuramedia/features/media/presentation/providers/media_api_prov
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_collection_type_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_menu.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_subscription_toggle_result.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_action_result.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_view_model.dart';
@@ -125,6 +126,7 @@ class MovieDetailInteractionState {
       isSubscribed: isSubscribedOverride ?? movie.isSubscribed,
       isBlacklisted: isBlacklistedOverride ?? movie.isBlacklisted,
       isCollection: isCollectionOverride ?? movie.isCollection,
+      isWatched: mediaItems.any((item) => item.progress?.finished ?? false),
       isActionControlsLocked: isActionLocked,
       selectedMedia: selectedMedia,
     );
@@ -529,6 +531,48 @@ class MovieDetailInteraction extends _$MovieDetailInteraction {
           fallback: isBlacklisted
               ? _l10n.moviePageBlacklistFailed
               : _l10n.moviePageUnblacklistFailed,
+        ),
+      );
+    } finally {
+      if (!_disposed) {
+        state = state.copyWith(activeMovieAction: null);
+      }
+    }
+  }
+
+  Future<MovieDetailActionResult> setWatchState(
+    MovieWatchStatusFilter watchState,
+  ) async {
+    if (state.isActionLocked) {
+      return const MovieDetailActionResult.ignored();
+    }
+    final markingWatched = watchState == MovieWatchStatusFilter.watched;
+    state = state.copyWith(
+      activeMovieAction: markingWatched
+          ? MovieDetailActionType.markWatched
+          : MovieDetailActionType.markUnwatched,
+    );
+    try {
+      await ref
+          .read(moviesApiProvider)
+          .setMovieWatchState(movieNumber: _movieNumber, state: watchState);
+      if (_disposed) return const MovieDetailActionResult.ignored();
+      final movie = await ref
+          .read(moviesApiProvider)
+          .getMovieDetail(movieNumber: _movieNumber);
+      if (_disposed) return const MovieDetailActionResult.ignored();
+      ref.read(movieDetailProvider(_movieNumber).notifier).applyMovie(movie);
+      ref.invalidate(movieSummaryProvider);
+      return MovieDetailActionResult.success(
+        markingWatched
+            ? _l10n.movieWatchStateMarkedWatched
+            : _l10n.movieWatchStateMarkedUnwatched,
+      );
+    } catch (error) {
+      return MovieDetailActionResult.error(
+        ref.apiErrorMessage(
+          error,
+          fallback: _l10n.movieWatchStateUpdateFailed,
         ),
       );
     } finally {

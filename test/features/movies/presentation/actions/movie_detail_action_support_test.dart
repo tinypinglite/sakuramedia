@@ -38,6 +38,7 @@ void main() {
         MovieDetailActionType.toggleSubscription,
         MovieDetailActionType.openMagnetSearch,
         MovieDetailActionType.toggleCollectionType,
+        MovieDetailActionType.markWatched,
         MovieDetailActionType.toggleBlacklist,
         MovieDetailActionType.refreshMetadata,
       ]);
@@ -75,6 +76,36 @@ void main() {
       );
     },
   );
+
+  test('buildMovieDetailActionDescriptors switches mark action by watch state', () {
+    final unwatched = buildMovieDetailActionDescriptors(
+      l10n: AppLocalizationsZh(),
+      isSubscribed: false,
+      isCollection: false,
+      isBlacklisted: false,
+      isWatched: false,
+    );
+    final watched = buildMovieDetailActionDescriptors(
+      l10n: AppLocalizationsZh(),
+      isSubscribed: false,
+      isCollection: false,
+      isBlacklisted: false,
+      isWatched: true,
+    );
+
+    expect(
+      unwatched.map((action) => action.type),
+      contains(MovieDetailActionType.markWatched),
+    );
+    expect(
+      watched.map((action) => action.type),
+      contains(MovieDetailActionType.markUnwatched),
+    );
+    expect(
+      _labelOf(watched, MovieDetailActionType.markUnwatched),
+      isNot(_labelOf(unwatched, MovieDetailActionType.markWatched)),
+    );
+  });
 
   test('buildMovieDetailActionDescriptors follows the caller locale', () {
     final en = buildMovieDetailActionDescriptors(

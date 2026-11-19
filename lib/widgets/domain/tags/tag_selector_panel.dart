@@ -39,6 +39,7 @@ class TagSelectorPanel extends StatefulWidget {
     this.collapsibleSearch = false,
     this.collapsedTagCount = 24,
     this.showTagCounts = true,
+    this.selectionStyle = AppFilterChipSelectionStyle.neutral,
   });
 
   final TagSelectionState selection;
@@ -75,6 +76,9 @@ class TagSelectorPanel extends StatefulWidget {
 
   /// 标签 chips 是否带影片数量。标签页靠数量做选择参考；筛选面板里省空间不显示。
   final bool showTagCounts;
+
+  /// 选中 chips 的配色；卡片表单里用 [AppFilterChipSelectionStyle.accent]。
+  final AppFilterChipSelectionStyle selectionStyle;
 
   @override
   State<TagSelectorPanel> createState() => _TagSelectorPanelState();
@@ -261,6 +265,7 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
             key: Key('${widget.keyPrefix}-selected-${tag.tagId}'),
             label: tag.name,
             selected: true,
+            selectionStyle: widget.selectionStyle,
             trailing: const Icon(Icons.close_rounded),
             onPressed: () => widget.onRemoveTag(tag.tagId),
           ),
@@ -385,6 +390,7 @@ class _TagSelectorPanelState extends State<TagSelectorPanel> {
                 ? '${tag.name} · ${formatAppCount(tag.movieCount)}'
                 : tag.name,
             selected: selection.isSelected(tag.tagId),
+            selectionStyle: widget.selectionStyle,
             onPressed: () => widget.onToggleTag(tag.tagId),
           ),
       ],

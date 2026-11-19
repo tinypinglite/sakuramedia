@@ -61,7 +61,7 @@ final class MovieDetailInteractionProvider
 }
 
 String _$movieDetailInteractionHash() =>
-    r'98a188c5fefd9affc0ca0c2f4997336f092a5d8d';
+    r'960fb945a4577ed84240b18035e758c87d4ad296';
 
 final class MovieDetailInteractionFamily extends $Family
     with

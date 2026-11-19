@@ -158,6 +158,7 @@ void main() {
     await controller.applyMovieFilter(
       const MovieFilterState(
         status: MovieStatusFilter.playable,
+        watchStatus: MovieWatchStatusFilter.watched,
         collectionType: MovieCollectionTypeFilter.all,
         years: <int>{2024},
       ),
@@ -175,6 +176,7 @@ void main() {
     final parameters = movieRequests.last.uri.queryParameters;
     expect(parameters['query'], 'abp123');
     expect(parameters['status'], 'playable');
+    expect(parameters['watch_status'], 'watched');
     expect(parameters['collection_type'], 'all');
     expect(parameters['year'], '2024');
     expect(parameters['sort'], 'heat:desc');

@@ -32,7 +32,8 @@ Future<void> showMoviePlaylistPickerDialog(
         return playlists
             .where(
               (playlist) =>
-                  !playlist.isSystem || playlist.kind == PlaylistKind.favorites,
+                  playlist.kind == PlaylistKind.custom ||
+                  playlist.kind == PlaylistKind.favorites,
             )
             .toList(growable: false);
       },

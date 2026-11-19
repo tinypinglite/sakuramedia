@@ -10,6 +10,8 @@ import 'package:sakuramedia/features/playlists/presentation/providers/playlists_
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_scope.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_state.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_editor_dialog.dart';
+import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_type_chooser.dart';
+import 'package:sakuramedia/features/playlists/presentation/widgets/smart_playlist_editor.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
@@ -188,6 +190,9 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
           key: Key('playlist-banner-card-${playlist.id}'),
           title: playlist.name,
           coverImageUrl: coverImageUrl,
+          badgeLabel: playlist.isSmart
+              ? AppLocalizations.of(context).playlistSmartBadge
+              : null,
           onTap: () => DesktopRoutes.playlistDetail(
             playlistId: playlist.id,
             fallbackPath: desktopPlaylistsPath,
@@ -266,7 +271,13 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
   }
 
   Future<void> _openCreateDialog() async {
-    final playlist = await showPlaylistEditor(context);
+    final kind = await showPlaylistTypeChooser(context);
+    if (!mounted || kind == null) {
+      return;
+    }
+    final playlist = kind == PlaylistKind.smart
+        ? await showSmartPlaylistEditor(context)
+        : await showPlaylistEditor(context);
     if (!mounted || playlist == null) {
       return;
     }
@@ -276,8 +287,11 @@ class _DesktopPlaylistsPageState extends ConsumerState<DesktopPlaylistsPage> {
     if (!mounted) {
       return;
     }
+    final l10n = AppLocalizations.of(context);
     showToast(
-      AppLocalizations.of(context).playlistCreatedToast,
+      kind == PlaylistKind.smart
+          ? l10n.smartPlaylistCreatedToast
+          : l10n.playlistCreatedToast,
       tone: AppToastTone.success,
     );
   }

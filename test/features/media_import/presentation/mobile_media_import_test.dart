@@ -102,7 +102,11 @@ void main() {
       await tester.tap(find.byKey(const Key('pick-video-collection-single-7')));
       await tester.pumpAndSettle();
       await _tap(tester, 'video-import-submit-button');
-      expect(bundle.adapter.requests.last.body, {
+      // 提交后状态卡会立刻拉一次任务运行，不能再假设 POST /imports 是最后一个请求。
+      final importRequest = bundle.adapter.requests.lastWhere(
+        (request) => request.method == 'POST' && request.path == '/imports',
+      );
+      expect(importRequest.body, {
         'media_kind': 'video',
         'library_id': 1,
         'source_ref': {'id': 'file'},

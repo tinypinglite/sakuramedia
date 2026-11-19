@@ -17,6 +17,13 @@ export 'package:sakuramedia/features/shared/data/sort_direction.dart'
 enum MovieStatusFilter { all, subscribed, unsubscribed, playable }
 
 extension MovieStatusFilterX on MovieStatusFilter {
+  static MovieStatusFilter fromApiValue(String value) => switch (value) {
+    'subscribed' => MovieStatusFilter.subscribed,
+    'unsubscribed' => MovieStatusFilter.unsubscribed,
+    'playable' => MovieStatusFilter.playable,
+    _ => MovieStatusFilter.all,
+  };
+
   String get apiValue => switch (this) {
     MovieStatusFilter.all => 'all',
     MovieStatusFilter.subscribed => 'subscribed',
@@ -36,6 +43,12 @@ extension MovieStatusFilterX on MovieStatusFilter {
 enum MovieNumberSourceFilter { all, regular, fc2 }
 
 extension MovieNumberSourceFilterX on MovieNumberSourceFilter {
+  static MovieNumberSourceFilter fromApiValue(String value) => switch (value) {
+    'regular' => MovieNumberSourceFilter.regular,
+    'fc2' => MovieNumberSourceFilter.fc2,
+    _ => MovieNumberSourceFilter.all,
+  };
+
   String get apiValue => switch (this) {
     MovieNumberSourceFilter.all => 'all',
     MovieNumberSourceFilter.regular => 'regular',
@@ -50,9 +63,39 @@ extension MovieNumberSourceFilterX on MovieNumberSourceFilter {
   };
 }
 
+enum MovieWatchStatusFilter { all, unwatched, watching, watched }
+
+extension MovieWatchStatusFilterX on MovieWatchStatusFilter {
+  static MovieWatchStatusFilter fromApiValue(String value) => switch (value) {
+    'unwatched' => MovieWatchStatusFilter.unwatched,
+    'watching' => MovieWatchStatusFilter.watching,
+    'watched' => MovieWatchStatusFilter.watched,
+    _ => MovieWatchStatusFilter.all,
+  };
+
+  String get apiValue => switch (this) {
+    MovieWatchStatusFilter.all => 'all',
+    MovieWatchStatusFilter.unwatched => 'unwatched',
+    MovieWatchStatusFilter.watching => 'watching',
+    MovieWatchStatusFilter.watched => 'watched',
+  };
+
+  String labelWith(AppLocalizations l10n) => switch (this) {
+    MovieWatchStatusFilter.all => l10n.widgetMovieFilterAll,
+    MovieWatchStatusFilter.unwatched => l10n.movieFilterWatchUnwatched,
+    MovieWatchStatusFilter.watching => l10n.movieFilterWatchWatching,
+    MovieWatchStatusFilter.watched => l10n.movieFilterWatchWatched,
+  };
+}
+
 enum MovieCollectionTypeFilter { all, single }
 
 extension MovieCollectionTypeFilterX on MovieCollectionTypeFilter {
+  static MovieCollectionTypeFilter fromApiValue(String value) =>
+      value == 'single'
+      ? MovieCollectionTypeFilter.single
+      : MovieCollectionTypeFilter.all;
+
   String get apiValue => switch (this) {
     MovieCollectionTypeFilter.all => 'all',
     MovieCollectionTypeFilter.single => 'single',
@@ -68,6 +111,9 @@ extension MovieCollectionTypeFilterX on MovieCollectionTypeFilter {
 enum TagMatchMode { or, and }
 
 extension TagMatchModeX on TagMatchMode {
+  static TagMatchMode fromApiValue(String value) =>
+      value == 'and' ? TagMatchMode.and : TagMatchMode.or;
+
   String get apiValue => switch (this) {
     TagMatchMode.or => 'or',
     TagMatchMode.and => 'and',
@@ -193,6 +239,7 @@ class MovieFilterYearOption {
 class MovieFilterState {
   const MovieFilterState({
     this.status = MovieStatusFilter.all,
+    this.watchStatus = MovieWatchStatusFilter.all,
     this.collectionType = MovieCollectionTypeFilter.single,
     this.numberSource = MovieNumberSourceFilter.all,
     this.sortField = MovieSortField.releaseDate,
@@ -208,6 +255,7 @@ class MovieFilterState {
   });
 
   final MovieStatusFilter status;
+  final MovieWatchStatusFilter watchStatus;
   final MovieCollectionTypeFilter collectionType;
   final MovieNumberSourceFilter numberSource;
   final MovieSortField sortField;
@@ -239,6 +287,7 @@ class MovieFilterState {
   /// 都只应看这里。
   bool get hasActiveFilters =>
       status != MovieStatusFilter.all ||
+      watchStatus != MovieWatchStatusFilter.all ||
       collectionType != MovieCollectionTypeFilter.single ||
       numberSource != MovieNumberSourceFilter.all ||
       years.isNotEmpty ||
@@ -275,16 +324,18 @@ class MovieFilterState {
       : 'dimension_$dimensionSortId:${sortDirection.apiValue}';
 
   String triggerLabel(AppLocalizations l10n) {
-    final label = switch ((
-      years.isNotEmpty,
-      hasInteractionRange,
-      hasActorAgeRange,
-    )) {
-      (true, _, _) => movieFilterYearsLabel(years, l10n),
-      (_, true, _) => interaction.localizedSummaryLabel(l10n),
-      (_, _, true) => movieActorAgeRangeLabel(actorAgeMin, actorAgeMax, l10n),
-      _ => status.labelWith(l10n),
-    };
+    final label = watchStatus != MovieWatchStatusFilter.all
+        ? watchStatus.labelWith(l10n)
+        : switch ((years.isNotEmpty, hasInteractionRange, hasActorAgeRange)) {
+            (true, _, _) => movieFilterYearsLabel(years, l10n),
+            (_, true, _) => interaction.localizedSummaryLabel(l10n),
+            (_, _, true) => movieActorAgeRangeLabel(
+              actorAgeMin,
+              actorAgeMax,
+              l10n,
+            ),
+            _ => status.labelWith(l10n),
+          };
     final withResolution = resolution == null
         ? label
         : '$label · ${resolution!.label}';
@@ -295,6 +346,7 @@ class MovieFilterState {
 
   bool matches(MovieFilterState other) =>
       status == other.status &&
+      watchStatus == other.watchStatus &&
       collectionType == other.collectionType &&
       numberSource == other.numberSource &&
       sortField == other.sortField &&
@@ -310,6 +362,7 @@ class MovieFilterState {
 
   MovieFilterState copyWith({
     MovieStatusFilter? status,
+    MovieWatchStatusFilter? watchStatus,
     MovieCollectionTypeFilter? collectionType,
     MovieNumberSourceFilter? numberSource,
     MovieSortField? sortField,
@@ -325,6 +378,7 @@ class MovieFilterState {
   }) {
     return MovieFilterState(
       status: status ?? this.status,
+      watchStatus: watchStatus ?? this.watchStatus,
       resolution: (status ?? this.status) != MovieStatusFilter.playable
           ? null
           : identical(resolution, _movieFilterUnset)

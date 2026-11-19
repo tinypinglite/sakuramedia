@@ -5,13 +5,19 @@ import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/image_search/presentation/image_search_file_picker.dart';
 import 'package:sakuramedia/features/image_search/presentation/providers/image_search_state.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_state.dart';
 import 'package:sakuramedia/features/overview/presentation/pages/mobile/mobile_overview_playlists_sliver.dart';
+import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
+import 'package:sakuramedia/features/playlists/presentation/providers/playlist_mutation_events_provider.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_provider.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_scope.dart';
+import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_editor_dialog.dart';
+import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_type_chooser.dart';
+import 'package:sakuramedia/features/playlists/presentation/widgets/smart_playlist_editor.dart';
 import 'package:sakuramedia/features/recent_views/presentation/providers/recent_views_provider.dart';
 import 'package:sakuramedia/features/recent_views/presentation/widgets/recent_views_section.dart';
 import 'package:sakuramedia/features/status/presentation/providers/server_capabilities_provider.dart';
@@ -43,6 +49,9 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
   static const int _recentlySubscribedPreviewCount = 12;
   static const MovieSummaryScope _recentlySubscribedScope =
       MovieSummaryScope.recentlySubscribed();
+  static const _continueWatchingFilter = MovieFilterState(
+    watchStatus: MovieWatchStatusFilter.watching,
+  );
 
   late final TextEditingController _searchController;
   late final PlaylistsOverviewScope _playlistsScope;
@@ -73,6 +82,24 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
     final recentlySubscribedAsync = ref.watch(
       movieSummaryProvider(_recentlySubscribedScope),
     );
+    // 复用「我的」tab 已加载的播放列表概览，避免再单独请求一次 /playlists。
+    final playlists = ref
+        .watch(playlistsOverviewProvider(_playlistsScope))
+        .value
+        ?.playlists;
+    final continuePlaylist = playlists
+        ?.where((playlist) => playlist.kind == PlaylistKind.recentlyPlayed)
+        .firstOrNull;
+    final continueScope = continuePlaylist == null
+        ? null
+        : MovieSummaryScope.playlist(
+            playlistId: continuePlaylist.id,
+            pageSize: _recentlySubscribedPreviewCount,
+            initialMovieFilter: _continueWatchingFilter,
+          );
+    final continueAsync = continueScope == null
+        ? null
+        : ref.watch(movieSummaryProvider(continueScope));
 
     return AppAdaptiveRefreshScrollView(
       onRefresh: _handleRefresh,
@@ -123,6 +150,14 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
               ),
               SizedBox(height: spacing.xs),
               _buildLatestMoviesSection(latestAsync, l10n),
+              if (continueScope != null && continueAsync != null) ...[
+                SizedBox(height: spacing.sm),
+                _buildContinueWatchingSection(
+                  continueAsync,
+                  continueScope,
+                  l10n,
+                ),
+              ],
               SizedBox(height: spacing.sm),
               _buildRecentlySubscribedSection(recentlySubscribedAsync, l10n),
               _buildRecentViewsSection(),
@@ -131,20 +166,12 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
           ),
         ),
         SliverToBoxAdapter(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.overviewPlaylists,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s14,
-                  weight: AppTextWeight.regular,
-                  tone: AppTextTone.secondary,
-                ),
-              ),
-              SizedBox(height: spacing.xs),
-            ],
+          child: AppSectionHeader(
+            title: l10n.overviewPlaylists,
+            actionLabel: l10n.playlistCreateAction,
+            actionSize: AppTextButtonSize.xSmall,
+            actionKey: const Key('mobile-overview-playlists-create'),
+            onActionTap: _openCreatePlaylist,
           ),
         ),
         MobileOverviewPlaylistsSliver(scope: _playlistsScope),
@@ -153,14 +180,52 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
     );
   }
 
+  Future<void> _openCreatePlaylist() async {
+    final kind = await showPlaylistTypeChooser(context);
+    if (!mounted || kind == null) {
+      return;
+    }
+    final playlist = kind == PlaylistKind.smart
+        ? await showSmartPlaylistEditor(context)
+        : await showPlaylistEditor(context);
+    if (!mounted || playlist == null) {
+      return;
+    }
+    // 概览 provider 监听 created 广播后就地插入，其他入口同步更新。
+    ref.read(playlistMutationEventsProvider.notifier).reportCreated(playlist);
+    final l10n = AppLocalizations.of(context);
+    showToast(
+      kind == PlaylistKind.smart
+          ? l10n.smartPlaylistCreatedToast
+          : l10n.playlistCreatedToast,
+      tone: AppToastTone.success,
+    );
+  }
+
   Future<void> _handleRefresh() async {
     ref.invalidate(recentViewsProvider);
+    final playlists = ref
+        .read(playlistsOverviewProvider(_playlistsScope))
+        .value
+        ?.playlists;
+    final continuePlaylist = playlists
+        ?.where((playlist) => playlist.kind == PlaylistKind.recentlyPlayed)
+        .firstOrNull;
+    final continueScope = continuePlaylist == null
+        ? null
+        : MovieSummaryScope.playlist(
+            playlistId: continuePlaylist.id,
+            pageSize: _recentlySubscribedPreviewCount,
+            initialMovieFilter: _continueWatchingFilter,
+          );
     try {
       final results = await Future.wait<Object?>([
         ref.read(movieSummaryProvider(_latestScope).notifier).refresh(),
         ref
             .read(movieSummaryProvider(_recentlySubscribedScope).notifier)
             .refresh(),
+        if (continueScope != null)
+          ref.read(movieSummaryProvider(continueScope).notifier).refresh(),
         ref
             .read(playlistsOverviewProvider(_playlistsScope).notifier)
             .refresh()
@@ -207,6 +272,48 @@ class _MobileOverviewMyTabState extends ConsumerState<MobileOverviewMyTab> {
           movieNumber: movie.movieNumber,
         ).push(context),
       ),
+    );
+  }
+
+  Widget _buildContinueWatchingSection(
+    AsyncValue<MovieSummaryState> async,
+    MovieSummaryScope scope,
+    AppLocalizations l10n,
+  ) {
+    final summary = async.value;
+    final isLoading = async.isLoading && summary == null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AppSectionHeader(
+          title: l10n.overviewContinueWatching,
+          actionLabel: l10n.overviewMore,
+          actionSize: AppTextButtonSize.xSmall,
+          actionKey: const Key('mobile-overview-continue-watching-more'),
+          onActionTap: () => MobileRoutes.recentlyPlayed().push(context),
+        ),
+        SizedBox(height: context.appSpacing.xs),
+        AppSkeletonizer(
+          enabled: isLoading,
+          child: MovieSummaryRail(
+            items: isLoading
+                ? movieListItemPlaceholders(
+                    count: _recentlySubscribedPreviewCount,
+                  )
+                : summary?.paged.items
+                          .take(_recentlySubscribedPreviewCount)
+                          .toList() ??
+                      const <MovieListItemDto>[],
+            errorMessage: async.hasError && summary == null
+                ? scope.errorText(l10n)
+                : null,
+            emptyMessage: l10n.overviewContinueWatchingEmpty,
+            onMovieTap: (movie) => MobileRoutes.movieDetail(
+              movieNumber: movie.movieNumber,
+            ).push(context),
+          ),
+        ),
+      ],
     );
   }
 

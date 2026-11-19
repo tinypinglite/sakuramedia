@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
+import 'package:sakuramedia/core/media/playback_resume_policy.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_channel.dart';
@@ -12,6 +13,14 @@ import 'package:sakuramedia/features/movies/presentation/providers/movies_api_pr
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
+
+enum MoviePlaybackTarget { auto, inApp, external }
+
+/// 当前配置是否可选择外部播放器。
+bool isExternalPlayerAvailable(ExternalPlayerSelection selection) {
+  return selection.hasExternalPlayer &&
+      const ExternalPlayerChannel().isSupported;
+}
 
 /// 统一的影片播放入口：根据用户是否设置了默认外部播放器，决定跳应用内播放页
 /// 还是直接拉起外部播放器。
@@ -25,11 +34,21 @@ Future<void> launchMoviePlayback(
   int? positionSeconds,
   MovieDetailDto? movie,
   String? inAppFallbackPath,
+  MoviePlaybackTarget target = MoviePlaybackTarget.auto,
 }) async {
   final selection = _readExternalPlayerSelection(context);
   const channel = ExternalPlayerChannel();
+  final externalAvailable =
+      selection != null && isExternalPlayerAvailable(selection);
   final canUseExternal =
-      selection != null && selection.hasExternalPlayer && channel.isSupported;
+      target != MoviePlaybackTarget.inApp && externalAvailable;
+
+  if (target == MoviePlaybackTarget.external && !externalAvailable) {
+    showToast(
+      AppLocalizations.of(context).movieActionExternalPlayerUnavailableInApp,
+      tone: AppToastTone.error,
+    );
+  }
 
   if (!canUseExternal) {
     _pushInAppPlayer(
@@ -83,7 +102,13 @@ Future<void> launchMoviePlayback(
   }
 
   final resumeSeconds =
-      positionSeconds ?? media.progress?.lastPositionSeconds ?? 0;
+      positionSeconds ??
+      (media.progress == null
+          ? null
+          : resolvePlaybackResumePosition(
+              storedPositionSeconds: media.progress!.lastPositionSeconds,
+              durationSeconds: media.durationSeconds,
+            )?.inSeconds);
   final title = detail.preferredTitle.isNotEmpty
       ? detail.preferredTitle
       : movieNumber;
@@ -93,7 +118,9 @@ Future<void> launchMoviePlayback(
     url: resolvedUrl,
     playbackMode: selection.playbackMode,
     title: title,
-    positionMs: resumeSeconds > 0 ? resumeSeconds * 1000 : null,
+    positionMs: resumeSeconds != null && resumeSeconds > 0
+        ? resumeSeconds * 1000
+        : null,
   );
   if (!context.mounted) {
     return;
@@ -123,9 +150,7 @@ Future<void> launchMovieMergedPlayback(
 }) async {
   final selection = _readExternalPlayerSelection(context);
   const channel = ExternalPlayerChannel();
-  if (selection == null ||
-      !selection.hasExternalPlayer ||
-      !channel.isSupported) {
+  if (selection == null || !isExternalPlayerAvailable(selection)) {
     _pushInAppPlayer(
       context,
       movieNumber: movieNumber,

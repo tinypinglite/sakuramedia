@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_provider.dart';
 import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_scope.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_chip.dart';
 import 'package:sakuramedia/widgets/domain/tags/tag_selector_panel.dart';
 
 /// 把标签选择接进筛选面板的「标签」分节。
@@ -13,9 +14,16 @@ import 'package:sakuramedia/widgets/domain/tags/tag_selector_panel.dart';
 /// 第一次打开时才加载（scope 用 `preload: false`）。筛选面板里走精简形态：
 /// 搜索框默认收起、标签收起态只展示前 5 个、展开后显示全部。
 class TagFilterSection extends ConsumerWidget {
-  const TagFilterSection({super.key, required this.scope});
+  const TagFilterSection({
+    super.key,
+    required this.scope,
+    this.selectionStyle = AppFilterChipSelectionStyle.neutral,
+  });
 
   final TagSelectionScope scope;
+
+  /// 选中 chips 的配色；卡片表单里用 [AppFilterChipSelectionStyle.accent]。
+  final AppFilterChipSelectionStyle selectionStyle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -28,6 +36,7 @@ class TagFilterSection extends ConsumerWidget {
       collapsibleSearch: true,
       collapsedTagCount: 5,
       showTagCounts: false,
+      selectionStyle: selectionStyle,
       onToggleTag: notifier.toggle,
       onRemoveTag: notifier.remove,
       onClear: notifier.clear,

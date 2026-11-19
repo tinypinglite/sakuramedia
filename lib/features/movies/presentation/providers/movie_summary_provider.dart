@@ -108,6 +108,7 @@ class MovieSummary extends _$MovieSummary
         page: page,
         pageSize: pageSize,
         status: filter.movie.status,
+        watchStatus: filter.movie.watchStatus,
         collectionType: filter.movie.collectionType,
         numberSource: filter.movie.numberSource,
         sort: filter.movie.sortExpression,
@@ -123,6 +124,7 @@ class MovieSummary extends _$MovieSummary
         page: page,
         pageSize: pageSize,
         status: filter.movie.status,
+        watchStatus: filter.movie.watchStatus,
         collectionType: filter.movie.collectionType,
         numberSource: filter.movie.numberSource,
         sort: filter.movie.sortExpression,
@@ -157,6 +159,7 @@ class MovieSummary extends _$MovieSummary
         page: page,
         pageSize: pageSize,
         status: filter.movie.status,
+        watchStatus: filter.movie.watchStatus,
         collectionType: filter.movie.collectionType,
         numberSource: filter.movie.numberSource,
         sort: filter.movie.sortExpression,
@@ -173,6 +176,10 @@ class MovieSummary extends _$MovieSummary
               pageSize: pageSize,
               sort: filter.playlist.sortExpression,
               resolution: filter.playlist.resolution?.apiValue,
+              watchStatus: filter.movie.watchStatus ==
+                      MovieWatchStatusFilter.all
+                  ? null
+                  : filter.movie.watchStatus.apiValue,
             ),
       MovieSummarySource.series => moviesApi.getMoviesBySeries(
         seriesId: scope.resourceId!,
@@ -182,6 +189,7 @@ class MovieSummary extends _$MovieSummary
       MovieSummarySource.rated => moviesApi.getMovies(
         rated: true,
         status: filter.movie.status,
+        watchStatus: filter.movie.watchStatus,
         collectionType: filter.movie.collectionType,
         numberSource: filter.movie.numberSource,
         sort: filter.movie.sortExpression,

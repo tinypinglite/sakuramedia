@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_mask.dart';
 import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
@@ -23,11 +24,15 @@ class PlaylistBannerCard extends StatelessWidget {
     required this.title,
     this.coverImageUrl,
     this.onTap,
+    this.badgeLabel,
   });
 
   final String title;
   final String? coverImageUrl;
   final VoidCallback? onTap;
+
+  /// 左上角角标（如智能列表的「智能」）；不传时不渲染。
+  final String? badgeLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -95,6 +100,17 @@ class PlaylistBannerCard extends StatelessWidget {
                 ),
               ),
             ),
+            if (badgeLabel case final label?)
+              Positioned(
+                left: spacing.sm,
+                top: spacing.sm,
+                child: AppBadge(
+                  key: const Key('playlist-banner-smart-badge'),
+                  label: label,
+                  tone: AppBadgeTone.primary,
+                  size: AppBadgeSize.compact,
+                ),
+              ),
             Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(horizontal: spacing.xl),

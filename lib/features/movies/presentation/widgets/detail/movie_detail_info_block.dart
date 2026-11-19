@@ -21,6 +21,7 @@ class MovieDetailInfoBlock extends StatelessWidget {
     this.watchTooltip,
     this.onPlayTap,
     this.isPlayLoading = false,
+    this.playLabel,
     this.onSubscriptionTap,
     this.isSubscriptionUpdating = false,
     this.isFavorite = false,
@@ -60,6 +61,9 @@ class MovieDetailInfoBlock extends StatelessWidget {
 
   /// 播放动作进行中（如合并播放探测/拉起外部播放器），按钮显示 loading 并禁用。
   final bool isPlayLoading;
+
+  /// 播放键文案；为 null 时使用当前语言的默认「播放」。
+  final String? playLabel;
 
   final VoidCallback? onSubscriptionTap;
   final bool isSubscriptionUpdating;
@@ -115,6 +119,7 @@ class MovieDetailInfoBlock extends StatelessWidget {
         final actions = _InfoActionsColumn(
           onPlayTap: onPlayTap,
           isPlayLoading: isPlayLoading,
+          playLabel: playLabel,
           isSubscribed: isSubscribed,
           onSubscriptionTap: onSubscriptionTap,
           isSubscriptionUpdating: isSubscriptionUpdating,
@@ -411,6 +416,7 @@ class _InfoActionsColumn extends StatelessWidget {
   const _InfoActionsColumn({
     required this.onPlayTap,
     required this.isPlayLoading,
+    required this.playLabel,
     required this.isSubscribed,
     required this.onSubscriptionTap,
     required this.isSubscriptionUpdating,
@@ -430,6 +436,7 @@ class _InfoActionsColumn extends StatelessWidget {
 
   final VoidCallback? onPlayTap;
   final bool isPlayLoading;
+  final String? playLabel;
   final bool isSubscribed;
   final VoidCallback? onSubscriptionTap;
   final bool isSubscriptionUpdating;
@@ -555,6 +562,7 @@ class _InfoActionsColumn extends StatelessWidget {
           _InfoSplitPlayButton(
             onPlayTap: isPlayLoading ? null : onPlayTap,
             isPlayLoading: isPlayLoading,
+            playLabel: playLabel,
             hasMerge: _hasMerge,
             mergeTooltip: _hasMerge ? mergePlaybackLabel!.trim() : '',
             onMergeTap: isMergePlaybackLoading ? null : onMergePlaybackTap,
@@ -588,6 +596,7 @@ class _InfoSplitPlayButton extends StatelessWidget {
   const _InfoSplitPlayButton({
     required this.onPlayTap,
     required this.isPlayLoading,
+    required this.playLabel,
     required this.hasMerge,
     required this.mergeTooltip,
     required this.onMergeTap,
@@ -596,6 +605,7 @@ class _InfoSplitPlayButton extends StatelessWidget {
 
   final VoidCallback? onPlayTap;
   final bool isPlayLoading;
+  final String? playLabel;
   final bool hasMerge;
   final String mergeTooltip;
   final VoidCallback? onMergeTap;
@@ -643,7 +653,8 @@ class _InfoSplitPlayButton extends StatelessWidget {
                       ),
                       SizedBox(width: tokens.buttonGapMd),
                       Text(
-                        AppLocalizations.of(context).movieWidgetPlay,
+                        playLabel ??
+                            AppLocalizations.of(context).movieWidgetPlay,
                         style: resolveAppTextStyle(
                           context,
                           size: AppTextSize.s14,

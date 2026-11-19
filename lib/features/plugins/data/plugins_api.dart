@@ -15,6 +15,7 @@ class PluginsApi {
 
   static const _releaseCheckTimeout = Duration(seconds: 10);
   static const _marketIndexTimeout = Duration(seconds: 15);
+  static const _applyChangesTimeout = Duration(minutes: 5);
 
   final ApiClient _apiClient;
 
@@ -175,6 +176,20 @@ class PluginsApi {
       data: settings,
     );
     return PluginSettingsDto.fromJson(response);
+  }
+
+  /// 同步插件依赖并触发 api/aps 重启。
+  ///
+  /// 首次安装带 dependencies 的插件时，pip 安装会在请求内完成，因此使用
+  /// 更长的接收超时；依赖同步失败时后端返回 422 且不会重启。
+  /// 返回重启前进程的 `boot_id`，供前端确认后端确实换了一个进程。
+  Future<String?> applyChanges() async {
+    final response = await _apiClient.post(
+      '/system/plugins/apply',
+      receiveTimeout: _applyChangesTimeout,
+    );
+    final bootId = response['boot_id'];
+    return bootId is String && bootId.isNotEmpty ? bootId : null;
   }
 
   Future<PluginTestResultDto> testCapability(

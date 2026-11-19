@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
@@ -53,7 +54,12 @@ class _DesktopOverviewPageState extends ConsumerState<DesktopOverviewPage> {
   static const _recentlySubscribedScope =
       MovieSummaryScope.recentlySubscribed();
 
-  /// 预览分区的占位项数量（「最近添加」「最近订阅」「最近播放」各一行横向
+  /// 「继续观看」只看最近播放里未看完的影片；已看完的归入「已看」筛选。
+  static const _continueWatchingFilter = MovieFilterState(
+    watchStatus: MovieWatchStatusFilter.watching,
+  );
+
+  /// 预览分区的占位项数量（「最近添加」「最近订阅」「继续观看」各一行横向
   /// rail，更多内容进各自页面）。
   static const int _previewItemCount = 12;
 
@@ -74,7 +80,10 @@ class _DesktopOverviewPageState extends ConsumerState<DesktopOverviewPage> {
         ref
             .read(
               movieSummaryProvider(
-                MovieSummaryScope.playlist(playlistId: recentPlaylist.id),
+                MovieSummaryScope.playlist(
+                  playlistId: recentPlaylist.id,
+                  initialMovieFilter: _continueWatchingFilter,
+                ),
               ).notifier,
             )
             .refresh(),
@@ -126,7 +135,10 @@ class _DesktopOverviewPageState extends ConsumerState<DesktopOverviewPage> {
     final recentPlaylist = ref.watch(_recentlyPlayedPlaylistProvider).value;
     final recentScope = recentPlaylist == null
         ? null
-        : MovieSummaryScope.playlist(playlistId: recentPlaylist.id);
+        : MovieSummaryScope.playlist(
+            playlistId: recentPlaylist.id,
+            initialMovieFilter: _continueWatchingFilter,
+          );
     final recentAsync = recentScope == null
         ? null
         : ref.watch(movieSummaryProvider(recentScope));
@@ -220,10 +232,12 @@ class _DesktopOverviewPageState extends ConsumerState<DesktopOverviewPage> {
             SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.xl)),
             SliverToBoxAdapter(
               child: AppSectionHeader(
-                title: l10n.overviewRecentlyPlayed,
-                trailingText: l10n.overviewMovieCount(
-                  formatCount(recentPlaylist.movieCount),
-                ),
+                title: l10n.overviewContinueWatching,
+                trailingText: recentAsync?.value == null
+                    ? null
+                    : l10n.overviewMovieCount(
+                        formatCount(recentAsync!.value!.paged.total),
+                      ),
                 actionLabel: l10n.overviewMore,
                 actionKey: const Key('overview-recent-played-more'),
                 onActionTap: () => DesktopRoutes.playlistDetail(
@@ -247,7 +261,7 @@ class _DesktopOverviewPageState extends ConsumerState<DesktopOverviewPage> {
                         recentAsync?.value == null
                     ? recentScope.errorText(l10n)
                     : null,
-                emptyMessage: l10n.overviewNoWatchHistory,
+                emptyMessage: l10n.overviewContinueWatchingEmpty,
               ),
             ),
           ],

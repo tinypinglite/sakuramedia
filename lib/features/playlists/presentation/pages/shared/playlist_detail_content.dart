@@ -24,6 +24,7 @@ import 'package:sakuramedia/features/playlists/presentation/providers/playlist_d
 import 'package:sakuramedia/features/playlists/presentation/providers/playlist_mutation_events_provider.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_api_provider.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_editor_dialog.dart';
+import 'package:sakuramedia/features/playlists/presentation/widgets/smart_playlist_editor.dart';
 import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_detail_action_menu.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_filter_drawer.dart';
@@ -181,6 +182,9 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
                           title: playlist.name,
                           coverImageUrl:
                               view.items.firstOrNull?.coverImage?.origin,
+                          badgeLabel: playlist.isSmart
+                              ? AppLocalizations.of(context).playlistSmartBadge
+                              : null,
                         ),
                         if (canManage)
                           Positioned(
@@ -206,6 +210,7 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
                       playlist.movieCount,
                       view.filterUpdate,
                       view.items.isNotEmpty,
+                      isSmart: playlist.isSmart,
                     ),
               headerBottomSpacing: _isMobile
                   ? context.appSpacing.md
@@ -370,13 +375,15 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
   }
 
   Future<void> _editPlaylist(PlaylistDto playlist) async {
-    final updated = await showPlaylistEditor(
-      context,
-      playlist: playlist,
-      presentation: _isMobile
-          ? CollectionEditorPresentation.drawer
-          : CollectionEditorPresentation.dialog,
-    );
+    final updated = playlist.isSmart
+        ? await showSmartPlaylistEditor(context, playlist: playlist)
+        : await showPlaylistEditor(
+            context,
+            playlist: playlist,
+            presentation: _isMobile
+                ? CollectionEditorPresentation.drawer
+                : CollectionEditorPresentation.dialog,
+          );
     if (!mounted || updated == null) {
       return;
     }
@@ -384,6 +391,10 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
         .read(playlistDetailProvider(widget.playlistId).notifier)
         .applyUpdated(updated);
     ref.read(playlistMutationEventsProvider.notifier).reportUpdated(updated);
+    if (playlist.isSmart) {
+      // 智能列表的成员由筛选条件实时计算，保存后必须重新拉取当前 scope。
+      unawaited(ref.read(movieSummaryProvider(_scope).notifier).refresh());
+    }
   }
 
   Future<void> _deletePlaylist(PlaylistDto playlist) async {
@@ -415,12 +426,16 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
   }
 
   /// 列表顶栏：桌面使用 `AppGlassListHeader`，移动使用紧凑玻璃控制行。
+  ///
+  /// 智能列表的排序/筛选由保存的 smart_filter 决定，详情页不提供临时筛选
+  /// 入口，避免 UI 显示「全部/默认」但服务端仍按保存条件过滤。
   Widget _buildListHeader(
     BuildContext context,
     int totalMovies,
     FilterUpdateState filterUpdate,
-    bool hasPreviousFilterItems,
-  ) {
+    bool hasPreviousFilterItems, {
+    required bool isSmart,
+  }) {
     final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
     final l10n = AppLocalizations.of(context);
     if (!isMobile) {
@@ -430,6 +445,7 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
         totalMovies,
         filterUpdate,
         hasPreviousFilterItems,
+        isSmart: isSmart,
       );
     }
     return AppMobileListHeader(
@@ -438,22 +454,24 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
         countLabel: l10n.playlistMovieCount(totalMovies),
       ),
       actions: <Widget>[
-        AppGlassFilterIconButton(
-          key: const Key('playlist-detail-filter-trigger'),
-          summary: _filterState.triggerLabel(l10n),
-          isActive: _filterState.hasActiveFilters,
-          onPressed: () => unawaited(_openFilterDrawer()),
-        ),
-        PlaylistSortMenuButton(
-          triggerKey: const Key('playlist-detail-sort-trigger'),
-          panelKey: const Key('playlist-detail-sort-panel'),
-          drawerKey: const Key('mobile-playlist-detail-sort-drawer'),
-          keyPrefix: 'mobile-playlist',
-          filterState: _filterState,
-          onChanged: _applyFilter,
-          useDrawer: true,
-          iconOnly: true,
-        ),
+        if (!isSmart) ...[
+          AppGlassFilterIconButton(
+            key: const Key('playlist-detail-filter-trigger'),
+            summary: _filterState.triggerLabel(l10n),
+            isActive: _filterState.hasActiveFilters,
+            onPressed: () => unawaited(_openFilterDrawer()),
+          ),
+          PlaylistSortMenuButton(
+            triggerKey: const Key('playlist-detail-sort-trigger'),
+            panelKey: const Key('playlist-detail-sort-panel'),
+            drawerKey: const Key('mobile-playlist-detail-sort-drawer'),
+            keyPrefix: 'mobile-playlist',
+            filterState: _filterState,
+            onChanged: _applyFilter,
+            useDrawer: true,
+            iconOnly: true,
+          ),
+        ],
         AppGlassIconButton(
           key: const Key('playlist-detail-enter-selection-button'),
           tooltip: l10n.baseSelect,
@@ -474,9 +492,31 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
     AppLocalizations l10n,
     int totalMovies,
     FilterUpdateState filterUpdate,
-    bool hasPreviousFilterItems,
-  ) {
+    bool hasPreviousFilterItems, {
+    required bool isSmart,
+  }) {
     final filter = _filterState;
+    final batchSelectButton = AppGlassHeaderButton(
+      key: const Key('playlist-detail-enter-selection-button'),
+      icon: Icons.check_circle_outline,
+      label: l10n.baseSelect,
+      enabled: batchSelectableNumbers.isNotEmpty,
+      onTap: enterSelection,
+    );
+    if (isSmart) {
+      return AppGlassListHeader(
+        leading: AppGlassHeaderText(
+          key: const Key('playlist-detail-total'),
+          label: l10n.playlistMovieCount(totalMovies),
+        ),
+        trailing: AppGlassHeaderGroup(children: <Widget>[batchSelectButton]),
+        filterUpdate: filterUpdate,
+        hasPreviousFilterItems: hasPreviousFilterItems,
+        onRetryFilter: () => unawaited(
+          ref.read(movieSummaryProvider(_scope).notifier).retryFilter(),
+        ),
+      );
+    }
     return AppGlassListHeader(
       leading: AppGlassFilterPopover(
         panelKey: const Key('playlist-detail-filter-panel'),
@@ -517,13 +557,7 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
             fieldControlKey: const Key('playlist-detail-sort-field'),
             directionControlKey: const Key('playlist-detail-sort-direction'),
           ),
-          AppGlassHeaderButton(
-            key: const Key('playlist-detail-enter-selection-button'),
-            icon: Icons.check_circle_outline,
-            label: l10n.baseSelect,
-            enabled: batchSelectableNumbers.isNotEmpty,
-            onTap: enterSelection,
-          ),
+          batchSelectButton,
         ],
       ),
       filterUpdate: filterUpdate,

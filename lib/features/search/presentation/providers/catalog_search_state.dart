@@ -58,6 +58,7 @@ class CatalogSearchState {
 
   static bool hasActiveMovieFilterConditions(MovieFilterState filter) =>
       filter.status != MovieStatusFilter.all ||
+      filter.watchStatus != MovieWatchStatusFilter.all ||
       filter.collectionType != MovieCollectionTypeFilter.all ||
       filter.numberSource != MovieNumberSourceFilter.all ||
       filter.years.isNotEmpty ||

@@ -30,6 +30,9 @@ class PlaylistsOverview extends _$PlaylistsOverview
     with AsyncNotifierDisposeGuardMixin<PlaylistsOverviewState> {
   int _coverFetchGeneration = 0;
 
+  /// 首屏还在加载或加载失败时创建/广播过来的列表；加载完成后合并进状态。
+  final List<PlaylistDto> _pendingCreatedPlaylists = <PlaylistDto>[];
+
   @override
   Future<PlaylistsOverviewState> build(PlaylistsOverviewScope scope) async {
     attachDisposeGuard();
@@ -37,6 +40,11 @@ class PlaylistsOverview extends _$PlaylistsOverview
       final change = next.value;
       if (change == null) return;
       switch (change.kind) {
+        case PlaylistMutationKind.created:
+          final playlist = change.playlist;
+          if (playlist != null) {
+            insertPlaylist(playlist);
+          }
         case PlaylistMutationKind.updated:
           final playlist = change.playlist;
           if (playlist != null) {
@@ -49,7 +57,9 @@ class PlaylistsOverview extends _$PlaylistsOverview
           }
       }
     });
-    final playlists = await _loadAndApplyPlaylists();
+    final playlists = _mergePendingCreatedPlaylists(
+      await _loadAndApplyPlaylists(),
+    );
     final coverFetchGeneration = ++_coverFetchGeneration;
     // 首次加载没有旧封面；后续刷新会保留仍有效的旧封面，避免卡片回退到占位。
     unawaited(_startCoverUrlFetches(playlists, coverFetchGeneration));
@@ -64,7 +74,9 @@ class PlaylistsOverview extends _$PlaylistsOverview
   /// 向上抛——4 个调用点都按「抛出即失败」契约处理（桌面壳 `_runRefresh` 兜底
   /// toast、移动页/概览骨架自行 catch + toast、configuration 对账刻意静默）。
   Future<void> refresh() async {
-    final playlists = await _loadAndApplyPlaylists();
+    final playlists = _mergePendingCreatedPlaylists(
+      await _loadAndApplyPlaylists(),
+    );
     if (isDisposed) return;
     final current = state.value;
     final coverFetchGeneration = ++_coverFetchGeneration;
@@ -155,7 +167,11 @@ class PlaylistsOverview extends _$PlaylistsOverview
   /// 已由外部创建：前置插入本地列表 + fire-and-forget 保存新顺序。
   void insertPlaylist(PlaylistDto playlist) {
     final current = state.value;
-    if (current == null) return;
+    if (current == null) {
+      _pendingCreatedPlaylists.removeWhere((item) => item.id == playlist.id);
+      _pendingCreatedPlaylists.add(playlist);
+      return;
+    }
     final playlists = <PlaylistDto>[playlist, ...current.playlists];
     final coverUrls = <int, String?>{...current.coverUrls, playlist.id: null};
     state = AsyncData(
@@ -164,7 +180,29 @@ class PlaylistsOverview extends _$PlaylistsOverview
     unawaited(_savePlaylistOrder(playlists));
   }
 
+  List<PlaylistDto> _mergePendingCreatedPlaylists(List<PlaylistDto> playlists) {
+    if (_pendingCreatedPlaylists.isEmpty) {
+      return playlists;
+    }
+    final existingIds = playlists.map((item) => item.id).toSet();
+    final pending = _pendingCreatedPlaylists
+        .where((item) => !existingIds.contains(item.id))
+        .toList(growable: false);
+    _pendingCreatedPlaylists.clear();
+    final merged = <PlaylistDto>[...pending, ...playlists];
+    if (pending.isNotEmpty) {
+      unawaited(_savePlaylistOrder(merged));
+    }
+    return merged;
+  }
+
   void replacePlaylist(PlaylistDto playlist) {
+    final pendingIndex = _pendingCreatedPlaylists.indexWhere(
+      (item) => item.id == playlist.id,
+    );
+    if (pendingIndex >= 0) {
+      _pendingCreatedPlaylists[pendingIndex] = playlist;
+    }
     final current = state.value;
     if (current == null) return;
     final updated = List<PlaylistDto>.from(current.playlists);
@@ -182,6 +220,7 @@ class PlaylistsOverview extends _$PlaylistsOverview
   }
 
   void removePlaylist(int playlistId) {
+    _pendingCreatedPlaylists.removeWhere((item) => item.id == playlistId);
     final current = state.value;
     if (current == null) return;
     final playlists = current.playlists

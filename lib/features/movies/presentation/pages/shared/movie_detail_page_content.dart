@@ -279,6 +279,7 @@ class MovieDetailPageContent extends ConsumerWidget {
                   isMoreActionsUpdating: state.isMoreActionsUpdating,
                   isPlayLoading: state.isPlayLoading,
                   onPlayTap: actions.onPlayTap,
+                  playLabel: state.playLabel,
                   mergePlaybackLabel: normalizedMergePlaybackLabel.isEmpty
                       ? null
                       : normalizedMergePlaybackLabel,

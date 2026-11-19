@@ -98,11 +98,57 @@ void main() {
     expect(request.path, '/playlists');
     expect(request.body, <String, dynamic>{
       'name': '稍后再看',
+      'kind': 'custom',
       'description': 'Need watch later',
     });
     expect(playlist.name, '稍后再看');
     expect(playlist.kind, 'custom');
     expect(playlist.isSystem, isFalse);
+    expect(playlist.isSmart, isFalse);
+  });
+
+  test('createPlaylist sends smart filter snapshot', () async {
+    adapter.enqueueJson(
+      method: 'POST',
+      path: '/playlists',
+      statusCode: 201,
+      body: <String, dynamic>{
+        'id': 9,
+        'name': '高分未看',
+        'kind': 'smart',
+        'description': '',
+        'is_system': false,
+        'is_mutable': true,
+        'is_deletable': true,
+        'is_smart': true,
+        'smart_filter': <String, dynamic>{
+          'watch_status': 'unwatched',
+          'heat_min': 800,
+        },
+        'movie_count': 12,
+        'created_at': '2026-03-12T10:10:00Z',
+        'updated_at': '2026-03-12T10:10:00Z',
+      },
+    );
+
+    final playlist = await playlistsApi.createPlaylist(
+      name: '高分未看',
+      kind: PlaylistKind.smart,
+      smartFilter: <String, dynamic>{
+        'watch_status': 'unwatched',
+        'heat_min': 800,
+      },
+    );
+
+    final request = adapter.requests.single;
+    expect(request.body, <String, dynamic>{
+      'name': '高分未看',
+      'kind': 'smart',
+      'filter': <String, dynamic>{'watch_status': 'unwatched', 'heat_min': 800},
+    });
+    expect(playlist.kind, PlaylistKind.smart);
+    expect(playlist.isSmart, isTrue);
+    expect(playlist.movieCount, 12);
   });
 
   test('createPlaylist converts conflict response to ApiException', () async {
@@ -153,6 +199,83 @@ void main() {
     expect(playlist.id, 8);
     expect(playlist.movieCount, 8);
     expect(playlist.updatedAt, DateTime.parse('2026-03-12T11:20:00Z'));
+  });
+
+  test('getPlaylistDetail parses the smart filter snapshot', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists/9',
+      body: <String, dynamic>{
+        'id': 9,
+        'name': '高分未看',
+        'kind': 'smart',
+        'description': '',
+        'is_system': false,
+        'is_mutable': true,
+        'is_deletable': true,
+        'is_smart': true,
+        'smart_filter': <String, dynamic>{
+          'statuses': <String>['subscribed', 'playable'],
+          'status_match': 'and',
+          'watch_statuses': <String>['unwatched'],
+          'watch_match': 'or',
+          'collection_type': 'single',
+          'number_source': 'fc2',
+          'sort': 'heat:desc',
+          'years': <int>[2024],
+          'resolutions': <String>['4K', '1080P'],
+          'tag_ids': <int>[1, 2],
+          'tag_match': 'and',
+          'media_tag_ids': <int>[3],
+          'media_tag_match': 'or',
+          'actor_ids': <int>[7, 8],
+          'actor_match': 'and',
+          'actor_age_min': 20,
+          'actor_age_max': 30,
+          'heat_min': 100,
+          'heat_max': 900,
+        },
+        'movie_count': 12,
+        'created_at': '2026-03-12T10:10:00Z',
+        'updated_at': '2026-03-12T10:10:00Z',
+      },
+    );
+
+    final playlist = await playlistsApi.getPlaylistDetail(playlistId: 9);
+    final smart = playlist.smartFilter;
+
+    expect(playlist.isSmart, isTrue);
+    expect(smart, isNotNull);
+    expect(smart!.statuses, <String>['subscribed', 'playable']);
+    expect(smart.statusMatch, 'and');
+    expect(smart.watchStatuses, <String>['unwatched']);
+    expect(smart.watchMatch, 'or');
+    expect(smart.collectionType, 'single');
+    expect(smart.numberSource, 'fc2');
+    expect(smart.sort, 'heat:desc');
+    expect(smart.years, <int>[2024]);
+    expect(smart.resolutions, <String>['4K', '1080P']);
+    expect(smart.tagIds, <int>[1, 2]);
+    expect(smart.tagMatch, 'and');
+    expect(smart.mediaTagIds, <int>[3]);
+    expect(smart.actorIds, <int>[7, 8]);
+    expect(smart.actorMatch, 'and');
+    expect(smart.actorAgeMin, 20);
+    expect(smart.actorAgeMax, 30);
+    expect(smart.heatMin, 100);
+    expect(smart.heatMax, 900);
+  });
+
+  test('smart filter keeps compatibility with legacy single values', () {
+    final smart = SmartPlaylistFilterDto.fromJson(<String, dynamic>{
+      'status': 'playable',
+      'watch_status': 'unwatched',
+      'resolution': '4K',
+    });
+
+    expect(smart.statuses, <String>['playable']);
+    expect(smart.watchStatuses, <String>['unwatched']);
+    expect(smart.resolutions, <String>['4K']);
   });
 
   test('updatePlaylist sends patch request and parses response', () async {

@@ -84,6 +84,7 @@ class MovieDetailViewState {
     this.isMoreActionsUpdating = false,
     this.isDeletingSelectedMedia = false,
     this.isPlayLoading = false,
+    this.playLabel,
     this.mergePlaybackLabel,
     this.isMergePlaybackLoading = false,
     this.isSimilarMoviesLoading = false,
@@ -100,6 +101,9 @@ class MovieDetailViewState {
   final bool isMoreActionsUpdating;
   final bool isDeletingSelectedMedia;
   final bool isPlayLoading;
+
+  /// 播放键文案；选中媒体存在可续播进度时为「继续播放」，null 走默认「播放」。
+  final String? playLabel;
   final String? mergePlaybackLabel;
   final bool isMergePlaybackLoading;
   final bool isSimilarMoviesLoading;
@@ -215,6 +219,7 @@ class MovieDetailDerived {
     required this.isSubscribed,
     required this.isBlacklisted,
     required this.isCollection,
+    required this.isWatched,
     required this.isActionControlsLocked,
     required this.selectedMedia,
   });
@@ -223,6 +228,9 @@ class MovieDetailDerived {
   final bool isSubscribed;
   final bool isBlacklisted;
   final bool isCollection;
+
+  /// 任一媒体已看完即视为影片已看；标记动作按它切换“已看/未看”。
+  final bool isWatched;
   final bool isActionControlsLocked;
   final MovieMediaItemDto? selectedMedia;
 }

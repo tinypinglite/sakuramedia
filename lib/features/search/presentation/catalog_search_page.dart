@@ -515,6 +515,8 @@ class _CatalogSearchPageState extends ConsumerState<CatalogSearchPage>
     final filter = state.movieFilter;
     final labels = <String>[
       if (filter.status != MovieStatusFilter.all) filter.status.labelWith(l10n),
+      if (filter.watchStatus != MovieWatchStatusFilter.all)
+        filter.watchStatus.labelWith(l10n),
       if (filter.collectionType != MovieCollectionTypeFilter.all)
         filter.collectionType.labelWith(l10n),
       if (filter.numberSource != MovieNumberSourceFilter.all)

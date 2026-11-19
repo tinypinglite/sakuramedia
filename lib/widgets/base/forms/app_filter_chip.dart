@@ -2,9 +2,15 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
+/// 筛选面板里的多选胶囊的选中态。
+///
+/// [neutral] 是筛选浮层里的中性选中态；[accent] 用品牌色淡底 + 品牌色文字，
+/// 适合放在白色卡片表单里，避免选中态在浅色卡片上不够明显。
+enum AppFilterChipSelectionStyle { neutral, accent }
+
 /// 筛选面板里的多选胶囊。
 ///
-/// 与单选分段控件使用同一套中性选中态；不做背景模糊，避免标签云里几百个
+/// 默认与单选分段控件使用同一套中性选中态；不做背景模糊，避免标签云里几百个
 /// chip 叠成大量玻璃层。交互反馈沿用项目统一的 [AppInteractiveSurface]。
 class AppFilterChip extends StatelessWidget {
   const AppFilterChip({
@@ -17,6 +23,7 @@ class AppFilterChip extends StatelessWidget {
     this.semanticLabel,
     this.labelKey,
     this.maxWidth,
+    this.selectionStyle = AppFilterChipSelectionStyle.neutral,
   });
 
   final String label;
@@ -27,19 +34,29 @@ class AppFilterChip extends StatelessWidget {
   final String? semanticLabel;
   final Key? labelKey;
   final double? maxWidth;
+  final AppFilterChipSelectionStyle selectionStyle;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.appColors;
     final tokens = context.appComponentTokens;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final tone = selected ? AppTextTone.primary : AppTextTone.secondary;
+    final useAccent =
+        selected && selectionStyle == AppFilterChipSelectionStyle.accent;
+    final accentColor = Theme.of(context).colorScheme.primary;
+    final tone = useAccent
+        ? AppTextTone.accent
+        : (selected ? AppTextTone.primary : AppTextTone.secondary);
     final foreground = resolveAppTextToneColor(context, tone);
     final interactive = enabled && onPressed != null;
     final backgroundColor = selected
-        ? (isDark
-              ? context.appColors.mediaOverlayBorder.withValues(alpha: 0.24)
-              : colors.surfaceElevated)
+        ? (useAccent
+              ? accentColor.withValues(alpha: isDark ? 0.24 : 0.10)
+              : (isDark
+                    ? context.appColors.mediaOverlayBorder.withValues(
+                        alpha: 0.24,
+                      )
+                    : colors.surfaceElevated))
         : (isDark
               ? context.appColors.mediaOverlaySoft
               : colors.surfaceMuted.withValues(alpha: 0.55));
@@ -57,7 +74,9 @@ class AppFilterChip extends StatelessWidget {
         borderRadius: context.appRadius.pillBorder,
         border: Border.all(
           color: selected
-              ? colors.borderStrong
+              ? (useAccent
+                    ? accentColor.withValues(alpha: 0.45)
+                    : colors.borderStrong)
               : colors.borderSubtle.withValues(alpha: 0.6),
         ),
       ),

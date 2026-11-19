@@ -166,4 +166,47 @@ void main() {
       ),
     );
   });
+
+  test(
+    'health checks are unauthenticated and never report connection failures',
+    () async {
+      final failures = <ApiException>[];
+      final subscription = apiClient.connectionFailures.listen(failures.add);
+      addTearDown(subscription.cancel);
+
+      await sessionStore.saveTokens(
+        accessToken: 'access-token',
+        refreshToken: 'refresh-token',
+        expiresAt: DateTime.parse('2030-01-01T00:00:00Z'),
+      );
+
+      adapter.enqueueJson(
+        method: 'GET',
+        path: '/healthz',
+        body: <String, dynamic>{'status': 'ok', 'boot_id': 'boot-1'},
+      );
+      final health = await apiClient.fetchHealth();
+      expect(health.healthy, isTrue);
+      expect(health.bootId, 'boot-1');
+      final successRequest = adapter.requests.last;
+      expect(successRequest.headers['Authorization'], isNull);
+      expect(successRequest.connectTimeout, const Duration(seconds: 5));
+      expect(successRequest.receiveTimeout, const Duration(seconds: 5));
+
+      adapter.enqueueResponder(
+        method: 'GET',
+        path: '/healthz',
+        responder: (options, _) async {
+          throw DioException(
+            requestOptions: options,
+            type: DioExceptionType.connectionError,
+          );
+        },
+      );
+      final down = await apiClient.fetchHealth();
+      expect(down.healthy, isFalse);
+      expect(down.bootId, isNull);
+      expect(failures, isEmpty);
+    },
+  );
 }

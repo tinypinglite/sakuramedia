@@ -32,6 +32,7 @@ class MoviesApi {
 
   Future<PaginatedResponseDto<MovieListItemDto>> getMovies({
     MovieStatusFilter? status,
+    MovieWatchStatusFilter? watchStatus,
     MovieCollectionTypeFilter? collectionType,
     MovieNumberSourceFilter? numberSource,
     String? sort,
@@ -60,6 +61,9 @@ class MoviesApi {
     }
     if (status != null) {
       queryParameters['status'] = status.apiValue;
+    }
+    if (watchStatus != null && watchStatus != MovieWatchStatusFilter.all) {
+      queryParameters['watch_status'] = watchStatus.apiValue;
     }
     if (collectionType != null) {
       queryParameters['collection_type'] = collectionType.apiValue;
@@ -357,6 +361,18 @@ class MoviesApi {
     return _apiClient.deleteNoContent(
       '/movies/$movieNumber/subscription',
       queryParameters: <String, dynamic>{'delete_media': deleteMedia},
+    );
+  }
+
+  /// 手动标记已看/未看；`state` 只接受 [MovieWatchStatusFilter.watched] 与
+  /// [MovieWatchStatusFilter.unwatched]。
+  Future<void> setMovieWatchState({
+    required String movieNumber,
+    required MovieWatchStatusFilter state,
+  }) async {
+    await _apiClient.put(
+      '/movies/$movieNumber/watch-state',
+      data: <String, dynamic>{'state': state.apiValue},
     );
   }
 

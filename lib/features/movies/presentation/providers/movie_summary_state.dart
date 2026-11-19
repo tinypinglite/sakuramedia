@@ -54,6 +54,7 @@ class MovieSummaryFilter {
   @override
   int get hashCode => Object.hash(
     movie.status,
+    movie.watchStatus,
     movie.collectionType,
     movie.numberSource,
     movie.sortField,

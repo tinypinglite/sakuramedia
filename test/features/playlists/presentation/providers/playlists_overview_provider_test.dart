@@ -207,6 +207,39 @@ void main() {
     expect(orderStore.snapshot['test'], <int>[99, 10]);
   });
 
+  test('insertPlaylist during initial load is merged after load', () async {
+    final gate = Completer<void>();
+    adapter.enqueueResponder(
+      method: 'GET',
+      path: '/playlists',
+      responder: (options, _) async {
+        await gate.future;
+        return ResponseBody.fromString(
+          jsonEncode(<Map<String, dynamic>>[_playlistJson(id: 10, name: 'A')]),
+          200,
+          headers: const <String, List<String>>{
+            Headers.contentTypeHeader: <String>[Headers.jsonContentType],
+          },
+        );
+      },
+    );
+
+    keepAlive(_scopeWithOrder);
+    final future = container.read(
+      playlistsOverviewProvider(_scopeWithOrder).future,
+    );
+    container
+        .read(playlistsOverviewProvider(_scopeWithOrder).notifier)
+        .insertPlaylist(
+          PlaylistDto.fromJson(_playlistJson(id: 99, name: 'New')),
+        );
+    gate.complete();
+
+    final state = await future;
+    expect(state.playlists.map((p) => p.id), <int>[99, 10]);
+    expect(orderStore.snapshot['test'], <int>[99, 10]);
+  });
+
   test('removePlaylist drops the playlist and persists new order', () async {
     adapter.enqueueJson(
       method: 'GET',
@@ -255,7 +288,7 @@ void main() {
   });
 
   test(
-    'mutation broadcast patches updated and deleted entries in place',
+    'mutation broadcast inserts created and patches updated/deleted entries',
     () async {
       adapter.enqueueJson(
         method: 'GET',
@@ -270,19 +303,27 @@ void main() {
       await container.read(playlistsOverviewProvider(_scopeWithOrder).future);
 
       final events = container.read(playlistMutationEventsProvider.notifier);
-      events.reportUpdated(
-        PlaylistDto.fromJson(_playlistJson(id: 11, name: 'B2')),
+      events.reportCreated(
+        PlaylistDto.fromJson(_playlistJson(id: 12, name: '智能片单')),
       );
       var state = container
           .read(playlistsOverviewProvider(_scopeWithOrder))
           .requireValue;
-      expect(state.playlists.map((p) => p.name), <String>['A', 'B2']);
+      expect(state.playlists.map((p) => p.id), <int>[12, 10, 11]);
+
+      events.reportUpdated(
+        PlaylistDto.fromJson(_playlistJson(id: 11, name: 'B2')),
+      );
+      state = container
+          .read(playlistsOverviewProvider(_scopeWithOrder))
+          .requireValue;
+      expect(state.playlists.map((p) => p.name), <String>['智能片单', 'A', 'B2']);
 
       events.reportDeleted(10);
       state = container
           .read(playlistsOverviewProvider(_scopeWithOrder))
           .requireValue;
-      expect(state.playlists.map((p) => p.id), <int>[11]);
+      expect(state.playlists.map((p) => p.id), <int>[12, 11]);
     },
   );
 

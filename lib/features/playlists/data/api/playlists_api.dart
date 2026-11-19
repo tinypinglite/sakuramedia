@@ -19,13 +19,17 @@ class PlaylistsApi {
   Future<PlaylistDto> createPlaylist({
     required String name,
     String? description,
+    String kind = PlaylistKind.custom,
+    Map<String, dynamic>? smartFilter,
   }) async {
     final response = await _apiClient.post(
       '/playlists',
       data: <String, dynamic>{
         'name': name.trim(),
+        'kind': kind,
         if (description != null && description.trim().isNotEmpty)
           'description': description.trim(),
+        if (smartFilter != null) 'filter': smartFilter,
       },
     );
     return PlaylistDto.fromJson(response);
@@ -57,6 +61,7 @@ class PlaylistsApi {
     int pageSize = 20,
     String? sort,
     String? resolution,
+    String? watchStatus,
   }) async {
     final response = await _apiClient.get(
       '/playlists/$playlistId/movies',
@@ -65,6 +70,7 @@ class PlaylistsApi {
         'page_size': pageSize,
         if (sort != null) 'sort': sort,
         if (resolution != null) 'resolution': resolution,
+        if (watchStatus != null) 'watch_status': watchStatus,
       },
     );
     return PaginatedResponseDto<MovieListItemDto>.fromJson(

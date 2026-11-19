@@ -1205,8 +1205,8 @@
     }
   },
   "pluginDeleteFailed": "删除插件失败",
-  "pluginRestartNoticeTitle": "稍后需要重启后端",
-  "pluginRestartNoticeInstalledMessage": "插件包「{name}」已安装。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "pluginRestartNoticeTitle": "需要重启后端才能生效",
+  "pluginRestartNoticeInstalledMessage": "插件包「{name}」已安装，重启后端后生效。",
   "@pluginRestartNoticeInstalledMessage": {
     "placeholders": {
       "name": {
@@ -1214,7 +1214,7 @@
       }
     }
   },
-  "pluginRestartNoticeUpgradedMessage": "插件「{name}」已更新。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "pluginRestartNoticeUpgradedMessage": "插件「{name}」已更新，重启后端后生效。",
   "@pluginRestartNoticeUpgradedMessage": {
     "placeholders": {
       "name": {
@@ -1222,7 +1222,7 @@
       }
     }
   },
-  "pluginRestartNoticeDeletedMessage": "插件「{name}」已删除。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "pluginRestartNoticeDeletedMessage": "插件「{name}」已删除，重启后端后生效。",
   "@pluginRestartNoticeDeletedMessage": {
     "placeholders": {
       "name": {
@@ -1230,7 +1230,7 @@
       }
     }
   },
-  "pluginRestartNoticeEnabledMessage": "插件「{name}」已启用。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "pluginRestartNoticeEnabledMessage": "插件「{name}」已启用，重启后端后生效。",
   "@pluginRestartNoticeEnabledMessage": {
     "placeholders": {
       "name": {
@@ -1238,7 +1238,7 @@
       }
     }
   },
-  "pluginRestartNoticeDisabledMessage": "插件「{name}」已停用。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "pluginRestartNoticeDisabledMessage": "插件「{name}」已停用，重启后端后生效。",
   "@pluginRestartNoticeDisabledMessage": {
     "placeholders": {
       "name": {
@@ -1246,7 +1246,7 @@
       }
     }
   },
-  "pluginRestartNoticeSettingsSavedMessage": "插件「{name}」的配置已保存。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
+  "pluginRestartNoticeSettingsSavedMessage": "插件「{name}」的配置已保存，重启后端后生效。",
   "@pluginRestartNoticeSettingsSavedMessage": {
     "placeholders": {
       "name": {
@@ -1254,9 +1254,14 @@
       }
     }
   },
-  "pluginRestartNoticeBindingsSavedMessage": "插件来源绑定已保存。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
-  "pluginRestartNoticeMetadataOrderSavedMessage": "元数据源顺序已保存。稍后需要重启后端容器，变更才会生效。后端容器重启完成后，请完全退出 App 后重新打开。",
-  "pluginRestartNoticeConfirm": "知道了",
+  "pluginRestartNoticeBindingsSavedMessage": "插件来源绑定已保存，重启后端后生效。",
+  "pluginRestartNoticeMetadataOrderSavedMessage": "元数据源顺序已保存，重启后端后生效。",
+  "pluginRestartNoticeLater": "稍后",
+  "pluginRestartNoticeRestartNow": "立即重启",
+  "pluginRestartNoticeBusy": "正在应用变更并等待后端重启…",
+  "pluginRestartNoticeSuccess": "后端已重启，变更已生效",
+  "pluginRestartNoticeWaitTimeout": "等待后端重启超时，请稍后重试",
+  "pluginRestartNoticeApplyFailed": "重启后端失败",
   "pluginMarketInstallMessage": "将从 {repo} 下载 v{version} 安装包并安装「{name}」。",
   "@pluginMarketInstallMessage": {
     "placeholders": {
@@ -2095,7 +2100,8 @@
   "overviewMore": "更多",
   "overviewRecentlyAdded": "最近添加",
   "overviewRecentlySubscribed": "最近订阅",
-  "overviewRecentlyPlayed": "最近播放",
+  "overviewContinueWatching": "继续观看",
+  "overviewContinueWatchingEmpty": "暂时没有未看完的影片",
   "overviewNoLatestMovies": "暂无入库影片，去搜索看看吧",
   "overviewNoSubscribedMovies": "暂无订阅影片",
   "overviewMovieCount": "{count} 部",
@@ -2710,6 +2716,25 @@
   "playlistEditTitle": "编辑播放列表",
   "playlistUpdateFailed": "更新播放列表失败",
   "playlistUpdatedToast": "播放列表已更新",
+  "playlistSmartBadge": "智能",
+  "playlistTypeCustomTitle": "普通列表",
+  "playlistTypeCustomDescription": "手动添加影片，成员固定",
+  "playlistTypeSmartTitle": "智能列表",
+  "playlistTypeSmartDescription": "按筛选条件自动更新成员",
+  "smartPlaylistCreateTitle": "新建智能列表",
+  "smartPlaylistEditTitle": "编辑智能列表",
+  "smartPlaylistNameLabel": "列表名称",
+  "smartPlaylistNameHint": "例如：高分未看",
+  "smartPlaylistBasicInfoTitle": "基本信息",
+  "smartPlaylistActorsTitle": "女优",
+  "smartPlaylistAddActorsAction": "添加女优",
+  "smartPlaylistTypeSectionTitle": "类型",
+  "smartPlaylistSortTitle": "排序",
+  "smartPlaylistSortFieldTitle": "排序字段",
+  "smartPlaylistSortDirectionTitle": "排序方向",
+  "smartPlaylistResolutionRequiresPlayable": "选择「可播放」状态后才能按分辨率筛选",
+  "smartPlaylistCreateFailed": "保存智能列表失败",
+  "smartPlaylistCreatedToast": "已保存为智能列表",
   "playlistPickerLoadFailed": "播放列表加载失败",
   "playlistNoMatch": "没有匹配的播放列表",
   "playlistSearchHint": "搜索播放列表",
@@ -3530,6 +3555,12 @@
   "movieActionBlacklistConfirm": "屏蔽",
   "movieActionBlacklistMovieFailed": "屏蔽影片失败",
   "movieActionMovieBlacklisted": "已屏蔽影片",
+  "movieActionMarkWatched": "标记为已看",
+  "movieActionPlayInApp": "本次用内置播放器打开",
+  "movieActionMarkUnwatched": "标记为未看",
+  "movieWatchStateMarkedWatched": "已标记为已看",
+  "movieWatchStateMarkedUnwatched": "已标记为未看",
+  "movieWatchStateUpdateFailed": "更新观看状态失败",
   "movieActionRefreshMetadata": "刷新元数据",
   "movieActionRefreshMetadataDescription": "刷新会按当前元数据源重新获取资料，更新自动管理的标题、简介、演员、标签和图片；人工管理或已被接管的字段会保留。",
   "movieActionRefreshMetadataDescriptionManualActors": "刷新会重新获取资料并更新自动管理的标题、简介、标签和图片；演员表已手动管理，本次不会覆盖。",
@@ -4004,6 +4035,8 @@
   "mediaImportTabJav": "JAV 影片",
   "mediaImportTabVideo": "视频",
   "mediaImportViewTasksAction": "查看导入任务",
+  "mediaImportLastTaskTitle": "最近一次导入",
+  "mediaImportLastTaskLoadFailed": "导入任务状态加载失败",
   "mediaImportTaskSubmitted": "导入任务 #{id} 已提交，请在任务中心查看进度",
   "@mediaImportTaskSubmitted": {
     "placeholders": {
@@ -5330,6 +5363,10 @@
   "widgetMovieBatchBlacklistMessage": "已订阅影片无法屏蔽，请先取消订阅。屏蔽后将从正常列表和推荐中隐藏。",
   "widgetMovieBatchBlacklistFailed": "批量屏蔽影片失败",
   "widgetMovieFilterStatusTitle": "状态筛选",
+  "movieFilterWatchStatusTitle": "观看状态",
+  "movieFilterWatchUnwatched": "未看",
+  "movieFilterWatchWatching": "在看",
+  "movieFilterWatchWatched": "已看",
   "widgetMovieFilterResolutionTitle": "分辨率",
   "widgetMovieFilterAll": "全部",
   "widgetMovieFilterCollectionTypeTitle": "合集类型",
@@ -5506,6 +5543,11 @@
   "moviePlayerPrimaries": "原色域",
   "moviePlayerGamma": "伽马",
   "moviePlayerColorLight": "亮度",
+  "moviePlayerSubtitleSettingsTitle": "字幕设置",
+  "moviePlayerSubtitleSizeLabel": "字幕大小",
+  "moviePlayerSubtitlePositionLabel": "字幕位置",
+  "moviePlayerSubtitleSettingsReset": "恢复默认",
+  "moviePlayerSubtitleSettingsDone": "完成",
   "widgetMoviePlayerSubtitleLoadFailed": "加载字幕失败，请稍后重试",
   "widgetMoviePlayerLoading": "正在加载影片…",
   "widgetMoviePlayerSectionMedia": "媒体",

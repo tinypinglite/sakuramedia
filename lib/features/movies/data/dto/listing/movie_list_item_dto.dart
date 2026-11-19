@@ -27,6 +27,43 @@ MovieImageDto? movieImageFromJson(dynamic value) {
   return null;
 }
 
+/// 影片级观看进度摘要（后端取最近观看的那条媒体进度）。
+class MovieWatchProgressDto {
+  const MovieWatchProgressDto({
+    required this.mediaId,
+    required this.positionSeconds,
+    required this.durationSeconds,
+    required this.lastWatchedAt,
+    required this.finished,
+  });
+
+  final int mediaId;
+  final int positionSeconds;
+  final int durationSeconds;
+  final DateTime? lastWatchedAt;
+
+  /// 影片级已看：任一媒体看完即 true，与后端 watch_status 筛选同一口径。
+  final bool finished;
+
+  /// 0~1 的播放比例；时长未知时返回 0。
+  double get ratio {
+    if (durationSeconds <= 0) {
+      return 0;
+    }
+    return (positionSeconds / durationSeconds).clamp(0.0, 1.0);
+  }
+
+  factory MovieWatchProgressDto.fromJson(Map<String, dynamic> json) {
+    return MovieWatchProgressDto(
+      mediaId: json['media_id'] as int? ?? 0,
+      positionSeconds: json['position_seconds'] as int? ?? 0,
+      durationSeconds: json['duration_seconds'] as int? ?? 0,
+      lastWatchedAt: MovieListItemDto._dateFromJson(json['last_watched_at']),
+      finished: json['finished'] as bool? ?? false,
+    );
+  }
+}
+
 /// 「主封面 + 窄封面」两图选择逻辑：列表行卡在桌面用宽图、移动用窄图；
 /// 用图与框方向一致才裁切（`cover`），回退到另一方向的图时居中留边（`contain`）。
 ///
@@ -85,6 +122,7 @@ class MovieListItemDto implements SubscriptionMovieListItem<MovieListItemDto> {
     this.maxMediaWidth = 0,
     this.myScore,
     this.myRatingValues = const <int, int>{},
+    this.watchProgress,
   });
 
   /// 后端返回的影片整数主键，可用于与订阅等域数据关联。
@@ -112,6 +150,9 @@ class MovieListItemDto implements SubscriptionMovieListItem<MovieListItemDto> {
   /// 维度 id -> 分值；已评分列表中由后端附带，用于展示维度摘要。
   final Map<int, int> myRatingValues;
 
+  /// 最近观看进度；没有播放记录时为 null。
+  final MovieWatchProgressDto? watchProgress;
+
   /// DMM 中文标题字段已随后端下线（存量收拢进 [title]），这里保留 getter 只做 trim。
   String get preferredTitle => title.trim();
 
@@ -130,6 +171,7 @@ class MovieListItemDto implements SubscriptionMovieListItem<MovieListItemDto> {
     double? similarityScore,
     double? myScore,
     Map<int, int>? myRatingValues,
+    MovieWatchProgressDto? watchProgress,
   }) {
     return MovieListItemDto(
       // id 是不可变主键，copyWith 不开放改写、只透传（漏传会被默认 0 抹掉）。
@@ -149,6 +191,7 @@ class MovieListItemDto implements SubscriptionMovieListItem<MovieListItemDto> {
       similarityScore: similarityScore ?? this.similarityScore,
       myScore: myScore ?? this.myScore,
       myRatingValues: myRatingValues ?? this.myRatingValues,
+      watchProgress: watchProgress ?? this.watchProgress,
     );
   }
 
@@ -174,7 +217,22 @@ class MovieListItemDto implements SubscriptionMovieListItem<MovieListItemDto> {
       similarityScore: _doubleFromJson(json['similarity_score']),
       myScore: _doubleFromJson(json['my_score']),
       myRatingValues: _ratingValuesFromJson(json['my_rating_values']),
+      watchProgress: _watchProgressFromJson(json['watch_progress']),
     );
+  }
+
+  static MovieWatchProgressDto? _watchProgressFromJson(dynamic value) {
+    if (value is Map<String, dynamic>) {
+      return MovieWatchProgressDto.fromJson(value);
+    }
+    if (value is Map) {
+      return MovieWatchProgressDto.fromJson(
+        value.map(
+          (dynamic key, dynamic data) => MapEntry(key.toString(), data),
+        ),
+      );
+    }
+    return null;
   }
 
   static MovieImageDto? _movieImageFromJson(dynamic value) {

@@ -277,6 +277,7 @@ class CatalogSearch extends _$CatalogSearch {
           query: query,
           pageSize: _localSearchPageSize,
           status: filter.status,
+          watchStatus: filter.watchStatus,
           collectionType: filter.collectionType,
           numberSource: filter.numberSource,
           sort: sort,

@@ -8,6 +8,8 @@ import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_hover_menu.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_menu_widgets.dart';
 
+void _noopOpenSubtitleSettings() {}
+
 class MoviePlayerSubtitleButton extends StatefulWidget {
   const MoviePlayerSubtitleButton({
     super.key,
@@ -15,12 +17,14 @@ class MoviePlayerSubtitleButton extends StatefulWidget {
     required this.isApplyingListenable,
     required this.onSubtitleSelected,
     required this.onReloadRequested,
+    this.onOpenSettings = _noopOpenSubtitleSettings,
   });
 
   final ValueListenable<MoviePlayerSubtitleState> subtitleStateListenable;
   final ValueListenable<bool> isApplyingListenable;
   final Future<void> Function(int? subtitleId) onSubtitleSelected;
   final Future<void> Function() onReloadRequested;
+  final VoidCallback onOpenSettings;
 
   @override
   State<MoviePlayerSubtitleButton> createState() =>
@@ -37,12 +41,16 @@ class _MoviePlayerSubtitleButtonState extends State<MoviePlayerSubtitleButton>
   double get hoverMenuWidth => context.appOverlayTokens.menuWidthMd;
 
   @override
-  double get hoverMenuHeight =>
-      (_effectiveMenuItemCount * context.appOverlayTokens.menuItemHeight) +
-      (context.appOverlayTokens.menuVerticalPadding * 2);
+  double get hoverMenuHeight {
+    final tokens = context.appOverlayTokens;
+    // 菜单内容 = 选项/空态行 + 设置行 + 分隔线（半行高）。
+    return (_effectiveMenuItemCount * tokens.menuItemHeight) +
+        (tokens.menuItemHeight / 2) +
+        (tokens.menuVerticalPadding * 2);
+  }
 
   int get _effectiveMenuItemCount =>
-      _subtitleState.options.isEmpty ? 1 : _subtitleState.options.length;
+      (_subtitleState.options.isEmpty ? 1 : _subtitleState.options.length) + 1;
 
   @override
   bool get canOpenHoverMenu => !_isSelectingSubtitle && !_isApplying;
@@ -145,6 +153,10 @@ class _MoviePlayerSubtitleButtonState extends State<MoviePlayerSubtitleButton>
       options: _subtitleState.options,
       selectedSubtitleId: _subtitleState.selectedSubtitleId,
       onSubtitleSelected: _handleSubtitleSelected,
+      onOpenSettings: () {
+        removeHoverMenu();
+        widget.onOpenSettings();
+      },
     );
   }
 
@@ -169,11 +181,13 @@ class _MoviePlayerSubtitleMenu extends StatelessWidget {
     required this.options,
     required this.selectedSubtitleId,
     required this.onSubtitleSelected,
+    required this.onOpenSettings,
   });
 
   final List<MoviePlayerSubtitleOption> options;
   final int? selectedSubtitleId;
   final ValueChanged<int> onSubtitleSelected;
+  final VoidCallback onOpenSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -189,18 +203,40 @@ class _MoviePlayerSubtitleMenu extends StatelessWidget {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: hasOptions
-            ? options
-                  .map(
-                    (option) => _MoviePlayerSubtitleMenuItem(
-                      subtitleId: option.subtitleId,
-                      label: option.label,
-                      selected: selectedSubtitleId == option.subtitleId,
-                      onTap: () => onSubtitleSelected(option.subtitleId),
-                    ),
-                  )
-                  .toList(growable: false)
-            : const <Widget>[_MoviePlayerSubtitleEmptyItem()],
+        children: [
+          if (hasOptions)
+            ...options.map(
+              (option) => _MoviePlayerSubtitleMenuItem(
+                subtitleId: option.subtitleId,
+                label: option.label,
+                selected: selectedSubtitleId == option.subtitleId,
+                onTap: () => onSubtitleSelected(option.subtitleId),
+              ),
+            )
+          else
+            const _MoviePlayerSubtitleEmptyItem(),
+          Divider(
+            height: overlayTokens.menuItemHeight / 2,
+            color: context.appColors.divider,
+          ),
+          AppInteractiveSurface(
+            key: const Key('movie-player-subtitle-menu-settings'),
+            onTap: onOpenSettings,
+            focusRingRadius: context.appRadius.smBorder,
+            child: MoviePlayerMenuItemRow(
+              label: AppLocalizations.of(
+                context,
+              ).moviePlayerSubtitleSettingsTitle,
+              selected: false,
+              checkColor: resolveAppTextToneColor(context, AppTextTone.accent),
+              checkSlotKey: const Key(
+                'movie-player-subtitle-menu-settings-check-slot',
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ),
+        ],
       ),
     );
   }

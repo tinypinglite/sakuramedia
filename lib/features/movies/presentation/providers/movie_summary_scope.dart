@@ -91,12 +91,16 @@ class MovieSummaryScope {
         pageSize: pageSize,
       );
 
-  const MovieSummaryScope.playlist({required int playlistId, int pageSize = 24})
-    : this._(
-        source: MovieSummarySource.playlist,
-        resourceId: playlistId,
-        pageSize: pageSize,
-      );
+  const MovieSummaryScope.playlist({
+    required int playlistId,
+    int pageSize = 24,
+    MovieFilterState? initialMovieFilter,
+  }) : this._(
+         source: MovieSummarySource.playlist,
+         resourceId: playlistId,
+         pageSize: pageSize,
+         initialMovieFilter: initialMovieFilter,
+       );
 
   const MovieSummaryScope.series({required int seriesId, int pageSize = 24})
     : this._(
@@ -167,6 +171,7 @@ class MovieSummaryScope {
     Object.hashAll(initialTagIds),
     initialTagMatch,
     initialMovieFilter?.sortExpression,
+    initialMovieFilter?.watchStatus,
   );
 }
 

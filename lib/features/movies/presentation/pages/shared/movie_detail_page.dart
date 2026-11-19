@@ -7,15 +7,16 @@ import 'package:sakuramedia/app/page_cache_keys.dart';
 import 'package:sakuramedia/app/providers/riverpod_page_cache_provider.dart';
 import 'package:sakuramedia/app/riverpod_page_cache.dart';
 import 'package:sakuramedia/core/media/image_save_service.dart';
+import 'package:sakuramedia/core/media/playback_resume_policy.dart';
 import 'package:sakuramedia/features/actors/presentation/providers/actors_api_provider.dart';
 import 'package:sakuramedia/features/cast/data/cast_director.dart';
 import 'package:sakuramedia/features/cast/presentation/actions/cast_movie_playback.dart';
 import 'package:sakuramedia/features/cast/presentation/providers/cast_session_provider.dart';
-import 'package:sakuramedia/features/external_player/data/external_player_channel.dart';
 import 'package:sakuramedia/features/external_player/presentation/providers/external_player_preference_provider.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/player/movie_subtitle_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_menu.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_merge_playback_candidates.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/detail/movie_clip_section_mixin.dart';
@@ -165,8 +166,8 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         .watch(externalPlayerPreferenceProvider)
         .value;
     final canLaunchMergedPlayback =
-        const ExternalPlayerChannel().isSupported &&
-        externalPlayerSelection?.hasExternalPlayer == true;
+        externalPlayerSelection != null &&
+        isExternalPlayerAvailable(externalPlayerSelection);
     final l10n = AppLocalizations.of(context);
     final mergePlaybackCandidates = resolveMovieMergePlaybackCandidates(
       movie,
@@ -192,6 +193,13 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       subtitleItems:
           subtitlesState.asData?.value.items ?? const <MovieSubtitleItemDto>[],
     );
+    final resumePosition = selectedMedia == null
+        ? null
+        : resolvePlaybackResumePosition(
+            storedPositionSeconds:
+                selectedMedia.progress?.lastPositionSeconds ?? 0,
+            durationSeconds: selectedMedia.durationSeconds,
+          );
     final state = MovieDetailViewState(
       isSubscribed: derived.isSubscribed,
       isSubscriptionUpdating: interaction.isSubscriptionUpdating,
@@ -204,6 +212,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           selectedMedia != null &&
           interaction.deletingMediaId == selectedMedia.mediaId,
       isPlayLoading: interaction.isLaunchingPlayback,
+      playLabel: resumePosition == null ? null : l10n.baseResumeContinue,
       mergePlaybackLabel: mergePlaybackLabel,
       isMergePlaybackLoading: interaction.isLaunchingPlayback,
       isSimilarMoviesLoading: detailState.isSimilarMoviesLoading,
@@ -319,6 +328,8 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       isSubscribed: derived.isSubscribed,
       isCollection: derived.isCollection,
       isBlacklisted: derived.isBlacklisted,
+      isWatched: derived.isWatched,
+      defaultUsesExternalPlayer: _defaultUsesExternalPlayer(),
       selectedMedia: selectedMedia,
       castSessionLabel: _activeCastSessionLabel(movie),
       canCast:
@@ -336,6 +347,11 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     MovieDetailDerived derived,
   ) async {
     switch (action) {
+      case MovieDetailActionType.playInApp:
+        _openMoviePlayer(
+          mediaId: derived.selectedMedia?.mediaId,
+          target: MoviePlaybackTarget.inApp,
+        );
       case MovieDetailActionType.castToDevice:
         final castSession = ref.read(castSessionControllerProvider);
         if (castSession != null &&
@@ -378,6 +394,14 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           await _interaction.toggleCollection(
             isCollection: derived.isCollection,
           ),
+        );
+      case MovieDetailActionType.markWatched:
+        _showActionFeedback(
+          await _interaction.setWatchState(MovieWatchStatusFilter.watched),
+        );
+      case MovieDetailActionType.markUnwatched:
+        _showActionFeedback(
+          await _interaction.setWatchState(MovieWatchStatusFilter.unwatched),
         );
     }
   }
@@ -632,6 +656,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     MovieDetailDto? movie,
     int? mediaId,
     int? positionSeconds,
+    MoviePlaybackTarget target = MoviePlaybackTarget.auto,
   }) {
     final interaction = ref.read(movieDetailInteractionProvider(movieNumber));
     if (interaction.isLaunchingPlayback) return;
@@ -645,8 +670,14 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         movie: widget.mobile
             ? null
             : movie ?? ref.read(movieDetailProvider(movieNumber)).movie,
+        target: target,
       ).whenComplete(() => _interaction.setPlaybackLaunching(false)),
     );
+  }
+
+  bool _defaultUsesExternalPlayer() {
+    final selection = ref.read(externalPlayerPreferenceProvider).value;
+    return selection != null && isExternalPlayerAvailable(selection);
   }
 
   Future<void> _openMergedPlayback(

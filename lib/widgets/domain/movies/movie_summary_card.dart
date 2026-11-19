@@ -285,6 +285,13 @@ class MovieSummaryCard extends ConsumerWidget {
             ),
           ),
         ),
+        if (movie.watchProgress case final progress? when !progress.finished)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _WatchProgressBar(progress: progress),
+          ),
       ],
     );
   }
@@ -456,6 +463,46 @@ class MovieSummaryCard extends ConsumerWidget {
     } on Object {
       return null;
     }
+  }
+}
+
+/// 卡片底部的细观看进度条；已看完的影片不画。
+class _WatchProgressBar extends StatelessWidget {
+  const _WatchProgressBar({required this.progress});
+
+  final MovieWatchProgressDto progress;
+
+  @override
+  Widget build(BuildContext context) {
+    final spacing = context.appSpacing;
+    final trackColor = context.appTextPalette.onMedia.withValues(alpha: 0.24);
+    return IgnorePointer(
+      child: SizedBox(
+        key: Key('movie-summary-card-progress-${progress.mediaId}'),
+        height: spacing.xs / 2,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            ColoredBox(color: trackColor),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FractionallySizedBox(
+                widthFactor: progress.ratio,
+                // ColoredBox 无 child 时按 constraints.smallest 取尺寸；
+                // 不给 heightFactor 会把高度压成 0。
+                heightFactor: 1,
+                child: ColoredBox(
+                  key: Key(
+                    'movie-summary-card-progress-fill-${progress.mediaId}',
+                  ),
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 

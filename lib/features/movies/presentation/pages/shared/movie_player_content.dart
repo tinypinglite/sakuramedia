@@ -14,6 +14,7 @@ import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/media/playback_interleave.dart';
+import 'package:sakuramedia/core/media/providers/player_subtitle_preference_provider.dart';
 import 'package:sakuramedia/core/media/playback_user_agent.dart';
 import 'package:sakuramedia/core/media/playback_source.dart';
 import 'package:sakuramedia/core/network/providers/api_client_provider.dart';
@@ -42,6 +43,7 @@ import 'package:sakuramedia/widgets/base/media/video/initial_seek_guard.dart';
 import 'package:sakuramedia/widgets/base/media/video/playback_resume_prompt.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_orientation_lock.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_screen_orientation.dart';
+import 'package:sakuramedia/widgets/base/media/video/player_subtitle_view_configuration.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_system_controls.dart';
 import 'package:sakuramedia/widgets/base/media/video/player_viewport.dart';
 import 'package:sakuramedia/widgets/base/media/video/throttling_player.dart';
@@ -52,6 +54,7 @@ import 'package:sakuramedia/widgets/domain/movies/player/movie_player_controls.d
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_mobile_drawers.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_native_stats_sampler.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
+import 'package:sakuramedia/widgets/domain/movies/player/movie_player_subtitle_settings.dart';
 import 'package:sakuramedia/widgets/domain/media/movie_player_thumbnail_panel.dart';
 
 /// 影片应用内播放器共享实现（桌面 / 移动双端壳收敛的 content 层）。
@@ -737,6 +740,10 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
 class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
   static final Random _playbackAttemptRandom = Random.secure();
 
+  /// 字幕位置变更时需要通过 VideoState 立即重设 padding（SubtitleView 会缓存
+  /// 自己的 padding，只换配置不会移动）。
+  final GlobalKey<VideoState> _videoStateKey = GlobalKey<VideoState>();
+
   late final ThrottlingPlayer _player;
   late final VideoController _controller;
   final ValueNotifier<bool> _isSurfaceReady = ValueNotifier<bool>(false);
@@ -1372,6 +1379,28 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final subtitlePreference =
+        ref.watch(playerSubtitlePreferenceControllerProvider).value ??
+        const PlayerSubtitlePreference();
+    final subtitleConfiguration = buildPlayerSubtitleViewConfiguration(
+      context: context,
+      preference: subtitlePreference,
+    );
+    ref.listen(playerSubtitlePreferenceControllerProvider, (previous, next) {
+      final preference = next.value;
+      if (preference == null || !mounted) {
+        return;
+      }
+      final configuration = buildPlayerSubtitleViewConfiguration(
+        context: context,
+        preference: preference,
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _videoStateKey.currentState?.setSubtitleViewPadding(
+          configuration.padding,
+        );
+      });
+    });
     final isPortrait =
         widget.isPortraitOverride ??
         (MediaQuery.orientationOf(context) == Orientation.portrait);
@@ -1422,14 +1451,17 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       isApplyingListenable: _isApplyingSubtitleNotifier,
       onSubtitleSelected: _handleSubtitleSelected,
       onSubtitleReloadRequested: _handleSubtitleReloadRequested,
+      onSubtitleSettingsTap: () => showMoviePlayerSubtitleSettings(context),
     );
     final backgroundColor = context.appColors.movieDetailHeroBackgroundStart;
     final videoSurface = Video(
+      key: _videoStateKey,
       controller: _controller,
       width: double.infinity,
       height: double.infinity,
       fit: BoxFit.fitWidth,
       fill: backgroundColor,
+      subtitleViewConfiguration: subtitleConfiguration,
       controls: resolveMoviePlayerVideoControlsBuilder(
         useTouchOptimizedControls: widget.useTouchOptimizedControls,
         mobileControlsReady: _systemControlsReady,
@@ -1483,6 +1515,10 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
             onDismiss: _closeMobileDrawer,
             onRateSelected: _handleMobilePlaybackRateSelected,
             onSubtitleSelected: _handleMobileSubtitleSelected,
+            onSubtitleSettingsTap: () {
+              _closeMobileDrawer();
+              unawaited(showMoviePlayerSubtitleSettings(context));
+            },
           ),
         buildMoviePlayerInfoSideDrawerOverlay(
           context: context,

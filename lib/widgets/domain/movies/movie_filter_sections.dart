@@ -77,6 +77,15 @@ class MovieFilterSectionGroup extends ConsumerWidget {
           onSelected: (value) => onChanged(filterState.copyWith(status: value)),
         ),
         SizedBox(height: context.appSpacing.lg),
+        AppFilterOptionSection<MovieWatchStatusFilter>(
+          title: l10n.movieFilterWatchStatusTitle,
+          options: MovieWatchStatusFilter.values,
+          selectedValue: filterState.watchStatus,
+          labelBuilder: (value) => value.labelWith(l10n),
+          onSelected: (value) =>
+              onChanged(filterState.copyWith(watchStatus: value)),
+        ),
+        SizedBox(height: context.appSpacing.lg),
         AppFilterOptionSection<PlaylistResolutionFilter?>(
           title: l10n.widgetMovieFilterResolutionTitle,
           options: const [null, ...PlaylistResolutionFilter.values],
@@ -158,10 +167,14 @@ class MovieInteractionRangeFilterSectionGroup extends ConsumerWidget {
     super.key,
     required this.filter,
     required this.onChanged,
+    this.showHeader = true,
   });
 
   final MovieInteractionFilter filter;
   final ValueChanged<MovieInteractionFilter> onChanged;
+
+  /// 嵌入自带标题的卡片时可关闭分组标题，避免与各字段标题重复。
+  final bool showHeader;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -171,29 +184,31 @@ class MovieInteractionRangeFilterSectionGroup extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              l10n.widgetMovieFilterInteractionTitle,
-              key: const Key('movie-filter-interaction-group-title'),
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s12,
-                weight: AppTextWeight.medium,
-                tone: AppTextTone.secondary,
+        if (showHeader) ...[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                l10n.widgetMovieFilterInteractionTitle,
+                key: const Key('movie-filter-interaction-group-title'),
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s12,
+                  weight: AppTextWeight.medium,
+                  tone: AppTextTone.secondary,
+                ),
               ),
-            ),
-            if (!filter.isDefault)
-              AppTextButton(
-                key: const Key('movie-filter-interaction-clear'),
-                label: l10n.widgetMovieFilterClear,
-                size: AppTextButtonSize.xSmall,
-                onPressed: () => onChanged(filter.clear()),
-              ),
-          ],
-        ),
-        SizedBox(height: context.appSpacing.sm),
+              if (!filter.isDefault)
+                AppTextButton(
+                  key: const Key('movie-filter-interaction-clear'),
+                  label: l10n.widgetMovieFilterClear,
+                  size: AppTextButtonSize.xSmall,
+                  onPressed: () => onChanged(filter.clear()),
+                ),
+            ],
+          ),
+          SizedBox(height: context.appSpacing.sm),
+        ],
         options.when(
           // 面板每次打开都会重新拉取范围；用同形占位滑块撑住高度，
           // 避免加载期间整组分节塌陷成一行文案。

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:media_kit/media_kit.dart' show NativePlayer;
 import 'package:media_kit_video/media_kit_video.dart';
 
 /// Desktop controls with seek-aware auto-hide handling.
@@ -35,6 +36,20 @@ class _SakuraDesktopVideoControlsState
   bool _initialized = false;
   bool _buffering = false;
   DateTime _lastTap = DateTime.fromMillisecondsSinceEpoch(0);
+  double? _volumeBeforeMute;
+
+  static const List<LogicalKeyboardKey> _digitKeys = <LogicalKeyboardKey>[
+    LogicalKeyboardKey.digit0,
+    LogicalKeyboardKey.digit1,
+    LogicalKeyboardKey.digit2,
+    LogicalKeyboardKey.digit3,
+    LogicalKeyboardKey.digit4,
+    LogicalKeyboardKey.digit5,
+    LogicalKeyboardKey.digit6,
+    LogicalKeyboardKey.digit7,
+    LogicalKeyboardKey.digit8,
+    LogicalKeyboardKey.digit9,
+  ];
 
   VideoController get _controller => widget.state.widget.controller;
 
@@ -184,6 +199,40 @@ class _SakuraDesktopVideoControlsState
     );
   }
 
+  void _seekToFraction(double fraction) {
+    final duration = _controller.player.state.duration;
+    if (duration <= Duration.zero) return;
+    unawaited(_controller.player.seek(duration * fraction));
+  }
+
+  void _toggleMute() {
+    final player = _controller.player;
+    final volume = player.state.volume;
+    if (volume > 0) {
+      _volumeBeforeMute = volume;
+      unawaited(player.setVolume(0));
+    } else {
+      unawaited(player.setVolume(_volumeBeforeMute ?? 100));
+    }
+  }
+
+  void _changeRate(double delta) {
+    final rate = (_controller.player.state.rate + delta)
+        .clamp(0.25, 4.0)
+        .toDouble();
+    unawaited(_controller.player.setRate(rate));
+  }
+
+  void _stepFrame({required bool forward}) {
+    final platform = _controller.player.platform;
+    if (platform is! NativePlayer) return;
+    unawaited(
+      platform
+          .command(<String>[forward ? 'frame-step' : 'frame-back-step'])
+          .catchError((Object _) {}),
+    );
+  }
+
   void _toggleFullscreen() {
     toggleFullscreen(context);
   }
@@ -253,6 +302,19 @@ class _SakuraDesktopVideoControlsState
                 final volume = _controller.player.state.volume - 5.0;
                 _controller.player.setVolume(volume.clamp(0.0, 100.0));
               },
+              // 0–9 跳到 0%–90%；M 静音；[ ] 调速；, . 逐帧。
+              for (var digit = 0; digit < _digitKeys.length; digit++)
+                SingleActivator(_digitKeys[digit]): () =>
+                    _seekToFraction(digit / 10),
+              const SingleActivator(LogicalKeyboardKey.keyM): _toggleMute,
+              const SingleActivator(LogicalKeyboardKey.bracketLeft): () =>
+                  _changeRate(-0.25),
+              const SingleActivator(LogicalKeyboardKey.bracketRight): () =>
+                  _changeRate(0.25),
+              const SingleActivator(LogicalKeyboardKey.comma): () =>
+                  _stepFrame(forward: false),
+              const SingleActivator(LogicalKeyboardKey.period): () =>
+                  _stepFrame(forward: true),
               const SingleActivator(LogicalKeyboardKey.keyF): _toggleFullscreen,
               const SingleActivator(LogicalKeyboardKey.escape): () =>
                   exitFullscreen(context),

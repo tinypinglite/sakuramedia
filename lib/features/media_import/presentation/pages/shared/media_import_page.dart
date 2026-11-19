@@ -9,6 +9,7 @@ import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/features/media_import/presentation/directory_picker_dialog.dart';
 import 'package:sakuramedia/features/media_import/presentation/providers/media_import_api_provider.dart';
+import 'package:sakuramedia/features/media_import/presentation/widgets/import_task_status_card.dart';
 import 'package:sakuramedia/features/videos/presentation/imports.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
@@ -32,6 +33,10 @@ class _MediaImportPageState extends ConsumerState<MediaImportPage>
   late final TabController _tabController;
   bool _isCreating = false;
   bool _isSubmitting = false;
+
+  /// 最近一次提交的导入任务；桌面 branch cache 会跨导航保留，重启后清空。
+  int? _lastTaskRunId;
+  String? _lastTaskName;
 
   @override
   void initState() {
@@ -69,6 +74,10 @@ class _MediaImportPageState extends ConsumerState<MediaImportPage>
                 sourceDisposition: request.sourceDisposition,
               );
           if (mounted) {
+            setState(() {
+              _lastTaskRunId = accepted.taskRunId;
+              _lastTaskName = l10n.mediaImportTitleJav;
+            });
             showToast(
               l10n.mediaImportTaskSubmitted(accepted.taskRunId),
               tone: AppToastTone.success,
@@ -88,6 +97,10 @@ class _MediaImportPageState extends ConsumerState<MediaImportPage>
                 collectionId: request.collectionId,
               );
           if (mounted) {
+            setState(() {
+              _lastTaskRunId = accepted.taskRunId;
+              _lastTaskName = l10n.mediaImportTitleVideo;
+            });
             showToast(
               l10n.mediaImportVideoTaskSubmitted(accepted.taskRunId),
               tone: AppToastTone.success,
@@ -186,6 +199,16 @@ class _MediaImportPageState extends ConsumerState<MediaImportPage>
                   ),
           ),
         ),
+        if (_lastTaskRunId case final taskRunId?) ...[
+          SliverToBoxAdapter(child: SizedBox(height: context.appSpacing.lg)),
+          SliverToBoxAdapter(
+            child: ImportTaskStatusCard(
+              key: const Key('media-import-last-task-status'),
+              taskRunId: taskRunId,
+              taskName: _lastTaskName ?? '',
+            ),
+          ),
+        ],
         if (isMobile)
           SliverToBoxAdapter(
             child: Padding(
