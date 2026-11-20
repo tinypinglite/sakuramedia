@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
@@ -85,6 +86,8 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor>
   @override
   bool get usesMobileFormValidation => widget.mobile;
 
+  bool get _webLoginSupported => defaultTargetPlatform != TargetPlatform.linux;
+
   MediaProviderDto? get _selectedProvider =>
       _findProvider(widget.providers, _selectedProviderKey ?? '');
 
@@ -104,6 +107,7 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor>
     _selectedProviderKey =
         widget.initialLibrary?.providerKey ??
         (widget.providers.isEmpty ? null : widget.providers.first.providerKey);
+    _manualLoginMode = !_webLoginSupported;
     _providerConfigController = ProviderConfigFormController(
       fields:
           _selectedProvider?.libraryConfigFields ??
@@ -130,7 +134,7 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor>
   void _clearLoginSession() {
     final sessionId = _loginSession?.id;
     _loginSession = null;
-    _manualLoginMode = false;
+    _manualLoginMode = !_webLoginSupported;
     _deleteLoginSessionRemotely(sessionId);
   }
 
@@ -154,7 +158,7 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor>
 
   Future<void> _loginProvider() async {
     final provider = _selectedProvider;
-    if (provider == null || _isOpeningLogin) return;
+    if (provider == null || _isOpeningLogin || !_webLoginSupported) return;
     setState(() => _isOpeningLogin = true);
     try {
       final session = await ref.read(providerLoginLauncherProvider)(
@@ -322,6 +326,7 @@ class _MediaLibraryEditorState extends ConsumerState<_MediaLibraryEditor>
             provider: provider,
             session: _loginSession,
             manualMode: _manualLoginMode,
+            allowWebLogin: _webLoginSupported,
             isBusy: isSubmitting || _isOpeningLogin,
             onLogin: _loginProvider,
             onUseManual: _useManualLogin,

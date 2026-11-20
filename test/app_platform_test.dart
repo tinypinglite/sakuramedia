@@ -5,9 +5,9 @@ import 'package:sakuramedia/app/app_platform.dart';
 void main() {
   tearDown(() => debugDefaultTargetPlatformOverride = null);
 
-  test('Linux is rejected as an unsupported client platform', () {
+  test('Linux resolves to the desktop platform', () {
     debugDefaultTargetPlatformOverride = TargetPlatform.linux;
 
-    expect(resolveAppPlatform, throwsUnsupportedError);
+    expect(resolveAppPlatform(), AppPlatform.desktop);
   });
 }

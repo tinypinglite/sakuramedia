@@ -15,6 +15,7 @@ analyzer:
     - windows/**
     - macos/**
     - lib/l10n/app_localizations*.dart
+    - linux/**
 include: package:flutter_lints/flutter.yaml
 
 linter:

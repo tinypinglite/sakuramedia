@@ -92,6 +92,9 @@ Future<ProviderLoginSessionDto?> showProviderLoginPage({
   if (login == null || login.mode != 'webview') {
     return Future<ProviderLoginSessionDto?>.value();
   }
+  if (defaultTargetPlatform == TargetPlatform.linux) {
+    return Future<ProviderLoginSessionDto?>.value();
+  }
   return Navigator.of(
     context,
     rootNavigator: true,
