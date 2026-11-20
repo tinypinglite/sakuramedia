@@ -27,7 +27,8 @@ modules:
       - cp -a sakuramedia data lib /app/bin/
       - install -Dm644 com.example.sakuramedia.desktop /app/share/applications/com.example.sakuramedia.desktop
       - install -Dm644 com.example.sakuramedia.metainfo.xml /app/share/metainfo/com.example.sakuramedia.metainfo.xml
-      - install -Dm644 sakuramedia-logo.png /app/share/icons/hicolor/192x192/apps/com.example.sakuramedia.png
+      - install -Dm644 sakuramedia-logo.png /app/share/icons/hicolor/128x128/apps/com.example.sakuramedia.png
+      - install -Dm644 sakuramedia-logo.png /app/share/icons/hicolor/256x256/apps/com.example.sakuramedia.png
       - install -Dm644 LICENSE /app/share/licenses/com.example.sakuramedia/LICENSE
     sources:
       - type: dir
