@@ -415,12 +415,11 @@ packages:
     source: hosted
     version: "1.2.0-beta.3"
   flutter_inappwebview_linux:
-    dependency: transitive
+    dependency: "direct overridden"
     description:
-      name: flutter_inappwebview_linux
-      sha256: "2e1a3b09bb911fb5a8bb155cb7f1eb1428a19b6e20363b9db48beef428b8cef5"
-      url: "https://pub.dev"
-    source: hosted
+      path: "third_party/flutter_inappwebview_linux_disabled"
+      relative: true
+    source: path
     version: "0.1.0-beta.1"
   flutter_inappwebview_macos:
     dependency: transitive

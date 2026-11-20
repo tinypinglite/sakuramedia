@@ -12,6 +12,7 @@ class MediaProviderLoginCard extends StatelessWidget {
     required this.provider,
     required this.session,
     required this.manualMode,
+    this.allowWebLogin = true,
     required this.isBusy,
     required this.onLogin,
     required this.onUseManual,
@@ -20,6 +21,7 @@ class MediaProviderLoginCard extends StatelessWidget {
   final MediaProviderDto provider;
   final ProviderLoginSessionDto? session;
   final bool manualMode;
+  final bool allowWebLogin;
   final bool isBusy;
   final VoidCallback onLogin;
   final VoidCallback onUseManual;
@@ -90,7 +92,7 @@ class MediaProviderLoginCard extends StatelessWidget {
             spacing: spacing.sm,
             runSpacing: spacing.sm,
             children: [
-              if (!manualMode)
+              if (allowWebLogin && !manualMode)
                 AppButton(
                   key: const Key('media-library-provider-login-button'),
                   label: session == null
@@ -101,7 +103,7 @@ class MediaProviderLoginCard extends StatelessWidget {
                   size: AppButtonSize.small,
                   onPressed: isBusy ? null : onLogin,
                 ),
-              if (!manualMode)
+              if (allowWebLogin && !manualMode)
                 AppButton(
                   key: const Key('media-library-provider-manual-toggle'),
                   label: l10n.providerLoginUseManual,
@@ -109,7 +111,7 @@ class MediaProviderLoginCard extends StatelessWidget {
                   size: AppButtonSize.small,
                   onPressed: isBusy ? null : onUseManual,
                 )
-              else
+              else if (allowWebLogin)
                 AppButton(
                   key: const Key('media-library-provider-web-login-toggle'),
                   label: l10n.providerLoginUseWeb,

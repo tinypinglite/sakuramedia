@@ -95,6 +95,10 @@ dev_dependencies:
   json_serializable: ^6.15.2
   copy_with_extension_gen: ^18.0.0
 
+dependency_overrides:
+  flutter_inappwebview_linux:
+    path: third_party/flutter_inappwebview_linux_disabled
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
