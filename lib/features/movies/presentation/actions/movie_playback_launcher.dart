@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
-import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/media/playback_resume_policy.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
@@ -232,18 +231,6 @@ void _pushInAppPlayer(
   int? positionSeconds,
   String? fallbackPath,
 }) {
-  if (AppPlatformScope.maybeOf(context) == AppPlatform.tv) {
-    TvRoutes.moviePlayer(
-      movieNumber: movieNumber,
-      mediaId: mediaId,
-      mergedLibraryId: mergedLibraryId,
-      positionSeconds: positionSeconds,
-      fallbackPath:
-          fallbackPath ??
-          TvRoutes.movieDetail(movieNumber: movieNumber).location,
-    ).push(context);
-    return;
-  }
   switch (defaultTargetPlatform) {
     case TargetPlatform.macOS:
     case TargetPlatform.windows:

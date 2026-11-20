@@ -58,7 +58,7 @@ From finding and downloading movies to watching and organizing them, the current
 ### Watching and keeping
 
 - 🎬 **Playback and moments**: The thumbnail timeline takes you straight to a frame; mark moments; cut a stretch of video into a standalone clip; variable speed, subtitles, resume, and external players.
-- 🥽 **VR playback**: Play VR movies in an external player; multi-part sources can be merged into continuous playback; experimental support for using devices such as Pico in 2D.
+- 🥽 **VR playback**: Play VR movies in an external player; multi-part sources can be merged into continuous playback.
 - 🖼️ **Image search**: Use a thumbnail, a scene still, or a text description to find similar frames in other movies; results with a playable source jump straight to the matching timestamp (optional, needs a separately deployed embedding service; it only searches images already indexed in your media library).
 - ❤️ **Favorites and organization**: Playlists, moment collections, and clip collections; use collections to group what you want to rewatch.
 

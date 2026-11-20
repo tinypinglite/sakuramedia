@@ -28,7 +28,6 @@ import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/routes/routes_desktop.dart';
 import 'package:sakuramedia/routes/routes_mobile.dart';
-import 'package:sakuramedia/routes/routes_tv.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart';
 import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
@@ -229,7 +228,6 @@ class _SakuraAppState extends ConsumerState<_SakuraApp>
   GlobalKey<NavigatorState> get _rootNavigatorKey => switch (widget.platform) {
     AppPlatform.desktop => desktopRootNavigatorKey,
     AppPlatform.mobile => mobileRootNavigatorKey,
-    AppPlatform.tv => tvRootNavigatorKey,
   };
 
   @override
@@ -282,17 +280,12 @@ class _SakuraAppState extends ConsumerState<_SakuraApp>
     final themeColor = appearance.themeColor;
     final lightTheme = switch (widget.platform) {
       AppPlatform.mobile => buildSakuraMobileThemeData(themeColor: themeColor),
-      AppPlatform.tv => buildSakuraTvThemeData(themeColor: themeColor),
       AppPlatform.desktop => buildSakuraDesktopThemeData(
         themeColor: themeColor,
       ),
     };
     final darkTheme = switch (widget.platform) {
       AppPlatform.mobile => buildSakuraMobileThemeData(
-        themeColor: themeColor,
-        brightness: Brightness.dark,
-      ),
-      AppPlatform.tv => buildSakuraTvThemeData(
         themeColor: themeColor,
         brightness: Brightness.dark,
       ),
@@ -334,9 +327,7 @@ class _SakuraAppState extends ConsumerState<_SakuraApp>
             supportedLocales: AppLocalizations.supportedLocales,
             theme: lightTheme,
             darkTheme: darkTheme,
-            themeMode: widget.platform == AppPlatform.tv
-                ? ThemeMode.dark
-                : appearance.themeMode,
+            themeMode: appearance.themeMode,
             routerConfig: widget.router,
             builder: (context, child) {
               final content = AppImageFullscreenHost(

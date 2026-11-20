@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
-enum AppPlatform { desktop, mobile, tv }
+enum AppPlatform { desktop, mobile }
 
 /// 把全程不变的 [AppPlatform] 挂进 widget 树的 InheritedWidget。
 ///
@@ -60,8 +60,4 @@ AppPlatform resolveAppPlatform({AppPlatform? override}) {
 
 bool isMobileAppPlatform({AppPlatform? override}) {
   return resolveAppPlatform(override: override) == AppPlatform.mobile;
-}
-
-bool isTvAppPlatform({AppPlatform? override}) {
-  return resolveAppPlatform(override: override) == AppPlatform.tv;
 }

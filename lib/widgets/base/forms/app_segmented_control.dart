@@ -190,7 +190,7 @@ class _AppSegmentedSizeSpec {
         iconSize: tokens.iconSize2xs,
       ),
       AppSegmentedSize.large => _AppSegmentedSizeSpec(
-        height: AppTvTokens.controlHeight,
+        height: tokens.buttonHeightLg,
         horizontalPadding: spacing.lg,
         textSize: AppTextSize.s16,
         iconSize: tokens.iconSizeSm,

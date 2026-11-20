@@ -55,7 +55,7 @@ class AppTabBar extends StatelessWidget implements PreferredSizeWidget {
     final platform = AppPlatformScope.maybeOf(context);
     return switch (platform) {
       AppPlatform.mobile => AppTabBarVariant.mobileTop,
-      AppPlatform.desktop || AppPlatform.tv || null => AppTabBarVariant.desktop,
+      AppPlatform.desktop || null => AppTabBarVariant.desktop,
     };
   }
 

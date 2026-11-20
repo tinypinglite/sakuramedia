@@ -5511,14 +5511,6 @@
   "baseSortTooltip": "Sort",
   "baseSortTitle": "Sort by",
   "baseSortDirectionTitle": "Sort direction",
-  "tvSortEntryLabel": "Sort · {summary}",
-  "@tvSortEntryLabel": {
-    "placeholders": {
-      "summary": {
-        "type": "String"
-      }
-    }
-  },
   "baseFilterTooltip": "Filter",
   "baseBatchCompleted": "Done",
   "baseBatchSummary": "{succeeded} succeeded, {failed} failed",

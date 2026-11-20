@@ -6,7 +6,6 @@ import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/routes/app_navigation.dart';
 import 'package:sakuramedia/routes/routes_desktop.dart';
 import 'package:sakuramedia/routes/routes_mobile.dart';
-import 'package:sakuramedia/routes/routes_tv.dart';
 
 GoRouter buildAppRouter(AppPlatform platform, SessionStore sessionStore) {
   GoRouter.optionURLReflectsImperativeAPIs = true;
@@ -15,8 +14,6 @@ GoRouter buildAppRouter(AppPlatform platform, SessionStore sessionStore) {
       return buildDesktopRouter(sessionStore: sessionStore);
     case AppPlatform.mobile:
       return buildMobileRouter(sessionStore: sessionStore);
-    case AppPlatform.tv:
-      return buildTvRouter(sessionStore: sessionStore);
   }
 }
 
@@ -35,15 +32,6 @@ GoRouter buildMobileRouter({required SessionStore sessionStore}) {
     navigatorKey: mobileRootNavigatorKey,
     routes: buildMobileRouteTree(),
     rootRedirectPath: mobileOverviewPath,
-  );
-}
-
-GoRouter buildTvRouter({required SessionStore sessionStore}) {
-  return _buildRouter(
-    sessionStore: sessionStore,
-    navigatorKey: tvRootNavigatorKey,
-    routes: buildTvRouteTree(),
-    rootRedirectPath: tvHomePath,
   );
 }
 

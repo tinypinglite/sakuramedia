@@ -39,9 +39,6 @@ List<AppNavItem> desktopNavItems(AppLocalizations l10n) =>
 List<AppNavItem> mobileNavItems(AppLocalizations l10n) =>
     _navItems(AppPlatform.mobile, l10n);
 
-List<AppNavItem> tvNavItems(AppLocalizations l10n) =>
-    _navItems(AppPlatform.tv, l10n);
-
 List<AppNavItem> _navItems(AppPlatform platform, AppLocalizations l10n) {
   final definitions =
       appRoutes
@@ -84,11 +81,6 @@ List<AppRouteId> get desktopPrimaryBranchOrder => appRoutes
 
 List<AppRouteId> get mobilePrimaryBranchOrder => appRoutes
     .scoped(AppPlatform.mobile, AppRouteScope.branchRoot)
-    .map((definition) => definition.id)
-    .toList(growable: false);
-
-List<AppRouteId> get tvPrimaryBranchOrder => appRoutes
-    .scoped(AppPlatform.tv, AppRouteScope.branchRoot)
     .map((definition) => definition.id)
     .toList(growable: false);
 

@@ -100,7 +100,7 @@ void main() {
           ),
         ),
       ),
-      theme: buildSakuraTvThemeData(),
+      theme: sakuraDesktopThemeData,
       physicalSize: const Size(800, 400),
     );
 

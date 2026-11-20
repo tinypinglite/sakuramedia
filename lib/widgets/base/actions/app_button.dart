@@ -5,7 +5,7 @@ import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dar
 
 enum AppButtonVariant { primary, secondary, tonal, ghost, danger }
 
-enum AppButtonSize { tvLarge, large, medium, small, xSmall, xxSmall }
+enum AppButtonSize { large, medium, small, xSmall, xxSmall }
 
 class AppButton extends StatelessWidget {
   const AppButton({
@@ -60,9 +60,6 @@ class AppButton extends StatelessWidget {
     final theme = Theme.of(context);
     final (height, horizontalPadding, gap, iconSize, textSize) =
         resolveAppButtonContentMetrics(context, size._contentSize);
-    final minWidth = size == AppButtonSize.tvLarge
-        ? AppTvTokens.actionMinWidth
-        : null;
     final isSecondarySelected =
         variant == AppButtonVariant.secondary && isSelected;
     final isGhostSelected = variant == AppButtonVariant.ghost && isSelected;
@@ -134,9 +131,6 @@ class AppButton extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           height: height,
-          constraints: minWidth == null
-              ? null
-              : BoxConstraints(minWidth: minWidth),
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           decoration: BoxDecoration(
             color: _usesActiveStyle ? backgroundColor : disabledBackground,
@@ -170,7 +164,6 @@ class AppButton extends StatelessWidget {
 
 extension on AppButtonSize {
   AppButtonContentSize get _contentSize => switch (this) {
-    AppButtonSize.tvLarge => AppButtonContentSize.tvLarge,
     AppButtonSize.large => AppButtonContentSize.large,
     AppButtonSize.medium => AppButtonContentSize.medium,
     AppButtonSize.small => AppButtonContentSize.small,

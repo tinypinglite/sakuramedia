@@ -11,7 +11,6 @@ import 'package:sakuramedia/routes/definitions/playlists.dart';
 import 'package:sakuramedia/routes/definitions/search.dart';
 import 'package:sakuramedia/routes/definitions/shared.dart';
 import 'package:sakuramedia/routes/definitions/system.dart';
-import 'package:sakuramedia/routes/definitions/tv.dart';
 import 'package:sakuramedia/routes/definitions/videos.dart';
 
 class AppRouteRegistry {
@@ -299,13 +298,4 @@ final AppRouteRegistry appRoutes = AppRouteRegistry(<AppRouteDefinition>[
   mobileMovieSeriesRoute,
   mobileMovieDetailRoute,
   mobileActorDetailRoute,
-  tvLoginRoute,
-  tvHomeRoute,
-  tvMoviesRoute,
-  tvSearchRoute,
-  tvSettingsRoute,
-  tvMovieDetailRoute,
-  tvPlaylistDetailRoute,
-  tvActorMoviesRoute,
-  tvMoviePlayerRoute,
 ]);

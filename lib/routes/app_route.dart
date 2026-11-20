@@ -138,7 +138,6 @@ class AppRouteExtra {
     final prefix = switch (platform) {
       AppPlatform.desktop => '/desktop/',
       AppPlatform.mobile => '/mobile/',
-      AppPlatform.tv => '/tv/',
     };
     return value.startsWith(prefix) ? value : null;
   }
@@ -311,13 +310,4 @@ enum AppRouteId {
   mobileMovieSeries,
   mobileMovieDetail,
   mobileActorDetail,
-  tvLogin,
-  tvHome,
-  tvMovies,
-  tvMovieDetail,
-  tvMoviePlayer,
-  tvPlaylistDetail,
-  tvActorMovies,
-  tvSearch,
-  tvSettings,
 }
