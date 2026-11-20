@@ -70,13 +70,11 @@ class ThumbnailStatsDto {
     required this.pendingMedia,
     required this.retryWaitMedia,
     required this.terminalFailedMedia,
-    required this.total,
   });
 
   final int pendingMedia;
   final int retryWaitMedia;
   final int terminalFailedMedia;
-  final int total;
 
   factory ThumbnailStatsDto.fromJson(Map<String, dynamic> json) =>
       _$ThumbnailStatsDtoFromJson(json);

@@ -19,7 +19,6 @@ StatusDto statusSummaryPlaceholder() {
       pendingMedia: 16,
       retryWaitMedia: 0,
       terminalFailedMedia: 0,
-      total: 2048,
     ),
   );
 }

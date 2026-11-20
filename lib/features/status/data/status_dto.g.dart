@@ -72,7 +72,6 @@ ThumbnailStatsDto _$ThumbnailStatsDtoFromJson(Map<String, dynamic> json) =>
       terminalFailedMedia: const IntJsonConverter().fromJson(
         json['terminal_failed_media'],
       ),
-      total: const IntJsonConverter().fromJson(json['total']),
     );
 
 Map<String, dynamic> _$ThumbnailStatsDtoToJson(
@@ -83,7 +82,6 @@ Map<String, dynamic> _$ThumbnailStatsDtoToJson(
   'terminal_failed_media': const IntJsonConverter().toJson(
     instance.terminalFailedMedia,
   ),
-  'total': const IntJsonConverter().toJson(instance.total),
 };
 
 ImageSearchEmbeddingServiceStatsDto

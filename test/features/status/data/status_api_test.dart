@@ -56,7 +56,6 @@ void main() {
           'pending_media': 24,
           'retry_wait_media': 6,
           'terminal_failed_media': 2,
-          'total': 132,
         },
       },
     );
@@ -71,12 +70,10 @@ void main() {
     expect(status.thumbnails.pendingMedia, 24);
     expect(status.thumbnails.retryWaitMedia, 6);
     expect(status.thumbnails.terminalFailedMedia, 2);
-    expect(status.thumbnails.total, 132);
     expect(status.toJson()['thumbnails'], <String, dynamic>{
       'pending_media': 24,
       'retry_wait_media': 6,
       'terminal_failed_media': 2,
-      'total': 132,
     });
     expect(status.toJson()['backend_version'], 'v0.2.0');
   });
@@ -107,7 +104,6 @@ void main() {
     expect(status.thumbnails.pendingMedia, 0);
     expect(status.thumbnails.retryWaitMedia, 0);
     expect(status.thumbnails.terminalFailedMedia, 0);
-    expect(status.thumbnails.total, 0);
   });
 
   test('getStatus defaults missing backend version to empty string', () async {
