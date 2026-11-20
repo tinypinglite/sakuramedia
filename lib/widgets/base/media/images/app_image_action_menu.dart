@@ -41,6 +41,10 @@ List<AppMenuItem<AppImageActionType>> buildImageActionMenuItems(
       (left, right) =>
           _actionOrder(left.type).compareTo(_actionOrder(right.type)),
     );
+  final detailGroupStart =
+      visibleActions.any((action) => action.type == AppImageActionType.setCover)
+      ? AppImageActionType.setCover
+      : AppImageActionType.movieDetail;
   return <AppMenuItem<AppImageActionType>>[
     for (final action in visibleActions)
       AppMenuItem(
@@ -50,6 +54,9 @@ List<AppMenuItem<AppImageActionType>> buildImageActionMenuItems(
         icon: action.icon,
         enabled: action.enabled,
         tone: action.destructive ? AppTextTone.error : AppTextTone.primary,
+        showDividerBefore:
+            action.type == AppImageActionType.addToCollection ||
+            action.type == detailGroupStart,
       ),
   ];
 }

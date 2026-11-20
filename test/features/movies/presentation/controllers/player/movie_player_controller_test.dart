@@ -261,7 +261,7 @@ void main() {
   });
 
   test(
-    'load resolves subtitle options and keeps subtitle disabled by default',
+    'load resolves subtitle options and selects the first by default',
     () async {
       final controller = MoviePlayerHarness(
         movieNumber: 'ABC-001',
@@ -283,7 +283,7 @@ void main() {
       await controller.load();
 
       expect(controller.subtitleFetchStatus, 'succeeded');
-      expect(controller.selectedSubtitleId, isNull);
+      expect(controller.selectedSubtitleId, 501);
       expect(controller.subtitleOptions, hasLength(1));
       expect(controller.subtitleOptions.single.subtitleId, 501);
       expect(
@@ -343,13 +343,40 @@ void main() {
 
     await controller.load();
 
+    controller.setSelectedSubtitleId(null);
+    expect(controller.selectedSubtitleId, isNull);
+
     controller.setSelectedSubtitleId(999);
     expect(controller.selectedSubtitleId, isNull);
 
     controller.setSelectedSubtitleId(501);
     expect(controller.selectedSubtitleId, 501);
+  });
+
+  test('subtitle reload preserves an explicit disabled selection', () async {
+    final controller = MoviePlayerHarness(
+      movieNumber: 'ABC-001',
+      baseUrl: 'https://api.example.com',
+      fetchMovieDetail: ({required movieNumber}) async => buildMovieDetail(),
+      fetchMediaThumbnails: ({required mediaId}) async => buildThumbnails(),
+      fetchMovieSubtitles: ({required movieNumber}) async =>
+          buildSubtitleList(),
+      updateMediaProgress:
+          ({required mediaId, required positionSeconds}) async {
+            return MovieMediaProgressDto(
+              lastPositionSeconds: positionSeconds,
+              lastWatchedAt: null,
+            );
+          },
+    );
+    addTearDown(controller.dispose);
+
+    await controller.load();
+    expect(controller.selectedSubtitleId, 501);
 
     controller.setSelectedSubtitleId(null);
+    await controller.loadSubtitles();
+
     expect(controller.selectedSubtitleId, isNull);
   });
 

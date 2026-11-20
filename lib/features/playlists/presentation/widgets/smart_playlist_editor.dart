@@ -8,6 +8,7 @@ import 'package:sakuramedia/features/actors/presentation/providers/actors_api_pr
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_actor_picker_sheet.dart';
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
+import 'package:sakuramedia/features/playlists/presentation/controllers/playlist_filter_state.dart';
 import 'package:sakuramedia/features/playlists/presentation/controllers/smart_playlist_draft.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_api_provider.dart';
 import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
@@ -202,7 +203,7 @@ class _SmartPlaylistEditorState extends ConsumerState<SmartPlaylistEditor> {
     final draft = statsEnabled
         ? _draft
         : _draft.copyWith(
-            sortField: visibleMovieSortField(
+            sortField: visiblePlaylistSortField(
               _draft.sortField,
               statsEnabled: false,
             ),
@@ -308,14 +309,12 @@ class _SmartPlaylistEditorState extends ConsumerState<SmartPlaylistEditor> {
           key: const Key('smart-playlist-media-tags-card'),
           child: MediaTagFilterSection(
             selectionStyle: AppFilterChipSelectionStyle.accent,
-            filter: MovieFilterState(
-              mediaTagIds: _draft.mediaTagIds,
-              mediaTagMatch: _draft.mediaTagMatch,
-            ),
-            onChanged: (next) => setState(
+            mediaTagIds: _draft.mediaTagIds,
+            mediaTagMatch: _draft.mediaTagMatch,
+            onChanged: (ids, matchMode) => setState(
               () => _draft = _draft.copyWith(
-                mediaTagIds: next.mediaTagIds,
-                mediaTagMatch: next.mediaTagMatch,
+                mediaTagIds: ids,
+                mediaTagMatch: matchMode,
               ),
             ),
           ),
@@ -642,7 +641,7 @@ class _SmartPlaylistEditorState extends ConsumerState<SmartPlaylistEditor> {
     required bool statsEnabled,
   }) {
     final spacing = context.appSpacing;
-    final sortFields = visibleMovieSortFields(statsEnabled: statsEnabled);
+    final sortFields = visiblePlaylistSortFields(statsEnabled: statsEnabled);
     return AppContentCard(
       key: const Key('smart-playlist-sort-card'),
       title: l10n.smartPlaylistSortTitle,
@@ -659,7 +658,7 @@ class _SmartPlaylistEditorState extends ConsumerState<SmartPlaylistEditor> {
               for (final field in sortFields)
                 AppFilterChip(
                   key: Key('smart-playlist-sort-field-${field.name}'),
-                  label: field.labelWith(l10n),
+                  label: field.label(l10n),
                   selected: _draft.sortField == field,
                   selectionStyle: AppFilterChipSelectionStyle.accent,
                   onPressed: () => setState(

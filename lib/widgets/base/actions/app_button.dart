@@ -22,7 +22,7 @@ class AppButton extends StatelessWidget {
     this.borderRadius,
     this.disabledBackgroundColor,
     this.disabledForegroundColor,
-    this.disabledOpacity = 0.56,
+    this.disabledOpacity = 1,
   });
 
   final String label;
@@ -38,12 +38,17 @@ class AppButton extends StatelessWidget {
   /// 覆盖默认圆角（默认 [AppRadius.smBorder]）；品牌主 CTA 可用 pill 圆角。
   final BorderRadius? borderRadius;
 
-  /// 覆盖禁用态背景/文字色（默认灰底 + 主题前景色）；仅在确有品牌禁用样式时使用。
+  /// 覆盖禁用态背景/文字色（默认灰底 + 可读的中性前景）；仅在确有品牌禁用样式时使用。
   final Color? disabledBackgroundColor;
   final Color? disabledForegroundColor;
+
+  /// 禁用态整体透明度；默认 1，禁用态的可读性由前景/背景 token 直接保证。
   final double disabledOpacity;
 
-  bool get _isEnabled => onPressed != null && !isLoading;
+  bool get _isInteractive => onPressed != null && !isLoading;
+
+  /// 加载中沿用正常配色，只屏蔽点击；避免提交中的主按钮看起来像被禁用。
+  bool get _usesActiveStyle => onPressed != null || isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -87,10 +92,22 @@ class AppButton extends StatelessWidget {
       AppButtonVariant.ghost => AppTextTone.accent,
       AppButtonVariant.danger => AppTextTone.error,
     };
-    final foregroundColor = resolveAppTextToneColor(context, tone);
-    final effectiveForeground = _isEnabled
+    final foregroundColor = variant == AppButtonVariant.primary
+        ? theme.colorScheme.onPrimary
+        : resolveAppTextToneColor(context, tone);
+    final disabledForeground =
+        disabledForegroundColor ??
+        resolveAppTextToneColor(
+          context,
+          variant == AppButtonVariant.danger
+              ? AppTextTone.error
+              : theme.brightness == Brightness.dark
+              ? AppTextTone.secondary
+              : AppTextTone.muted,
+        );
+    final effectiveForeground = _usesActiveStyle
         ? foregroundColor
-        : (disabledForegroundColor ?? foregroundColor);
+        : disabledForeground;
     final labelStyle = resolveAppTextStyle(context, size: textSize, tone: tone)
         .copyWith(
           color: effectiveForeground,
@@ -99,32 +116,37 @@ class AppButton extends StatelessWidget {
         );
 
     return Opacity(
-      opacity: _isEnabled ? 1 : disabledOpacity,
+      opacity: _usesActiveStyle ? 1 : disabledOpacity,
       child: AppInteractiveSurface(
-        enabled: _isEnabled,
+        enabled: _isInteractive,
         onTap: onPressed,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           height: height,
-          alignment: Alignment.center,
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           decoration: BoxDecoration(
-            color: _isEnabled ? backgroundColor : disabledBackground,
+            color: _usesActiveStyle ? backgroundColor : disabledBackground,
             borderRadius: borderRadius ?? context.appRadius.smBorder,
             border: Border.all(
-              color: _isEnabled ? borderColor : disabledBackground,
+              color: _usesActiveStyle ? borderColor : disabledBackground,
             ),
           ),
-          child: buildAppButtonContent(
-            label: label,
-            labelKey: labelKey,
-            labelStyle: labelStyle,
-            icon: icon,
-            trailingIcon: trailingIcon,
-            isLoading: isLoading,
-            iconSize: iconSize,
-            gap: gap,
-            iconColor: effectiveForeground,
+          // widthFactor/heightFactor 让按钮在宽松约束下按内容收缩；父级给
+          // Expanded / 通栏约束时仍会撑满，保持原有 CTA 用法。
+          child: Align(
+            widthFactor: 1,
+            heightFactor: 1,
+            child: buildAppButtonContent(
+              label: label,
+              labelKey: labelKey,
+              labelStyle: labelStyle,
+              icon: icon,
+              trailingIcon: trailingIcon,
+              isLoading: isLoading,
+              iconSize: iconSize,
+              gap: gap,
+              iconColor: effectiveForeground,
+            ),
           ),
         ),
       ),

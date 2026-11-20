@@ -46,6 +46,7 @@ class _SystemMaintenanceContentState
   static const _fileHashBackfillTaskKey = 'media_file_hash_backfill';
   static const _thumbnailPackBackfillTaskKey = 'media_thumbnail_pack_backfill';
   static const _movieAssetPackBackfillTaskKey = 'movie_asset_pack_backfill';
+  static const _tagNameNormalizeTaskKey = 'tag_name_normalize';
 
   StatusImageSearchDto? _imageSearchStatus;
   String? _errorMessage;
@@ -141,6 +142,16 @@ class _SystemMaintenanceContentState
         SystemLogExportCard(isMobile: _isMobile),
         SizedBox(height: context.appSpacing.xl),
         _buildImageSearchSection(context),
+        SizedBox(height: context.appSpacing.xl),
+        _buildMaintenanceTaskCard(
+          context,
+          taskKey: _tagNameNormalizeTaskKey,
+          title: l10n.systemMaintenanceTagNameNormalizeTitle,
+          description: l10n.systemMaintenanceTagNameNormalizeDescription,
+          successMessage: l10n.systemMaintenanceTagNameNormalizeSuccess,
+          confirmTitle: l10n.systemMaintenanceTagNameNormalizeConfirmTitle,
+          confirmMessage: l10n.systemMaintenanceTagNameNormalizeConfirmMessage,
+        ),
         SizedBox(height: context.appSpacing.xl),
         _buildMaintenanceTaskCard(
           context,
@@ -256,6 +267,8 @@ class _SystemMaintenanceContentState
     required String title,
     required String description,
     required String successMessage,
+    String? confirmTitle,
+    String? confirmMessage,
   }) {
     final l10n = AppLocalizations.of(context);
     final platformPrefix = _isMobile ? 'mobile' : 'configuration';
@@ -272,10 +285,17 @@ class _SystemMaintenanceContentState
       onPressed: hasSubmittingTask
           ? null
           : () => unawaited(
-              _runMaintenanceTask(
-                taskKey: taskKey,
-                successMessage: successMessage,
-              ),
+              confirmTitle != null && confirmMessage != null
+                  ? _confirmAndRunMaintenanceTask(
+                      taskKey: taskKey,
+                      successMessage: successMessage,
+                      confirmTitle: confirmTitle,
+                      confirmMessage: confirmMessage,
+                    )
+                  : _runMaintenanceTask(
+                      taskKey: taskKey,
+                      successMessage: successMessage,
+                    ),
             ),
     );
     final descriptionText = Text(
@@ -307,6 +327,24 @@ class _SystemMaintenanceContentState
               ],
             ),
     );
+  }
+
+  Future<void> _confirmAndRunMaintenanceTask({
+    required String taskKey,
+    required String successMessage,
+    required String confirmTitle,
+    required String confirmMessage,
+  }) async {
+    final confirmed = await showAppConfirmDialog(
+      context,
+      title: confirmTitle,
+      message: confirmMessage,
+      danger: true,
+    );
+    if (!confirmed || !mounted) {
+      return;
+    }
+    await _runMaintenanceTask(taskKey: taskKey, successMessage: successMessage);
   }
 
   Future<void> _runMaintenanceTask({

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
+import 'package:sakuramedia/features/playlists/presentation/controllers/playlist_filter_state.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 
 /// 影片摘要分页列表的来源与实例边界。
@@ -32,6 +33,7 @@ class MovieSummaryScope {
     this.initialTagIds = const <int>[],
     this.initialTagMatch = TagMatchMode.or,
     this.initialMovieFilter,
+    this.initialPlaylistFilter,
   });
 
   const MovieSummaryScope.latest({int pageSize = 24})
@@ -95,11 +97,17 @@ class MovieSummaryScope {
     required int playlistId,
     int pageSize = 24,
     MovieFilterState? initialMovieFilter,
+    PlaylistFilterState? initialPlaylistFilter,
+    List<int> initialTagIds = const <int>[],
+    TagMatchMode initialTagMatch = TagMatchMode.or,
   }) : this._(
          source: MovieSummarySource.playlist,
          resourceId: playlistId,
          pageSize: pageSize,
          initialMovieFilter: initialMovieFilter,
+         initialPlaylistFilter: initialPlaylistFilter,
+         initialTagIds: initialTagIds,
+         initialTagMatch: initialTagMatch,
        );
 
   const MovieSummaryScope.series({required int seriesId, int pageSize = 24})
@@ -143,6 +151,7 @@ class MovieSummaryScope {
 
   /// 首拉的影片筛选；为 `null` 时使用 [MovieFilterState.initial]。
   final MovieFilterState? initialMovieFilter;
+  final PlaylistFilterState? initialPlaylistFilter;
 
   @override
   bool operator ==(Object other) {
@@ -157,7 +166,11 @@ class MovieSummaryScope {
         other.initialTagMatch == initialTagMatch &&
         (other.initialMovieFilter == null) == (initialMovieFilter == null) &&
         (other.initialMovieFilter == null ||
-            other.initialMovieFilter!.matches(initialMovieFilter!));
+            other.initialMovieFilter!.matches(initialMovieFilter!)) &&
+        (other.initialPlaylistFilter == null) ==
+            (initialPlaylistFilter == null) &&
+        (other.initialPlaylistFilter == null ||
+            other.initialPlaylistFilter!.matches(initialPlaylistFilter!));
   }
 
   @override
@@ -172,6 +185,7 @@ class MovieSummaryScope {
     initialTagMatch,
     initialMovieFilter?.sortExpression,
     initialMovieFilter?.watchStatus,
+    initialPlaylistFilter?.hashCode,
   );
 }
 

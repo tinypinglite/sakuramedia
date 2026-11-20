@@ -58,6 +58,52 @@ void main() {
     expect(tester.getTopLeft(filter).dy, closeTo(pinnedTop, 0.1));
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('PornBox top content shares the page horizontal gutter', (
+    tester,
+  ) async {
+    await pumpPreviewApp(
+      tester,
+      home: const MobilePornboxPage(),
+      size: const Size(390, 844),
+      theme: buildSakuraMobileThemeData(),
+      platform: TargetPlatform.iOS,
+      appPlatform: AppPlatform.mobile,
+      bundle: bundle,
+      wrap: (child) => Scaffold(body: child),
+    );
+
+    final titleLeft = tester
+        .getTopLeft(
+          find.descendant(
+            of: find.byKey(const Key('mobile-pornbox-large-title')),
+            matching: find.byType(Text),
+          ),
+        )
+        .dx;
+    final headerLeft = tester
+        .getTopLeft(
+          find
+              .descendant(
+                of: find.byKey(const Key('mobile-pornbox-total')),
+                matching: find.byType(Text),
+              )
+              .first,
+        )
+        .dx;
+    final collectionTitleLeft = tester.getTopLeft(find.text('视频合集')).dx;
+    final collectionCardLeft = tester
+        .getTopLeft(find.byKey(const Key('mobile-video-collection-card-1')))
+        .dx;
+    final videoCardLeft = tester
+        .getTopLeft(find.byKey(const Key('video-summary-card-1')))
+        .dx;
+
+    expect(headerLeft, closeTo(titleLeft, 0.1));
+    expect(collectionTitleLeft, closeTo(titleLeft, 0.1));
+    expect(collectionCardLeft, closeTo(titleLeft, 0.1));
+    expect(videoCardLeft, closeTo(titleLeft, 0.1));
+  });
 }
 
 void _enqueueVideos(TestApiBundle bundle) {
@@ -84,7 +130,15 @@ void _enqueueVideos(TestApiBundle bundle) {
   bundle.adapter.enqueueResponder(
     method: 'GET',
     path: '/video-collections',
-    responder: (request, _) async => _jsonResponse(<dynamic>[]),
+    responder: (request, _) async => _jsonResponse(<Map<String, dynamic>>[
+      <String, dynamic>{
+        'id': 1,
+        'name': '合集 1',
+        'description': '',
+        'item_count': 3,
+        'cover_image': null,
+      },
+    ]),
   );
 }
 

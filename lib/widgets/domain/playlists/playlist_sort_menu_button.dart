@@ -18,6 +18,7 @@ class PlaylistSortMenuButton extends ConsumerWidget {
     this.glassGrouped = false,
     this.iconOnly = false,
     this.keyPrefix = 'playlist',
+    this.defaultOptionLabel,
     this.triggerKey,
     this.panelKey,
     this.drawerKey,
@@ -31,6 +32,7 @@ class PlaylistSortMenuButton extends ConsumerWidget {
   final bool glassGrouped;
   final bool iconOnly;
   final String keyPrefix;
+  final String? defaultOptionLabel;
   final Key? triggerKey;
   final Key? panelKey;
   final Key? drawerKey;
@@ -53,7 +55,9 @@ class PlaylistSortMenuButton extends ConsumerWidget {
       onDirectionChanged: (value) =>
           onChanged(effectiveState.copyWith(sortDirection: value)),
       allowDefaultOption: true,
-      defaultOptionLabel: AppLocalizations.of(context).playlistSortDefault,
+      defaultOptionLabel:
+          defaultOptionLabel ??
+          AppLocalizations.of(context).playlistSortDefault,
       directionVisibleWhen: (field) => field != null,
       useDrawer: useDrawer,
       glassGrouped: glassGrouped,

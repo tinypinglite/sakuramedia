@@ -880,6 +880,11 @@
   "systemMaintenanceMovieAssetPackDescription": "Pack movie covers, thin covers, and plot images from individual files into archives to reduce the number of small files on the server. Only unpacked movies are processed; large libraries may take a while.",
   "systemMaintenanceMovieAssetPackSuccess": "Movie image pack backfill task submitted. Check the task center for progress.",
   "systemMaintenanceImageSearchTitle": "Image search index",
+  "systemMaintenanceTagNameNormalizeTitle": "Tag language normalization",
+  "systemMaintenanceTagNameNormalizeDescription": "Normalize movie tags to the current account language, renaming or merging tags that can be mapped and keeping unknown tags unchanged. Recompute movie similarities after it completes.",
+  "systemMaintenanceTagNameNormalizeSuccess": "Tag language normalization task submitted. Check the task center for progress.",
+  "systemMaintenanceTagNameNormalizeConfirmTitle": "Run tag language normalization?",
+  "systemMaintenanceTagNameNormalizeConfirmMessage": "This changes existing tag names and merges tags with the same target name. Plugin rules configured by tag name may need to be updated.",
   "systemMaintenanceSubmit": "Submitting",
   "systemMaintenanceRunNow": "Run now",
   "systemMaintenanceTaskRunning": "The task is already running",
@@ -2706,6 +2711,27 @@
       }
     }
   },
+  "playlistMovieCountTemporary": "Showing {count} · Saved {total}",
+  "@playlistMovieCountTemporary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSavedConditions": "Saved conditions",
+  "playlistSavedActorCount": "{count} actresses",
+  "@playlistSavedActorCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistEditSmartConditions": "Edit smart conditions",
   "playlistActionsTooltip": "Playlist actions",
   "playlistNotFound": "Playlist not found",
   "playlistDetailLoadFailed": "Playlist details could not be loaded. Please try again later.",
@@ -2769,11 +2795,30 @@
   "playlistAddFailed": "Failed to add to the playlist",
   "playlistFilterResolution": "Resolution",
   "playlistFilterAll": "All",
+  "playlistFilterSummary": "{first} +{count} more",
+  "@playlistFilterSummary": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "playlistSortHeat": "Popularity",
   "playlistSortBitrate": "Bitrate",
   "playlistSortAddedAt": "Recently added",
   "playlistSortReleaseDate": "Release date",
   "playlistSortDefault": "Recently active",
+  "playlistSortSaved": "Saved sort · {sort}",
+  "@playlistSortSaved": {
+    "placeholders": {
+      "sort": {
+        "type": "String"
+      }
+    }
+  },
   "playlistEditInfo": "Edit details",
   "activityAll": "All",
   "activityUnread": "Unread",

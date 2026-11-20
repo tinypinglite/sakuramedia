@@ -1,7 +1,8 @@
 import 'dart:math' as math;
 import 'dart:ui' show ImageFilter, SemanticsRole;
 
-import 'package:flutter/services.dart' show LogicalKeyboardKey;
+import 'package:flutter/services.dart'
+    show KeyDownEvent, KeyRepeatEvent, LogicalKeyboardKey;
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/theme.dart';
@@ -15,9 +16,10 @@ import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 
 /// 弹出菜单的一项。
 ///
-/// [icon] 为 `null` 时只渲染文字（卡片右键菜单）；[subtitle] 用于补充说明；
-/// [tone] 沿用应用文字色调，危险操作传 [AppTextTone.error]；[key] 用于沿用
-/// 既有测试锚点。菜单项之间靠固定间距分项，没有分隔线。
+/// 桌面 popup 只渲染文字；[icon] 仍供移动端底部操作表使用。[subtitle]
+/// 用于补充说明，[tone] 沿用应用文字色调，危险操作传 [AppTextTone.error]。
+/// [showDividerBefore] 标记一个语义分组的起点，由菜单壳在组间绘制浅线；
+/// 不要在每一项之间都打开它。
 class AppMenuItem<T> {
   const AppMenuItem({
     required this.value,
@@ -27,6 +29,7 @@ class AppMenuItem<T> {
     this.tone = AppTextTone.primary,
     this.enabled = true,
     this.visible = true,
+    this.showDividerBefore = false,
     this.key,
   });
 
@@ -37,6 +40,7 @@ class AppMenuItem<T> {
   final AppTextTone tone;
   final bool enabled;
   final bool visible;
+  final bool showDividerBefore;
   final Key? key;
 }
 
@@ -100,28 +104,28 @@ class _AppContextMenuMetrics {
     required this.itemVerticalPadding,
     required this.rowHeight,
     required this.rowWithSubtitleHeight,
-    required this.iconSize,
-    required this.iconGap,
     required this.anchorGap,
     required this.radius,
     required this.itemRadius,
+    required this.dividerHorizontalInset,
+    required this.dividerVerticalInset,
     required this.titleSize,
     required this.subtitleSize,
   });
 
   static const desktop = _AppContextMenuMetrics(
-    minWidth: 160,
-    maxWidth: 240,
-    outerPadding: 4,
+    minWidth: 176,
+    maxWidth: 260,
+    outerPadding: 6,
     itemHorizontalPadding: 10,
-    itemVerticalPadding: 4,
-    rowHeight: 30,
-    rowWithSubtitleHeight: 44,
-    iconSize: 16,
-    iconGap: 8,
+    itemVerticalPadding: 7,
+    rowHeight: 34,
+    rowWithSubtitleHeight: 50,
     anchorGap: 6,
-    radius: 18,
-    itemRadius: 10,
+    radius: 16,
+    itemRadius: 6,
+    dividerHorizontalInset: 6,
+    dividerVerticalInset: 5,
     titleSize: AppTextSize.s14,
     subtitleSize: AppTextSize.s12,
   );
@@ -134,11 +138,11 @@ class _AppContextMenuMetrics {
     itemVerticalPadding: 6,
     rowHeight: 38,
     rowWithSubtitleHeight: 50,
-    iconSize: 18,
-    iconGap: 8,
     anchorGap: 8,
     radius: 24,
     itemRadius: 14,
+    dividerHorizontalInset: 6,
+    dividerVerticalInset: 5,
     titleSize: AppTextSize.s14,
     subtitleSize: AppTextSize.s12,
   );
@@ -156,11 +160,11 @@ class _AppContextMenuMetrics {
   final double itemVerticalPadding;
   final double rowHeight;
   final double rowWithSubtitleHeight;
-  final double iconSize;
-  final double iconGap;
   final double anchorGap;
   final double radius;
   final double itemRadius;
+  final double dividerHorizontalInset;
+  final double dividerVerticalInset;
   final AppTextSize titleSize;
   final AppTextSize subtitleSize;
 }
@@ -222,12 +226,8 @@ double _resolveContextMenuWidth<T>(
             textScaler,
             textDirection,
           );
-    final iconWidth = item.icon == null
-        ? 0.0
-        : metrics.iconSize + metrics.iconGap;
     final rowWidth =
         math.max(titleWidth, subtitleWidth) +
-        iconWidth +
         metrics.itemHorizontalPadding * 2 +
         8;
     widestRow = math.max(widestRow, rowWidth);
@@ -369,7 +369,7 @@ class _AppContextMenuPage<T> extends StatelessWidget {
   }
 }
 
-class _AppContextMenuPanel<T> extends StatelessWidget {
+class _AppContextMenuPanel<T> extends StatefulWidget {
   const _AppContextMenuPanel({
     required this.items,
     required this.metrics,
@@ -381,44 +381,164 @@ class _AppContextMenuPanel<T> extends StatelessWidget {
   final double width;
 
   @override
+  State<_AppContextMenuPanel<T>> createState() =>
+      _AppContextMenuPanelState<T>();
+}
+
+class _AppContextMenuPanelState<T> extends State<_AppContextMenuPanel<T>> {
+  final FocusNode _menuFocusNode = FocusNode(debugLabel: 'AppActionMenu');
+  late List<FocusNode?> _itemFocusNodes;
+  int? _activeIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _createItemFocusNodes();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _menuFocusNode.requestFocus();
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _AppContextMenuPanel<T> oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.items, widget.items)) {
+      _disposeItemFocusNodes();
+      _createItemFocusNodes();
+      _activeIndex = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _menuFocusNode.dispose();
+    _disposeItemFocusNodes();
+    super.dispose();
+  }
+
+  void _createItemFocusNodes() {
+    _itemFocusNodes = <FocusNode?>[
+      for (final item in widget.items)
+        item.enabled
+            ? FocusNode(debugLabel: 'AppActionMenu:${item.label}')
+            : null,
+    ];
+  }
+
+  void _disposeItemFocusNodes() {
+    for (final node in _itemFocusNodes) {
+      node?.dispose();
+    }
+  }
+
+  void _setActive(int index, {bool requestFocus = false}) {
+    if (!mounted || !widget.items[index].enabled) {
+      return;
+    }
+    if (_activeIndex != index) {
+      setState(() => _activeIndex = index);
+    }
+    if (requestFocus) {
+      _itemFocusNodes[index]?.requestFocus();
+    }
+  }
+
+  int? _findEnabledIndex(int start, int direction) {
+    var index = start;
+    while (index >= 0 && index < widget.items.length) {
+      if (widget.items[index].enabled) {
+        return index;
+      }
+      index += direction;
+    }
+    return null;
+  }
+
+  void _moveActive(int direction) {
+    final active = _activeIndex;
+    final start = active == null
+        ? (direction > 0 ? 0 : widget.items.length - 1)
+        : active + direction;
+    final target = _findEnabledIndex(start, direction);
+    if (target != null) {
+      _setActive(target, requestFocus: true);
+    }
+  }
+
+  KeyEventResult _handleMenuKeyEvent(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent && event is! KeyRepeatEvent) {
+      return KeyEventResult.ignored;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      _moveActive(1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      _moveActive(-1);
+      return KeyEventResult.handled;
+    }
+    if (event.logicalKey == LogicalKeyboardKey.escape) {
+      Navigator.of(context).maybePop();
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
+  @override
   Widget build(BuildContext context) {
     final borderColor = context.appColors.borderStrong;
-    final firstEnabledIndex = items.indexWhere((item) => item.enabled);
 
     return Semantics(
       role: SemanticsRole.menu,
       container: true,
       explicitChildNodes: true,
       child: AppGlassSurface(
-        width: width,
-        borderRadius: BorderRadius.circular(metrics.radius),
+        width: widget.width,
+        borderRadius: BorderRadius.circular(widget.metrics.radius),
         padding: EdgeInsets.zero,
         role: AppGlassRole.popover,
         child: DecoratedBox(
           position: DecorationPosition.foreground,
           decoration: ShapeDecoration(
             shape: RoundedSuperellipseBorder(
-              borderRadius: BorderRadius.circular(metrics.radius),
+              borderRadius: BorderRadius.circular(widget.metrics.radius),
               side: BorderSide(color: borderColor, width: 0.5),
             ),
           ),
           child: SingleChildScrollView(
-            padding: EdgeInsets.all(metrics.outerPadding),
-            child: FocusTraversalGroup(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  for (var index = 0; index < items.length; index++)
-                    _AppContextMenuActionRow<T>(
-                      key: items[index].key,
-                      item: items[index],
-                      metrics: metrics,
-                      autofocus: index == firstEnabledIndex,
-                      onSelected: () =>
-                          Navigator.of(context).pop<T>(items[index].value),
-                    ),
-                ],
+            padding: EdgeInsets.all(widget.metrics.outerPadding),
+            child: Focus(
+              focusNode: _menuFocusNode,
+              onKeyEvent: _handleMenuKeyEvent,
+              child: FocusTraversalGroup(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    for (
+                      var index = 0;
+                      index < widget.items.length;
+                      index++
+                    ) ...[
+                      if (index > 0 && widget.items[index].showDividerBefore)
+                        _AppContextMenuDivider(metrics: widget.metrics),
+                      _AppContextMenuActionRow<T>(
+                        key: widget.items[index].key,
+                        item: widget.items[index],
+                        metrics: widget.metrics,
+                        active: index == _activeIndex,
+                        focusNode: _itemFocusNodes[index],
+                        onHovered: () => _setActive(index, requestFocus: true),
+                        onFocused: () => _setActive(index),
+                        onSelected: () => Navigator.of(
+                          context,
+                        ).pop<T>(widget.items[index].value),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -428,18 +548,41 @@ class _AppContextMenuPanel<T> extends StatelessWidget {
   }
 }
 
+class _AppContextMenuDivider extends StatelessWidget {
+  const _AppContextMenuDivider({required this.metrics});
+
+  final _AppContextMenuMetrics metrics;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(
+        horizontal: metrics.dividerHorizontalInset,
+        vertical: metrics.dividerVerticalInset,
+      ),
+      child: Divider(height: 1, thickness: 1, color: context.appColors.divider),
+    );
+  }
+}
+
 class _AppContextMenuActionRow<T> extends StatefulWidget {
   const _AppContextMenuActionRow({
     super.key,
     required this.item,
     required this.metrics,
-    required this.autofocus,
+    required this.active,
+    required this.focusNode,
+    required this.onHovered,
+    required this.onFocused,
     required this.onSelected,
   });
 
   final AppMenuItem<T> item;
   final _AppContextMenuMetrics metrics;
-  final bool autofocus;
+  final bool active;
+  final FocusNode? focusNode;
+  final VoidCallback onHovered;
+  final VoidCallback onFocused;
   final VoidCallback onSelected;
 
   @override
@@ -449,23 +592,7 @@ class _AppContextMenuActionRow<T> extends StatefulWidget {
 
 class _AppContextMenuActionRowState<T>
     extends State<_AppContextMenuActionRow<T>> {
-  bool _hovered = false;
-  bool _focused = false;
   bool _pressed = false;
-
-  void _setHovered(bool value) {
-    if (!mounted || _hovered == value) {
-      return;
-    }
-    setState(() => _hovered = value);
-  }
-
-  void _setFocused(bool value) {
-    if (!mounted || _focused == value) {
-      return;
-    }
-    setState(() => _focused = value);
-  }
 
   void _setPressed(bool value) {
     if (!mounted || _pressed == value) {
@@ -485,25 +612,27 @@ class _AppContextMenuActionRowState<T>
     final item = widget.item;
     final metrics = widget.metrics;
     final enabled = item.enabled;
-    final danger = enabled && item.tone == AppTextTone.error;
     final titleTone = enabled ? item.tone : AppTextTone.muted;
-    final iconTone = danger
-        ? AppTextTone.error
-        : (enabled ? AppTextTone.secondary : AppTextTone.muted);
     final fontFamily = resolveAppFontFamily(context);
-    final highlightColor = danger
-        ? context.appTextPalette.error.withValues(alpha: 0.12)
-        : context.appColors.divider;
-    final pressedBackground = danger
-        ? highlightColor.withValues(
-            alpha: math.min(1.0, highlightColor.a + 0.04),
-          )
-        : context.appColors.borderSubtle;
-    final background = _pressed
+    final activeBackground = Color.alphaBlend(
+      context.appTextPalette.primary.withValues(alpha: 0.10),
+      context.appColors.surfaceMuted,
+    );
+    final pressedBackground = Color.alphaBlend(
+      context.appTextPalette.primary.withValues(alpha: 0.16),
+      context.appColors.surfaceMuted,
+    );
+    final background = !enabled
+        ? Colors.transparent
+        : _pressed
         ? pressedBackground
-        : (_hovered || _focused ? highlightColor : Colors.transparent);
+        : widget.active
+        ? activeBackground
+        : Colors.transparent;
     final subtitle = item.subtitle;
-    final icon = item.icon;
+    final animationDuration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : context.appMotion.fast;
 
     return Semantics(
       container: true,
@@ -515,92 +644,87 @@ class _AppContextMenuActionRowState<T>
       child: ExcludeSemantics(
         child: AbsorbPointer(
           absorbing: !enabled,
-          child: FocusableActionDetector(
-            enabled: enabled,
-            autofocus: widget.autofocus,
-            includeFocusSemantics: false,
-            mouseCursor: enabled
-                ? SystemMouseCursors.click
-                : SystemMouseCursors.basic,
-            shortcuts: const <ShortcutActivator, Intent>{
-              SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
-              SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
-            },
-            actions: <Type, Action<Intent>>{
-              ActivateIntent: CallbackAction<ActivateIntent>(
-                onInvoke: (_) {
-                  _activate();
-                  return null;
-                },
-              ),
-            },
-            onShowHoverHighlight: _setHovered,
-            onShowFocusHighlight: _setFocused,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              excludeFromSemantics: true,
-              onTapDown: enabled ? (_) => _setPressed(true) : null,
-              onTapUp: enabled ? (_) => _setPressed(false) : null,
-              onTapCancel: enabled ? () => _setPressed(false) : null,
-              onTap: enabled ? _activate : null,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 110),
-                curve: Curves.easeOutCubic,
-                constraints: BoxConstraints(
-                  minHeight: subtitle == null
-                      ? metrics.rowHeight
-                      : metrics.rowWithSubtitleHeight,
+          child: MouseRegion(
+            onEnter: enabled ? (_) => widget.onHovered() : null,
+            child: FocusableActionDetector(
+              enabled: enabled,
+              focusNode: widget.focusNode,
+              includeFocusSemantics: false,
+              mouseCursor: enabled
+                  ? SystemMouseCursors.click
+                  : SystemMouseCursors.basic,
+              shortcuts: const <ShortcutActivator, Intent>{
+                SingleActivator(LogicalKeyboardKey.enter): ActivateIntent(),
+                SingleActivator(LogicalKeyboardKey.space): ActivateIntent(),
+              },
+              actions: <Type, Action<Intent>>{
+                ActivateIntent: CallbackAction<ActivateIntent>(
+                  onInvoke: (_) {
+                    _activate();
+                    return null;
+                  },
                 ),
-                padding: EdgeInsets.symmetric(
-                  horizontal: metrics.itemHorizontalPadding,
-                  vertical: metrics.itemVerticalPadding,
-                ),
-                decoration: BoxDecoration(
-                  color: background,
-                  borderRadius: BorderRadius.circular(metrics.itemRadius),
-                ),
-                child: Row(
-                  children: <Widget>[
-                    if (icon != null) ...[
-                      Icon(
-                        icon,
-                        size: metrics.iconSize,
-                        color: resolveAppTextToneColor(context, iconTone),
+              },
+              onShowFocusHighlight: (value) {
+                if (enabled && value) {
+                  widget.onFocused();
+                }
+              },
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                excludeFromSemantics: true,
+                onTapDown: enabled ? (_) => _setPressed(true) : null,
+                onTapUp: enabled ? (_) => _setPressed(false) : null,
+                onTapCancel: enabled ? () => _setPressed(false) : null,
+                onTap: enabled ? _activate : null,
+                child: AnimatedContainer(
+                  duration: animationDuration,
+                  curve: Curves.easeOutCubic,
+                  constraints: BoxConstraints(
+                    minHeight: subtitle == null
+                        ? metrics.rowHeight
+                        : metrics.rowWithSubtitleHeight,
+                  ),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: metrics.itemHorizontalPadding,
+                    vertical: metrics.itemVerticalPadding,
+                  ),
+                  decoration: BoxDecoration(
+                    color: background,
+                    borderRadius: BorderRadius.circular(metrics.itemRadius),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      Text(
+                        item.label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: metrics.titleSize,
+                          weight: widget.active
+                              ? AppTextWeight.medium
+                              : AppTextWeight.regular,
+                          tone: titleTone,
+                        ).copyWith(fontFamily: fontFamily),
                       ),
-                      SizedBox(width: metrics.iconGap),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: resolveAppTextStyle(
+                            context,
+                            size: metrics.subtitleSize,
+                            tone: AppTextTone.muted,
+                          ).copyWith(fontFamily: fontFamily),
+                        ),
+                      ],
                     ],
-                    Expanded(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: <Widget>[
-                          Text(
-                            item.label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: resolveAppTextStyle(
-                              context,
-                              size: metrics.titleSize,
-                              tone: titleTone,
-                            ).copyWith(fontFamily: fontFamily),
-                          ),
-                          if (subtitle != null) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              subtitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: resolveAppTextStyle(
-                                context,
-                                size: metrics.subtitleSize,
-                                tone: AppTextTone.muted,
-                              ).copyWith(fontFamily: fontFamily),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ),
             ),

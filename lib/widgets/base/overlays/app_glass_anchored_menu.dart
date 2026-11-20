@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/services.dart';
@@ -42,6 +43,8 @@ class AppGlassAnchoredMenu extends StatefulWidget {
     this.surfaceStyle,
     this.screenPadding = const EdgeInsets.all(16),
     this.gap = 4,
+    this.openOnHover = false,
+    this.hoverCloseDelay = const Duration(milliseconds: 80),
     this.onOpen,
     this.onClose,
   });
@@ -60,6 +63,13 @@ class AppGlassAnchoredMenu extends StatefulWidget {
   final AppSurfaceStyle? surfaceStyle;
   final EdgeInsets screenPadding;
   final double gap;
+
+  /// 鼠标进入触发器时直接打开，移出触发器和面板后延迟关闭。
+  ///
+  /// 仅用于播放器等明确的桌面 hover 菜单；普通操作菜单仍保持点击打开。
+  final bool openOnHover;
+  final Duration hoverCloseDelay;
+
   final VoidCallback? onOpen;
   final VoidCallback? onClose;
 
@@ -70,11 +80,14 @@ class AppGlassAnchoredMenu extends StatefulWidget {
 class _AppGlassAnchoredMenuState extends State<AppGlassAnchoredMenu> {
   final LayerLink _layerLink = LayerLink();
   final GlobalKey _triggerKey = GlobalKey();
+  final GlobalKey _panelKey = GlobalKey();
   final FocusNode _menuFocusNode = FocusNode(
     debugLabel: 'AppGlassAnchoredMenu',
   );
 
   OverlayEntry? _overlayEntry;
+  Timer? _hoverCloseTimer;
+  Offset? _lastHoverPosition;
   bool _isOpen = false;
   bool _opensUpward = false;
   double _menuWidth = 0;
@@ -94,10 +107,15 @@ class _AppGlassAnchoredMenuState extends State<AppGlassAnchoredMenu> {
       oldWidget.controller?._state = null;
       widget.controller?._state = this;
     }
+    if (oldWidget.openOnHover && !widget.openOnHover) {
+      _hoverCloseTimer?.cancel();
+      _lastHoverPosition = null;
+    }
   }
 
   @override
   void dispose() {
+    _hoverCloseTimer?.cancel();
     if (widget.controller?._state == this) {
       widget.controller?._state = null;
     }
@@ -114,7 +132,10 @@ class _AppGlassAnchoredMenuState extends State<AppGlassAnchoredMenu> {
     _showOverlay();
   }
 
-  void _showOverlay() {
+  void _showOverlay({bool requestFocus = true}) {
+    if (_overlayEntry != null) {
+      return;
+    }
     final triggerBox =
         _triggerKey.currentContext?.findRenderObject() as RenderBox?;
     final overlay = Overlay.of(context);
@@ -162,12 +183,98 @@ class _AppGlassAnchoredMenuState extends State<AppGlassAnchoredMenu> {
     _overlayEntry = OverlayEntry(builder: _buildOverlay);
     overlay.insert(_overlayEntry!);
     setState(() => _isOpen = true);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _overlayEntry != null) {
-        _menuFocusNode.requestFocus();
-      }
-    });
+    if (requestFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _overlayEntry != null) {
+          _menuFocusNode.requestFocus();
+        }
+      });
+    }
     widget.onOpen?.call();
+  }
+
+  void _handleTriggerHoverEnter(PointerEnterEvent event) {
+    _lastHoverPosition = event.position;
+    _hoverCloseTimer?.cancel();
+    _showOverlay(requestFocus: false);
+  }
+
+  void _handleTriggerHoverExit(PointerExitEvent event) {
+    _lastHoverPosition = event.position;
+    _scheduleHoverClose();
+  }
+
+  void _handleTriggerHoverMove(PointerHoverEvent event) {
+    _lastHoverPosition = event.position;
+    _hoverCloseTimer?.cancel();
+  }
+
+  void _handlePanelHoverEnter(PointerEnterEvent event) {
+    _lastHoverPosition = event.position;
+    _hoverCloseTimer?.cancel();
+  }
+
+  void _handlePanelHoverExit(PointerExitEvent event) {
+    _lastHoverPosition = event.position;
+    _scheduleHoverClose();
+  }
+
+  void _handleOverlayHover(PointerHoverEvent event) {
+    if (!widget.openOnHover) {
+      return;
+    }
+    _lastHoverPosition = event.position;
+    if (_isHoverPositionInsideMenu()) {
+      _hoverCloseTimer?.cancel();
+      return;
+    }
+    _scheduleHoverClose();
+  }
+
+  void _handleOverlayExit(PointerExitEvent event) {
+    if (!widget.openOnHover) {
+      return;
+    }
+    _lastHoverPosition = event.position;
+    _scheduleHoverClose();
+  }
+
+  void _scheduleHoverClose() {
+    if (!widget.openOnHover || _overlayEntry == null) {
+      return;
+    }
+    _hoverCloseTimer?.cancel();
+    _hoverCloseTimer = Timer(widget.hoverCloseDelay, () {
+      _hoverCloseTimer = null;
+      if (!mounted || _overlayEntry == null) {
+        return;
+      }
+      if (_isHoverPositionInsideMenu()) {
+        return;
+      }
+      _removeOverlay();
+    });
+  }
+
+  bool _isHoverPositionInsideMenu() {
+    final position = _lastHoverPosition;
+    if (position == null) {
+      return false;
+    }
+    final triggerBox =
+        _triggerKey.currentContext?.findRenderObject() as RenderBox?;
+    final panelBox = _panelKey.currentContext?.findRenderObject() as RenderBox?;
+    Rect? hoverRect;
+    if (triggerBox != null && triggerBox.hasSize) {
+      hoverRect = triggerBox.localToGlobal(Offset.zero) & triggerBox.size;
+    }
+    if (panelBox != null && panelBox.hasSize) {
+      final panelRect = panelBox.localToGlobal(Offset.zero) & panelBox.size;
+      hoverRect = hoverRect == null
+          ? panelRect
+          : hoverRect.expandToInclude(panelRect);
+    }
+    return hoverRect?.inflate(1).contains(position) ?? false;
   }
 
   Widget _buildOverlay(BuildContext context) {
@@ -206,10 +313,15 @@ class _AppGlassAnchoredMenuState extends State<AppGlassAnchoredMenu> {
     return Stack(
       children: <Widget>[
         Positioned.fill(
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _removeOverlay,
-            child: const SizedBox.expand(),
+          child: MouseRegion(
+            opaque: false,
+            onHover: _handleOverlayHover,
+            onExit: _handleOverlayExit,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _removeOverlay,
+              child: const SizedBox.expand(),
+            ),
           ),
         ),
         CompositedTransformFollower(
@@ -223,7 +335,12 @@ class _AppGlassAnchoredMenuState extends State<AppGlassAnchoredMenu> {
             _horizontalOffset,
             _opensUpward ? -widget.gap : widget.gap,
           ),
-          child: styledPanel,
+          child: MouseRegion(
+            key: _panelKey,
+            onEnter: _handlePanelHoverEnter,
+            onExit: _handlePanelHoverExit,
+            child: styledPanel,
+          ),
         ),
       ],
     );
@@ -235,6 +352,8 @@ class _AppGlassAnchoredMenuState extends State<AppGlassAnchoredMenu> {
       return;
     }
     _overlayEntry = null;
+    _hoverCloseTimer?.cancel();
+    _lastHoverPosition = null;
     entry.remove();
     entry.dispose();
     _menuFocusNode.unfocus();
@@ -252,9 +371,14 @@ class _AppGlassAnchoredMenuState extends State<AppGlassAnchoredMenu> {
   Widget build(BuildContext context) {
     return CompositedTransformTarget(
       link: _layerLink,
-      child: KeyedSubtree(
-        key: _triggerKey,
-        child: widget.triggerBuilder(context, _isOpen, _toggle),
+      child: MouseRegion(
+        onEnter: widget.openOnHover ? _handleTriggerHoverEnter : null,
+        onExit: widget.openOnHover ? _handleTriggerHoverExit : null,
+        onHover: widget.openOnHover ? _handleTriggerHoverMove : null,
+        child: KeyedSubtree(
+          key: _triggerKey,
+          child: widget.triggerBuilder(context, _isOpen, _toggle),
+        ),
       ),
     );
   }

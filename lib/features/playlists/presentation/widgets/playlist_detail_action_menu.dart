@@ -29,7 +29,9 @@ Future<PlaylistDetailActionType?> showPlaylistDetailActionMenu({
         AppMenuItem(
           key: const Key('playlist-detail-action-edit'),
           value: PlaylistDetailActionType.edit,
-          label: l10n.playlistEditInfo,
+          label: playlist.isSmart
+              ? l10n.playlistEditSmartConditions
+              : l10n.playlistEditInfo,
           icon: Icons.edit_outlined,
         ),
       if (playlist.isDeletable)
@@ -39,6 +41,7 @@ Future<PlaylistDetailActionType?> showPlaylistDetailActionMenu({
           label: l10n.playlistDeleteTitle,
           icon: Icons.delete_outline_rounded,
           tone: AppTextTone.error,
+          showDividerBefore: true,
         ),
     ],
   );

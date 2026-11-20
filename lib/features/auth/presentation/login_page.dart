@@ -1016,13 +1016,6 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           trailingIcon: _isSubmitting
               ? null
               : const Icon(Icons.arrow_forward_rounded),
-          disabledOpacity: 1,
-          disabledBackgroundColor: Theme.of(
-            context,
-          ).colorScheme.primary.withValues(alpha: 0.55),
-          disabledForegroundColor: Theme.of(
-            context,
-          ).colorScheme.onPrimary.withValues(alpha: 0.92),
           onPressed: _isSubmitting ? null : _submitLogin,
         ),
       ),

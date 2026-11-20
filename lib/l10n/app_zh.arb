@@ -880,6 +880,11 @@
   "systemMaintenanceMovieAssetPackDescription": "把影片的封面、薄封面与剧情图从单文件整理为打包存储，减少服务器上的小文件数量。只处理尚未打包的影片，媒体库较大时可能运行较久。",
   "systemMaintenanceMovieAssetPackSuccess": "影片图片打包回填任务已提交，进度请在任务中心查看",
   "systemMaintenanceImageSearchTitle": "图搜索索引",
+  "systemMaintenanceTagNameNormalizeTitle": "标签语言归一",
+  "systemMaintenanceTagNameNormalizeDescription": "按当前账号语言统一影片标签，能映射的改名或合并，查不到的标签保持原样。执行后建议运行影片相似度重算。",
+  "systemMaintenanceTagNameNormalizeSuccess": "标签语言归一任务已提交，进度请在任务中心查看",
+  "systemMaintenanceTagNameNormalizeConfirmTitle": "执行标签语言归一？",
+  "systemMaintenanceTagNameNormalizeConfirmMessage": "这会修改已有标签名称，并合并目标语言下同名的标签。插件里按标签名配置的规则可能需要重新调整。",
   "systemMaintenanceSubmit": "提交中",
   "systemMaintenanceRunNow": "立即执行",
   "systemMaintenanceTaskRunning": "任务已在运行中",
@@ -2706,6 +2711,27 @@
       }
     }
   },
+  "playlistMovieCountTemporary": "当前 {count} 部 · 保存 {total} 部",
+  "@playlistMovieCountTemporary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistSavedConditions": "保存条件",
+  "playlistSavedActorCount": "女优 {count} 位",
+  "@playlistSavedActorCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "playlistEditSmartConditions": "编辑智能条件",
   "playlistActionsTooltip": "播放列表操作",
   "playlistNotFound": "未找到该播放列表",
   "playlistDetailLoadFailed": "播放列表详情暂时无法加载，请稍后重试",
@@ -2769,11 +2795,30 @@
   "playlistAddFailed": "加入播放列表失败",
   "playlistFilterResolution": "分辨率",
   "playlistFilterAll": "全部",
+  "playlistFilterSummary": "{first} 等 {count} 项",
+  "@playlistFilterSummary": {
+    "placeholders": {
+      "first": {
+        "type": "String"
+      },
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "playlistSortHeat": "热度",
   "playlistSortBitrate": "码率",
   "playlistSortAddedAt": "最近入库",
   "playlistSortReleaseDate": "发布时间",
   "playlistSortDefault": "最近触达",
+  "playlistSortSaved": "保存排序 · {sort}",
+  "@playlistSortSaved": {
+    "placeholders": {
+      "sort": {
+        "type": "String"
+      }
+    }
+  },
   "playlistEditInfo": "编辑信息",
   "activityAll": "全部",
   "activityUnread": "未读",

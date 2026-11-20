@@ -136,6 +136,7 @@ class _MoviePlayerSubtitleButtonState extends State<MoviePlayerSubtitleButton> {
       estimatedHeight: context.appFormTokens.menuMaxHeight,
       maxHeight: context.appFormTokens.menuMaxHeight,
       gap: overlayTokens.menuGap,
+      openOnHover: _canOpenMenu,
       onOpen: _handleMenuOpen,
       onClose: _handleMenuClose,
       triggerBuilder: (context, isOpen, toggle) {

@@ -53,6 +53,7 @@ Future<void> _showCollectionMemberContextMenu(
         value: _MemberMenuAction.remove,
         label: removeLabel,
         tone: delete == null ? AppTextTone.error : AppTextTone.primary,
+        showDividerBefore: true,
       ),
       if (delete != null)
         AppMenuItem(

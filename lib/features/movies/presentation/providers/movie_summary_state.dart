@@ -64,9 +64,7 @@ class MovieSummaryFilter {
     movie.resolution,
     Object.hashAll(movie.mediaTagIds),
     movie.mediaTagMatch,
-    playlist.sortField,
-    playlist.sortDirection,
-    playlist.resolution,
+    playlist.hashCode,
     Object.hashAll(tagIds),
     tagMatch,
   );

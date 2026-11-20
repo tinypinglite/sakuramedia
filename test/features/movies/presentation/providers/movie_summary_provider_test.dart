@@ -11,6 +11,7 @@ import 'package:sakuramedia/features/movies/presentation/providers/mutation_even
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
 import 'package:sakuramedia/features/playlists/data/api/playlists_api.dart';
+import 'package:sakuramedia/features/playlists/presentation/controllers/playlist_filter_state.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_api_provider.dart';
 import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 
@@ -670,6 +671,66 @@ void main() {
       adapter.requests.map((request) => request.path),
       containsAll(<String>['/playlists/7/movies', '/movies/by-series']),
     );
+  });
+
+  test('播放列表 scope 发送预填筛选，临时清空时保留空覆盖参数', () async {
+    final initialFilter = PlaylistFilterState.initial.copyWith(
+      statuses: const <MovieStatusFilter>{MovieStatusFilter.playable},
+      statusMatch: TagMatchMode.and,
+      watchStatuses: const <MovieWatchStatusFilter>{
+        MovieWatchStatusFilter.unwatched,
+      },
+      years: const <int>{2024},
+      resolutions: const <PlaylistResolutionFilter>{
+        PlaylistResolutionFilter.k4k,
+      },
+      mediaTagIds: const <int>[3],
+      mediaTagMatch: TagMatchMode.and,
+    );
+    final scope = MovieSummaryScope.playlist(
+      playlistId: 7,
+      initialPlaylistFilter: initialFilter,
+      initialTagIds: <int>[1, 2],
+      initialTagMatch: TagMatchMode.and,
+    );
+    await prime(scope, <Map<String, dynamic>>[_movie('PLAY-001')]);
+
+    var query = adapter.requests.last.uri.queryParameters;
+    expect(query['statuses'], 'playable');
+    expect(query['status_match'], 'and');
+    expect(query['watch_statuses'], 'unwatched');
+    expect(query['watch_match'], 'or');
+    expect(query['year'], '2024');
+    expect(query['resolutions'], '4K');
+    expect(query['tag_ids'], '1,2');
+    expect(query['tag_match'], 'and');
+    expect(query['media_tag_ids'], '3');
+    expect(query['media_tag_match'], 'and');
+
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists/7/movies',
+      body: _page(
+        items: <Map<String, dynamic>>[_movie('PLAY-002')],
+        total: 1,
+        pageSize: scope.pageSize,
+      ),
+    );
+    await container
+        .read(movieSummaryProvider(scope).notifier)
+        .applyPlaylistViewFilter(
+          PlaylistFilterState.initial,
+          tagIds: const <int>[],
+          tagMatch: TagMatchMode.or,
+        );
+
+    query = adapter.requests.last.uri.queryParameters;
+    expect(query['statuses'], '');
+    expect(query['watch_statuses'], '');
+    expect(query['year'], '');
+    expect(query['resolutions'], '');
+    expect(query['tag_ids'], '');
+    expect(query['media_tag_ids'], '');
   });
 
   test('订阅广播就地修正条目，合集广播按来源移除单体列表中的条目', () async {

@@ -26,8 +26,8 @@
 
 - `showAppActionMenu<T>` / `AppMenuItem<T>`：`app_action_menu.dart`，全应用唯一的右键 / 长按菜单壳；负责定位、统一表面样式与项渲染、底部操作表（可选标题 + 动作项）、全屏图片下的抽屉宿主。移动底部操作表不再渲染独立「取消」行，靠下拉、遮罩或系统返回关闭。调用方只组装 items 并派发返回值，不要另写菜单壳。
   - `AppMenuPresentation` 由**触发方式**决定，不按平台：长按 / 右键用 `popup`（默认，锚定按压点），「更多」按钮的动作列表用 `bottomDrawer`。桌面 `popup` 的入场同样走 `AppGlassEntrance`（150ms 入场、100ms 出场，带 0.96→1.0 缩放），不要在玻璃面板外再套 `Opacity`。
-  - 锚定弹层使用 `AppSurface` 的自绘玻璃 platter，宽度按内容测量：桌面 160–240、移动 180–260；桌面行高 30（副标题 44）、图标 16、圆角 18、外层留白 4、行内左右 10；移动行高 38（副标题 50）、图标 18、圆角 24、外层留白 6、行内左右 12。标题 `s14`，副标题 `s12`。操作表仍为行高 52、图标 18、正文 `s12`。
-  - 锚定弹层只显示玻璃动作 platter，保留图标、hover、危险色和禁用态；透明 barrier、无背景压暗和源内容预览，点击外部或返回键得到 `null`。不要退回 `showMenu` 或 `PopupMenuItem`。
+  - 锚定弹层使用 `AppSurface` 的自绘 platter，液态玻璃和扁平外观由 `AppSurfaceStyle` 自动分派，不改玻璃配方；宽度按文字内容测量：桌面 176–260、移动 180–260。桌面行高 34（副标题 50）、外层留白 6、行内左右 10、行圆角 6、菜单圆角 16；移动行高 38（副标题 50）、外层留白 6、行内左右 12。标题 `s14`，副标题 `s12`。操作表仍为行高 52、图标 18、正文 `s12`。
+  - 锚定 popup 只显示文字动作，不渲染 `AppMenuItem.icon`；图标仍供底部操作表使用。打开时不预选首项，鼠标 hover 和键盘焦点共用一个 active 行，使用 `surfaceMuted` 圆角底；`showDividerBefore` 只标记语义分组起点，组间画 1px 浅线，不逐项分割。透明 barrier、无背景压暗和源内容预览，点击外部或返回键得到 `null`。不要退回 `showMenu` 或 `PopupMenuItem`。
 - `AppGlassAnchoredMenu`：`app_glass_anchored_menu.dart`，紧凑下拉/选择菜单的统一锚定壳。支持动态宽度、上下翻转、限高滚动、点击外部/Esc 关闭和 `AppGlassAnchoredMenuController`；面板使用 `AppSurface`，行使用 `AppGlassMenuRow`。侧栏主题色/版本、登录协议/语言和 `AppSelectField` 都走它，不要再使用 `PopupMenuButton`。
 - `AppGlassMenuRow`：锚定菜单里的标准行，支持 leading/title/subtitle/trailing、选中勾选和禁用态；点击反馈由 `AppInteractiveSurface` 负责，不写 hover 底色。
 - `AppGlassFilterPopover`：`app_glass_filter_popover.dart`，桌面筛选的唯一高层入口。标准入口负责触发器、计数信息、滚动区和 `AppGlassFilterFooter`；图片搜索、演员标签等特殊入口通过 `triggerBuilder` / `footerBuilder` 复用同一弹层与关闭语义。

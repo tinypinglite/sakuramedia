@@ -141,7 +141,7 @@ class MoviePlayer extends _$MoviePlayer {
       _setActiveThumbnailIndex(null);
       await Future.wait<void>(<Future<void>>[
         if (selectedMedia != null) loadThumbnails(),
-        loadSubtitles(),
+        loadSubtitles(selectFirstIfUnset: true),
       ]);
       if (_isCurrentLoad(requestVersion)) {
         state = state.copyWith(errorMessage: null);
@@ -215,7 +215,11 @@ class MoviePlayer extends _$MoviePlayer {
     }
   }
 
-  Future<void> loadSubtitles() async {
+  /// 重新拉取字幕列表。
+  ///
+  /// 初次进入播放页时由 [load] 传入 `selectFirstIfUnset: true`，有字幕时默认
+  /// 选中第一条；后续重载保留已有选择，用户手动关闭字幕后不会被重新打开。
+  Future<void> loadSubtitles({bool selectFirstIfUnset = false}) async {
     final fetch = _dependencies.fetchMovieSubtitles;
     if (fetch == null) {
       state = _resetSubtitleState(
@@ -235,15 +239,21 @@ class MoviePlayer extends _$MoviePlayer {
           .map(_buildSubtitleOption)
           .whereType<MoviePlayerSubtitleOption>()
           .toList(growable: false);
+      final keepsPreviousSelection = options.any(
+        (item) => item.subtitleId == previousSelectedSubtitleId,
+      );
+      int? nextSelectedSubtitleId;
+      if (keepsPreviousSelection) {
+        nextSelectedSubtitleId = previousSelectedSubtitleId;
+      } else if (selectFirstIfUnset && options.isNotEmpty) {
+        nextSelectedSubtitleId = options.first.subtitleId;
+      }
       state = state.copyWith(
         subtitleFetchStatus: result.fetchStatus.trim().isEmpty
             ? 'pending'
             : result.fetchStatus.trim(),
         subtitleOptions: options,
-        selectedSubtitleId:
-            options.any((item) => item.subtitleId == previousSelectedSubtitleId)
-            ? previousSelectedSubtitleId
-            : null,
+        selectedSubtitleId: nextSelectedSubtitleId,
         subtitleErrorMessage: _subtitleErrorMessageFromResult(result),
       );
     } catch (_) {

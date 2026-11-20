@@ -7,8 +7,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:multi_split_view/multi_split_view.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter/foundation.dart'
-    show TargetPlatform, ValueListenable, defaultTargetPlatform;
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
@@ -256,7 +255,7 @@ class _MoviePlayerContentState extends ConsumerState<MoviePlayerContent>
       onPlayingChanged: _controller.handlePlaybackPlayingChanged,
       subtitleState: _playerState.subtitleState,
       onSubtitleSelectionChanged: _controller.setSelectedSubtitleId,
-      onSubtitleReloadRequested: _controller.loadSubtitles,
+      onSubtitleReloadRequested: () => _controller.loadSubtitles(),
       onReloadRequested: (position) {
         unawaited(
           _controller.load(
@@ -456,12 +455,12 @@ Media buildMoviePlayerMedia(
   httpHeaders: <String, String>{'User-Agent': userAgent},
 );
 
-PlayerConfiguration buildMoviePlayerConfiguration({TargetPlatform? platform}) =>
-    switch (platform ?? defaultTargetPlatform) {
-      TargetPlatform.macOS ||
-      TargetPlatform.windows => const PlayerConfiguration(libass: true),
-      _ => const PlayerConfiguration(),
-    };
+/// 所有平台统一使用 media_kit 的 Flutter 字幕渲染层。
+///
+/// 原生 libass 会绕过 [SubtitleViewConfiguration]，导致桌面端字号、位置和
+/// 双端样式不一致；统一关闭后，字幕设置由同一套 Flutter 配置实时生效。
+PlayerConfiguration buildMoviePlayerConfiguration() =>
+    const PlayerConfiguration();
 
 class MoviePlayerSurfaceController {
   final _seekController = StreamController<Duration>.broadcast();
@@ -749,6 +748,9 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
   late final MoviePlayerNativeStatsSampler _statsSampler;
   late final ValueNotifier<MoviePlayerSubtitleState> _subtitleStateNotifier;
   late final ValueNotifier<bool> _isApplyingSubtitleNotifier;
+
+  /// 已实际加载进 media_kit 的字幕 id；媒体重开时清空，首帧后按当前选择恢复。
+  int? _appliedSubtitleId;
   late final MoviePlayerPlaybackRateCoordinator _playbackRate;
   MoviePlayerMobileDrawerType? _activeDrawer;
   bool _isInfoSideOpen = false;
@@ -872,6 +874,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.subtitleState, widget.subtitleState)) {
       _subtitleStateNotifier.value = widget.subtitleState;
+      _maybeApplySelectedSubtitle();
     }
     if (oldWidget.surfaceController != widget.surfaceController) {
       _seekSubscription?.cancel();
@@ -960,6 +963,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
   Future<void> _openMedia({Duration? retryPosition}) async {
     final requestId = ++_openRequestId;
     final playbackAttemptId = _createPlaybackAttemptId();
+    _appliedSubtitleId = null;
     final playbackUrl = withPlaybackAttemptId(
       widget.resolvedUrl,
       playbackAttemptId,
@@ -1110,6 +1114,7 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
     if (!_resumePrompt.isResolved && widget.resumePosition != null) {
       _resumePrompt.show();
     }
+    _maybeApplySelectedSubtitle();
   }
 
   void _handleInterleaveSignal(PlaybackInterleaveSignal signal) {
@@ -1273,12 +1278,37 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       debugPrint(
         '[player-debug] subtitle_selection_result requestedSubtitleId=$subtitleId nextSubtitleId=$nextSubtitleId',
       );
+      _appliedSubtitleId = nextSubtitleId;
       widget.onSubtitleSelectionChanged?.call(nextSubtitleId);
     } finally {
       if (mounted) {
         _isApplyingSubtitleNotifier.value = false;
       }
     }
+  }
+
+  void _maybeApplySelectedSubtitle() {
+    if (!mounted || !_isSurfaceReady.value) {
+      return;
+    }
+    if (_isApplyingSubtitleNotifier.value) {
+      return;
+    }
+    final selectedSubtitleId = _subtitleStateNotifier.value.selectedSubtitleId;
+    if (selectedSubtitleId == null ||
+        selectedSubtitleId == _appliedSubtitleId) {
+      return;
+    }
+    final hasOption = _subtitleStateNotifier.value.options.any(
+      (option) => option.subtitleId == selectedSubtitleId,
+    );
+    if (!hasOption) {
+      return;
+    }
+    debugPrint(
+      '[player-debug] subtitle_auto_apply selectedSubtitleId=$selectedSubtitleId previousAppliedSubtitleId=$_appliedSubtitleId',
+    );
+    unawaited(_handleSubtitleSelected(selectedSubtitleId));
   }
 
   Future<String> _loadSubtitleText(MoviePlayerSubtitleOption option) async {

@@ -3,6 +3,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/routes/app_route.dart';
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_glass_tab_bar.dart';
 import 'package:sakuramedia/widgets/shell/mobile/app_mobile_shell.dart';
 
 void main() {
@@ -76,6 +78,64 @@ void main() {
     await tester.tap(find.text('Movies'));
     expect(selected, <int>[2, 1]);
   });
+
+  testWidgets('liquid navigation routes five destinations on a narrow screen', (
+    tester,
+  ) async {
+    final selected = <int>[];
+    await tester.pumpWidget(
+      AppSurfaceRuntime.wrap(
+        brightnessResolver: Theme.maybeBrightnessOf,
+        child: MaterialApp(
+          theme: sakuraMobileThemeData,
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(320, 760)),
+            child: AppMobileShell(
+              currentPath: '/mobile/overview',
+              navItems: _fiveNavItems(),
+              onDestinationSelected: selected.add,
+              child: const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(AppGlassTabBar), findsOneWidget);
+    await tester.tap(find.text('PornBox'));
+    expect(selected, <int>[4]);
+  });
+
+  testWidgets('flat navigation keeps the same five-destination geometry', (
+    tester,
+  ) async {
+    final selected = <int>[];
+    await tester.pumpWidget(
+      AppSurfaceStyleScope(
+        style: AppSurfaceStyle.flat,
+        child: MaterialApp(
+          theme: sakuraMobileThemeData,
+          home: MediaQuery(
+            data: const MediaQueryData(size: Size(320, 760)),
+            child: AppMobileShell(
+              currentPath: '/mobile/overview',
+              navItems: _fiveNavItems(),
+              onDestinationSelected: selected.add,
+              child: const SizedBox.shrink(),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(AppGlassTabBar), findsOneWidget);
+    await tester.tap(find.text('PornBox'));
+    expect(selected, <int>[4]);
+  });
 }
 
 List<AppNavItem> _navItems() {
@@ -103,6 +163,28 @@ List<AppNavItem> _navItems() {
       path: '/mobile/library/actors',
       icon: Icons.people_outline_rounded,
       description: 'Actors',
+    ),
+  ];
+}
+
+List<AppNavItem> _fiveNavItems() {
+  return <AppNavItem>[
+    ..._navItems(),
+    const AppNavItem(
+      routeId: AppRouteId.mobileRankings,
+      name: 'rankings',
+      label: 'Rankings',
+      path: '/mobile/rankings',
+      icon: Icons.local_fire_department_outlined,
+      description: 'Rankings',
+    ),
+    const AppNavItem(
+      routeId: AppRouteId.mobilePornbox,
+      name: 'pornbox',
+      label: 'PornBox',
+      path: '/mobile/pornbox',
+      icon: Icons.video_library_outlined,
+      description: 'PornBox',
     ),
   ];
 }

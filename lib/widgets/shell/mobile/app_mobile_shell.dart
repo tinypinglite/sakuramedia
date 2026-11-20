@@ -96,7 +96,8 @@ class AppMobileShell extends StatelessWidget {
     List<AppNavItem> navItems,
     int currentIndex,
   ) {
-    final primary = Theme.of(context).colorScheme.primary;
+    final foreground = context.appTextPalette.primary;
+    final secondary = context.appTextPalette.secondary;
     final labelStyle = resolveAppTextStyle(
       context,
       size: AppTextSize.s10,
@@ -131,12 +132,12 @@ class AppMobileShell extends StatelessWidget {
         barBorderRadius: 28,
         iconSize: context.appComponentTokens.iconSizeXl,
         labelFontSize: 10,
-        selectedIconColor: primary,
-        unselectedIconColor: context.appTextPalette.secondary,
-        selectedLabelColor: primary,
-        unselectedLabelColor: context.appTextPalette.secondary,
+        selectedIconColor: foreground,
+        unselectedIconColor: secondary,
+        selectedLabelColor: foreground,
+        unselectedLabelColor: secondary,
         selectedLabelStyle: labelStyle.copyWith(
-          color: primary,
+          color: foreground,
           fontWeight: context.appTextWeights.semibold,
         ),
         unselectedLabelStyle: labelStyle,

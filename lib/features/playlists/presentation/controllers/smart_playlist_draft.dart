@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
+import 'package:sakuramedia/features/playlists/presentation/controllers/playlist_filter_state.dart';
 
 const Object _smartPlaylistDraftUnset = Object();
 
@@ -17,7 +18,7 @@ class SmartPlaylistDraft {
     this.watchMatch = TagMatchMode.or,
     this.collectionType = MovieCollectionTypeFilter.single,
     this.numberSource = MovieNumberSourceFilter.all,
-    this.sortField = MovieSortField.releaseDate,
+    this.sortField = PlaylistSortField.releaseDate,
     this.sortDirection = SortDirection.desc,
     this.years = const <int>{},
     this.resolutions = const <PlaylistResolutionFilter>{},
@@ -34,7 +35,7 @@ class SmartPlaylistDraft {
     if (filter == null) {
       return const SmartPlaylistDraft();
     }
-    final sort = _parseSort(filter.sort);
+    final sort = playlistSortFromApi(filter.sort);
     return SmartPlaylistDraft(
       statuses: <MovieStatusFilter>{
         for (final value in filter.statuses)
@@ -50,8 +51,8 @@ class SmartPlaylistDraft {
         filter.collectionType,
       ),
       numberSource: MovieNumberSourceFilterX.fromApiValue(filter.numberSource),
-      sortField: sort.field,
-      sortDirection: sort.direction,
+      sortField: sort?.field ?? PlaylistSortField.releaseDate,
+      sortDirection: sort?.direction ?? SortDirection.desc,
       years: filter.years.toSet(),
       resolutions: <PlaylistResolutionFilter>{
         for (final value in filter.resolutions)
@@ -79,7 +80,7 @@ class SmartPlaylistDraft {
   final TagMatchMode watchMatch;
   final MovieCollectionTypeFilter collectionType;
   final MovieNumberSourceFilter numberSource;
-  final MovieSortField sortField;
+  final PlaylistSortField sortField;
   final SortDirection sortDirection;
   final Set<int> years;
   final Set<PlaylistResolutionFilter> resolutions;
@@ -141,7 +142,7 @@ class SmartPlaylistDraft {
     TagMatchMode? watchMatch,
     MovieCollectionTypeFilter? collectionType,
     MovieNumberSourceFilter? numberSource,
-    MovieSortField? sortField,
+    PlaylistSortField? sortField,
     SortDirection? sortDirection,
     Set<int>? years,
     Set<PlaylistResolutionFilter>? resolutions,
@@ -181,23 +182,4 @@ class SmartPlaylistDraft {
       actorMatch: actorMatch ?? this.actorMatch,
     );
   }
-}
-
-({MovieSortField field, SortDirection direction}) _parseSort(String? sort) {
-  if (sort == null || sort.trim().isEmpty) {
-    return (field: MovieSortField.releaseDate, direction: SortDirection.desc);
-  }
-  final parts = sort.split(':');
-  final direction = parts.length > 1 && parts[1].trim().toLowerCase() == 'asc'
-      ? SortDirection.asc
-      : SortDirection.desc;
-  // 个人评分维度排序不属于编辑器可配置字段，读取时退回上映日期。
-  final fieldName = parts.first.trim();
-  return (
-    field: MovieSortField.values.firstWhere(
-      (value) => value.apiValue == fieldName,
-      orElse: () => MovieSortField.releaseDate,
-    ),
-    direction: direction,
-  );
 }

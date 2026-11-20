@@ -96,7 +96,7 @@ moments feature 负责。`MomentCard` 整卡即封面、收起态不铺文字；
 
 - `lib/widgets/domain/movies/movie_sort_menu_button.dart`：影片库、标签结果、女优详情作品共用；切字段时清空个人评分维度。
 - `lib/widgets/domain/actors/actor_sort_menu_button.dart`：搜索态显示「相关度」并禁用入口。
-- `lib/widgets/domain/playlists/playlist_sort_menu_button.dart`：`sortField == null` 显示「最近触达」。
+- `lib/widgets/domain/playlists/playlist_sort_menu_button.dart`：`sortField == null` 显示调用方传入的默认文案；普通列表为「最近触达」，智能列表为保存排序。
 - `lib/widgets/domain/videos/video_sort_menu_button.dart`、`video_collection_sort_menu_button.dart`：视频列表与合集成员；合集的手动顺序隐藏方向分节。
 - `lib/widgets/domain/rankings/ranking_sort_menu_button.dart`：默认项「默认（名次）」。
 - `lib/widgets/domain/media/media_sort_menu_button.dart`：`sortField == null` 显示「默认排序」。

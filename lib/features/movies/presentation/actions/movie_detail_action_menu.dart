@@ -109,6 +109,12 @@ List<MovieDetailActionDescriptor> buildMovieDetailActionDescriptors({
 List<AppMenuItem<MovieDetailActionType>> buildMovieDetailActionMenuItems(
   List<MovieDetailActionDescriptor> actions,
 ) {
+  final maintenanceGroupStart =
+      actions.any(
+        (action) => action.type == MovieDetailActionType.toggleBlacklist,
+      )
+      ? MovieDetailActionType.toggleBlacklist
+      : MovieDetailActionType.refreshMetadata;
   return <AppMenuItem<MovieDetailActionType>>[
     for (final action in actions)
       AppMenuItem(
@@ -118,6 +124,9 @@ List<AppMenuItem<MovieDetailActionType>> buildMovieDetailActionMenuItems(
         icon: action.icon,
         tone: action.tone,
         enabled: action.enabled,
+        showDividerBefore:
+            action.type == MovieDetailActionType.toggleSubscription ||
+            action.type == maintenanceGroupStart,
       ),
   ];
 }

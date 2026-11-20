@@ -230,6 +230,7 @@ class CollectionCard extends StatelessWidget {
             value: _CollectionMenuAction.delete,
             label: AppLocalizations.of(context).commonDelete,
             tone: AppTextTone.error,
+            showDividerBefore: true,
           ),
       ],
     );

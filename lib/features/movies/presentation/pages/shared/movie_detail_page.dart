@@ -135,13 +135,16 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         showSimilarMovies: config.showSimilarMovies,
       );
       return _wrapMobile(
-        AppSkeletonizer(
-          enabled: true,
-          child: MovieDetailPageContent(
-            data: MovieDetailViewData.placeholder(),
-            state: const MovieDetailViewState(),
-            actions: MovieDetailViewActions.placeholder(),
-            config: placeholderConfig,
+        KeyedSubtree(
+          key: const ValueKey<String>('movie-detail-loading'),
+          child: AppSkeletonizer(
+            enabled: true,
+            child: MovieDetailPageContent(
+              data: MovieDetailViewData.placeholder(),
+              state: const MovieDetailViewState(),
+              actions: MovieDetailViewActions.placeholder(),
+              config: placeholderConfig,
+            ),
           ),
         ),
       );
@@ -149,12 +152,15 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
     if (detailState.errorMessage != null || detailState.movie == null) {
       return _wrapMobile(
-        MovieDetailErrorState(
-          message:
-              detailState.errorMessage ??
-              AppLocalizations.of(context).moviePageDetailLoadFailed,
-          onRetry: () =>
-              ref.read(movieDetailProvider(movieNumber).notifier).load(),
+        KeyedSubtree(
+          key: const ValueKey<String>('movie-detail-error'),
+          child: MovieDetailErrorState(
+            message:
+                detailState.errorMessage ??
+                AppLocalizations.of(context).moviePageDetailLoadFailed,
+            onRetry: () =>
+                ref.read(movieDetailProvider(movieNumber).notifier).load(),
+          ),
         ),
       );
     }
@@ -279,21 +285,25 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     );
 
     return _wrapMobile(
-      MovieDetailPageContent(
-        data: data,
-        state: state,
-        actions: actions,
-        config: config,
+      KeyedSubtree(
+        key: const ValueKey<String>('movie-detail-content'),
+        child: MovieDetailPageContent(
+          data: data,
+          state: state,
+          actions: actions,
+          config: config,
+        ),
       ),
     );
   }
 
   Widget _wrapMobile(Widget child) {
-    if (!widget.mobile) return child;
+    final transition = _MovieDetailStateTransition(child: child);
+    if (!widget.mobile) return transition;
     return ColoredBox(
       key: const Key('mobile-movie-detail-page-surface'),
       color: context.appColors.surfaceCard,
-      child: child,
+      child: transition,
     );
   }
 
@@ -802,6 +812,29 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       addActor: _interaction.addMovieActor,
       removeActor: _interaction.removeMovieActor,
       refreshActors: _interaction.refreshActors,
+    );
+  }
+}
+
+class _MovieDetailStateTransition extends StatelessWidget {
+  const _MovieDetailStateTransition({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : context.appMotion.slow;
+    return AnimatedSwitcher(
+      duration: duration,
+      switchInCurve: context.appMotion.standard,
+      switchOutCurve: Curves.easeIn,
+      layoutBuilder: (currentChild, previousChildren) => Stack(
+        fit: StackFit.expand,
+        children: <Widget>[...previousChildren, ?currentChild],
+      ),
+      child: child,
     );
   }
 }

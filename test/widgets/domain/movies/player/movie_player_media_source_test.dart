@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/core/media/playback_source.dart';
 import 'package:sakuramedia/core/media/playback_user_agent.dart';
@@ -35,26 +34,8 @@ void main() {
       );
     });
 
-    test('desktop configuration enables libass subtitles', () {
-      expect(
-        buildMoviePlayerConfiguration(platform: TargetPlatform.macOS).libass,
-        isTrue,
-      );
-      expect(
-        buildMoviePlayerConfiguration(platform: TargetPlatform.windows).libass,
-        isTrue,
-      );
-    });
-
-    test('mobile configuration keeps libass disabled', () {
-      expect(
-        buildMoviePlayerConfiguration(platform: TargetPlatform.android).libass,
-        isFalse,
-      );
-      expect(
-        buildMoviePlayerConfiguration(platform: TargetPlatform.iOS).libass,
-        isFalse,
-      );
+    test('all platforms use the Flutter subtitle renderer', () {
+      expect(buildMoviePlayerConfiguration().libass, isFalse);
     });
   });
 }

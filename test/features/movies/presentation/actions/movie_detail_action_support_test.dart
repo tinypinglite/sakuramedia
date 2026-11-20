@@ -77,35 +77,38 @@ void main() {
     },
   );
 
-  test('buildMovieDetailActionDescriptors switches mark action by watch state', () {
-    final unwatched = buildMovieDetailActionDescriptors(
-      l10n: AppLocalizationsZh(),
-      isSubscribed: false,
-      isCollection: false,
-      isBlacklisted: false,
-      isWatched: false,
-    );
-    final watched = buildMovieDetailActionDescriptors(
-      l10n: AppLocalizationsZh(),
-      isSubscribed: false,
-      isCollection: false,
-      isBlacklisted: false,
-      isWatched: true,
-    );
+  test(
+    'buildMovieDetailActionDescriptors switches mark action by watch state',
+    () {
+      final unwatched = buildMovieDetailActionDescriptors(
+        l10n: AppLocalizationsZh(),
+        isSubscribed: false,
+        isCollection: false,
+        isBlacklisted: false,
+        isWatched: false,
+      );
+      final watched = buildMovieDetailActionDescriptors(
+        l10n: AppLocalizationsZh(),
+        isSubscribed: false,
+        isCollection: false,
+        isBlacklisted: false,
+        isWatched: true,
+      );
 
-    expect(
-      unwatched.map((action) => action.type),
-      contains(MovieDetailActionType.markWatched),
-    );
-    expect(
-      watched.map((action) => action.type),
-      contains(MovieDetailActionType.markUnwatched),
-    );
-    expect(
-      _labelOf(watched, MovieDetailActionType.markUnwatched),
-      isNot(_labelOf(unwatched, MovieDetailActionType.markWatched)),
-    );
-  });
+      expect(
+        unwatched.map((action) => action.type),
+        contains(MovieDetailActionType.markWatched),
+      );
+      expect(
+        watched.map((action) => action.type),
+        contains(MovieDetailActionType.markUnwatched),
+      );
+      expect(
+        _labelOf(watched, MovieDetailActionType.markUnwatched),
+        isNot(_labelOf(unwatched, MovieDetailActionType.markWatched)),
+      );
+    },
+  );
 
   test('buildMovieDetailActionDescriptors follows the caller locale', () {
     final en = buildMovieDetailActionDescriptors(
@@ -161,6 +164,60 @@ void main() {
     expect(actions.first.type, MovieDetailActionType.castToDevice);
     // 正在投屏时优先显示调用方给的会话名，而不是通用「投屏到电视」。
     expect(actions.first.label, 'Living room TV');
+  });
+
+  test('buildMovieDetailActionMenuItems marks semantic groups', () {
+    final actions = buildMovieDetailActionDescriptors(
+      l10n: AppLocalizationsZh(),
+      isSubscribed: false,
+      isCollection: false,
+      isBlacklisted: false,
+      canCast: true,
+    );
+    final items = buildMovieDetailActionMenuItems(actions);
+
+    expect(
+      items
+          .firstWhere(
+            (item) => item.value == MovieDetailActionType.toggleSubscription,
+          )
+          .showDividerBefore,
+      isTrue,
+    );
+    expect(
+      items
+          .firstWhere(
+            (item) => item.value == MovieDetailActionType.toggleBlacklist,
+          )
+          .showDividerBefore,
+      isTrue,
+    );
+    expect(
+      items
+          .firstWhere(
+            (item) => item.value == MovieDetailActionType.refreshMetadata,
+          )
+          .showDividerBefore,
+      isFalse,
+    );
+
+    final subscribedItems = buildMovieDetailActionMenuItems(
+      buildMovieDetailActionDescriptors(
+        l10n: AppLocalizationsZh(),
+        isSubscribed: true,
+        isCollection: false,
+        isBlacklisted: false,
+        canCast: true,
+      ),
+    );
+    expect(
+      subscribedItems
+          .firstWhere(
+            (item) => item.value == MovieDetailActionType.refreshMetadata,
+          )
+          .showDividerBefore,
+      isTrue,
+    );
   });
 
   testWidgets(

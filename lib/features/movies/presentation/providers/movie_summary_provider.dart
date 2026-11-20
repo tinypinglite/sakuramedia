@@ -62,6 +62,7 @@ class MovieSummary extends _$MovieSummary
   MovieSummaryFilter get initialFilter {
     final filter = MovieSummaryFilter(
       movie: scope.initialMovieFilter ?? MovieFilterState.initial,
+      playlist: scope.initialPlaylistFilter ?? PlaylistFilterState.initial,
       tagIds: scope.initialTagIds,
       tagMatch: scope.initialTagMatch,
     );
@@ -175,11 +176,22 @@ class MovieSummary extends _$MovieSummary
               page: page,
               pageSize: pageSize,
               sort: filter.playlist.sortExpression,
-              resolution: filter.playlist.resolution?.apiValue,
-              watchStatus: filter.movie.watchStatus ==
-                      MovieWatchStatusFilter.all
-                  ? null
-                  : filter.movie.watchStatus.apiValue,
+              statuses: filter.playlist.statuses
+                  .map((value) => value.apiValue)
+                  .toList(growable: false),
+              statusMatch: filter.playlist.statusMatch.apiValue,
+              watchStatuses: filter.playlist.watchStatuses
+                  .map((value) => value.apiValue)
+                  .toList(growable: false),
+              watchMatch: filter.playlist.watchMatch.apiValue,
+              years: filter.playlist.years.toList(growable: false),
+              resolutions: filter.playlist.resolutions
+                  .map((value) => value.apiValue)
+                  .toList(growable: false),
+              tagIds: filter.tagIds,
+              tagMatch: filter.tagMatch.apiValue,
+              mediaTagIds: filter.playlist.mediaTagIds,
+              mediaTagMatch: filter.playlist.mediaTagMatch.apiValue,
             ),
       MovieSummarySource.series => moviesApi.getMoviesBySeries(
         seriesId: scope.resourceId!,
@@ -330,6 +342,23 @@ class MovieSummary extends _$MovieSummary
         ? filter
         : filter.withoutStatsFeatures();
     return applyFilterState(activeFilter.copyWith(playlist: effective));
+  }
+
+  Future<void> applyPlaylistViewFilter(
+    PlaylistFilterState filter, {
+    required List<int> tagIds,
+    required TagMatchMode tagMatch,
+  }) {
+    final effective = ref.read(statsFeaturesEnabledProvider)
+        ? filter
+        : filter.withoutStatsFeatures();
+    return applyFilterState(
+      activeFilter.copyWith(
+        playlist: effective,
+        tagIds: List<int>.unmodifiable(tagIds),
+        tagMatch: tagMatch,
+      ),
+    );
   }
 
   Future<void> applyTagFilter({

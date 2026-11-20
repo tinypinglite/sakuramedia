@@ -295,8 +295,11 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent> {
           onChanged: args.onApply,
           showActorAgeSection: false,
           mediaTagSection: MediaTagFilterSection(
-            filter: filterState,
-            onChanged: args.onApply,
+            mediaTagIds: filterState.mediaTagIds,
+            mediaTagMatch: filterState.mediaTagMatch,
+            onChanged: (ids, matchMode) => args.onApply(
+              filterState.copyWith(mediaTagIds: ids, mediaTagMatch: matchMode),
+            ),
           ),
           yearOptions: _movieYearOptions,
           isYearOptionsLoading: _isMovieYearsLoading,
@@ -354,7 +357,13 @@ class _ActorDetailContentState extends ConsumerState<ActorDetailContent> {
       onChanged: onApply,
       showActorAgeSection: false,
       mediaTagSectionBuilder: (context, local, onApply) =>
-          MediaTagFilterSection(filter: local, onChanged: onApply),
+          MediaTagFilterSection(
+            mediaTagIds: local.mediaTagIds,
+            mediaTagMatch: local.mediaTagMatch,
+            onChanged: (ids, matchMode) => onApply(
+              local.copyWith(mediaTagIds: ids, mediaTagMatch: matchMode),
+            ),
+          ),
       yearOptions: _movieYearOptions,
       yearOptionsErrorMessage: _movieYearsErrorMessage,
       onYearOptionsRetry: () => unawaited(_loadMovieYears(force: true)),

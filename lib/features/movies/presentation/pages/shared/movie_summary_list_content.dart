@@ -439,7 +439,16 @@ class _MovieSummaryListContentState
                 ? null
                 : TagFilterSection(scope: tagSelectionScope),
             mediaTagSection: widget.enableMediaTagFilter
-                ? MediaTagFilterSection(filter: filter, onChanged: _applyFilter)
+                ? MediaTagFilterSection(
+                    mediaTagIds: filter.mediaTagIds,
+                    mediaTagMatch: filter.mediaTagMatch,
+                    onChanged: (ids, matchMode) => _applyFilter(
+                      filter.copyWith(
+                        mediaTagIds: ids,
+                        mediaTagMatch: matchMode,
+                      ),
+                    ),
+                  )
                 : null,
           ),
         ),

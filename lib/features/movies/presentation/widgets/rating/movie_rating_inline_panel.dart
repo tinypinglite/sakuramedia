@@ -176,6 +176,9 @@ class _MovieRatingInlinePanelState
 
   Widget _buildDimension(BuildContext context, RatingDimensionDto dimension) {
     final value = _values[dimension.id];
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : context.appMotion.fast;
     return Row(
       key: Key('movie-rating-dimension-${dimension.id}'),
       mainAxisSize: MainAxisSize.min,
@@ -208,14 +211,22 @@ class _MovieRatingInlinePanelState
                       horizontal: context.appSpacing.xs / 2,
                       vertical: context.appSpacing.xs,
                     ),
-                    child: Icon(
-                      score <= (value ?? 0)
-                          ? Icons.star_rounded
-                          : Icons.star_border_rounded,
-                      size: context.appComponentTokens.iconSizeMd,
-                      color: score <= (value ?? 0)
-                          ? context.appColors.movieDetailScoreIcon
-                          : context.appTextPalette.muted,
+                    child: AnimatedSwitcher(
+                      duration: duration,
+                      switchInCurve: context.appMotion.standard,
+                      switchOutCurve: Curves.easeIn,
+                      transitionBuilder: (child, animation) =>
+                          FadeTransition(opacity: animation, child: child),
+                      child: Icon(
+                        key: ValueKey<bool>(score <= (value ?? 0)),
+                        score <= (value ?? 0)
+                            ? Icons.star_rounded
+                            : Icons.star_border_rounded,
+                        size: context.appComponentTokens.iconSizeMd,
+                        color: score <= (value ?? 0)
+                            ? context.appColors.movieDetailScoreIcon
+                            : context.appTextPalette.muted,
+                      ),
                     ),
                   ),
                 ),

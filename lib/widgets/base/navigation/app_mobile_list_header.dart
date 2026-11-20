@@ -14,12 +14,7 @@ class AppMobilePageTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(
-        context.appSpacing.lg,
-        0,
-        context.appSpacing.lg,
-        context.appSpacing.md,
-      ),
+      padding: EdgeInsets.only(bottom: context.appSpacing.md),
       child: Text(
         title,
         maxLines: 1,
@@ -147,23 +142,20 @@ class AppMobileListHeader extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: spacing.sm),
-          child: SizedBox(
-            height: context.appComponentTokens.mobileTopTabHeight,
-            child: Row(
-              children: <Widget>[
-                if (leadingWidget != null)
-                  Expanded(child: leadingWidget)
-                else
-                  const Spacer(),
-                if (actions.isNotEmpty) SizedBox(width: spacing.xs),
-                for (var index = 0; index < actions.length; index++) ...[
-                  if (index > 0) SizedBox(width: spacing.xs),
-                  actions[index],
-                ],
+        SizedBox(
+          height: context.appComponentTokens.mobileTopTabHeight,
+          child: Row(
+            children: <Widget>[
+              if (leadingWidget != null)
+                Expanded(child: leadingWidget)
+              else
+                const Spacer(),
+              if (actions.isNotEmpty) SizedBox(width: spacing.xs),
+              for (var index = 0; index < actions.length; index++) ...[
+                if (index > 0) SizedBox(width: spacing.xs),
+                actions[index],
               ],
-            ),
+            ],
           ),
         ),
         AppFilterUpdateBar(
@@ -203,41 +195,38 @@ class AppMobileSelectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = appL10n(context);
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: context.appSpacing.sm),
-      child: SizedBox(
-        height: context.appComponentTokens.mobileTopTabHeight,
-        child: Row(
-          children: <Widget>[
-            AppGlassIconButton(
-              key: exitKey,
-              tooltip: l10n.commonCancel,
-              icon: Icons.close_rounded,
-              onPressed: onExitSelection,
-            ),
-            SizedBox(width: context.appSpacing.sm),
-            Expanded(
-              child: Text(
-                selectionLabel,
-                key: countKey,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s14,
-                  weight: AppTextWeight.medium,
-                  tone: AppTextTone.primary,
-                ),
+    return SizedBox(
+      height: context.appComponentTokens.mobileTopTabHeight,
+      child: Row(
+        children: <Widget>[
+          AppGlassIconButton(
+            key: exitKey,
+            tooltip: l10n.commonCancel,
+            icon: Icons.close_rounded,
+            onPressed: onExitSelection,
+          ),
+          SizedBox(width: context.appSpacing.sm),
+          Expanded(
+            child: Text(
+              selectionLabel,
+              key: countKey,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s14,
+                weight: AppTextWeight.medium,
+                tone: AppTextTone.primary,
               ),
             ),
-            AppGlassIconButton(
-              key: selectAllKey,
-              tooltip: selectAllTooltip ?? l10n.baseSelect,
-              icon: Icons.select_all_rounded,
-              onPressed: onToggleAll,
-            ),
-          ],
-        ),
+          ),
+          AppGlassIconButton(
+            key: selectAllKey,
+            tooltip: selectAllTooltip ?? l10n.baseSelect,
+            icon: Icons.select_all_rounded,
+            onPressed: onToggleAll,
+          ),
+        ],
       ),
     );
   }

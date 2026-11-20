@@ -16,31 +16,33 @@ import 'package:sakuramedia/widgets/domain/tags/app_tag_match_mode_toggle.dart';
 class MediaTagFilterSection extends ConsumerWidget {
   const MediaTagFilterSection({
     super.key,
-    required this.filter,
+    required this.mediaTagIds,
+    required this.mediaTagMatch,
     required this.onChanged,
     this.selectionStyle = AppFilterChipSelectionStyle.neutral,
   });
 
-  final MovieFilterState filter;
-  final ValueChanged<MovieFilterState> onChanged;
+  final List<int> mediaTagIds;
+  final TagMatchMode mediaTagMatch;
+  final void Function(List<int> tagIds, TagMatchMode matchMode) onChanged;
 
   /// 选中 chips 的配色；卡片表单里用 [AppFilterChipSelectionStyle.accent]。
   final AppFilterChipSelectionStyle selectionStyle;
 
   void _toggleTag(int tagId) {
-    final next = List<int>.of(filter.mediaTagIds);
+    final next = List<int>.of(mediaTagIds);
     if (!next.remove(tagId)) {
       next.add(tagId);
     }
-    onChanged(filter.copyWith(mediaTagIds: next));
+    onChanged(next, mediaTagMatch);
   }
 
   void _changeMatchMode(TagMatchMode matchMode) {
-    onChanged(filter.copyWith(mediaTagMatch: matchMode));
+    onChanged(mediaTagIds, matchMode);
   }
 
   void _clear() {
-    onChanged(filter.copyWith(mediaTagIds: const <int>[]));
+    onChanged(const <int>[], mediaTagMatch);
   }
 
   @override
@@ -68,7 +70,7 @@ class MediaTagFilterSection extends ConsumerWidget {
                 ),
               ),
             ),
-            if (filter.mediaTagIds.isNotEmpty)
+            if (mediaTagIds.isNotEmpty)
               AppTextButton(
                 key: const Key('movie-media-tag-filter-clear'),
                 label: l10n.movieMediaTagFilterClear,
@@ -119,20 +121,18 @@ class MediaTagFilterSection extends ConsumerWidget {
                 AppFilterChip(
                   key: Key('movie-media-tag-filter-${tag.id}'),
                   label: tag.name,
-                  selected: filter.mediaTagIds.contains(tag.id),
+                  selected: mediaTagIds.contains(tag.id),
                   selectionStyle: selectionStyle,
                   onPressed: () => _toggleTag(tag.id),
                 ),
             ],
           ),
-        if (filter.mediaTagIds.length > 1) ...[
+        if (mediaTagIds.length > 1) ...[
           SizedBox(height: spacing.md),
           Row(
             children: [
               Text(
-                l10n.movieMediaTagFilterSelectedCount(
-                  filter.mediaTagIds.length,
-                ),
+                l10n.movieMediaTagFilterSelectedCount(mediaTagIds.length),
                 style: resolveAppTextStyle(
                   context,
                   size: AppTextSize.s12,
@@ -141,7 +141,7 @@ class MediaTagFilterSection extends ConsumerWidget {
               ),
               const Spacer(),
               AppTagMatchModeToggle(
-                matchMode: filter.mediaTagMatch,
+                matchMode: mediaTagMatch,
                 buttonKeyPrefix: 'movie-media-tag-match',
                 onChanged: _changeMatchMode,
               ),

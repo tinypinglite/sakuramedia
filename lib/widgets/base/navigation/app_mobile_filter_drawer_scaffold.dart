@@ -69,6 +69,7 @@ class AppMobileFilterDrawer<T> extends StatefulWidget {
     required this.contentBuilder,
     this.extraActive,
     this.onExtraReset,
+    this.onReset,
     this.showResetFooter = true,
   });
 
@@ -90,6 +91,9 @@ class AppMobileFilterDrawer<T> extends StatefulWidget {
 
   /// 重置时额外要清掉的条件（如女优页筛选面板里的标签选择）。
   final VoidCallback? onExtraReset;
+
+  /// 完全接管重置动作；筛选值与外部条件需要原子恢复时使用。
+  final VoidCallback? onReset;
 
   /// 为 false 时只保留筛选内容，不显示标准重置 footer。
   final bool showResetFooter;
@@ -114,6 +118,12 @@ class _AppMobileFilterDrawerState<T> extends State<AppMobileFilterDrawer<T>> {
   }
 
   void _reset() {
+    final onReset = widget.onReset;
+    if (onReset != null) {
+      setState(() => _local = widget.initial);
+      onReset();
+      return;
+    }
     _apply(widget.initial);
     widget.onExtraReset?.call();
   }

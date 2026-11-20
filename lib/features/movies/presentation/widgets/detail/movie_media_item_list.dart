@@ -55,23 +55,13 @@ class MovieMediaItemList extends StatelessWidget {
     final showDeleteAction =
         selectedItem != null && onDeleteSelectedMedia != null;
     final showTagAction = selectedItem != null && onEditMediaTags != null;
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : context.appMotion.normal;
 
-    return Column(
+    final detailContent = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        MovieDetailPillWrap(
-          emptyMessage: AppLocalizations.of(context).movieWidgetNoMediaSources,
-          items: mediaItems
-              .map((item) {
-                final isSelected = item.mediaId == selectedMediaId;
-                return MovieDetailPillItem(
-                  label: _buildLabel(item),
-                  isSelected: isSelected,
-                  onTap: () => onSelect(item),
-                );
-              })
-              .toList(growable: false),
-        ),
         if (technicalSummary != null || showDeleteAction || showTagAction) ...[
           SizedBox(height: contentGap),
           Row(
@@ -80,20 +70,32 @@ class MovieMediaItemList extends StatelessWidget {
             children: [
               Flexible(
                 fit: FlexFit.loose,
-                child: technicalSummary == null
-                    ? const SizedBox(
-                        key: Key('movie-media-tech-summary-placeholder'),
-                      )
-                    : Text(
-                        technicalSummary,
-                        key: const Key('movie-media-tech-summary'),
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s12,
-                          weight: AppTextWeight.regular,
-                          tone: AppTextTone.muted,
+                child: AnimatedSwitcher(
+                  duration: duration,
+                  switchInCurve: context.appMotion.standard,
+                  switchOutCurve: Curves.easeIn,
+                  transitionBuilder: (child, animation) =>
+                      FadeTransition(opacity: animation, child: child),
+                  child: technicalSummary == null
+                      ? const SizedBox(
+                          key: Key('movie-media-tech-summary-placeholder'),
+                        )
+                      : KeyedSubtree(
+                          key: ValueKey<String>(
+                            'movie-media-tech-summary-${selectedItem?.mediaId}',
+                          ),
+                          child: Text(
+                            technicalSummary,
+                            key: const Key('movie-media-tech-summary'),
+                            style: resolveAppTextStyle(
+                              context,
+                              size: AppTextSize.s12,
+                              weight: AppTextWeight.regular,
+                              tone: AppTextTone.muted,
+                            ),
+                          ),
                         ),
-                      ),
+                ),
               ),
               if (showTagAction) ...[
                 SizedBox(width: context.appSpacing.sm),
@@ -188,6 +190,31 @@ class MovieMediaItemList extends StatelessWidget {
                   ),
           ),
         ],
+      ],
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        MovieDetailPillWrap(
+          emptyMessage: AppLocalizations.of(context).movieWidgetNoMediaSources,
+          items: mediaItems
+              .map((item) {
+                final isSelected = item.mediaId == selectedMediaId;
+                return MovieDetailPillItem(
+                  label: _buildLabel(item),
+                  isSelected: isSelected,
+                  onTap: () => onSelect(item),
+                );
+              })
+              .toList(growable: false),
+        ),
+        AnimatedSize(
+          duration: duration,
+          curve: context.appMotion.standard,
+          alignment: Alignment.topCenter,
+          child: detailContent,
+        ),
       ],
     );
   }

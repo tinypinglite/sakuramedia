@@ -473,6 +473,9 @@ class _InfoActionsColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final tokens = context.appComponentTokens;
+    final iconDuration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : context.appMotion.fast;
     final inspectorPaneTap = onInspectorPaneTap;
     final l10n = AppLocalizations.of(context);
     final keys = <Widget>[
@@ -482,20 +485,26 @@ class _InfoActionsColumn extends StatelessWidget {
             ? l10n.movieWidgetSubscribed
             : l10n.movieWidgetSubscribe,
         onTap: isSubscriptionUpdating ? null : onSubscriptionTap,
-        child: isSubscriptionUpdating
-            ? AppInlineSpinner(
-                key: const Key('movie-detail-hero-subscription-loading'),
-                color: context.appTextPalette.secondary,
-              )
-            : Icon(
-                isSubscribed
-                    ? Icons.favorite_rounded
-                    : Icons.favorite_border_rounded,
-                size: tokens.iconSizeSm,
-                color: isSubscribed
-                    ? context.appColors.subscriptionHeartIcon
-                    : context.appTextPalette.secondary,
-              ),
+        child: _InfoActionStateSwitcher(
+          duration: iconDuration,
+          child: isSubscriptionUpdating
+              ? AppInlineSpinner(
+                  key: const ValueKey<String>(
+                    'movie-detail-hero-subscription-loading',
+                  ),
+                  color: context.appTextPalette.secondary,
+                )
+              : Icon(
+                  key: ValueKey<bool>(isSubscribed),
+                  isSubscribed
+                      ? Icons.favorite_rounded
+                      : Icons.favorite_border_rounded,
+                  size: tokens.iconSizeSm,
+                  color: isSubscribed
+                      ? context.appColors.subscriptionHeartIcon
+                      : context.appTextPalette.secondary,
+                ),
+        ),
       ),
       _InfoActionKey(
         key: const Key('movie-detail-playlist-trigger'),
@@ -514,18 +523,24 @@ class _InfoActionsColumn extends StatelessWidget {
             ? l10n.movieWidgetRemoveFavorite
             : l10n.movieWidgetFavoriteMovie,
         onTap: isFavoriteUpdating ? null : onFavoriteTap,
-        child: isFavoriteUpdating
-            ? AppInlineSpinner(
-                key: const Key('movie-detail-hero-favorite-loading'),
-                color: context.appTextPalette.secondary,
-              )
-            : Icon(
-                isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
-                size: tokens.iconSizeSm,
-                color: isFavorite
-                    ? context.appColors.subscriptionHeartIcon
-                    : context.appTextPalette.secondary,
-              ),
+        child: _InfoActionStateSwitcher(
+          duration: iconDuration,
+          child: isFavoriteUpdating
+              ? AppInlineSpinner(
+                  key: const ValueKey<String>(
+                    'movie-detail-hero-favorite-loading',
+                  ),
+                  color: context.appTextPalette.secondary,
+                )
+              : Icon(
+                  key: ValueKey<bool>(isFavorite),
+                  isFavorite ? Icons.star_rounded : Icons.star_border_rounded,
+                  size: tokens.iconSizeSm,
+                  color: isFavorite
+                      ? context.appColors.subscriptionHeartIcon
+                      : context.appTextPalette.secondary,
+                ),
+        ),
       ),
       // 内容入口：评论 / 缩略图，与左侧动作键同排同形，
       // 只靠 tooltip 区分；不藏进区块标题或媒体行图标。
@@ -623,6 +638,11 @@ class _InfoSplitPlayButton extends StatelessWidget {
     final playBackground = playEnabled
         ? primary
         : context.appColors.surfaceMuted;
+    final playLabelText =
+        playLabel ?? AppLocalizations.of(context).movieWidgetPlay;
+    final iconDuration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : context.appMotion.fast;
 
     return Row(
       children: [
@@ -639,31 +659,39 @@ class _InfoSplitPlayButton extends StatelessWidget {
               key: const Key('movie-detail-hero-play-button'),
               onTap: onPlayTap,
               child: Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (isPlayLoading)
-                      AppInlineSpinner(color: playForeground)
-                    else ...[
-                      Icon(
-                        Icons.play_arrow_rounded,
-                        size: tokens.iconSizeSm,
-                        color: playForeground,
-                      ),
-                      SizedBox(width: tokens.buttonGapMd),
-                      Text(
-                        playLabel ??
-                            AppLocalizations.of(context).movieWidgetPlay,
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s14,
-                          weight: AppTextWeight.medium,
-                          tone: AppTextTone.primary,
-                        ).copyWith(color: playForeground),
-                      ),
-                    ],
-                  ],
+                child: _InfoActionStateSwitcher(
+                  duration: iconDuration,
+                  child: isPlayLoading
+                      ? AppInlineSpinner(
+                          key: const ValueKey<String>(
+                            'movie-detail-hero-play-loading',
+                          ),
+                          color: playForeground,
+                        )
+                      : Row(
+                          key: ValueKey<String>(
+                            'movie-detail-hero-play-idle-$playLabelText',
+                          ),
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.play_arrow_rounded,
+                              size: tokens.iconSizeSm,
+                              color: playForeground,
+                            ),
+                            SizedBox(width: tokens.buttonGapMd),
+                            Text(
+                              playLabelText,
+                              style: resolveAppTextStyle(
+                                context,
+                                size: AppTextSize.s14,
+                                weight: AppTextWeight.medium,
+                                tone: AppTextTone.primary,
+                              ).copyWith(color: playForeground),
+                            ),
+                          ],
+                        ),
                 ),
               ),
             ),
@@ -686,28 +714,39 @@ class _InfoSplitPlayButton extends StatelessWidget {
                   key: const Key('movie-detail-merge-playback-button'),
                   onTap: onMergeTap,
                   child: Center(
-                    child: isMergeLoading
-                        ? AppInlineSpinner(color: primary)
-                        : Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.merge_rounded,
-                                size: tokens.iconSizeSm,
-                                color: primary,
+                    child: _InfoActionStateSwitcher(
+                      duration: iconDuration,
+                      child: isMergeLoading
+                          ? AppInlineSpinner(
+                              key: const ValueKey<String>(
+                                'movie-detail-merge-playback-loading',
                               ),
-                              SizedBox(width: tokens.buttonGapMd),
-                              Text(
-                                AppLocalizations.of(context).movieWidgetMerge,
-                                style: resolveAppTextStyle(
-                                  context,
-                                  size: AppTextSize.s14,
-                                  weight: AppTextWeight.medium,
-                                  tone: AppTextTone.primary,
-                                ).copyWith(color: primary),
+                              color: primary,
+                            )
+                          : Row(
+                              key: const ValueKey<String>(
+                                'movie-detail-merge-playback-idle',
                               ),
-                            ],
-                          ),
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.merge_rounded,
+                                  size: tokens.iconSizeSm,
+                                  color: primary,
+                                ),
+                                SizedBox(width: tokens.buttonGapMd),
+                                Text(
+                                  AppLocalizations.of(context).movieWidgetMerge,
+                                  style: resolveAppTextStyle(
+                                    context,
+                                    size: AppTextSize.s14,
+                                    weight: AppTextWeight.medium,
+                                    tone: AppTextTone.primary,
+                                  ).copyWith(color: primary),
+                                ),
+                              ],
+                            ),
+                    ),
                   ),
                 ),
               ),
@@ -793,6 +832,30 @@ class _InfoMoreKey extends StatelessWidget {
         focusRingRadius: context.appRadius.smBorder,
         child: button,
       ),
+    );
+  }
+}
+
+class _InfoActionStateSwitcher extends StatelessWidget {
+  const _InfoActionStateSwitcher({required this.duration, required this.child});
+
+  final Duration duration;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: duration,
+      switchInCurve: context.appMotion.standard,
+      switchOutCurve: Curves.easeIn,
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: ScaleTransition(
+          scale: Tween<double>(begin: 0.92, end: 1).animate(animation),
+          child: child,
+        ),
+      ),
+      child: child,
     );
   }
 }

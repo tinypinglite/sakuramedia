@@ -83,22 +83,19 @@ class VideoOverviewCollectionsSection extends ConsumerWidget {
     );
 
     final content = mobile
-        ? Padding(
-            padding: EdgeInsets.symmetric(horizontal: spacing.sm),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(top: spacing.sm),
-                  child: header,
-                ),
-                Padding(
-                  padding: EdgeInsets.only(top: spacing.md),
-                  child: _buildRow(context, ref, async, collections),
-                ),
-                SizedBox(height: spacing.sm),
-              ],
-            ),
+        ? Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.only(top: spacing.sm),
+                child: header,
+              ),
+              Padding(
+                padding: EdgeInsets.only(top: spacing.md),
+                child: _buildRow(context, ref, async, collections),
+              ),
+              SizedBox(height: spacing.sm),
+            ],
           )
         : Column(
             crossAxisAlignment: CrossAxisAlignment.start,

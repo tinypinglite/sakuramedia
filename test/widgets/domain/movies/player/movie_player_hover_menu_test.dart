@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/player/movie_player_subtitle_state.dart';
@@ -94,6 +95,59 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(selectedSubtitleId, 7);
+    expect(find.byKey(const Key('movie-player-subtitle-menu')), findsNothing);
+  });
+
+  testWidgets('字幕按钮悬停打开菜单，移入保持，移出关闭', (tester) async {
+    final subtitleState = ValueNotifier<MoviePlayerSubtitleState>(
+      const MoviePlayerSubtitleState(
+        options: <MoviePlayerSubtitleOption>[
+          MoviePlayerSubtitleOption(
+            subtitleId: 7,
+            label: '中文',
+            resolvedUrl: 'https://example.com/subtitle.vtt',
+          ),
+        ],
+        selectedSubtitleId: null,
+        isLoading: false,
+        fetchStatus: 'ready',
+        errorMessage: null,
+      ),
+    );
+    final isApplying = ValueNotifier<bool>(false);
+    addTearDown(subtitleState.dispose);
+    addTearDown(isApplying.dispose);
+
+    await tester.pumpWidget(
+      app(
+        MoviePlayerSubtitleButton(
+          subtitleStateListenable: subtitleState,
+          isApplyingListenable: isApplying,
+          onSubtitleSelected: (_) async {},
+          onReloadRequested: () async {},
+        ),
+      ),
+    );
+
+    final gesture = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await gesture.addPointer(location: Offset.zero);
+    addTearDown(gesture.removePointer);
+
+    await gesture.moveTo(
+      tester.getCenter(find.byKey(const Key('movie-player-subtitle-button'))),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('movie-player-subtitle-menu')), findsOneWidget);
+
+    await gesture.moveTo(
+      tester.getCenter(find.byKey(const Key('movie-player-subtitle-menu'))),
+    );
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(find.byKey(const Key('movie-player-subtitle-menu')), findsOneWidget);
+
+    await gesture.moveTo(const Offset(1, 1));
+    await tester.pump(const Duration(milliseconds: 120));
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key('movie-player-subtitle-menu')), findsNothing);
   });
 }

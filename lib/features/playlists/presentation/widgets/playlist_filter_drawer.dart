@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/playlists/presentation/controllers/playlist_filter_state.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_filter_sections.dart';
@@ -12,7 +13,12 @@ import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
 Future<void> showMobilePlaylistFilterDrawer(
   BuildContext context, {
   required PlaylistFilterState current,
+  required PlaylistFilterState initial,
   required ValueChanged<PlaylistFilterState> onChanged,
+  required bool Function(PlaylistFilterState value) isDefault,
+  Widget? tagSection,
+  ValueListenable<bool>? extraActive,
+  VoidCallback? onReset,
 }) {
   return showAppBottomDrawer<void>(
     context: context,
@@ -20,13 +26,17 @@ Future<void> showMobilePlaylistFilterDrawer(
     maxHeightFactor: 0.6,
     builder: (sheetContext) => AppMobileFilterDrawer<PlaylistFilterState>(
       current: current,
-      // 重置只清筛选条件，保留排序入口选择的排序。
-      initial: current.resetFilters(),
+      initial: initial,
       onChanged: onChanged,
-      isDefault: (value) => !value.hasActiveFilters,
+      isDefault: isDefault,
+      extraActive: extraActive,
+      onReset: onReset,
       scrollViewKey: const Key('mobile-playlist-filter-scroll-view'),
-      contentBuilder: (context, local, onApply) =>
-          PlaylistFilterSectionGroup(filterState: local, onChanged: onApply),
+      contentBuilder: (context, local, onApply) => PlaylistFilterSectionGroup(
+        filterState: local,
+        onChanged: onApply,
+        tagSection: tagSection,
+      ),
     ),
   );
 }

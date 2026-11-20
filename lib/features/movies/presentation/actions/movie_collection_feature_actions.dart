@@ -420,6 +420,7 @@ Future<_MovieCollectionFeatureMenuAction?> _showMovieCollectionFeatureMenu({
           label: l10n.movieActionBlacklistMovie,
           icon: Icons.block_rounded,
           tone: AppTextTone.error,
+          showDividerBefore: true,
         ),
     ],
   );

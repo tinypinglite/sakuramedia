@@ -45,6 +45,7 @@ Future<VideoCollectionEpisodeAction?> showVideoCollectionEpisodeActions({
         subtitle: l10n.videoEpisodeDeleteSubtitle,
         icon: Icons.delete_outline_rounded,
         tone: AppTextTone.error,
+        showDividerBefore: true,
       ),
     ],
   );

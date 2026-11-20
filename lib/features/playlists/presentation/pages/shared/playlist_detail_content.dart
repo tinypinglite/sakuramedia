@@ -11,10 +11,10 @@ import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_collection_feature_actions.dart';
+import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_scope.dart';
 import 'package:sakuramedia/features/movies/presentation/movie_placeholders.dart';
-import 'package:sakuramedia/features/shared/presentation/providers/paged_async_notifier.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/paged_view_snapshot.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/stable_set_selection.dart';
 import 'package:sakuramedia/features/shared/presentation/widgets/paged_load_more_footer_sliver.dart';
@@ -28,12 +28,17 @@ import 'package:sakuramedia/features/playlists/presentation/widgets/smart_playli
 import 'package:sakuramedia/widgets/domain/collections/collection_editor_dialog.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_detail_action_menu.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_filter_drawer.dart';
+import 'package:sakuramedia/features/playlists/presentation/widgets/playlist_filter_sections.dart';
 import 'package:sakuramedia/features/subscriptions/presentation/subscription_feedback.dart';
+import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_provider.dart';
+import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_scope.dart';
+import 'package:sakuramedia/features/tags/presentation/providers/tag_selection_state.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/actions/app_glass_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_confirm_dialog.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
@@ -43,8 +48,6 @@ import 'package:sakuramedia/widgets/base/interaction/refresh/app_page_refresh_sc
 import 'package:sakuramedia/widgets/base/interaction/selection/multi_select_state_mixin.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_pull_to_refresh.dart';
-import 'package:sakuramedia/widgets/base/forms/app_filter_choice_section.dart';
-import 'package:sakuramedia/widgets/base/forms/app_segmented_control.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
@@ -53,6 +56,7 @@ import 'package:sakuramedia/widgets/domain/movies/movie_batch_selection.dart';
 import 'package:sakuramedia/widgets/domain/playlists/playlist_sort_menu_button.dart';
 import 'package:sakuramedia/widgets/domain/movies/movie_summary_grid.dart';
 import 'package:sakuramedia/widgets/domain/playlists/playlist_banner_card.dart';
+import 'package:sakuramedia/widgets/domain/tags/tag_filter_section.dart';
 
 class PlaylistDetailContent extends ConsumerStatefulWidget {
   const PlaylistDetailContent({
@@ -83,9 +87,17 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
         MovieBatchSelectionMixin<PlaylistDetailContent> {
   late final ScrollController _scrollController;
   final _listHeaderKey = GlobalKey();
+  final ValueNotifier<bool> _tagSelectionActive = ValueNotifier<bool>(false);
 
-  MovieSummaryScope get _scope =>
-      MovieSummaryScope.playlist(playlistId: widget.playlistId);
+  MovieSummaryScope? _scopeState;
+  TagSelectionScope? _tagSelectionScopeState;
+  PlaylistFilterState _savedFilterState = PlaylistFilterState.initial;
+  List<int> _savedTagIds = const <int>[];
+  TagMatchMode _savedTagMatch = TagMatchMode.or;
+
+  MovieSummaryScope get _scope => _scopeState!;
+
+  TagSelectionScope get _tagSelectionScope => _tagSelectionScopeState!;
 
   MovieCardHoverFeatureActions get _hoverFeatureActions =>
       movieCardHoverFeatureActions(context);
@@ -123,13 +135,56 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
 
   @override
   void dispose() {
+    _tagSelectionActive.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _ensureScopes(PlaylistDto playlist) {
+    if (_scopeState != null) {
+      return;
+    }
+    final smartFilter = playlist.smartFilter;
+    _savedFilterState = PlaylistFilterState.fromSmartFilter(smartFilter);
+    _savedTagIds = smartFilter?.tagIds ?? const <int>[];
+    _savedTagMatch = TagMatchModeX.fromApiValue(smartFilter?.tagMatch ?? 'or');
+    _scopeState = MovieSummaryScope.playlist(
+      playlistId: widget.playlistId,
+      initialPlaylistFilter: _savedFilterState,
+      initialTagIds: _savedTagIds,
+      initialTagMatch: _savedTagMatch,
+    );
+    _tagSelectionScopeState = TagSelectionScope.custom(
+      instanceKey: 'playlist-detail:${widget.playlistId}',
+      initialSelectedTagIds: _savedTagIds,
+      initialMatchMode: _savedTagMatch,
+      preload: false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final detailAsync = ref.watch(playlistDetailProvider(widget.playlistId));
+    if (detailAsync.isLoading && detailAsync.value == null) {
+      return const PlaylistDetailLoadingContent();
+    }
+
+    if (detailAsync.hasError && detailAsync.value == null) {
+      final l10n = AppLocalizations.of(context);
+      return AppErrorState(
+        title: l10n.playlistLoadFailed,
+        message: playlistDetailErrorMessage(detailAsync.error!, l10n: l10n),
+        retryKey: const Key('playlist-detail-error-retry'),
+        onRetry: _retryInitialLoad,
+      );
+    }
+
+    final playlist = detailAsync.value;
+    if (playlist == null) {
+      return const SizedBox.shrink();
+    }
+    _ensureScopes(playlist);
+
     final view = ref.watch(
       movieSummaryProvider(
         _scope,
@@ -142,31 +197,23 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
         ),
       ),
     );
+    final tagSelection = ref.watch(tagSelectionProvider(_tagSelectionScope));
+    ref.listen(tagSelectionProvider(_tagSelectionScope), (previous, next) {
+      if (previous == null) {
+        return;
+      }
+      if (listEquals(previous.selectedTagIds, next.selectedTagIds) &&
+          previous.matchMode == next.matchMode) {
+        return;
+      }
+      _tagSelectionActive.value = !_tagsMatchSaved(next);
+      _applyTagSelection(next);
+    });
 
     return AppPageRefreshScope(
       onRefresh: _handleRefresh,
       child: Builder(
         builder: (context) {
-          if (detailAsync.isLoading && detailAsync.value == null) {
-            return const PlaylistDetailLoadingContent();
-          }
-
-          if (detailAsync.hasError && detailAsync.value == null) {
-            return AppErrorState(
-              title: AppLocalizations.of(context).playlistLoadFailed,
-              message: playlistDetailErrorMessage(
-                detailAsync.error!,
-                l10n: AppLocalizations.of(context),
-              ),
-              retryKey: const Key('playlist-detail-error-retry'),
-              onRetry: _retryInitialLoad,
-            );
-          }
-
-          final playlist = detailAsync.value;
-          if (playlist == null) {
-            return const SizedBox.shrink();
-          }
           final canManage = playlist.isMutable || playlist.isDeletable;
           final slivers = <Widget>[
             AppPinnedSliverSection(
@@ -175,27 +222,45 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: EdgeInsets.only(bottom: context.appSpacing.lg),
-                    child: Stack(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        PlaylistBannerCard(
-                          key: Key('playlist-banner-card-${playlist.id}'),
-                          title: playlist.name,
-                          coverImageUrl:
-                              view.items.firstOrNull?.coverImage?.origin,
-                          badgeLabel: playlist.isSmart
-                              ? AppLocalizations.of(context).playlistSmartBadge
-                              : null,
-                        ),
-                        if (canManage)
-                          Positioned(
-                            top: context.appSpacing.sm,
-                            right: context.appSpacing.sm,
-                            child: _PlaylistDetailMoreButton(
-                              onTap: (position) => unawaited(
-                                _openActionMenu(playlist, position),
-                              ),
+                        Stack(
+                          children: [
+                            PlaylistBannerCard(
+                              key: Key('playlist-banner-card-${playlist.id}'),
+                              title: playlist.name,
+                              coverImageUrl:
+                                  view.items.firstOrNull?.coverImage?.origin,
+                              badgeLabel: playlist.isSmart
+                                  ? AppLocalizations.of(
+                                      context,
+                                    ).playlistSmartBadge
+                                  : null,
                             ),
+                            if (canManage)
+                              Positioned(
+                                top: context.appSpacing.sm,
+                                right: context.appSpacing.sm,
+                                child: _PlaylistDetailMoreButton(
+                                  onTap: (position) => unawaited(
+                                    _openActionMenu(playlist, position),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        if (playlist.isSmart &&
+                            playlist.smartFilter != null) ...[
+                          SizedBox(height: context.appSpacing.sm),
+                          _PlaylistSavedConditions(
+                            summary: _smartFilterSummary(
+                              playlist.smartFilter!,
+                              AppLocalizations.of(context),
+                            ),
+                            onEdit: () => unawaited(_editPlaylist(playlist)),
                           ),
+                        ],
                       ],
                     ),
                   ),
@@ -205,13 +270,7 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
                   ? (_isMobile
                         ? buildMobileBatchSelectionHeader()
                         : buildGlassBatchSelectionToolbar())
-                  : _buildListHeader(
-                      context,
-                      playlist.movieCount,
-                      view.filterUpdate,
-                      view.items.isNotEmpty,
-                      isSmart: playlist.isSmart,
-                    ),
+                  : _buildListHeader(context, playlist, view, tagSelection),
               headerBottomSpacing: _isMobile
                   ? context.appSpacing.md
                   : context.appSpacing.lg,
@@ -244,7 +303,11 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
                       onMovieBlacklist: _hoverFeatureActions.blacklist,
                       isMovieSubscriptionUpdating: (movie) =>
                           subscriptionUpdating.contains(movie.movieNumber),
-                      emptyMessage: !_filterState.hasActiveFilters
+                      emptyMessage:
+                          !_hasTemporaryFilterChanges(
+                            _filterState,
+                            tagSelection,
+                          )
                           ? AppLocalizations.of(context).playlistNoMovies
                           : AppLocalizations.of(
                               context,
@@ -349,7 +412,9 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
 
   void _retryInitialLoad() {
     ref.invalidate(playlistDetailProvider(widget.playlistId));
-    ref.invalidate(movieSummaryProvider(_scope));
+    if (_scopeState != null) {
+      ref.invalidate(movieSummaryProvider(_scope));
+    }
   }
 
   bool get _isMobile => AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
@@ -392,8 +457,24 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
         .applyUpdated(updated);
     ref.read(playlistMutationEventsProvider.notifier).reportUpdated(updated);
     if (playlist.isSmart) {
-      // 智能列表的成员由筛选条件实时计算，保存后必须重新拉取当前 scope。
-      unawaited(ref.read(movieSummaryProvider(_scope).notifier).refresh());
+      final smartFilter = updated.smartFilter;
+      _savedFilterState = PlaylistFilterState.fromSmartFilter(smartFilter);
+      _savedTagIds = smartFilter?.tagIds ?? const <int>[];
+      _savedTagMatch = TagMatchModeX.fromApiValue(
+        smartFilter?.tagMatch ?? 'or',
+      );
+      _tagSelectionActive.value = false;
+      final future = ref
+          .read(movieSummaryProvider(_scope).notifier)
+          .applyPlaylistViewFilter(
+            _savedFilterState,
+            tagIds: _savedTagIds,
+            tagMatch: _savedTagMatch,
+          );
+      ref
+          .read(tagSelectionProvider(_tagSelectionScope).notifier)
+          .replaceSelection(_savedTagIds, matchMode: _savedTagMatch);
+      unawaited(future);
     }
   }
 
@@ -426,76 +507,27 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
   }
 
   /// 列表顶栏：桌面使用 `AppGlassListHeader`，移动使用紧凑玻璃控制行。
-  ///
-  /// 智能列表的排序/筛选由保存的 smart_filter 决定，详情页不提供临时筛选
-  /// 入口，避免 UI 显示「全部/默认」但服务端仍按保存条件过滤。
   Widget _buildListHeader(
     BuildContext context,
-    int totalMovies,
-    FilterUpdateState filterUpdate,
-    bool hasPreviousFilterItems, {
-    required bool isSmart,
-  }) {
+    PlaylistDto playlist,
+    PagedViewSnapshot<MovieListItemDto> view,
+    TagSelectionState tagSelection,
+  ) {
     final isMobile = AppPlatformScope.maybeOf(context) == AppPlatform.mobile;
     final l10n = AppLocalizations.of(context);
-    if (!isMobile) {
-      return _buildGlassListHeader(
-        context,
-        l10n,
-        totalMovies,
-        filterUpdate,
-        hasPreviousFilterItems,
-        isSmart: isSmart,
-      );
-    }
-    return AppMobileListHeader(
-      leading: AppMobileHeaderText(
-        key: const Key('playlist-detail-total'),
-        countLabel: l10n.playlistMovieCount(totalMovies),
-      ),
-      actions: <Widget>[
-        if (!isSmart) ...[
-          AppGlassFilterIconButton(
-            key: const Key('playlist-detail-filter-trigger'),
-            summary: _filterState.triggerLabel(l10n),
-            isActive: _filterState.hasActiveFilters,
-            onPressed: () => unawaited(_openFilterDrawer()),
-          ),
-          PlaylistSortMenuButton(
-            triggerKey: const Key('playlist-detail-sort-trigger'),
-            panelKey: const Key('playlist-detail-sort-panel'),
-            drawerKey: const Key('mobile-playlist-detail-sort-drawer'),
-            keyPrefix: 'mobile-playlist',
-            filterState: _filterState,
-            onChanged: _applyFilter,
-            useDrawer: true,
-            iconOnly: true,
-          ),
-        ],
-        AppGlassIconButton(
-          key: const Key('playlist-detail-enter-selection-button'),
-          tooltip: l10n.baseSelect,
-          icon: Icons.check_circle_outline,
-          onPressed: batchSelectableNumbers.isEmpty ? null : enterSelection,
-        ),
-      ],
-      filterUpdate: filterUpdate,
-      hasPreviousFilterItems: hasPreviousFilterItems,
-      onRetryFilter: () => unawaited(
-        ref.read(movieSummaryProvider(_scope).notifier).retryFilter(),
-      ),
-    );
-  }
-
-  Widget _buildGlassListHeader(
-    BuildContext context,
-    AppLocalizations l10n,
-    int totalMovies,
-    FilterUpdateState filterUpdate,
-    bool hasPreviousFilterItems, {
-    required bool isSmart,
-  }) {
     final filter = _filterState;
+    final hasTempChanges = _hasTemporaryFilterChanges(filter, tagSelection);
+    final total = view.isInitialLoading && view.total == 0
+        ? playlist.movieCount
+        : view.total;
+    final countLabel = hasTempChanges
+        ? l10n.playlistMovieCountTemporary(total, playlist.movieCount)
+        : l10n.playlistMovieCount(total);
+    final filterLabel = _playlistFilterLabel(filter, tagSelection, l10n);
+    final savedSortLabel = playlistSortLabel(playlist.smartFilter?.sort, l10n);
+    final defaultSortLabel = playlist.isSmart && savedSortLabel != null
+        ? l10n.playlistSortSaved(savedSortLabel)
+        : l10n.playlistSortDefault;
     final batchSelectButton = AppGlassHeaderButton(
       key: const Key('playlist-detail-enter-selection-button'),
       icon: Icons.check_circle_outline,
@@ -503,15 +535,39 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
       enabled: batchSelectableNumbers.isNotEmpty,
       onTap: enterSelection,
     );
-    if (isSmart) {
-      return AppGlassListHeader(
-        leading: AppGlassHeaderText(
+    if (isMobile) {
+      return AppMobileListHeader(
+        leading: AppMobileHeaderText(
           key: const Key('playlist-detail-total'),
-          label: l10n.playlistMovieCount(totalMovies),
+          countLabel: countLabel,
         ),
-        trailing: AppGlassHeaderGroup(children: <Widget>[batchSelectButton]),
-        filterUpdate: filterUpdate,
-        hasPreviousFilterItems: hasPreviousFilterItems,
+        actions: <Widget>[
+          AppGlassFilterIconButton(
+            key: const Key('playlist-detail-filter-trigger'),
+            summary: filterLabel,
+            isActive: hasTempChanges,
+            onPressed: () => unawaited(_openFilterDrawer()),
+          ),
+          PlaylistSortMenuButton(
+            triggerKey: const Key('playlist-detail-sort-trigger'),
+            panelKey: const Key('playlist-detail-sort-panel'),
+            drawerKey: const Key('mobile-playlist-detail-sort-drawer'),
+            keyPrefix: 'mobile-playlist',
+            filterState: filter,
+            onChanged: _applyFilter,
+            defaultOptionLabel: defaultSortLabel,
+            useDrawer: true,
+            iconOnly: true,
+          ),
+          AppGlassIconButton(
+            key: const Key('playlist-detail-enter-selection-button'),
+            tooltip: l10n.baseSelect,
+            icon: Icons.check_circle_outline,
+            onPressed: batchSelectableNumbers.isEmpty ? null : enterSelection,
+          ),
+        ],
+        filterUpdate: view.filterUpdate,
+        hasPreviousFilterItems: view.items.isNotEmpty,
         onRetryFilter: () => unawaited(
           ref.read(movieSummaryProvider(_scope).notifier).retryFilter(),
         ),
@@ -520,31 +576,24 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
     return AppGlassListHeader(
       leading: AppGlassFilterPopover(
         panelKey: const Key('playlist-detail-filter-panel'),
-        isDefault: !filter.hasActiveFilters,
+        scrollable: true,
+        isDefault: !hasTempChanges,
         onReset: _resetFilters,
         resetKey: const Key('playlist-detail-filter-reset'),
         triggerKey: const Key('playlist-detail-filter-trigger'),
-        label: filter.triggerLabel(l10n),
+        label: filterLabel,
         tooltip: l10n.baseFilterTooltip,
         info: <Widget>[
           AppGlassHeaderText(
             key: const Key('playlist-detail-total'),
-            label: l10n.playlistMovieCount(totalMovies),
+            label: countLabel,
           ),
         ],
-        panelBuilder: (context) =>
-            AppFilterChoiceSection<PlaylistResolutionFilter?>(
-              title: l10n.playlistFilterResolution,
-              controlKey: const Key('playlist-detail-filter-resolution'),
-              items: <AppSegmentedItem<PlaylistResolutionFilter?>>[
-                AppSegmentedItem(value: null, label: l10n.playlistFilterAll),
-                for (final resolution in PlaylistResolutionFilter.values)
-                  AppSegmentedItem(value: resolution, label: resolution.label),
-              ],
-              selected: filter.resolution,
-              onChanged: (resolution) =>
-                  _applyFilter(filter.copyWith(resolution: resolution)),
-            ),
+        panelBuilder: (context) => PlaylistFilterSectionGroup(
+          filterState: filter,
+          onChanged: _applyFilter,
+          tagSection: TagFilterSection(scope: _tagSelectionScope),
+        ),
       ),
       trailing: AppGlassHeaderGroup(
         children: <Widget>[
@@ -553,6 +602,7 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
             panelKey: const Key('playlist-detail-sort-panel'),
             filterState: filter,
             onChanged: _applyFilter,
+            defaultOptionLabel: defaultSortLabel,
             glassGrouped: true,
             fieldControlKey: const Key('playlist-detail-sort-field'),
             directionControlKey: const Key('playlist-detail-sort-direction'),
@@ -560,8 +610,8 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
           batchSelectButton,
         ],
       ),
-      filterUpdate: filterUpdate,
-      hasPreviousFilterItems: hasPreviousFilterItems,
+      filterUpdate: view.filterUpdate,
+      hasPreviousFilterItems: view.items.isNotEmpty,
       onRetryFilter: () => unawaited(
         ref.read(movieSummaryProvider(_scope).notifier).retryFilter(),
       ),
@@ -585,15 +635,96 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
   }
 
   void _resetFilters() {
-    _applyFilter(_filterState.resetFilters());
+    final current = _filterState;
+    final restored = _savedFilterState.copyWith(
+      sortField: current.sortField,
+      sortDirection: current.sortDirection,
+    );
+    _tagSelectionActive.value = false;
+    final future = ref
+        .read(movieSummaryProvider(_scope).notifier)
+        .applyPlaylistViewFilter(
+          restored,
+          tagIds: _savedTagIds,
+          tagMatch: _savedTagMatch,
+        );
+    ref
+        .read(tagSelectionProvider(_tagSelectionScope).notifier)
+        .replaceSelection(_savedTagIds, matchMode: _savedTagMatch);
+    unawaited(future);
   }
 
   Future<void> _openFilterDrawer() async {
+    final current = _filterState;
+    final restored = _savedFilterState.copyWith(
+      sortField: current.sortField,
+      sortDirection: current.sortDirection,
+    );
     await showMobilePlaylistFilterDrawer(
       context,
-      current: _filterState,
+      current: current,
+      initial: restored,
       onChanged: _applyFilter,
+      tagSection: TagFilterSection(scope: _tagSelectionScope),
+      extraActive: _tagSelectionActive,
+      onReset: _resetFilters,
+      isDefault: (value) =>
+          value.matchesFilters(_savedFilterState) &&
+          _tagsMatchSaved(ref.read(tagSelectionProvider(_tagSelectionScope))),
     );
+  }
+
+  bool _tagsMatchSaved(TagSelectionState selection) =>
+      listEquals(selection.selectedTagIds, _savedTagIds) &&
+      selection.matchMode == _savedTagMatch;
+
+  bool _hasTemporaryFilterChanges(
+    PlaylistFilterState filter,
+    TagSelectionState tagSelection,
+  ) =>
+      !filter.matchesFilters(_savedFilterState) ||
+      !_tagsMatchSaved(tagSelection);
+
+  String _playlistFilterLabel(
+    PlaylistFilterState filter,
+    TagSelectionState tagSelection,
+    AppLocalizations l10n,
+  ) {
+    final filterLabel = filter.triggerLabel(l10n);
+    if (tagSelection.selectedTagIds.isEmpty) {
+      return filterLabel;
+    }
+    final tagLabel = l10n.moviePageTagFilterCount(
+      tagSelection.selectedTagIds.length,
+    );
+    if (!filter.hasActiveFilters) {
+      return tagLabel;
+    }
+    return '$filterLabel · $tagLabel';
+  }
+
+  void _applyTagSelection(TagSelectionState selection) {
+    final current = ref.read(movieSummaryProvider(_scope)).value?.filter;
+    if (current != null &&
+        listEquals(current.tagIds, selection.selectedTagIds) &&
+        current.tagMatch == selection.matchMode) {
+      return;
+    }
+    if (selectionMode) {
+      exitSelection();
+    }
+    AppPinnedListHeader.scrollToStart(_listHeaderKey, _scrollController);
+    final notifier = ref.read(movieSummaryProvider(_scope).notifier);
+    if (selection.hasSelection) {
+      unawaited(
+        notifier.applyTagFilter(
+          tagIds: selection.selectedTagIds,
+          tagMatch: selection.matchMode,
+        ),
+      );
+    } else {
+      unawaited(notifier.clearTagFilter());
+    }
   }
 
   Future<void> _toggleMovieSubscription(String movieNumber) async {
@@ -604,6 +735,116 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
       return;
     }
     showMovieSubscriptionFeedback(result, l10n: AppLocalizations.of(context));
+  }
+}
+
+String _smartFilterSummary(
+  SmartPlaylistFilterDto filter,
+  AppLocalizations l10n,
+) {
+  final parts = <String>[];
+  final statusLabels = <String>[
+    for (final value in filter.statuses)
+      if (MovieStatusFilterX.fromApiValue(value) != MovieStatusFilter.all)
+        MovieStatusFilterX.fromApiValue(value).labelWith(l10n),
+  ];
+  if (statusLabels.isNotEmpty) {
+    parts.add(_multiLabel(statusLabels, l10n));
+  }
+  final watchLabels = <String>[
+    for (final value in filter.watchStatuses)
+      if (MovieWatchStatusFilterX.fromApiValue(value) !=
+          MovieWatchStatusFilter.all)
+        MovieWatchStatusFilterX.fromApiValue(value).labelWith(l10n),
+  ];
+  if (watchLabels.isNotEmpty) {
+    parts.add(_multiLabel(watchLabels, l10n));
+  }
+  if (filter.years.isNotEmpty) {
+    parts.add(movieFilterYearsLabel(filter.years.toSet(), l10n));
+  }
+  final resolutionLabels = filter.resolutions
+      .map(PlaylistResolutionFilterX.fromApiValue)
+      .whereType<PlaylistResolutionFilter>()
+      .map((value) => value.label)
+      .toList(growable: false);
+  if (resolutionLabels.isNotEmpty) {
+    parts.add(_multiLabel(resolutionLabels, l10n));
+  }
+  if (filter.tagIds.isNotEmpty) {
+    parts.add(l10n.moviePageTagFilterCount(filter.tagIds.length));
+  }
+  if (filter.mediaTagIds.isNotEmpty) {
+    parts.add(l10n.moviePageMediaTagCount(filter.mediaTagIds.length));
+  }
+  if (filter.actorIds.isNotEmpty) {
+    parts.add(l10n.playlistSavedActorCount(filter.actorIds.length));
+  }
+  if (filter.actorAgeMin != null || filter.actorAgeMax != null) {
+    parts.add(
+      movieActorAgeRangeLabel(filter.actorAgeMin, filter.actorAgeMax, l10n),
+    );
+  }
+  if (filter.heatMin != null || filter.heatMax != null) {
+    parts.add(
+      '${l10n.sharedInteractionHeat} '
+      '${movieInteractionRangeLabel(MovieInteractionMetric.heat, filter.heatMin, filter.heatMax, l10n)}',
+    );
+  }
+  final collectionType = MovieCollectionTypeFilterX.fromApiValue(
+    filter.collectionType,
+  );
+  if (collectionType != MovieCollectionTypeFilter.all) {
+    parts.add(collectionType.labelWith(l10n));
+  }
+  final numberSource = MovieNumberSourceFilterX.fromApiValue(
+    filter.numberSource,
+  );
+  if (numberSource != MovieNumberSourceFilter.all) {
+    parts.add(numberSource.labelWith(l10n));
+  }
+  return parts.isEmpty ? l10n.playlistFilterAll : parts.join(' · ');
+}
+
+String _multiLabel(List<String> labels, AppLocalizations l10n) {
+  if (labels.length == 1) {
+    return labels.single;
+  }
+  return l10n.playlistFilterSummary(labels.first, labels.length - 1);
+}
+
+class _PlaylistSavedConditions extends StatelessWidget {
+  const _PlaylistSavedConditions({required this.summary, required this.onEdit});
+
+  final String summary;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
+    return Row(
+      key: const Key('playlist-detail-saved-conditions'),
+      children: [
+        Expanded(
+          child: Text(
+            '${l10n.playlistSavedConditions} · $summary',
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: resolveAppTextStyle(
+              context,
+              size: AppTextSize.s12,
+              tone: AppTextTone.muted,
+            ),
+          ),
+        ),
+        AppTextButton(
+          key: const Key('playlist-detail-edit-smart-conditions'),
+          label: l10n.playlistEditSmartConditions,
+          size: AppTextButtonSize.xSmall,
+          onPressed: onEdit,
+        ),
+      ],
+    );
   }
 }
 

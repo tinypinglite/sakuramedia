@@ -381,7 +381,7 @@ void main() {
     expect(page.items.single.movieNumber, 'ABC-001');
   });
 
-  test('getPlaylistMovies sends sort and resolution query params', () async {
+  test('getPlaylistMovies sends temporary filter query params', () async {
     adapter.enqueueJson(
       method: 'GET',
       path: '/playlists/8/movies',
@@ -396,13 +396,62 @@ void main() {
     final page = await playlistsApi.getPlaylistMovies(
       playlistId: 8,
       sort: 'heat:desc',
-      resolution: '4K',
+      statuses: const <String>['playable', 'subscribed'],
+      statusMatch: 'and',
+      watchStatuses: const <String>['unwatched'],
+      watchMatch: 'or',
+      years: const <int>[2024, 2023],
+      resolutions: const <String>['4K', '1080P'],
+      tagIds: const <int>[1, 2],
+      tagMatch: 'and',
+      mediaTagIds: const <int>[3],
+      mediaTagMatch: 'or',
     );
 
     final request = adapter.requests.single;
     expect(request.uri.queryParameters['sort'], 'heat:desc');
-    expect(request.uri.queryParameters['resolution'], '4K');
+    expect(request.uri.queryParameters['statuses'], 'playable,subscribed');
+    expect(request.uri.queryParameters['status_match'], 'and');
+    expect(request.uri.queryParameters['watch_statuses'], 'unwatched');
+    expect(request.uri.queryParameters['watch_match'], 'or');
+    expect(request.uri.queryParameters['year'], '2024,2023');
+    expect(request.uri.queryParameters['resolutions'], '4K,1080P');
+    expect(request.uri.queryParameters['tag_ids'], '1,2');
+    expect(request.uri.queryParameters['tag_match'], 'and');
+    expect(request.uri.queryParameters['media_tag_ids'], '3');
+    expect(request.uri.queryParameters['media_tag_match'], 'or');
     expect(page.total, 0);
+  });
+
+  test('getPlaylistMovies preserves explicit empty override params', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists/8/movies',
+      body: <String, dynamic>{
+        'items': <Map<String, dynamic>>[],
+        'page': 1,
+        'page_size': 20,
+        'total': 0,
+      },
+    );
+
+    await playlistsApi.getPlaylistMovies(
+      playlistId: 8,
+      statuses: const <String>[],
+      watchStatuses: const <String>[],
+      years: const <int>[],
+      resolutions: const <String>[],
+      tagIds: const <int>[],
+      mediaTagIds: const <int>[],
+    );
+
+    final query = adapter.requests.single.uri.queryParameters;
+    expect(query['statuses'], '');
+    expect(query['watch_statuses'], '');
+    expect(query['year'], '');
+    expect(query['resolutions'], '');
+    expect(query['tag_ids'], '');
+    expect(query['media_tag_ids'], '');
   });
 
   test('addMovieToPlaylist sends put request', () async {

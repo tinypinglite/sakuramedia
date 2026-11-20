@@ -107,6 +107,29 @@ void main() {
       find.byKey(const Key('mobile-rankings-filter-button')),
       findsOneWidget,
     );
+    final titleLeft = tester
+        .getTopLeft(
+          find.descendant(
+            of: find.byKey(const Key('mobile-rankings-large-title')),
+            matching: find.byType(Text),
+          ),
+        )
+        .dx;
+    final headerLeft = tester
+        .getTopLeft(
+          find
+              .descendant(
+                of: find.byKey(const Key('mobile-rankings-page-total')),
+                matching: find.byType(Text),
+              )
+              .first,
+        )
+        .dx;
+    final cardLeft = tester
+        .getTopLeft(find.byKey(const Key('movie-summary-card-ABC-001')))
+        .dx;
+    expect(headerLeft, closeTo(titleLeft, 0.1));
+    expect(cardLeft, closeTo(titleLeft, 0.1));
 
     _enqueueRankingItems(bundle);
     final refreshView = tester.widget<AppAdaptiveRefreshScrollView>(

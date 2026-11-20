@@ -8,7 +8,9 @@ const double _basePlayerSubtitleFontSize = 32;
 
 /// 把设备级字幕偏好转成 media_kit 的字幕视图配置。
 ///
-/// 水平留白与底部基准间距走主题 token；用户只调字号倍率和底部偏移。
+/// 字幕不使用整行底色，而是通过双层柔影保证亮暗画面上的可读性；左右保持
+/// 无内边距，底部只保留不会贴住播放器边缘的安全距离。用户只调字号倍率和
+/// 底部偏移。
 SubtitleViewConfiguration buildPlayerSubtitleViewConfiguration({
   required BuildContext context,
   required PlayerSubtitlePreference preference,
@@ -16,19 +18,29 @@ SubtitleViewConfiguration buildPlayerSubtitleViewConfiguration({
   final spacing = context.appSpacing;
   return SubtitleViewConfiguration(
     style: TextStyle(
-      height: 1.4,
+      fontFamily: resolveAppFontFamily(context),
+      height: 1.38,
       fontSize: _basePlayerSubtitleFontSize * preference.scale,
       color: Colors.white,
-      backgroundColor: Colors.black.withValues(alpha: 0.66),
-      fontWeight: FontWeight.normal,
+      fontWeight: context.appTextWeights.medium,
       letterSpacing: 0,
       wordSpacing: 0,
+      shadows: <Shadow>[
+        Shadow(color: Colors.black.withValues(alpha: 0.92), blurRadius: 2),
+        Shadow(
+          color: Colors.black.withValues(alpha: 0.38),
+          blurRadius: 7,
+          offset: const Offset(0, 2),
+        ),
+      ],
     ),
     padding: EdgeInsets.fromLTRB(
-      spacing.lg,
       0,
-      spacing.lg,
-      spacing.xl + preference.bottomOffset,
+      0,
+      0,
+      spacing.xl +
+          MediaQuery.paddingOf(context).bottom +
+          preference.bottomOffset,
     ),
   );
 }

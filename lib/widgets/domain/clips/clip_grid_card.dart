@@ -184,6 +184,7 @@ class ClipGridCard extends StatelessWidget {
             value: _ClipCardAction.delete,
             label: l10n.commonDelete,
             tone: AppTextTone.error,
+            showDividerBefore: true,
           ),
       ],
     );

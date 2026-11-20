@@ -4,7 +4,7 @@
 
 路径：`lib/widgets/base/actions/app_button.dart`
 
-主要按钮，支持 `primary`、`secondary`、`ghost`、`danger` 变体以及多档尺寸。用于提交、保存、确认等有明确动作的场景。
+主要按钮，支持 `primary`、`secondary`、`ghost`、`danger` 变体以及多档尺寸。用于提交、保存、确认等有明确动作的场景。默认按内容宽度收缩，需要通栏时由父级给 `Expanded` 或 `SizedBox(width: double.infinity)`；`isLoading` 沿用正常配色并屏蔽点击，禁用态使用可读的中性前景，不叠加整体透明度。
 
 ## `AppTextButton`
 

@@ -53,10 +53,10 @@ class AppTextButton extends StatelessWidget {
   final AppTextButtonEmphasis emphasis;
   final AppTextButtonBackgroundStyle backgroundStyle;
 
-  bool get _isEnabled => onPressed != null && !isLoading;
+  bool get _isInteractive => onPressed != null && !isLoading;
 
   /// 加载中沿用正常态配色：内联强调按钮不应在等待时看起来像禁用。
-  bool get _usesActiveStyle => _isEnabled || isLoading;
+  bool get _usesActiveStyle => onPressed != null || isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -85,7 +85,9 @@ class AppTextButton extends StatelessWidget {
           };
     final contentColor = _usesActiveStyle
         ? foregroundColor
-        : colors.borderStrong;
+        : theme.brightness == Brightness.dark
+        ? context.appTextPalette.secondary
+        : context.appTextPalette.muted;
     final labelStyle = resolveAppTextStyle(
       context,
       size: textSize,
@@ -93,32 +95,29 @@ class AppTextButton extends StatelessWidget {
       tone: tone,
     ).copyWith(height: 1, leadingDistribution: TextLeadingDistribution.even);
 
-    return Opacity(
-      opacity: _usesActiveStyle ? 1 : 0.56,
-      child: AppInteractiveSurface(
-        enabled: _isEnabled,
-        onTap: onPressed,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 120),
-          height: height,
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-          decoration: BoxDecoration(
-            color: _usesActiveStyle
-                ? backgroundColor
-                : colors.borderSubtle.withValues(alpha: 0.32),
-            borderRadius: context.appRadius.smBorder,
-          ),
-          child: buildAppButtonContent(
-            label: label,
-            labelKey: labelKey,
-            labelStyle: labelStyle.copyWith(color: contentColor),
-            icon: icon,
-            trailingIcon: trailingIcon,
-            isLoading: isLoading,
-            iconSize: iconSize,
-            gap: gap,
-            iconColor: contentColor,
-          ),
+    return AppInteractiveSurface(
+      enabled: _isInteractive,
+      onTap: onPressed,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 120),
+        height: height,
+        padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+        decoration: BoxDecoration(
+          color: _usesActiveStyle
+              ? backgroundColor
+              : colors.borderSubtle.withValues(alpha: 0.32),
+          borderRadius: context.appRadius.smBorder,
+        ),
+        child: buildAppButtonContent(
+          label: label,
+          labelKey: labelKey,
+          labelStyle: labelStyle.copyWith(color: contentColor),
+          icon: icon,
+          trailingIcon: trailingIcon,
+          isLoading: isLoading,
+          iconSize: iconSize,
+          gap: gap,
+          iconColor: contentColor,
         ),
       ),
     );

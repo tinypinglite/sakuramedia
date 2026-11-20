@@ -159,7 +159,13 @@ class _MobileMoviesPageState extends ConsumerState<MobileMoviesPage> {
       // `local.copyWith(...)` 重建，若媒体标签仍用打开抽屉时的快照，
       // 两边的条件会互相覆盖。
       mediaTagSectionBuilder: (context, local, onApply) =>
-          MediaTagFilterSection(filter: local, onChanged: onApply),
+          MediaTagFilterSection(
+            mediaTagIds: local.mediaTagIds,
+            mediaTagMatch: local.mediaTagMatch,
+            onChanged: (ids, matchMode) => onApply(
+              local.copyWith(mediaTagIds: ids, mediaTagMatch: matchMode),
+            ),
+          ),
       extraActive: _tagSelectionActive,
       onResetExtra: () {
         ref.read(tagSelectionProvider(_tagSelectionScope).notifier).clear();

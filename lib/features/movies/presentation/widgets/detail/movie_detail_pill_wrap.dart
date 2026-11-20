@@ -77,21 +77,25 @@ class _MovieDetailPill extends StatelessWidget {
         : context.appTextPalette.primary.withValues(alpha: 0.26);
     final radius = context.appRadius.pillBorder;
     final tokens = context.appComponentTokens;
+    final duration = MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : context.appMotion.normal;
+    final textStyle = resolveAppTextStyle(
+      context,
+      size: AppTextSize.s12,
+      weight: item.isSelected ? AppTextWeight.semibold : AppTextWeight.medium,
+      tone: AppTextTone.primary,
+    ).copyWith(color: foregroundColor);
     final content = Padding(
       padding: EdgeInsets.symmetric(
         horizontal: tokens.movieDetailPillHorizontalPadding,
         vertical: tokens.movieDetailPillVerticalPadding,
       ),
-      child: Text(
-        item.label,
-        style: resolveAppTextStyle(
-          context,
-          size: AppTextSize.s12,
-          weight: item.isSelected
-              ? AppTextWeight.semibold
-              : AppTextWeight.medium,
-          tone: AppTextTone.primary,
-        ).copyWith(color: foregroundColor),
+      child: AnimatedDefaultTextStyle(
+        duration: duration,
+        curve: context.appMotion.standard,
+        style: textStyle,
+        child: Text(item.label),
       ),
     );
 
@@ -101,13 +105,13 @@ class _MovieDetailPill extends StatelessWidget {
       border: Border.all(color: borderColor),
     );
 
-    if (!isInteractive) {
-      return DecoratedBox(decoration: decoration, child: content);
-    }
-
-    return DecoratedBox(
+    return AnimatedContainer(
+      duration: duration,
+      curve: context.appMotion.standard,
       decoration: decoration,
-      child: AppInteractiveSurface(onTap: item.onTap, child: content),
+      child: isInteractive
+          ? AppInteractiveSurface(onTap: item.onTap, child: content)
+          : content,
     );
   }
 }

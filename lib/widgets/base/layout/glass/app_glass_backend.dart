@@ -512,6 +512,13 @@ class AppGlassPopoverBackend extends StatelessWidget {
 }
 
 class AppGlassTabBarBackend extends StatelessWidget {
+  static const _indicatorSettings = LiquidGlassSettings(
+    lightIntensity: 0,
+    ambientRim: 0.02,
+    fresnelStrength: 0,
+    glowIntensity: 0,
+  );
+
   const AppGlassTabBarBackend({
     super.key,
     required this.tabs,
@@ -596,6 +603,7 @@ class AppGlassTabBarBackend extends StatelessWidget {
       selectedLabelStyle: selectedLabelStyle,
       unselectedLabelStyle: unselectedLabelStyle,
       settings: AppGlassStyle.settingsFor(context, role),
+      indicatorSettings: _indicatorSettings,
       quality: AppGlassStyle.qualityFor(role),
     );
   }

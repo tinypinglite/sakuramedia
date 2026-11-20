@@ -180,7 +180,7 @@ class _AppTextFieldState extends State<AppTextField> {
       context,
       size: AppTextSize.s14,
       weight: AppTextWeight.regular,
-      tone: AppTextTone.secondary,
+      tone: AppTextTone.muted,
     ).copyWith(fontFamily: inheritedFontFamily);
     final padding =
         widget.contentPadding ??
