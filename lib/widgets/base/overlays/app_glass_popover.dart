@@ -110,6 +110,7 @@ class AppGlassSortSection<F> extends StatelessWidget {
     this.defaultOptionKey,
     this.fieldControlKey,
     this.directionControlKey,
+    this.segmentedSize = AppSegmentedSize.regular,
   });
 
   final List<F> fields;
@@ -126,6 +127,7 @@ class AppGlassSortSection<F> extends StatelessWidget {
   final Key? defaultOptionKey;
   final Key? fieldControlKey;
   final Key? directionControlKey;
+  final AppSegmentedSize segmentedSize;
 
   bool get _showDirection => directionVisibleWhen?.call(selectedField) ?? true;
 
@@ -156,6 +158,7 @@ class AppGlassSortSection<F> extends StatelessWidget {
           ],
           selected: selectedField,
           onChanged: onFieldChanged,
+          size: segmentedSize,
         ),
         if (_showDirection) ...[
           SizedBox(height: spacing.lg),
@@ -172,6 +175,7 @@ class AppGlassSortSection<F> extends StatelessWidget {
             ],
             selected: selectedDirection,
             onChanged: onDirectionChanged,
+            size: segmentedSize,
           ),
         ],
       ],

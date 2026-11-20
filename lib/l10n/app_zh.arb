@@ -5664,6 +5664,14 @@
   "baseSortTooltip": "排序",
   "baseSortTitle": "排序方式",
   "baseSortDirectionTitle": "排序方向",
+  "tvSortEntryLabel": "排序 · {summary}",
+  "@tvSortEntryLabel": {
+    "placeholders": {
+      "summary": {
+        "type": "String"
+      }
+    }
+  },
   "baseFilterTooltip": "筛选",
   "baseBatchCompleted": "已完成",
   "baseBatchSummary": "成功 {succeeded} 个，失败 {failed} 个",

@@ -183,13 +183,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       useExternalPlayer: canLaunchMergedPlayback,
       l10n: l10n,
     );
-    final mergePlaybackLabel = mergePlaybackCandidates.isEmpty
-        ? null
-        : mergePlaybackCandidates.length == 1
-        ? l10n.moviePageMergedPlaybackSegments(
-            mergePlaybackCandidates.single.segmentCount,
-          )
-        : l10n.moviePageMergedPlayback;
+    final mergePlaybackLabel = resolveMovieMergePlaybackLabel(
+      mergePlaybackCandidates,
+      l10n,
+    );
 
     final data = MovieDetailViewData(
       movie: movie,
@@ -252,7 +249,16 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       onMergePlaybackTap:
           mergePlaybackLabel == null || interaction.isLaunchingPlayback
           ? null
-          : () => _openMergedPlayback(movie, mergePlaybackCandidates),
+          : () => unawaited(
+              openMovieMergedPlayback(
+                context: context,
+                ref: ref,
+                movieNumber: movieNumber,
+                movie: movie,
+                candidates: mergePlaybackCandidates,
+                mobile: widget.mobile,
+              ),
+            ),
       onDeleteSelectedMedia: selectedMedia == null
           ? null
           : (media) => unawaited(_deleteMedia(media)),
@@ -695,30 +701,6 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
         externalPlayer: externalPlayer,
       ).whenComplete(() => _interaction.setPlaybackLaunching(false)),
     );
-  }
-
-  Future<void> _openMergedPlayback(
-    MovieDetailDto movie,
-    List<MovieMergePlaybackCandidateDto> candidates,
-  ) async {
-    final interaction = ref.read(movieDetailInteractionProvider(movieNumber));
-    if (interaction.isLaunchingPlayback) return;
-    final candidate = await _overlays.pickMergeCandidate(
-      context: context,
-      candidates: candidates,
-    );
-    if (candidate == null || !mounted) return;
-    _interaction.setPlaybackLaunching(true);
-    try {
-      await launchMovieMergedPlayback(
-        context,
-        movieNumber: movie.movieNumber,
-        libraryId: candidate.libraryId,
-        movie: movie,
-      );
-    } finally {
-      _interaction.setPlaybackLaunching(false);
-    }
   }
 
   void _openMovie(String movieNumber) {

@@ -4,8 +4,8 @@ import 'package:sakuramedia/app/language/providers/app_localizations_provider.da
 import 'package:sakuramedia/routes/app_route_spec.dart';
 import 'package:sakuramedia/routes/app_route_target.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/tv/tv_focusable.dart';
-import 'package:sakuramedia/widgets/base/tv/tv_page.dart';
+import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
+import 'package:sakuramedia/widgets/base/layout/decor/app_ambient_backdrop.dart';
 
 class AppTvShell extends ConsumerWidget {
   const AppTvShell({
@@ -24,7 +24,7 @@ class AppTvShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = ref.watch(appLocalizationsProvider);
-    return TvPageBackground(
+    return AppAmbientBackdrop(
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -60,11 +60,10 @@ class AppTvShell extends ConsumerWidget {
                             final selected =
                                 currentPath == item.path ||
                                 currentPath.startsWith('${item.path}/');
-                            return TvFocusable(
-                              onPressed: () =>
+                            return AppInteractiveSurface(
+                              onTap: () =>
                                   AppRouteTarget(id: item.routeId).go(context),
-                              borderRadius: context.appRadius.mdBorder,
-                              scale: 1.02,
+                              focusRingRadius: context.appRadius.mdBorder,
                               child: _TvNavItem(item: item, selected: selected),
                             );
                           },
@@ -92,7 +91,7 @@ class _TvNavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.appColors;
     return AnimatedContainer(
-      duration: AppTvTokens.focusDuration,
+      duration: context.appMotion.fast,
       constraints: const BoxConstraints(
         minWidth: AppTvTokens.navItemMinWidth,
         minHeight: AppTvTokens.navItemHeight,

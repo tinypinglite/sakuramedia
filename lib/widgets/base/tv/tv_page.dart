@@ -1,31 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 
-class TvPageBackground extends StatelessWidget {
-  const TvPageBackground({super.key, required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.appColors;
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            colors.surfacePage,
-            colors.movieDetailHeroBackgroundEnd,
-            colors.surfacePage,
-          ],
-        ),
-      ),
-      child: child,
-    );
-  }
-}
-
 class TvPagePadding extends StatelessWidget {
   const TvPagePadding({super.key, required this.child});
 

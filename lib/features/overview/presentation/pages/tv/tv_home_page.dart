@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:sakuramedia/core/format/app_number_format.dart';
+import 'package:sakuramedia/core/format/media_technical.dart';
 import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/controllers/listing/movie_filter_state.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movie_summary_provider.dart';
@@ -8,16 +10,18 @@ import 'package:sakuramedia/features/playlists/data/dto/playlist_dto.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_provider.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/playlists_overview_scope.dart';
 import 'package:sakuramedia/features/playlists/presentation/providers/system_playlist_provider.dart';
+import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
-import 'package:sakuramedia/widgets/base/tv/tv_action_button.dart';
-import 'package:sakuramedia/widgets/base/tv/tv_movie_card.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/layout/scrolling/app_scroll_rail.dart';
+import 'package:sakuramedia/widgets/base/navigation/app_section_header.dart';
+import 'package:sakuramedia/widgets/base/tv/tv_hero_banner.dart';
 import 'package:sakuramedia/widgets/base/tv/tv_movie_rail.dart';
 import 'package:sakuramedia/widgets/base/tv/tv_page.dart';
-import 'package:sakuramedia/widgets/base/tv/tv_playlist_rail.dart';
-import 'package:sakuramedia/widgets/base/tv/tv_section_header.dart';
+import 'package:sakuramedia/widgets/domain/playlists/playlist_banner_card.dart';
 
 final _tvRecentlyPlayedPlaylistProvider = systemPlaylistProvider(
   PlaylistKind.recentlyPlayed,
@@ -103,25 +107,51 @@ class TvHomePage extends ConsumerWidget {
                     onRetry: () =>
                         ref.invalidate(movieSummaryProvider(_latestScope)),
                   )
-                : _TvHomeHero(
-                    movie: heroMovie,
-                    onPlay: () => TvRoutes.moviePlayer(
-                      movieNumber: heroMovie.movieNumber,
-                    ).push(context),
-                    onDetails: () => TvRoutes.movieDetail(
-                      movieNumber: heroMovie.movieNumber,
-                    ).push(context),
+                : TvHeroBanner(
+                    imageUrl: heroMovie.wideCoverUrl,
+                    eyebrow: heroMovie.movieNumber,
+                    seriesName: heroMovie.seriesName,
+                    title: heroMovie.preferredTitle,
+                    metaItems: _heroMetaItems(
+                      context,
+                      l10n,
+                      heroMovie,
+                      statsEnabled: ref.watch(statsFeaturesEnabledProvider),
+                    ),
+                    actions: [
+                      AppButton(
+                        label: l10n.moviePageActionPlay,
+                        icon: const Icon(Icons.play_arrow_rounded),
+                        size: AppButtonSize.tvLarge,
+                        variant: AppButtonVariant.primary,
+                        autofocus: true,
+                        onPressed: () => TvRoutes.moviePlayer(
+                          movieNumber: heroMovie.movieNumber,
+                        ).push(context),
+                      ),
+                      AppButton(
+                        label: l10n.widgetMediaActionMovieDetail,
+                        icon: const Icon(Icons.info_outline_rounded),
+                        size: AppButtonSize.tvLarge,
+                        variant: AppButtonVariant.secondary,
+                        onPressed: () => TvRoutes.movieDetail(
+                          movieNumber: heroMovie.movieNumber,
+                        ).push(context),
+                      ),
+                    ],
                   ),
           ),
           if (continueItems.isNotEmpty) ...[
             SliverToBoxAdapter(child: SizedBox(height: AppTvTokens.sectionGap)),
             SliverToBoxAdapter(
-              child: TvSectionHeader(title: l10n.overviewContinueWatching),
+              child: AppSectionHeader(
+                title: l10n.overviewContinueWatching,
+                titleSize: AppTextSize.s32,
+              ),
             ),
             SliverToBoxAdapter(
               child: TvMovieRail(
                 items: continueItems,
-                layout: TvMovieCardLayout.landscape,
                 onPressed: (movie) => _openDetail(context, movie),
               ),
             ),
@@ -129,7 +159,10 @@ class TvHomePage extends ConsumerWidget {
           if (latestItems.isNotEmpty) ...[
             SliverToBoxAdapter(child: SizedBox(height: AppTvTokens.sectionGap)),
             SliverToBoxAdapter(
-              child: TvSectionHeader(title: l10n.overviewRecentlyAdded),
+              child: AppSectionHeader(
+                title: l10n.overviewRecentlyAdded,
+                titleSize: AppTextSize.s32,
+              ),
             ),
             SliverToBoxAdapter(
               child: TvMovieRail(
@@ -141,7 +174,10 @@ class TvHomePage extends ConsumerWidget {
           if (favoritesItems.isNotEmpty) ...[
             SliverToBoxAdapter(child: SizedBox(height: AppTvTokens.sectionGap)),
             SliverToBoxAdapter(
-              child: TvSectionHeader(title: l10n.shellNavFavorites),
+              child: AppSectionHeader(
+                title: l10n.shellNavFavorites,
+                titleSize: AppTextSize.s32,
+              ),
             ),
             SliverToBoxAdapter(
               child: TvMovieRail(
@@ -153,7 +189,10 @@ class TvHomePage extends ConsumerWidget {
           if (recentlySubscribedItems.isNotEmpty) ...[
             SliverToBoxAdapter(child: SizedBox(height: AppTvTokens.sectionGap)),
             SliverToBoxAdapter(
-              child: TvSectionHeader(title: l10n.overviewRecentlySubscribed),
+              child: AppSectionHeader(
+                title: l10n.overviewRecentlySubscribed,
+                titleSize: AppTextSize.s32,
+              ),
             ),
             SliverToBoxAdapter(
               child: TvMovieRail(
@@ -165,16 +204,32 @@ class TvHomePage extends ConsumerWidget {
           if (customPlaylists.isNotEmpty) ...[
             SliverToBoxAdapter(child: SizedBox(height: AppTvTokens.sectionGap)),
             SliverToBoxAdapter(
-              child: TvSectionHeader(title: l10n.overviewPlaylists),
+              child: AppSectionHeader(
+                title: l10n.overviewPlaylists,
+                titleSize: AppTextSize.s32,
+              ),
             ),
             SliverToBoxAdapter(
-              child: TvPlaylistRail(
-                playlists: customPlaylists,
-                coverUrlFor: playlistsState!.coverUrlFor,
-                onPressed: (playlist) => TvRoutes.playlistDetail(
-                  playlistId: playlist.id,
-                  playlistName: playlist.name,
-                ).push(context),
+              child: AppScrollRail(
+                height: context.appComponentTokens.playlistBannerHeight,
+                itemCount: customPlaylists.length,
+                itemBuilder: (context, index) {
+                  final playlist = customPlaylists[index];
+                  return SizedBox(
+                    width: AppTvTokens.playlistCardWidth,
+                    child: PlaylistBannerCard(
+                      title: playlist.name,
+                      coverImageUrl: playlistsState!.coverUrlFor(playlist.id),
+                      badgeLabel: playlist.isSmart
+                          ? l10n.playlistSmartBadge
+                          : null,
+                      onTap: () => TvRoutes.playlistDetail(
+                        playlistId: playlist.id,
+                        playlistName: playlist.name,
+                      ).push(context),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -189,131 +244,31 @@ class TvHomePage extends ConsumerWidget {
   }
 }
 
-class _TvHomeHero extends StatelessWidget {
-  const _TvHomeHero({
-    required this.movie,
-    required this.onPlay,
-    required this.onDetails,
-  });
-
-  final MovieListItemDto movie;
-  final VoidCallback onPlay;
-  final VoidCallback onDetails;
-
-  @override
-  Widget build(BuildContext context) {
-    final l10n = AppLocalizations.of(context);
-    return SizedBox(
-      height: AppTvTokens.heroHeight,
-      child: ClipRRect(
-        borderRadius: context.appRadius.xlBorder,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            MaskedImage(
-              url: movie.wideCoverUrl ?? '',
-              fit: BoxFit.cover,
-              memCacheWidth: 1920,
-              memCacheHeight: 1080,
-            ),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                  colors: [
-                    context.appColors.surfacePage.withValues(alpha: 0.96),
-                    context.appColors.surfacePage.withValues(alpha: 0.72),
-                    context.appColors.surfacePage.withValues(alpha: 0.12),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(context.appSpacing.xxl),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  if (movie.seriesName.trim().isNotEmpty) ...[
-                    Text(
-                      movie.seriesName,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s20,
-                        tone: AppTextTone.secondary,
-                      ),
-                    ),
-                    SizedBox(height: context.appSpacing.sm),
-                  ],
-                  Text(
-                    movie.preferredTitle,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s48,
-                      weight: AppTextWeight.semibold,
-                      tone: AppTextTone.primary,
-                    ),
-                  ),
-                  SizedBox(height: context.appSpacing.md),
-                  Text(
-                    [
-                      if (movie.releaseDate case final date?) '${date.year}',
-                      if (movie.durationMinutes > 0)
-                        l10n.moviePageMetaDuration(movie.durationMinutes),
-                      if (movie.maxMediaWidth > 0)
-                        _resolutionLabel(movie.maxMediaWidth),
-                    ].join('  ·  '),
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s18,
-                      tone: AppTextTone.secondary,
-                    ),
-                  ),
-                  SizedBox(height: context.appSpacing.xl),
-                  Row(
-                    children: [
-                      TvActionButton(
-                        label: l10n.moviePageActionPlay,
-                        icon: Icons.play_arrow_rounded,
-                        autofocus: true,
-                        onPressed: onPlay,
-                      ),
-                      SizedBox(width: context.appSpacing.md),
-                      TvActionButton(
-                        label: l10n.widgetMediaActionMovieDetail,
-                        icon: Icons.info_outline_rounded,
-                        tone: TvActionButtonTone.secondary,
-                        onPressed: onDetails,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+List<TvHeroMetaItem> _heroMetaItems(
+  BuildContext context,
+  AppLocalizations l10n,
+  MovieListItemDto movie, {
+  required bool statsEnabled,
+}) {
+  final colors = context.appColors;
+  return <TvHeroMetaItem>[
+    if (statsEnabled && movie.heat > 0)
+      TvHeroMetaItem(
+        icon: Icons.local_fire_department_rounded,
+        iconColor: colors.movieDetailHeatIcon,
+        text: formatAppCompactCount(movie.heat),
       ),
-    );
-  }
-
-  String _resolutionLabel(int width) {
-    if (width >= 7000) {
-      return '8K';
-    }
-    if (width >= 3500) {
-      return '4K';
-    }
-    if (width >= 2500) {
-      return '2K';
-    }
-    if (width >= 1800) {
-      return '1080P';
-    }
-    return 'HD';
-  }
+    if (movie.releaseDate case final date?)
+      TvHeroMetaItem(text: '${date.year}'),
+    if (movie.durationMinutes > 0)
+      TvHeroMetaItem(
+        icon: Icons.schedule_outlined,
+        iconColor: colors.movieDetailDurationIcon,
+        text: l10n.moviePageMetaDuration(movie.durationMinutes),
+      ),
+    if (movie.maxMediaWidth > 0)
+      TvHeroMetaItem(text: formatMovieResolutionLabel(movie.maxMediaWidth)),
+  ];
 }
 
 class _TvHomeLoading extends StatelessWidget {
@@ -333,26 +288,10 @@ class _TvHomeLoading extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     return SizedBox(
       height: AppTvTokens.heroHeight,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              l10n.errorLatestMovieListLoadFailed,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s20,
-                tone: AppTextTone.error,
-              ),
-            ),
-            SizedBox(height: context.appSpacing.lg),
-            TvActionButton(
-              label: l10n.commonRetry,
-              icon: Icons.refresh_rounded,
-              onPressed: onRetry,
-            ),
-          ],
-        ),
+      child: AppErrorState(
+        title: l10n.baseActionFailed,
+        message: l10n.errorLatestMovieListLoadFailed,
+        onRetry: onRetry,
       ),
     );
   }

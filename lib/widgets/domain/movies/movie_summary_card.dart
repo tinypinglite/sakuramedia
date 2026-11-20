@@ -16,8 +16,10 @@ import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dar
 import 'package:sakuramedia/widgets/base/layout/cards/app_cover_card.dart';
 import 'package:sakuramedia/widgets/base/layout/badges/app_media_badge.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_cover_bottom_shade.dart';
+import 'package:sakuramedia/widgets/base/media/images/app_cover_progress_bar.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_trigger.dart';
-import 'package:sakuramedia/widgets/base/media/images/masked_image.dart';
+import 'package:sakuramedia/widgets/domain/movies/movie_card_badges.dart';
+import 'package:sakuramedia/widgets/domain/movies/movie_poster_cover.dart';
 import 'package:sakuramedia/widgets/domain/movies/subscription_heart_badge.dart';
 
 /// 影片摘要卡：整卡即封面，与全站封面卡片共用同一套悬停披露范式。
@@ -77,7 +79,6 @@ class MovieSummaryCard extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final colors = context.appColors;
     final componentTokens = context.appComponentTokens;
     final spacing = context.appSpacing;
     final handlesSubscriptionTapAtCardLevel =
@@ -93,11 +94,7 @@ class MovieSummaryCard extends ConsumerWidget {
       hoverEnabled: !selectionMode,
       selectionMode: selectionMode,
       isSelected: isSelected,
-      cover: _MovieCover(
-        movieNumber: movie.movieNumber,
-        thinCoverImage: movie.thinCoverImage,
-        coverImage: movie.coverImage,
-      ),
+      cover: MoviePosterCover(movie: movie),
       collapsedOverlay: _buildCollapsedOverlay(context),
       infoBuilder: (context) => _buildHoverInfo(context),
       overlaysBuilder: (context, constraints) {
@@ -130,18 +127,11 @@ class MovieSummaryCard extends ConsumerWidget {
                     ),
                   ),
                   if (_showPlayableBadge)
-                    _StatusBadge(
-                      key: Key(
-                        'movie-summary-card-status-playable-${movie.movieNumber}',
-                      ),
-                      icon: Icons.play_arrow_rounded,
-                      iconColor: context.appTextPalette.onMedia,
-                      background: colors.movieCardPlayableBadgeBackground,
-                    ),
+                    MoviePlayableBadge(movieNumber: movie.movieNumber),
                   if (_showResolutionBadge)
-                    _ResolutionBadge(
-                      movie: movie,
+                    MovieResolutionBadge(
                       movieNumber: movie.movieNumber,
+                      maxMediaWidth: movie.maxMediaWidth,
                     ),
                 ],
               ),
@@ -154,7 +144,7 @@ class MovieSummaryCard extends ConsumerWidget {
                   : spacing.xs,
               left: wrapHeat ? spacing.xs : null,
               right: wrapHeat ? null : spacing.xs,
-              child: _HeatBadge(
+              child: MovieHeatBadge(
                 movieNumber: movie.movieNumber,
                 heat: movie.heat,
               ),
@@ -290,7 +280,13 @@ class MovieSummaryCard extends ConsumerWidget {
             left: 0,
             right: 0,
             bottom: 0,
-            child: _WatchProgressBar(progress: progress),
+            child: AppCoverProgressBar(
+              key: Key('movie-summary-card-progress-${progress.mediaId}'),
+              fillKey: Key(
+                'movie-summary-card-progress-fill-${progress.mediaId}',
+              ),
+              ratio: progress.ratio,
+            ),
           ),
       ],
     );
@@ -466,121 +462,6 @@ class MovieSummaryCard extends ConsumerWidget {
   }
 }
 
-/// 卡片底部的细观看进度条；已看完的影片不画。
-class _WatchProgressBar extends StatelessWidget {
-  const _WatchProgressBar({required this.progress});
-
-  final MovieWatchProgressDto progress;
-
-  @override
-  Widget build(BuildContext context) {
-    final spacing = context.appSpacing;
-    final trackColor = context.appTextPalette.onMedia.withValues(alpha: 0.24);
-    return IgnorePointer(
-      child: SizedBox(
-        key: Key('movie-summary-card-progress-${progress.mediaId}'),
-        height: spacing.xs / 2,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            ColoredBox(color: trackColor),
-            Align(
-              alignment: Alignment.centerLeft,
-              child: FractionallySizedBox(
-                widthFactor: progress.ratio,
-                // ColoredBox 无 child 时按 constraints.smallest 取尺寸；
-                // 不给 heightFactor 会把高度压成 0。
-                heightFactor: 1,
-                child: ColoredBox(
-                  key: Key(
-                    'movie-summary-card-progress-fill-${progress.mediaId}',
-                  ),
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// 清晰度胶囊：毛玻璃底 + 4K/8K 粗体字，与订阅心同排（这种情况下不再画播放标）。
-class _ResolutionBadge extends StatelessWidget {
-  const _ResolutionBadge({required this.movie, required this.movieNumber});
-
-  final MovieListItemDto movie;
-  final String movieNumber;
-
-  @override
-  Widget build(BuildContext context) {
-    final componentTokens = context.appComponentTokens;
-    final spacing = context.appSpacing;
-    return IgnorePointer(
-      child: AppMediaBadge(
-        key: Key('movie-summary-card-resolution-$movieNumber'),
-        label: movie.maxMediaWidth >= 7680 ? '8K' : '4K',
-        width: componentTokens.movieCardStatusBadgeSize + spacing.sm,
-        height: componentTokens.movieCardStatusBadgeSize,
-        padding: EdgeInsets.zero,
-        size: AppMediaBadgeSize.prominent,
-      ),
-    );
-  }
-}
-
-/// 右上角热度胶囊：火焰图标 + 格式化数值。
-class _HeatBadge extends StatelessWidget {
-  const _HeatBadge({required this.movieNumber, required this.heat});
-
-  final String movieNumber;
-  final int heat;
-
-  @override
-  Widget build(BuildContext context) {
-    return AppMediaBadge(
-      key: Key('movie-summary-card-heat-$movieNumber'),
-      labelKey: Key('movie-summary-card-heat-text-$movieNumber'),
-      label: formatAppCompactCount(heat),
-      leading: Icon(
-        Icons.local_fire_department_rounded,
-        color: context.appColors.movieDetailHeatIcon,
-      ),
-    );
-  }
-}
-
-/// 圆底状态角标（当前只用于可播放标记）。
-class _StatusBadge extends StatelessWidget {
-  const _StatusBadge({
-    super.key,
-    required this.icon,
-    required this.iconColor,
-    required this.background,
-  });
-
-  final IconData icon;
-  final Color iconColor;
-  final Color background;
-
-  @override
-  Widget build(BuildContext context) {
-    final componentTokens = context.appComponentTokens;
-
-    return Container(
-      width: componentTokens.movieCardStatusBadgeSize,
-      height: componentTokens.movieCardStatusBadgeSize,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: context.appRadius.pillBorder,
-      ),
-      child: Icon(icon, size: componentTokens.iconSizeXl, color: iconColor),
-    );
-  }
-}
-
 String _metaLine(MovieListItemDto movie, AppLocalizations l10n) {
   final date = movie.releaseDate;
   final datePart = date == null ? '' : formatAppDate(date);
@@ -604,52 +485,4 @@ class _RankBadge extends StatelessWidget {
       label: '#$rank',
     );
   }
-}
-
-/// 封面按「图源 + 番号」择优渲染:FC2- 番号用主封面 + [BoxFit.contain](其封面多为横图,
-/// cover 会裁切);其余优先用瘦封面(竖图,默认 cover 铺满),无瘦封面再退主封面 + contain;
-/// 都缺失则渲染占位渐变。
-class _MovieCover extends StatelessWidget {
-  const _MovieCover({
-    required this.movieNumber,
-    required this.thinCoverImage,
-    required this.coverImage,
-  });
-
-  final String movieNumber;
-  final MovieImageDto? thinCoverImage;
-  final MovieImageDto? coverImage;
-
-  @override
-  Widget build(BuildContext context) {
-    final thinCoverUrl = _resolveMovieImageUrl(thinCoverImage);
-    final coverUrl = _resolveMovieImageUrl(coverImage);
-
-    // FC2- 番号统一用主封面 + contain 完整展示(其封面多为横图,cover 会裁切)。
-    if (movieNumber.startsWith('FC2-') && coverUrl != null) {
-      return MaskedImage(url: coverUrl, fit: BoxFit.contain);
-    }
-
-    if (thinCoverUrl != null) {
-      return MaskedImage(url: thinCoverUrl);
-    }
-
-    if (coverUrl != null) {
-      return MaskedImage(url: coverUrl, fit: BoxFit.contain);
-    }
-
-    // 纯图片卡缺图态统一为 muted 纯色块：不带渐变 / 居中图标。
-    return ColoredBox(
-      key: Key('movie-summary-card-placeholder-$movieNumber'),
-      color: context.appColors.surfaceMuted,
-    );
-  }
-}
-
-String? _resolveMovieImageUrl(MovieImageDto? image) {
-  final url = image?.origin.trim();
-  if (url == null || url.isEmpty) {
-    return null;
-  }
-  return url;
 }

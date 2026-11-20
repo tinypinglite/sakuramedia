@@ -3,17 +3,21 @@ import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/actors/data/dto/actor_list_item_dto.dart';
+import 'package:sakuramedia/features/movies/data/dto/listing/movie_list_item_dto.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_provider.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_scope.dart';
 import 'package:sakuramedia/features/search/presentation/providers/catalog_search_state.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_empty_state.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_error_state.dart';
+import 'package:sakuramedia/widgets/base/forms/app_filter_chip.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
-import 'package:sakuramedia/widgets/base/tv/tv_action_button.dart';
 import 'package:sakuramedia/widgets/base/tv/tv_actor_card.dart';
-import 'package:sakuramedia/widgets/base/tv/tv_focusable.dart';
-import 'package:sakuramedia/widgets/base/tv/tv_movie_grid.dart';
+import 'package:sakuramedia/widgets/base/tv/tv_card_grid.dart';
+import 'package:sakuramedia/widgets/base/tv/tv_movie_card.dart';
 import 'package:sakuramedia/widgets/base/tv/tv_page.dart';
 
 class TvSearchPage extends ConsumerStatefulWidget {
@@ -63,13 +67,14 @@ class _TvSearchPageState extends ConsumerState<TvSearchPage> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final state = ref.watch(catalogSearchProvider(_scope));
+    final spacing = context.appSpacing;
     return TvPagePadding(
       child: Column(
         key: const Key('tv-search-page'),
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           TvPageHeader(title: l10n.routeSearchTitle),
-          SizedBox(height: context.appSpacing.xl),
+          SizedBox(height: spacing.xl),
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
@@ -83,39 +88,44 @@ class _TvSearchPageState extends ConsumerState<TvSearchPage> {
                   textInputAction: TextInputAction.search,
                   onFieldSubmitted: (_) => unawaited(_submit()),
                   borderRadius: context.appRadius.mdBorder,
-                  height: AppTvTokens.navHeight,
+                  height: AppTvTokens.controlHeight,
+                  style: resolveAppTextStyle(context, size: AppTextSize.s18),
                 ),
               ),
-              SizedBox(width: context.appSpacing.md),
-              TvActionButton(
+              SizedBox(width: spacing.md),
+              AppButton(
                 key: const Key('tv-search-submit'),
                 label: l10n.routeSearchTitle,
-                icon: Icons.search_rounded,
+                icon: const Icon(Icons.search_rounded),
+                size: AppButtonSize.tvLarge,
+                variant: AppButtonVariant.primary,
                 onPressed: _submit,
               ),
             ],
           ),
-          SizedBox(height: context.appSpacing.lg),
+          SizedBox(height: spacing.lg),
           Row(
+            spacing: spacing.md,
             children: [
-              _TvSearchKindChip(
+              AppFilterChip(
                 label: l10n.routeMoviesTitle,
                 selected: state.activeKind == CatalogSearchKind.movies,
+                selectionStyle: AppFilterChipSelectionStyle.accent,
                 onPressed: () => ref
                     .read(catalogSearchProvider(_scope).notifier)
                     .setActiveKind(CatalogSearchKind.movies),
               ),
-              SizedBox(width: context.appSpacing.md),
-              _TvSearchKindChip(
+              AppFilterChip(
                 label: l10n.routeActorsTitle,
                 selected: state.activeKind == CatalogSearchKind.actors,
+                selectionStyle: AppFilterChipSelectionStyle.accent,
                 onPressed: () => ref
                     .read(catalogSearchProvider(_scope).notifier)
                     .setActiveKind(CatalogSearchKind.actors),
               ),
             ],
           ),
-          SizedBox(height: context.appSpacing.xl),
+          SizedBox(height: spacing.xl),
           Expanded(child: _buildResults(context, state)),
         ],
       ),
@@ -128,15 +138,9 @@ class _TvSearchPageState extends ConsumerState<TvSearchPage> {
       return const Center(child: CircularProgressIndicator());
     }
     if (state.errorMessage != null) {
-      return Center(
-        child: Text(
-          state.errorMessage!,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s20,
-            tone: AppTextTone.error,
-          ),
-        ),
+      return AppErrorState(
+        title: l10n.baseActionFailed,
+        message: state.errorMessage!,
       );
     }
     if (state.activeKind == CatalogSearchKind.actors) {
@@ -144,23 +148,20 @@ class _TvSearchPageState extends ConsumerState<TvSearchPage> {
     }
     final movies = state.movieResults;
     if (movies.isEmpty) {
-      return Center(
-        child: Text(
-          state.query.isEmpty
-              ? l10n.widgetSearchHint
-              : l10n.widgetSearchLocalNoMovies,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s24,
-            tone: AppTextTone.secondary,
-          ),
-        ),
+      return AppEmptyState(
+        message: state.query.isEmpty
+            ? l10n.widgetSearchHint
+            : l10n.widgetSearchLocalNoMovies,
       );
     }
-    return TvMovieGrid(
+    return TvCardGrid<MovieListItemDto>(
+      gridKey: const Key('tv-movie-grid'),
       items: movies,
-      onPressed: (movie) =>
-          TvRoutes.movieDetail(movieNumber: movie.movieNumber).push(context),
+      itemBuilder: (context, movie) => TvMovieCard(
+        movie: movie,
+        onPressed: () =>
+            TvRoutes.movieDetail(movieNumber: movie.movieNumber).push(context),
+      ),
     );
   }
 
@@ -168,100 +169,21 @@ class _TvSearchPageState extends ConsumerState<TvSearchPage> {
     final l10n = AppLocalizations.of(context);
     final actors = state.actorResults;
     if (actors.isEmpty) {
-      return Center(
-        child: Text(
-          state.query.isEmpty
-              ? l10n.widgetSearchHint
-              : l10n.widgetSearchLocalNoActors,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s24,
-            tone: AppTextTone.secondary,
-          ),
-        ),
+      return AppEmptyState(
+        message: state.query.isEmpty
+            ? l10n.widgetSearchHint
+            : l10n.widgetSearchLocalNoActors,
       );
     }
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = AppTvTokens.gridColumnsForWidth(constraints.maxWidth);
-        final availableWidth =
-            constraints.maxWidth - AppTvTokens.gridGap * (columns - 1);
-        final cardWidth = availableWidth / columns;
-        final cardHeight = cardWidth / 0.752;
-        return GridView.builder(
-          padding: const EdgeInsets.symmetric(
-            vertical: AppTvTokens.focusOverflow,
-          ),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: AppTvTokens.gridGap,
-            mainAxisSpacing: AppTvTokens.gridGap,
-            mainAxisExtent: cardHeight + AppTvTokens.focusOverflow * 2,
-          ),
-          itemCount: actors.length,
-          itemBuilder: (context, index) {
-            final actor = actors[index];
-            return Align(
-              alignment: Alignment.topCenter,
-              child: TvActorCard(
-                actor: actor,
-                width: cardWidth,
-                height: cardHeight,
-                onPressed: () => _openActorMovies(context, actor),
-              ),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  void _openActorMovies(BuildContext context, ActorListItemDto actor) {
-    TvRoutes.actorMovies(
-      actorId: actor.id,
-      actorName: actor.displayName,
-    ).push(context);
-  }
-}
-
-class _TvSearchKindChip extends StatelessWidget {
-  const _TvSearchKindChip({
-    required this.label,
-    required this.selected,
-    required this.onPressed,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return TvFocusable(
-      onPressed: onPressed,
-      borderRadius: context.appRadius.pillBorder,
-      scale: 1.02,
-      child: Container(
-        padding: EdgeInsets.symmetric(
-          horizontal: context.appSpacing.xl,
-          vertical: context.appSpacing.sm,
-        ),
-        decoration: BoxDecoration(
-          color: selected
-              ? Theme.of(context).colorScheme.primary
-              : context.appColors.surfaceElevated,
-          borderRadius: context.appRadius.pillBorder,
-          border: Border.all(color: context.appColors.borderSubtle),
-        ),
-        child: Text(
-          label,
-          style: resolveAppTextStyle(
-            context,
-            size: AppTextSize.s18,
-            weight: selected ? AppTextWeight.semibold : AppTextWeight.regular,
-            tone: selected ? AppTextTone.onMedia : AppTextTone.primary,
-          ),
-        ),
+    return TvCardGrid<ActorListItemDto>(
+      gridKey: const Key('tv-actor-grid'),
+      items: actors,
+      itemBuilder: (context, actor) => TvActorCard(
+        actor: actor,
+        onPressed: () => TvRoutes.actorMovies(
+          actorId: actor.id,
+          actorName: actor.displayName,
+        ).push(context),
       ),
     );
   }

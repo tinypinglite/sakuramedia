@@ -379,9 +379,11 @@ TextStyle resolveAppTextStyle(
   // Theme.of 只查一次：列表行高频调用，避免重复的继承依赖查询。
   final theme = Theme.of(context);
   return TextStyle(
+    // 显式带上主题字体族：样式被放进 DefaultTextStyle / AnimatedDefaultTextStyle
+    // 时不会继续继承外层字体，留 null 会退回引擎默认字体。
     fontFamily: !kIsWeb && defaultTargetPlatform == TargetPlatform.windows
         ? kAppWindowsFontFamily
-        : null,
+        : theme.textTheme.bodyMedium?.fontFamily,
     fontSize: theme.appTextScale.sizeOf(size),
     fontWeight: theme.appTextWeights.weightFor(weight),
     color: theme.appTextPalette.colorFor(tone),
