@@ -2,13 +2,33 @@ name: Release Android
 
 on:
   workflow_call:
+    inputs:
+      tv_mode:
+        required: false
+        type: boolean
+        default: false
+      publish_release:
+        required: false
+        type: boolean
+        default: true
   workflow_dispatch:
+    inputs:
+      tv_mode:
+        description: Force the Android TV layout
+        required: false
+        type: boolean
+        default: false
+      publish_release:
+        description: Publish build artifacts to the GitHub Release
+        required: false
+        type: boolean
+        default: true
 permissions:
   contents: write
 
 jobs:
   build-and-release:
-    name: Build Android APKs and publish release
+    name: Build ${{ inputs.tv_mode && 'Android TV' || 'Android' }} APKs and publish release
     runs-on: ubuntu-latest
 
     steps:
@@ -83,6 +103,8 @@ jobs:
 
       - name: Build Android release APKs
         shell: bash
+        env:
+          TV_MODE: ${{ inputs.tv_mode }}
         run: |
           # 从 git tag 注入版本：v0.3.7 -> 0.3.7；pubspec 的 version 仅占位，实际以 tag 为准
           # --build-number 用 run_number 保证 versionCode 单调递增
@@ -91,19 +113,35 @@ jobs:
           # Flutter 的 ABI 列表不含 32 位 x86，--target-platform 不传即打全部 3 个。
           # 注意 --split-per-abi 会给 versionCode 加 ABI 偏移（arm32 +1000、arm64 +2000、x86_64 +4000），
           # 之后不要再退回单 APK 发布，否则已安装用户的 versionCode 会大于新包。
-          flutter build apk --release --split-per-abi --build-name="$VERSION" --build-number="${{ github.run_number }}"
+          #
+          # Android TV 包强制 SAKURAMEDIA_TV=true，方便 Pico 等无 Leanback 的 Android
+          # 设备安装；普通 Android 包仍通过运行时检测自动切换 TV 布局。
+          TV_DEFINE=()
+          if [ "$TV_MODE" = "true" ]; then
+            TV_DEFINE+=(--dart-define=SAKURAMEDIA_TV=true)
+          fi
+          flutter build apk --release --split-per-abi \
+            --build-name="$VERSION" \
+            --build-number="${{ github.run_number }}" \
+            "${TV_DEFINE[@]}"
 
       - name: Package release APKs
         shell: bash
+        env:
+          TV_MODE: ${{ inputs.tv_mode }}
         run: |
           mkdir -p dist
+          PREFIX="android"
+          if [ "$TV_MODE" = "true" ]; then
+            PREFIX="android-tv"
+          fi
           for abi in armeabi-v7a arm64-v8a x86_64; do
             src="build/app/outputs/flutter-apk/app-${abi}-release.apk"
             if [ ! -f "$src" ]; then
               echo "::error::Expected APK not found: ${src}"
               exit 1
             fi
-            name="sakuramedia-android-${GITHUB_REF_NAME}-${abi}.apk"
+            name="sakuramedia-${PREFIX}-${GITHUB_REF_NAME}-${abi}.apk"
             echo "Packaging ${src} -> dist/${name}"
             cp "$src" "dist/${name}"
             sha256sum "dist/${name}" > "dist/${name}.sha256"
@@ -112,11 +150,12 @@ jobs:
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
-          name: android-release-${{ github.ref_name }}
+          name: ${{ inputs.tv_mode && 'android-tv' || 'android' }}-release-${{ github.ref_name }}
           path: dist/*
           if-no-files-found: error
 
       - name: Publish GitHub release
+        if: ${{ inputs.publish_release }}
         uses: softprops/action-gh-release@v2
         with:
           name: sakuramedia ${{ github.ref_name }}

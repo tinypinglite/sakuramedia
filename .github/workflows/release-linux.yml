@@ -1,0 +1,105 @@
+name: Release Linux
+
+on:
+  workflow_call:
+    inputs:
+      publish_release:
+        required: false
+        type: boolean
+        default: true
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: Publish the archive to the GitHub Release
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build Linux archive and publish release
+    runs-on: ubuntu-latest
+
+    env:
+      ARCHIVE_NAME: sakuramedia-linux-${{ github.ref_name }}-x86_64.tar.gz
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.2
+          cache: true
+
+      - name: Install Linux desktop build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            clang \
+            cmake \
+            ninja-build \
+            pkg-config \
+            libgtk-3-dev \
+            liblzma-dev \
+            libstdc++-12-dev \
+            libmpv-dev \
+            libepoxy-dev \
+            libsecret-1-dev \
+            libasound2-dev
+
+      - name: Enable Linux desktop
+        run: flutter config --enable-linux-desktop
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Build Linux release
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          flutter build linux --release --build-name="$VERSION"
+
+      - name: Package Linux archive
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          bundle="build/linux/x64/release/bundle"
+          if [ ! -x "${bundle}/sakuramedia" ]; then
+            echo "::error::Expected Linux executable not found: ${bundle}/sakuramedia"
+            exit 1
+          fi
+
+          mkdir -p dist build/linux/package-root
+          rm -rf build/linux/package-root/sakuramedia
+          cp -a "${bundle}" build/linux/package-root/sakuramedia
+          tar -C build/linux/package-root -czf "dist/${ARCHIVE_NAME}" sakuramedia
+          sha256sum "dist/${ARCHIVE_NAME}" > "dist/${ARCHIVE_NAME}.sha256"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-release-${{ github.ref_name }}
+          path: |
+            dist/${{ env.ARCHIVE_NAME }}
+            dist/${{ env.ARCHIVE_NAME }}.sha256
+          if-no-files-found: error
+
+      - name: Publish GitHub release
+        if: ${{ inputs.publish_release }}
+        uses: softprops/action-gh-release@v2
+        with:
+          name: sakuramedia ${{ github.ref_name }}
+          # Keep release notes generation in macOS workflow only to avoid duplicate
+          # "What's Changed" sections when multiple workflows publish the same tag.
+          generate_release_notes: false
+          files: |
+            dist/${{ env.ARCHIVE_NAME }}
+            dist/${{ env.ARCHIVE_NAME }}.sha256

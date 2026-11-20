@@ -53,6 +53,18 @@ jobs:
     uses: ./.github/workflows/release-android.yml
     secrets: inherit
 
+  android_tv:
+    name: Android TV
+    needs: test
+    uses: ./.github/workflows/release-android-tv.yml
+    secrets: inherit
+
+  linux:
+    name: Linux
+    needs: test
+    uses: ./.github/workflows/release-linux.yml
+    secrets: inherit
+
   ios:
     name: iOS
     needs: test
