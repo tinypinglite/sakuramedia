@@ -38,6 +38,7 @@ class AppInteractiveSurface extends StatefulWidget {
     this.focusRingRadius,
     this.focusRingColor,
     this.focusNode,
+    this.autofocus = false,
   });
 
   final Widget child;
@@ -75,6 +76,9 @@ class AppInteractiveSurface extends StatefulWidget {
 
   /// 可选外部焦点节点；不传时由 InkWell 自持。
   final FocusNode? focusNode;
+
+  /// 是否在首帧自动获取焦点；电视端进入页面时给首个可点元素使用。
+  final bool autofocus;
 
   @override
   State<AppInteractiveSurface> createState() => _AppInteractiveSurfaceState();
@@ -154,6 +158,7 @@ class _AppInteractiveSurfaceState extends State<AppInteractiveSurface> {
           hoverDuration: Duration.zero,
           focusColor: Colors.transparent,
           canRequestFocus: interactive && widget.onTap != null,
+          autofocus: widget.autofocus,
           focusNode: widget.focusNode,
           onFocusChange: interactive ? _handleFocusChange : null,
           excludeFromSemantics: widget.excludeFromSemantics,

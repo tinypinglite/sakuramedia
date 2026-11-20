@@ -135,7 +135,11 @@ class AppRouteExtra {
     if (value == null || value.isEmpty) {
       return null;
     }
-    final prefix = platform == AppPlatform.desktop ? '/desktop/' : '/mobile/';
+    final prefix = switch (platform) {
+      AppPlatform.desktop => '/desktop/',
+      AppPlatform.mobile => '/mobile/',
+      AppPlatform.tv => '/tv/',
+    };
     return value.startsWith(prefix) ? value : null;
   }
 }
@@ -307,4 +311,13 @@ enum AppRouteId {
   mobileMovieSeries,
   mobileMovieDetail,
   mobileActorDetail,
+  tvLogin,
+  tvHome,
+  tvMovies,
+  tvMovieDetail,
+  tvMoviePlayer,
+  tvPlaylistDetail,
+  tvActorMovies,
+  tvSearch,
+  tvSettings,
 }

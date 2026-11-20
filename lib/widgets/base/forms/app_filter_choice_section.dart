@@ -15,6 +15,7 @@ class AppFilterChoiceSection<T> extends StatelessWidget {
     required this.onChanged,
     this.enabled = true,
     this.isLoading = false,
+    this.size = AppSegmentedSize.regular,
     this.controlKey,
     this.titleKey,
     this.emptyLabel,
@@ -28,6 +29,7 @@ class AppFilterChoiceSection<T> extends StatelessWidget {
   final ValueChanged<T> onChanged;
   final bool enabled;
   final bool isLoading;
+  final AppSegmentedSize size;
   final Key? controlKey;
   final Key? titleKey;
   final String? emptyLabel;
@@ -52,6 +54,7 @@ class AppFilterChoiceSection<T> extends StatelessWidget {
             items: resolvedItems,
             selected: resolvedSelected as T,
             onChanged: canInteract ? onChanged : (_) {},
+            size: size,
             layout: AppSegmentedLayout.auto,
             enabled: canInteract,
           );
@@ -64,7 +67,9 @@ class AppFilterChoiceSection<T> extends StatelessWidget {
           key: titleKey,
           style: resolveAppTextStyle(
             context,
-            size: AppTextSize.s12,
+            size: size == AppSegmentedSize.large
+                ? AppTextSize.s16
+                : AppTextSize.s12,
             weight: AppTextWeight.medium,
             tone: enabled ? AppTextTone.secondary : AppTextTone.muted,
           ),

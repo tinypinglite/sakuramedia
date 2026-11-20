@@ -42,3 +42,20 @@ String? formatVideoFrameRate(double? frameRate) {
       .replaceFirst(RegExp(r'\.$'), '');
   return '$formatted fps';
 }
+
+/// 影片有效媒体的最高宽度 → 用户可读清晰度；未知或低于 HD 时返回 `HD`。
+String formatMovieResolutionLabel(int maxMediaWidth) {
+  if (maxMediaWidth >= 7680) {
+    return '8K';
+  }
+  if (maxMediaWidth >= 3840) {
+    return '4K';
+  }
+  if (maxMediaWidth >= 2560) {
+    return '2K';
+  }
+  if (maxMediaWidth >= 1920) {
+    return '1080P';
+  }
+  return 'HD';
+}

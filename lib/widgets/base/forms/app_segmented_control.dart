@@ -22,7 +22,7 @@ class AppSegmentedItem<T> {
   final Key? key;
 }
 
-enum AppSegmentedSize { compact, regular }
+enum AppSegmentedSize { compact, regular, large }
 
 /// 分段控件的布局方式。
 ///
@@ -188,6 +188,12 @@ class _AppSegmentedSizeSpec {
         horizontalPadding: spacing.md,
         textSize: AppTextSize.s12,
         iconSize: tokens.iconSize2xs,
+      ),
+      AppSegmentedSize.large => _AppSegmentedSizeSpec(
+        height: AppTvTokens.controlHeight,
+        horizontalPadding: spacing.lg,
+        textSize: AppTextSize.s16,
+        iconSize: tokens.iconSizeSm,
       ),
     };
   }

@@ -10,6 +10,7 @@ class AppSectionHeader extends StatelessWidget {
   const AppSectionHeader({
     super.key,
     required this.title,
+    this.titleSize = AppTextSize.s14,
     this.trailingText,
     this.actionLabel,
     this.actionKey,
@@ -18,6 +19,9 @@ class AppSectionHeader extends StatelessWidget {
   });
 
   final String title;
+
+  /// 标题字号；默认 [AppTextSize.s14]，大屏布局可传更大档位。
+  final AppTextSize titleSize;
 
   /// 标题右侧的次要说明（如「128 部」）；null 时不占位。
   final String? trailingText;
@@ -36,7 +40,7 @@ class AppSectionHeader extends StatelessWidget {
           title,
           style: resolveAppTextStyle(
             context,
-            size: AppTextSize.s14,
+            size: titleSize,
             weight: AppTextWeight.semibold,
             tone: AppTextTone.primary,
           ),

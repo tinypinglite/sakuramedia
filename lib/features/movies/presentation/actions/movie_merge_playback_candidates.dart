@@ -1,4 +1,9 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
+import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
+import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_overlay_presenter.dart';
+import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_interaction_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 
 List<MovieMediaItemDto> movieMergedPlaybackMedia(
@@ -44,4 +49,49 @@ List<MovieMergePlaybackCandidateDto> resolveMovieMergePlaybackCandidates(
           segmentCount: medias.length,
         ),
   ];
+}
+
+String? resolveMovieMergePlaybackLabel(
+  List<MovieMergePlaybackCandidateDto> candidates,
+  AppLocalizations l10n,
+) {
+  if (candidates.isEmpty) {
+    return null;
+  }
+  if (candidates.length == 1) {
+    return l10n.moviePageMergedPlaybackSegments(candidates.single.segmentCount);
+  }
+  return l10n.moviePageMergedPlayback;
+}
+
+Future<void> openMovieMergedPlayback({
+  required BuildContext context,
+  required WidgetRef ref,
+  required String movieNumber,
+  required MovieDetailDto movie,
+  required List<MovieMergePlaybackCandidateDto> candidates,
+  required bool mobile,
+}) async {
+  final provider = movieDetailInteractionProvider(movieNumber);
+  if (ref.read(provider).isLaunchingPlayback) {
+    return;
+  }
+  final candidate = await MovieDetailOverlayPresenter(
+    mobile: mobile,
+  ).pickMergeCandidate(context: context, candidates: candidates);
+  if (candidate == null || !context.mounted) {
+    return;
+  }
+  final notifier = ref.read(provider.notifier);
+  notifier.setPlaybackLaunching(true);
+  try {
+    await launchMovieMergedPlayback(
+      context,
+      movieNumber: movie.movieNumber,
+      libraryId: candidate.libraryId,
+      movie: movie,
+    );
+  } finally {
+    notifier.setPlaybackLaunching(false);
+  }
 }

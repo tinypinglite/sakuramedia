@@ -27,4 +27,12 @@ void main() {
     expect(formatVideoFrameRate(0), isNull);
     expect(formatVideoFrameRate(null), isNull);
   });
+
+  test('formats movie resolution labels', () {
+    expect(formatMovieResolutionLabel(7680), '8K');
+    expect(formatMovieResolutionLabel(3840), '4K');
+    expect(formatMovieResolutionLabel(2560), '2K');
+    expect(formatMovieResolutionLabel(1920), '1080P');
+    expect(formatMovieResolutionLabel(1280), 'HD');
+  });
 }

@@ -37,6 +37,85 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('focused surface activates with D-pad select', (tester) async {
+    var taps = 0;
+    final focusNode = FocusNode();
+    addTearDown(focusNode.dispose);
+    await pumpWithProviders(
+      tester,
+      home: Scaffold(
+        body: Center(
+          child: AppInteractiveSurface(
+            focusNode: focusNode,
+            onTap: () => taps++,
+            child: const SizedBox(width: 120, height: 44),
+          ),
+        ),
+      ),
+      theme: sakuraDesktopThemeData,
+    );
+
+    focusNode.requestFocus();
+    await tester.pump();
+
+    await tester.sendKeyEvent(LogicalKeyboardKey.select);
+
+    expect(taps, 1);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('d-pad traversal keeps focused surfaces visible', (tester) async {
+    final scrollController = ScrollController();
+    addTearDown(scrollController.dispose);
+    final focusNodes = List<FocusNode>.generate(
+      8,
+      (index) => FocusNode(debugLabel: 'surface-$index'),
+    );
+    addTearDown(() {
+      for (final node in focusNodes) {
+        node.dispose();
+      }
+    });
+
+    await pumpWithProviders(
+      tester,
+      home: Scaffold(
+        body: Center(
+          child: SizedBox(
+            width: 300,
+            height: 100,
+            child: ListView.builder(
+              controller: scrollController,
+              scrollDirection: Axis.horizontal,
+              itemCount: focusNodes.length,
+              itemBuilder: (context, index) => SizedBox(
+                width: 200,
+                child: AppInteractiveSurface(
+                  focusNode: focusNodes[index],
+                  onTap: () {},
+                  child: const SizedBox.expand(),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+      theme: buildSakuraTvThemeData(),
+      physicalSize: const Size(800, 400),
+    );
+
+    focusNodes.first.requestFocus();
+    await tester.pump();
+    for (var index = 0; index < 3; index++) {
+      await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
+      await tester.pumpAndSettle();
+    }
+
+    expect(focusNodes[3].hasFocus, isTrue);
+    expect(scrollController.offset, greaterThan(0));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('reports mouse hover enter and exit', (tester) async {
     final hoverStates = <bool>[];
     await pumpWithProviders(

@@ -330,6 +330,8 @@ class _SakuraDesktopVideoControlsState
                   _controller.player.previous(),
               const SingleActivator(LogicalKeyboardKey.space): () =>
                   _controller.player.playOrPause(),
+              const SingleActivator(LogicalKeyboardKey.select): () =>
+                  _controller.player.playOrPause(),
               const SingleActivator(LogicalKeyboardKey.keyJ): () {
                 final position =
                     _controller.player.state.position -
@@ -523,10 +525,8 @@ class _SakuraDesktopVideoControlsState
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.center,
                                             children: [
-                                              for (
-                                                final control
-                                                in theme.bottomButtonBar
-                                              )
+                                              for (final control
+                                                  in theme.bottomButtonBar)
                                                 SakuraDesktopVideoControlsOverlayLockScope(
                                                   acquire: _acquireOverlayLock,
                                                   release: _releaseOverlayLock,

@@ -3,9 +3,9 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/actions/app_button_content.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 
-enum AppButtonVariant { primary, secondary, ghost, danger }
+enum AppButtonVariant { primary, secondary, tonal, ghost, danger }
 
-enum AppButtonSize { large, medium, small, xSmall, xxSmall }
+enum AppButtonSize { tvLarge, large, medium, small, xSmall, xxSmall }
 
 class AppButton extends StatelessWidget {
   const AppButton({
@@ -19,6 +19,7 @@ class AppButton extends StatelessWidget {
     this.size = AppButtonSize.medium,
     this.isLoading = false,
     this.isSelected = false,
+    this.autofocus = false,
     this.borderRadius,
     this.disabledBackgroundColor,
     this.disabledForegroundColor,
@@ -34,6 +35,9 @@ class AppButton extends StatelessWidget {
   final AppButtonSize size;
   final bool isLoading;
   final bool isSelected;
+
+  /// 是否在首帧自动获取焦点；电视端进入页面时给主操作使用。
+  final bool autofocus;
 
   /// 覆盖默认圆角（默认 [AppRadius.smBorder]）；品牌主 CTA 可用 pill 圆角。
   final BorderRadius? borderRadius;
@@ -56,6 +60,9 @@ class AppButton extends StatelessWidget {
     final theme = Theme.of(context);
     final (height, horizontalPadding, gap, iconSize, textSize) =
         resolveAppButtonContentMetrics(context, size._contentSize);
+    final minWidth = size == AppButtonSize.tvLarge
+        ? AppTvTokens.actionMinWidth
+        : null;
     final isSecondarySelected =
         variant == AppButtonVariant.secondary && isSelected;
     final isGhostSelected = variant == AppButtonVariant.ghost && isSelected;
@@ -66,6 +73,7 @@ class AppButton extends StatelessWidget {
         isSecondarySelected
             ? theme.colorScheme.primary.withValues(alpha: 0.08)
             : Colors.transparent,
+      AppButtonVariant.tonal => colors.surfaceElevated,
       AppButtonVariant.ghost =>
         isGhostSelected
             ? theme.colorScheme.primary.withValues(alpha: 0.08)
@@ -77,6 +85,7 @@ class AppButton extends StatelessWidget {
       AppButtonVariant.primary => theme.colorScheme.primary,
       AppButtonVariant.secondary =>
         isSecondarySelected ? theme.colorScheme.primary : Colors.transparent,
+      AppButtonVariant.tonal => colors.borderSubtle,
       AppButtonVariant.ghost =>
         isGhostSelected ? theme.colorScheme.primary : Colors.transparent,
       AppButtonVariant.danger => context.appTextPalette.error.withValues(
@@ -89,6 +98,7 @@ class AppButton extends StatelessWidget {
       AppButtonVariant.primary => AppTextTone.onMedia,
       AppButtonVariant.secondary =>
         isSecondarySelected ? AppTextTone.accent : AppTextTone.primary,
+      AppButtonVariant.tonal => AppTextTone.primary,
       AppButtonVariant.ghost => AppTextTone.accent,
       AppButtonVariant.danger => AppTextTone.error,
     };
@@ -120,9 +130,13 @@ class AppButton extends StatelessWidget {
       child: AppInteractiveSurface(
         enabled: _isInteractive,
         onTap: onPressed,
+        autofocus: autofocus,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           height: height,
+          constraints: minWidth == null
+              ? null
+              : BoxConstraints(minWidth: minWidth),
           padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           decoration: BoxDecoration(
             color: _usesActiveStyle ? backgroundColor : disabledBackground,
@@ -156,6 +170,7 @@ class AppButton extends StatelessWidget {
 
 extension on AppButtonSize {
   AppButtonContentSize get _contentSize => switch (this) {
+    AppButtonSize.tvLarge => AppButtonContentSize.tvLarge,
     AppButtonSize.large => AppButtonContentSize.large,
     AppButtonSize.medium => AppButtonContentSize.medium,
     AppButtonSize.small => AppButtonContentSize.small,
