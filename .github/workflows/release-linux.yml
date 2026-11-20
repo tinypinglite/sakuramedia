@@ -78,9 +78,34 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           flutter build linux --release --build-name="$VERSION"
 
+      - name: Collect Flatpak runtime libraries
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          runtime_ref="org.freedesktop.Platform//26.08"
+          if ! runtime_dir="$(flatpak info --user --show-location "${runtime_ref}" 2>/dev/null)"; then
+            runtime_dir="$(flatpak info --user --show-location \
+              runtime/org.freedesktop.Platform/x86_64/26.08)"
+          fi
+          if [ ! -d "${runtime_dir}/files" ]; then
+            echo "::error::Flatpak runtime files not found at ${runtime_dir}/files"
+            exit 1
+          fi
+
+          find "${runtime_dir}/files" \
+            \( -type f -o -type l \) \
+            -name 'lib*.so*' \
+            -printf '%f\n' \
+            | sort -u > build/flatpak-runtime-libs.txt
+          echo "Collected $(wc -l < build/flatpak-runtime-libs.txt) runtime libraries"
+
       - name: Bundle libmpv
         shell: bash
-        run: bash packaging/flatpak/bundle-libmpv.sh build/linux/x64/release/bundle
+        run: |
+          bash packaging/flatpak/bundle-libmpv.sh \
+            build/linux/x64/release/bundle \
+            build/flatpak-runtime-libs.txt
 
       - name: Build Flatpak bundle
         shell: bash
@@ -118,6 +143,10 @@ jobs:
           printf '%s\n' "${output}"
           if grep -q 'not found' <<<"${output}"; then
             echo "::error::Flatpak has unresolved shared library dependencies"
+            exit 1
+          fi
+          if grep -Eq '/app/bin/lib/(libgtk-3|libgdk-3|libglib-2\.0|libgio-2\.0|libcairo\.so)' <<<"${output}"; then
+            echo "::error::Flatpak is shadowing runtime-provided GTK/GLib libraries"
             exit 1
           fi
           grep -q 'libmpv.so.2' <<<"${output}"

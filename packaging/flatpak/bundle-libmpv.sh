@@ -2,6 +2,7 @@
 set -euo pipefail
 
 bundle="${1:-build/linux/x64/release/bundle}"
+runtime_libs="${2:-}"
 libdir="${bundle}/lib"
 
 if [ ! -x "${bundle}/sakuramedia" ]; then
@@ -10,6 +11,10 @@ if [ ! -x "${bundle}/sakuramedia" ]; then
 fi
 if ! command -v patchelf >/dev/null 2>&1; then
   echo "error: patchelf is required to bundle libmpv" >&2
+  exit 1
+fi
+if [ -n "${runtime_libs}" ] && [ ! -f "${runtime_libs}" ]; then
+  echo "error: Flatpak runtime library list not found: ${runtime_libs}" >&2
   exit 1
 fi
 
@@ -33,12 +38,18 @@ if grep -q 'not found' "${deps_file}"; then
   exit 1
 fi
 
-is_runtime_lib() {
+should_skip_lib() {
   case "$1" in
     libc.so.*|libm.so.*|libdl.so.*|libpthread.so.*|librt.so.*|libresolv.so.*|libutil.so.*|ld-linux*.so.*|linux-vdso.so.*|libgcc_s.so.*|libstdc++.so.*)
       return 0
       ;;
+    libmpv.so.*|libavcodec.so.*|libavdevice.so.*|libavfilter.so.*|libavformat.so.*|libavutil.so.*|libswresample.so.*|libswscale.so.*|libass.so.*|libplacebo.so.*)
+      return 1
+      ;;
     *)
+      if [ -n "${runtime_libs}" ] && grep -Fxq -- "$1" "${runtime_libs}"; then
+        return 0
+      fi
       return 1
       ;;
   esac
@@ -59,7 +70,7 @@ while IFS= read -r line; do
 
   [ -n "${dep}" ] || continue
   name="$(basename "${dep}")"
-  if is_runtime_lib "${name}"; then
+  if should_skip_lib "${name}"; then
     continue
   fi
 
