@@ -176,7 +176,7 @@ Linux 客户端目前为 **Beta**，仅提供 x86_64 Flatpak 安装包，系统�
 | Windows | `sakuramedia-windows-<版本>-setup-unsigned.exe` | 安装包未签名；SmartScreen 提示时选择「更多信息 → 仍要运行」 |
 | macOS | `sakuramedia-macos-<版本>.dmg` | 使用固定自签名证书，未经过 Apple 公证；系统提示来源不明时在「隐私与安全性」中允许 |
 | Linux（Beta） | `sakuramedia-linux-<版本>-x86_64.flatpak` | 需要 Flatpak；使用 `flatpak install --user <文件>` 安装 |
-| Android | `sakuramedia-android-<版本>-<架构>.apk` | 提供三个架构包：大多数手机选择 `arm64-v8a`，较老的 32 位设备选择 `armeabi-v7a`，`x86_64` 主要用于模拟器。系统可能提示未知来源 |
+| Android | `sakuramedia-android-<版本>-release-signed.apk` | 直接安装；系统可能提示未知来源 |
 | iOS | `sakuramedia-ios-<版本>-sidestore-ready.ipa` | 需要 iOS 15.0+，通过 SideStore 或自签工具安装；没有侧载经验建议先用桌面端 |
 
 ## 是什么/不是什么

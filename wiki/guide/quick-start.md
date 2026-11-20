@@ -19,7 +19,7 @@ Download the installer from [GitHub Releases](https://github.com/tinypinglite/sa
 | Windows | `sakuramedia-windows-<version>-setup-unsigned.exe` | Unsigned; when SmartScreen appears, choose "More info → Run anyway" |
 | macOS | `sakuramedia-macos-<version>.dmg` | Signed with a fixed self-signed certificate and not notarized by Apple; if macOS reports an unidentified developer, allow it in "Privacy & Security" |
 | Linux (Beta) | `sakuramedia-linux-<version>-x86_64.flatpak` | x86_64 only and requires Flatpak; install with `flatpak install --user <file>`. In-app provider web sign-in is unavailable; use the manual login fields when required |
-| Android | `sakuramedia-android-<version>-<abi>.apk` | Three ABI packages. Most phones use `arm64-v8a`; older 32-bit devices use `armeabi-v7a`; `x86_64` is mainly for emulators. Install directly; the system may warn about unknown sources |
+| Android | `sakuramedia-android-<version>-release-signed.apk` | Install directly; the system may warn about unknown sources |
 | iOS | `sakuramedia-ios-<version>-sidestore-ready.ipa` | Requires iOS 15.0+; install via SideStore or a self-signing tool. If you have no sideloading experience, start with the desktop client |
 
 > The Linux client is currently in Beta. Its in-app provider web sign-in is not available; configure provider login manually when the plugin supports it.

@@ -183,7 +183,7 @@ The Linux client is currently **Beta**. It is distributed as an x86_64 Flatpak, 
 | Windows | `sakuramedia-windows-*-setup-unsigned.exe` | Unsigned; when SmartScreen appears, choose "More info → Run anyway" |
 | macOS | `sakuramedia-macos-<tag>.dmg` | Fixed self-signed certificate; not notarized. If macOS warns, allow it under "Privacy & Security" |
 | Linux (Beta) | `sakuramedia-linux-<tag>-x86_64.flatpak` | Requires Flatpak; install with `flatpak install --user <file>` |
-| Android | `sakuramedia-android-<tag>-<abi>.apk` | Three ABI packages. Most phones use `arm64-v8a`; older 32-bit devices use `armeabi-v7a`; `x86_64` is mainly for emulators. Install directly; the system may warn about unknown sources |
+| Android | `sakuramedia-android-<tag>-release-signed.apk` | Install directly; the system may warn about unknown sources |
 | iOS | `sakuramedia-ios-*-sidestore-ready.ipa` | Requires iOS 15.0+ and installs through SideStore or a self-signing tool; if you haven't sideloaded before, start with the desktop client |
 
 > If SakuraMedia has been useful to you, [a star](https://github.com/tinypinglite/sakuramedia/stargazers) helps more people find it.
