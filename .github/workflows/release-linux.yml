@@ -10,7 +10,7 @@ on:
   workflow_dispatch:
     inputs:
       publish_release:
-        description: Publish the archive to the GitHub Release
+        description: Publish the Flatpak to the GitHub Release
         required: false
         type: boolean
         default: false
@@ -20,11 +20,11 @@ permissions:
 
 jobs:
   build-and-release:
-    name: Build Linux archive and publish release
+    name: Build Linux Flatpak and publish release
     runs-on: ubuntu-latest
 
     env:
-      ARCHIVE_NAME: sakuramedia-linux-${{ github.ref_name }}-x86_64.tar.gz
+      FLATPAK_NAME: sakuramedia-linux-${{ github.ref_name }}-x86_64.flatpak
 
     steps:
       - name: Checkout repository
@@ -52,7 +52,19 @@ jobs:
             libmpv-dev \
             libepoxy-dev \
             libsecret-1-dev \
-            libasound2-dev
+            libasound2-dev \
+            flatpak \
+            flatpak-builder \
+            patchelf
+
+      - name: Install Flatpak runtime
+        shell: bash
+        run: |
+          flatpak remote-add --user --if-not-exists flathub \
+            https://flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user --noninteractive --assumeyes flathub \
+            org.freedesktop.Platform//26.08 \
+            org.freedesktop.Sdk//26.08
 
       - name: Enable Linux desktop
         run: flutter config --enable-linux-desktop
@@ -66,30 +78,57 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           flutter build linux --release --build-name="$VERSION"
 
-      - name: Package Linux archive
+      - name: Bundle libmpv
+        shell: bash
+        run: bash packaging/flatpak/bundle-libmpv.sh build/linux/x64/release/bundle
+
+      - name: Build Flatpak bundle
         shell: bash
         run: |
           set -euo pipefail
 
-          bundle="build/linux/x64/release/bundle"
-          if [ ! -x "${bundle}/sakuramedia" ]; then
-            echo "::error::Expected Linux executable not found: ${bundle}/sakuramedia"
+          rm -rf build/flatpak
+          flatpak-builder \
+            --user \
+            --force-clean \
+            --disable-rofiles-fuse \
+            --repo=build/flatpak/repo \
+            --state-dir=build/flatpak/state \
+            build/flatpak/build \
+            packaging/flatpak/com.example.sakuramedia.yml
+
+          mkdir -p dist
+          flatpak build-bundle \
+            build/flatpak/repo \
+            "dist/${FLATPAK_NAME}" \
+            com.example.sakuramedia \
+            stable
+          sha256sum "dist/${FLATPAK_NAME}" > "dist/${FLATPAK_NAME}.sha256"
+
+      - name: Smoke test Flatpak dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          flatpak install --user --noninteractive --assumeyes "dist/${FLATPAK_NAME}"
+          output="$(
+            flatpak run --command=sh com.example.sakuramedia -c \
+              'LD_TRACE_LOADED_OBJECTS=1 /app/bin/sakuramedia' 2>&1
+          )"
+          printf '%s\n' "${output}"
+          if grep -q 'not found' <<<"${output}"; then
+            echo "::error::Flatpak has unresolved shared library dependencies"
             exit 1
           fi
-
-          mkdir -p dist build/linux/package-root
-          rm -rf build/linux/package-root/sakuramedia
-          cp -a "${bundle}" build/linux/package-root/sakuramedia
-          tar -C build/linux/package-root -czf "dist/${ARCHIVE_NAME}" sakuramedia
-          sha256sum "dist/${ARCHIVE_NAME}" > "dist/${ARCHIVE_NAME}.sha256"
+          grep -q 'libmpv.so.2' <<<"${output}"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: linux-release-${{ github.ref_name }}
           path: |
-            dist/${{ env.ARCHIVE_NAME }}
-            dist/${{ env.ARCHIVE_NAME }}.sha256
+            dist/${{ env.FLATPAK_NAME }}
+            dist/${{ env.FLATPAK_NAME }}.sha256
           if-no-files-found: error
 
       - name: Publish GitHub release
@@ -101,5 +140,5 @@ jobs:
           # "What's Changed" sections when multiple workflows publish the same tag.
           generate_release_notes: false
           files: |
-            dist/${{ env.ARCHIVE_NAME }}
-            dist/${{ env.ARCHIVE_NAME }}.sha256
+            dist/${{ env.FLATPAK_NAME }}
+            dist/${{ env.FLATPAK_NAME }}.sha256

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.example.sakuramedia</id>
+  <name>SakuraMedia</name>
+  <summary>Client for a self-hosted SakuraMedia media library</summary>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>LicenseRef-proprietary</project_license>
+  <description>
+    <p>SakuraMedia is a desktop and mobile client for a self-hosted media library backend.</p>
+  </description>
+  <launchable type="desktop-id">com.example.sakuramedia.desktop</launchable>
+  <url type="homepage">https://github.com/tinypinglite/sakuramedia</url>
+  <developer>
+    <name>tinypinglite</name>
+  </developer>
+  <content_rating type="oars-1.1"/>
+</component>

@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=SakuraMedia
+Comment=Client for a self-hosted SakuraMedia media library
+Exec=sakuramedia
+Icon=com.example.sakuramedia
+Terminal=false
+Type=Application
+Categories=AudioVideo;Video;Player;
+Keywords=SakuraMedia;Media;Player;
+StartupNotify=true
+StartupWMClass=com.example.sakuramedia

@@ -1,0 +1,42 @@
+app-id: com.example.sakuramedia
+runtime: org.freedesktop.Platform
+runtime-version: '26.08'
+sdk: org.freedesktop.Sdk
+command: sakuramedia
+branch: stable
+
+finish-args:
+  - --share=ipc
+  - --share=network
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --socket=pulseaudio
+  - --device=dri
+  - --filesystem=home
+  - --filesystem=xdg-run/pipewire-0
+  - --talk-name=org.freedesktop.secrets
+  - --env=LIBMPV_LIBRARY_PATH=/app/bin/lib/libmpv.so.2
+
+modules:
+  - name: sakuramedia
+    buildsystem: simple
+    license-files:
+      - LICENSE
+    build-commands:
+      - install -d /app/bin
+      - cp -a sakuramedia data lib /app/bin/
+      - install -Dm644 com.example.sakuramedia.desktop /app/share/applications/com.example.sakuramedia.desktop
+      - install -Dm644 com.example.sakuramedia.metainfo.xml /app/share/metainfo/com.example.sakuramedia.metainfo.xml
+      - install -Dm644 sakuramedia-logo.png /app/share/icons/hicolor/192x192/apps/com.example.sakuramedia.png
+      - install -Dm644 LICENSE /app/share/licenses/com.example.sakuramedia/LICENSE
+    sources:
+      - type: dir
+        path: ../../build/linux/x64/release/bundle
+      - type: file
+        path: com.example.sakuramedia.desktop
+      - type: file
+        path: com.example.sakuramedia.metainfo.xml
+      - type: file
+        path: ../../assets/brand/sakuramedia-logo.png
+      - type: file
+        path: ../../LICENSE
