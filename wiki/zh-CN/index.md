@@ -39,7 +39,7 @@ features:
   - title: 女优订阅与最新作品追踪
     details: 支持订阅女优持续追踪新作动态。
   - title: 多客户端支持
-    details: 提供 Win/Mac/iOS/Android 平台 APP，从 GitHub Releases 下载安装。
+    details: 提供 Windows/macOS/Linux（Beta）/iOS/Android 平台 APP，从 GitHub Releases 下载安装。
     link: https://github.com/tinypinglite/sakuramedia/releases/latest
     linkText: 下载客户端
   - title: 排行榜

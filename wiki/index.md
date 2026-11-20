@@ -39,7 +39,7 @@ features:
   - title: Actor subscriptions and new release tracking
     details: Subscribe to actors and keep following their new releases.
   - title: Multiple clients
-    details: Apps for Windows, macOS, iOS and Android, downloadable from GitHub Releases.
+    details: Apps for Windows, macOS, Linux (Beta), iOS and Android, downloadable from GitHub Releases.
     link: https://github.com/tinypinglite/sakuramedia/releases/latest
     linkText: Download the client
   - title: Rankings
