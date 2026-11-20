@@ -6,6 +6,38 @@ import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart' show NativePlayer;
 import 'package:media_kit_video/media_kit_video.dart';
 
+/// 桌面播放器浮层可暂缓控制条自动隐藏。
+///
+/// 字幕等弹层挂在根 Overlay 上，鼠标进入弹层后视频控件收不到 hover 事件；
+/// 若仍按原计时器卸载控制条，弹层会随触发器一起消失并造成点击穿透。
+class SakuraDesktopVideoControlsOverlayLockScope extends InheritedWidget {
+  const SakuraDesktopVideoControlsOverlayLockScope({
+    super.key,
+    required this.acquire,
+    required this.release,
+    required super.child,
+  });
+
+  final VoidCallback acquire;
+  final VoidCallback release;
+
+  static SakuraDesktopVideoControlsOverlayLockScope? maybeOf(
+    BuildContext context,
+  ) {
+    return context
+        .dependOnInheritedWidgetOfExactType<
+          SakuraDesktopVideoControlsOverlayLockScope
+        >();
+  }
+
+  @override
+  bool updateShouldNotify(
+    SakuraDesktopVideoControlsOverlayLockScope oldWidget,
+  ) {
+    return acquire != oldWidget.acquire || release != oldWidget.release;
+  }
+}
+
 /// Desktop controls with seek-aware auto-hide handling.
 ///
 /// media_kit_video 2.0.1 only cancels its auto-hide timer for the seek bar it
@@ -32,6 +64,7 @@ class _SakuraDesktopVideoControlsState
   Timer? _timer;
   StreamSubscription<bool>? _bufferingSubscription;
   final Set<int> _activePointers = <int>{};
+  int _overlayLockCount = 0;
   bool _seekActive = false;
   bool _initialized = false;
   bool _buffering = false;
@@ -53,7 +86,8 @@ class _SakuraDesktopVideoControlsState
 
   VideoController get _controller => widget.state.widget.controller;
 
-  bool get _isInteracting => _seekActive || _activePointers.isNotEmpty;
+  bool get _isInteracting =>
+      _seekActive || _activePointers.isNotEmpty || _overlayLockCount > 0;
 
   bool get _isFullscreen => FullscreenInheritedWidget.maybeOf(context) != null;
 
@@ -174,6 +208,32 @@ class _SakuraDesktopVideoControlsState
   void _handleSeekEnd() {
     _seekActive = false;
     _scheduleHide();
+  }
+
+  void _acquireOverlayLock() {
+    _overlayLockCount++;
+    _timer?.cancel();
+    _showControls();
+  }
+
+  void _releaseOverlayLock() {
+    if (_overlayLockCount == 0) {
+      return;
+    }
+    _overlayLockCount--;
+    if (_overlayLockCount == 0) {
+      _scheduleHide();
+      // 锚定菜单会把自己的 FocusNode 设为 primary focus；关闭后把焦点还给
+      // 播放器控件，否则空格/方向键等快捷键会失效。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _overlayLockCount > 0) {
+          return;
+        }
+        VideoStateInheritedWidget.of(
+          context,
+        ).videoViewParametersNotifier.value.focusNode?.requestFocus();
+      });
+    }
   }
 
   void _shiftSubtitle() {
@@ -462,7 +522,17 @@ class _SakuraDesktopVideoControlsState
                                                 MainAxisAlignment.start,
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.center,
-                                            children: theme.bottomButtonBar,
+                                            children: [
+                                              for (
+                                                final control
+                                                in theme.bottomButtonBar
+                                              )
+                                                SakuraDesktopVideoControlsOverlayLockScope(
+                                                  acquire: _acquireOverlayLock,
+                                                  release: _releaseOverlayLock,
+                                                  child: control,
+                                                ),
+                                            ],
                                           ),
                                         ),
                                     ],

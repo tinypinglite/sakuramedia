@@ -117,6 +117,26 @@ void main() {
     expect(scrollable.position.pixels, greaterThan(0));
   });
 
+  testWidgets('near-edge trigger keeps the panel inside screen padding', (
+    tester,
+  ) async {
+    await _pumpMenu(
+      tester,
+      alignment: Alignment.bottomRight,
+      size: const Size(320, 600),
+      triggerWidth: 48,
+      contentBuilder: (context, close) =>
+          const AppGlassMenuRow(title: Text('选项一')),
+    );
+
+    await tester.tap(find.byKey(const Key('menu-trigger')));
+    await tester.pumpAndSettle();
+
+    final panelRect = tester.getRect(find.byKey(const Key('menu-panel')));
+    expect(panelRect.left, greaterThanOrEqualTo(16));
+    expect(panelRect.right, lessThanOrEqualTo(304));
+  });
+
   testWidgets('flat mode keeps menu selection behavior', (tester) async {
     var tapped = false;
     await _pumpMenu(
@@ -146,6 +166,7 @@ Future<void> _pumpMenu(
   required AppGlassAnchoredMenuContentBuilder contentBuilder,
   Alignment alignment = Alignment.center,
   Size size = const Size(800, 600),
+  double triggerWidth = 300,
   double? maxHeight,
   bool flat = false,
 }) async {
@@ -161,7 +182,7 @@ Future<void> _pumpMenu(
       body: Align(
         alignment: alignment,
         child: SizedBox(
-          width: 300,
+          width: triggerWidth,
           child: AppGlassAnchoredMenu(
             width: 240,
             estimatedHeight: 240,

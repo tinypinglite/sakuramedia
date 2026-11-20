@@ -10,6 +10,7 @@ import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_menu_widgets.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_speed_button.dart';
+import 'package:sakuramedia/widgets/domain/movies/player/movie_player_subtitle_settings.dart';
 
 enum MoviePlayerMobileDrawerType { speed, subtitle }
 
@@ -111,7 +112,6 @@ Widget buildMoviePlayerMobileDrawerOverlay({
   required VoidCallback onDismiss,
   required Future<void> Function(double rate) onRateSelected,
   required Future<void> Function(int subtitleId) onSubtitleSelected,
-  required VoidCallback onSubtitleSettingsTap,
 }) {
   return _moviePlayerBuildSideDrawerHost(
     context: context,
@@ -132,7 +132,6 @@ Widget buildMoviePlayerMobileDrawerOverlay({
             subtitleState: subtitleState,
             isApplyingSubtitleListenable: isApplyingSubtitleListenable,
             onSubtitleSelected: onSubtitleSelected,
-            onSettingsTap: onSubtitleSettingsTap,
           ),
         null => const SizedBox.shrink(
           key: ValueKey<String>('movie-player-mobile-drawer-closed'),
@@ -369,107 +368,133 @@ class _MoviePlayerInfoSideDrawer extends StatelessWidget {
   }
 }
 
-class _MoviePlayerMobileSubtitleDrawer extends StatelessWidget {
+class _MoviePlayerMobileSubtitleDrawer extends StatefulWidget {
   const _MoviePlayerMobileSubtitleDrawer({
     super.key,
     required this.subtitleState,
     required this.isApplyingSubtitleListenable,
     required this.onSubtitleSelected,
-    required this.onSettingsTap,
   });
 
   final MoviePlayerSubtitleState subtitleState;
   final ValueListenable<bool> isApplyingSubtitleListenable;
   final Future<void> Function(int subtitleId) onSubtitleSelected;
-  final VoidCallback onSettingsTap;
+
+  @override
+  State<_MoviePlayerMobileSubtitleDrawer> createState() =>
+      _MoviePlayerMobileSubtitleDrawerState();
+}
+
+class _MoviePlayerMobileSubtitleDrawerState
+    extends State<_MoviePlayerMobileSubtitleDrawer> {
+  bool _showSettings = false;
 
   @override
   Widget build(BuildContext context) {
-    final options = subtitleState.options;
+    final options = widget.subtitleState.options;
     final overlayTokens = context.appOverlayTokens;
-    final selectedColor = Theme.of(context).colorScheme.primary;
-    return _MoviePlayerMobileDrawerSurface(
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          vertical: overlayTokens.drawerVerticalPadding,
-        ),
-        child: ValueListenableBuilder<bool>(
-          valueListenable: isApplyingSubtitleListenable,
-          builder: (context, isApplyingSubtitle, _) {
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (options.isEmpty)
-                  SizedBox(
-                    key: const Key(
-                      'movie-player-mobile-subtitle-drawer-empty',
-                    ),
-                    height: overlayTokens.menuItemHeight,
-                    child: Center(
-                      child: Text(
-                        AppLocalizations.of(context).widgetMoviePlayerNoSubtitle,
-                        style: resolveAppTextStyle(
-                          context,
-                          size: AppTextSize.s14,
-                          tone: AppTextTone.muted,
-                        ),
-                      ),
-                    ),
-                  )
-                else
-                  ...options.map((option) {
-                    final selected =
-                        subtitleState.selectedSubtitleId == option.subtitleId;
-                    return AppInteractiveSurface(
-                      key: Key(
-                        'movie-player-mobile-subtitle-drawer-item-${option.subtitleId}',
-                      ),
-                      focusRing: false,
-                      onTap: isApplyingSubtitle
-                          ? null
-                          : () => unawaited(
-                              onSubtitleSelected(option.subtitleId),
+    final selectedColor = resolveAppTextToneColor(context, AppTextTone.accent);
+    return AppSurfaceStyleScope(
+      style: AppSurfaceStyle.flat,
+      child: _MoviePlayerMobileDrawerSurface(
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            vertical: overlayTokens.drawerVerticalPadding,
+          ),
+          child: _showSettings
+              ? Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: context.appSpacing.md,
+                  ),
+                  child: MoviePlayerSubtitleSettingsView(
+                    onBack: () => setState(() => _showSettings = false),
+                  ),
+                )
+              : ValueListenableBuilder<bool>(
+                  valueListenable: widget.isApplyingSubtitleListenable,
+                  builder: (context, isApplyingSubtitle, _) {
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (options.isEmpty)
+                          SizedBox(
+                            key: const Key(
+                              'movie-player-mobile-subtitle-drawer-empty',
                             ),
-                      child: MoviePlayerMenuItemRow(
-                        label: option.label,
-                        selected: selected,
-                        checkColor: selectedColor,
-                        checkKey: Key(
-                          'movie-player-mobile-subtitle-drawer-item-check-${option.subtitleId}',
+                            height: overlayTokens.menuItemHeight,
+                            child: Center(
+                              child: Text(
+                                AppLocalizations.of(
+                                  context,
+                                ).widgetMoviePlayerNoSubtitle,
+                                style: resolveAppTextStyle(
+                                  context,
+                                  size: AppTextSize.s14,
+                                  tone: AppTextTone.muted,
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          ...options.map((option) {
+                            final selected =
+                                widget.subtitleState.selectedSubtitleId ==
+                                option.subtitleId;
+                            return AppInteractiveSurface(
+                              key: Key(
+                                'movie-player-mobile-subtitle-drawer-item-${option.subtitleId}',
+                              ),
+                              focusRing: false,
+                              onTap: isApplyingSubtitle
+                                  ? null
+                                  : () => unawaited(
+                                      widget.onSubtitleSelected(
+                                        option.subtitleId,
+                                      ),
+                                    ),
+                              child: MoviePlayerMenuItemRow(
+                                label: option.label,
+                                selected: selected,
+                                checkColor: selectedColor,
+                                checkKey: Key(
+                                  'movie-player-mobile-subtitle-drawer-item-check-${option.subtitleId}',
+                                ),
+                                checkSlotKey: Key(
+                                  'movie-player-mobile-subtitle-drawer-item-check-slot-${option.subtitleId}',
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            );
+                          }),
+                        Divider(
+                          height: overlayTokens.menuItemHeight / 2,
+                          color: context.appColors.divider,
                         ),
-                        checkSlotKey: Key(
-                          'movie-player-mobile-subtitle-drawer-item-check-slot-${option.subtitleId}',
+                        AppInteractiveSurface(
+                          key: const Key(
+                            'movie-player-mobile-subtitle-drawer-settings',
+                          ),
+                          focusRing: false,
+                          onTap: () => setState(() => _showSettings = true),
+                          child: MoviePlayerMenuItemRow(
+                            label: AppLocalizations.of(
+                              context,
+                            ).moviePlayerSubtitleSettingsTitle,
+                            selected: false,
+                            checkColor: selectedColor,
+                            trailing: Icon(
+                              Icons.chevron_right_rounded,
+                              size: overlayTokens.controlCheckIconSize,
+                              color: context.appTextPalette.secondary,
+                            ),
+                          ),
                         ),
-                        overflow: TextOverflow.ellipsis,
-                        maxLines: 1,
-                      ),
+                      ],
                     );
-                  }),
-                Divider(
-                  height: overlayTokens.menuItemHeight / 2,
-                  color: context.appColors.divider,
+                  },
                 ),
-                AppInteractiveSurface(
-                  key: const Key(
-                    'movie-player-mobile-subtitle-drawer-settings',
-                  ),
-                  focusRing: false,
-                  onTap: onSettingsTap,
-                  child: MoviePlayerMenuItemRow(
-                    label: AppLocalizations.of(
-                      context,
-                    ).moviePlayerSubtitleSettingsTitle,
-                    selected: false,
-                    checkColor: selectedColor,
-                    checkSlotKey: const Key(
-                      'movie-player-mobile-subtitle-drawer-settings-check-slot',
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
         ),
       ),
     );

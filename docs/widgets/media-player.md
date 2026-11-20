@@ -47,6 +47,8 @@
 
 `MoviePlayerBackOverlay`、`MoviePlayerInfoButton`、`MoviePlayerOrientationLockButton`、`MoviePlayerSpeedButton`、`MoviePlayerSubtitleButton` 和 `MoviePlayerMenuItemRow` 位于 `lib/widgets/domain/movies/player/`。移动端控制条需要保留触控唤起行为，桌面端可以使用 hover/鼠标行为；平台参数由页面壳传入。方向锁状态由移动播放页持有的 `PlayerOrientationLock` 提供，按钮只负责展示与切换。倍速/字幕菜单和移动端右侧抽屉统一使用 `AppSurface` 的全站唯一材质，不再维护独立的播放器玻璃组件。
 
+桌面字幕按钮点击打开锚定浮层，不再使用 hover 自动打开；浮层打开期间会锁定控制条自动隐藏，并使用全屏点击屏障避免点击穿透到进度条。浮层内第一层是字幕轨列表，点击“字幕设置”后在原位切换到字号/位置设置，可返回，不打开独立模态框。移动端在右侧字幕抽屉内完成同样的两级切换。菜单文字使用信息面板同源的 `primary`/`secondary`/`accent` 主题色，只有播放器控制条上的触发按钮使用媒体白字。字幕浮层和移动字幕抽屉使用 `AppSurface` 的 flat 表面，避免视频背景改变玻璃明暗后破坏文字对比度。
+
 播放区方向以实际布局约束为准（`player_viewport.dart`），不要直接用 `MediaQuery.orientationOf` 判断：iOS 从横屏切竖屏后 MediaQuery 可能滞后，会把竖屏顶栏误用横屏的非紧凑宽度，导致信息按钮被面板开关覆盖。移动端底栏的紧凑显示按同一份实际约束判定；紧凑顶栏按播放区实际宽度判断，窄于 520 即切换，不使用可能滞后的 `MediaQuery`。
 
 ## 播放信息

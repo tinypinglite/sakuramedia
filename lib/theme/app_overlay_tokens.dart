@@ -32,6 +32,7 @@ class AppOverlayTokens extends ThemeExtension<AppOverlayTokens> {
     required this.menuWidthSm,
     required this.menuWidthMd,
     required this.playerDrawerWidth,
+    required this.playerSubtitleMenuWidth,
     required this.playerInfoDrawerWidth,
     required this.playerDrawerHorizontalInset,
     required this.playerControlBarHorizontalInset,
@@ -72,6 +73,7 @@ class AppOverlayTokens extends ThemeExtension<AppOverlayTokens> {
       menuWidthSm = 144,
       menuWidthMd = 188,
       playerDrawerWidth = 196,
+      playerSubtitleMenuWidth = 300,
       playerInfoDrawerWidth = 360,
       playerDrawerHorizontalInset = 10,
       playerControlBarHorizontalInset = 12,
@@ -120,6 +122,7 @@ class AppOverlayTokens extends ThemeExtension<AppOverlayTokens> {
   final double menuWidthSm;
   final double menuWidthMd;
   final double playerDrawerWidth;
+  final double playerSubtitleMenuWidth;
   final double playerInfoDrawerWidth;
   final double playerDrawerHorizontalInset;
   final double playerControlBarHorizontalInset;
@@ -162,6 +165,7 @@ class AppOverlayTokens extends ThemeExtension<AppOverlayTokens> {
     double? menuWidthSm,
     double? menuWidthMd,
     double? playerDrawerWidth,
+    double? playerSubtitleMenuWidth,
     double? playerInfoDrawerWidth,
     double? playerDrawerHorizontalInset,
     double? playerControlBarHorizontalInset,
@@ -205,6 +209,8 @@ class AppOverlayTokens extends ThemeExtension<AppOverlayTokens> {
       menuWidthSm: menuWidthSm ?? this.menuWidthSm,
       menuWidthMd: menuWidthMd ?? this.menuWidthMd,
       playerDrawerWidth: playerDrawerWidth ?? this.playerDrawerWidth,
+      playerSubtitleMenuWidth:
+          playerSubtitleMenuWidth ?? this.playerSubtitleMenuWidth,
       playerInfoDrawerWidth:
           playerInfoDrawerWidth ?? this.playerInfoDrawerWidth,
       playerDrawerHorizontalInset:
@@ -281,6 +287,11 @@ class AppOverlayTokens extends ThemeExtension<AppOverlayTokens> {
       menuWidthMd: lerpDouble(menuWidthMd, other.menuWidthMd, t)!,
       playerDrawerWidth:
           lerpDouble(playerDrawerWidth, other.playerDrawerWidth, t)!,
+      playerSubtitleMenuWidth: lerpDouble(
+        playerSubtitleMenuWidth,
+        other.playerSubtitleMenuWidth,
+        t,
+      )!,
       playerInfoDrawerWidth:
           lerpDouble(playerInfoDrawerWidth, other.playerInfoDrawerWidth, t)!,
       playerDrawerHorizontalInset:

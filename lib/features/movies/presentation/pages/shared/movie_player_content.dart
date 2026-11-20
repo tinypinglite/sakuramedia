@@ -54,7 +54,6 @@ import 'package:sakuramedia/widgets/domain/movies/player/movie_player_controls.d
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_mobile_drawers.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_native_stats_sampler.dart';
 import 'package:sakuramedia/widgets/domain/movies/player/movie_player_playback_info.dart';
-import 'package:sakuramedia/widgets/domain/movies/player/movie_player_subtitle_settings.dart';
 import 'package:sakuramedia/widgets/domain/media/movie_player_thumbnail_panel.dart';
 
 /// 影片应用内播放器共享实现（桌面 / 移动双端壳收敛的 content 层）。
@@ -1451,7 +1450,6 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       isApplyingListenable: _isApplyingSubtitleNotifier,
       onSubtitleSelected: _handleSubtitleSelected,
       onSubtitleReloadRequested: _handleSubtitleReloadRequested,
-      onSubtitleSettingsTap: () => showMoviePlayerSubtitleSettings(context),
     );
     final backgroundColor = context.appColors.movieDetailHeroBackgroundStart;
     final videoSurface = Video(
@@ -1515,10 +1513,6 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
             onDismiss: _closeMobileDrawer,
             onRateSelected: _handleMobilePlaybackRateSelected,
             onSubtitleSelected: _handleMobileSubtitleSelected,
-            onSubtitleSettingsTap: () {
-              _closeMobileDrawer();
-              unawaited(showMoviePlayerSubtitleSettings(context));
-            },
           ),
         buildMoviePlayerInfoSideDrawerOverlay(
           context: context,

@@ -39,6 +39,7 @@ class AppGlassAnchoredMenu extends StatefulWidget {
     this.estimatedHeight = 240,
     this.maxHeight,
     this.borderRadius,
+    this.surfaceStyle,
     this.screenPadding = const EdgeInsets.all(16),
     this.gap = 4,
     this.onOpen,
@@ -56,6 +57,7 @@ class AppGlassAnchoredMenu extends StatefulWidget {
   final double estimatedHeight;
   final double? maxHeight;
   final BorderRadius? borderRadius;
+  final AppSurfaceStyle? surfaceStyle;
   final EdgeInsets screenPadding;
   final double gap;
   final VoidCallback? onOpen;
@@ -77,6 +79,7 @@ class _AppGlassAnchoredMenuState extends State<AppGlassAnchoredMenu> {
   bool _opensUpward = false;
   double _menuWidth = 0;
   double _menuMaxHeight = 0;
+  double _horizontalOffset = 0;
 
   @override
   void initState() {
@@ -132,6 +135,14 @@ class _AppGlassAnchoredMenuState extends State<AppGlassAnchoredMenu> {
     _menuWidth = desiredWidth
         .clamp(resolvedMinWidth, resolvedMaxWidth)
         .toDouble();
+    final minLeft = widget.screenPadding.left;
+    final maxLeft = math.max(
+      minLeft,
+      viewport.width - widget.screenPadding.right - _menuWidth,
+    );
+    _horizontalOffset =
+        triggerTopLeft.dx.clamp(minLeft, maxLeft).toDouble() -
+        triggerTopLeft.dx;
 
     final desiredHeight = math.min(
       widget.estimatedHeight,
@@ -188,6 +199,9 @@ class _AppGlassAnchoredMenuState extends State<AppGlassAnchoredMenu> {
         ),
       ),
     );
+    final styledPanel = widget.surfaceStyle == null
+        ? panel
+        : AppSurfaceStyleScope(style: widget.surfaceStyle!, child: panel);
 
     return Stack(
       children: <Widget>[
@@ -205,8 +219,11 @@ class _AppGlassAnchoredMenuState extends State<AppGlassAnchoredMenu> {
           followerAnchor: _opensUpward
               ? Alignment.bottomLeft
               : Alignment.topLeft,
-          offset: Offset(0, _opensUpward ? -widget.gap : widget.gap),
-          child: panel,
+          offset: Offset(
+            _horizontalOffset,
+            _opensUpward ? -widget.gap : widget.gap,
+          ),
+          child: styledPanel,
         ),
       ],
     );

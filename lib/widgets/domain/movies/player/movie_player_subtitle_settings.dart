@@ -3,22 +3,14 @@ import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/core/media/providers/player_subtitle_preference_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
-import 'package:sakuramedia/widgets/base/actions/app_button.dart';
+import 'package:sakuramedia/widgets/base/actions/app_icon_button.dart';
 import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
-import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
-Future<void> showMoviePlayerSubtitleSettings(BuildContext context) {
-  return showAppAdaptiveModal<void>(
-    context: context,
-    modalKey: const Key('movie-player-subtitle-settings-modal'),
-    desktopWidth: 420,
-    desktopHeight: 380,
-    builder: (_) => const _MoviePlayerSubtitleSettings(),
-  );
-}
+/// 播放器字幕设置内容；桌面浮层和移动抽屉共用。
+class MoviePlayerSubtitleSettingsView extends ConsumerWidget {
+  const MoviePlayerSubtitleSettingsView({super.key, required this.onBack});
 
-class _MoviePlayerSubtitleSettings extends ConsumerWidget {
-  const _MoviePlayerSubtitleSettings();
+  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -30,69 +22,80 @@ class _MoviePlayerSubtitleSettings extends ConsumerWidget {
     final controller = ref.read(
       playerSubtitlePreferenceControllerProvider.notifier,
     );
-    return SafeArea(
-      top: false,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            l10n.moviePlayerSubtitleSettingsTitle,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s16,
-              weight: AppTextWeight.semibold,
-              tone: AppTextTone.primary,
+
+    return Column(
+      key: const Key('movie-player-subtitle-settings'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            AppIconButton(
+              key: const Key('movie-player-subtitle-settings-back'),
+              size: AppIconButtonSize.mini,
+              tooltip: l10n.commonBack,
+              onPressed: onBack,
+              icon: const Icon(Icons.arrow_back_rounded),
             ),
-          ),
-          SizedBox(height: spacing.lg),
-          _SubtitleSettingSlider(
-            label:
-                '${l10n.moviePlayerSubtitleSizeLabel}  '
-                '${preference.scale.toStringAsFixed(2)}x',
-            value: preference.scale,
-            min: PlayerSubtitlePreference.minScale,
-            max: PlayerSubtitlePreference.maxScale,
-            divisions: 25,
-            onChanged: controller.setScale,
-          ),
-          SizedBox(height: spacing.md),
-          _SubtitleSettingSlider(
-            label:
-                '${l10n.moviePlayerSubtitlePositionLabel}  '
-                '${preference.bottomOffset.round()}',
-            value: preference.bottomOffset,
-            min: PlayerSubtitlePreference.minBottomOffset,
-            max: PlayerSubtitlePreference.maxBottomOffset,
-            divisions: 24,
-            onChanged: controller.setBottomOffset,
-          ),
-          SizedBox(height: spacing.lg),
-          Row(
-            children: [
-              AppTextButton(
-                key: const Key('movie-player-subtitle-settings-reset'),
-                label: l10n.moviePlayerSubtitleSettingsReset,
-                size: AppTextButtonSize.small,
-                onPressed: controller.reset,
+            SizedBox(width: spacing.sm),
+            Expanded(
+              child: Text(
+                l10n.moviePlayerSubtitleSettingsTitle,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s14,
+                  weight: AppTextWeight.semibold,
+                  tone: AppTextTone.primary,
+                ),
               ),
-              const Spacer(),
-              AppButton(
-                key: const Key('movie-player-subtitle-settings-done'),
-                label: l10n.moviePlayerSubtitleSettingsDone,
-                size: AppButtonSize.small,
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ],
+            ),
+          ],
+        ),
+        SizedBox(height: spacing.md),
+        _SubtitleSettingSlider(
+          key: const Key('movie-player-subtitle-settings-scale'),
+          sliderKey: const Key('movie-player-subtitle-settings-scale-slider'),
+          label:
+              '${l10n.moviePlayerSubtitleSizeLabel}  '
+              '${preference.scale.toStringAsFixed(2)}x',
+          value: preference.scale,
+          min: PlayerSubtitlePreference.minScale,
+          max: PlayerSubtitlePreference.maxScale,
+          divisions: 25,
+          onChanged: controller.setScale,
+        ),
+        SizedBox(height: spacing.md),
+        _SubtitleSettingSlider(
+          key: const Key('movie-player-subtitle-settings-offset'),
+          sliderKey: const Key('movie-player-subtitle-settings-offset-slider'),
+          label:
+              '${l10n.moviePlayerSubtitlePositionLabel}  '
+              '${preference.bottomOffset.round()}',
+          value: preference.bottomOffset,
+          min: PlayerSubtitlePreference.minBottomOffset,
+          max: PlayerSubtitlePreference.maxBottomOffset,
+          divisions: 24,
+          onChanged: controller.setBottomOffset,
+        ),
+        SizedBox(height: spacing.md),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: AppTextButton(
+            key: const Key('movie-player-subtitle-settings-reset'),
+            label: l10n.moviePlayerSubtitleSettingsReset,
+            size: AppTextButtonSize.small,
+            onPressed: controller.reset,
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
 
 class _SubtitleSettingSlider extends StatefulWidget {
   const _SubtitleSettingSlider({
+    super.key,
+    required this.sliderKey,
     required this.label,
     required this.value,
     required this.min,
@@ -101,6 +104,7 @@ class _SubtitleSettingSlider extends StatefulWidget {
     required this.onChanged,
   });
 
+  final Key sliderKey;
   final String label;
   final double value;
   final double min;
@@ -143,6 +147,7 @@ class _SubtitleSettingSliderState extends State<_SubtitleSettingSlider> {
           ),
         ),
         Slider(
+          key: widget.sliderKey,
           value: _value.clamp(widget.min, widget.max),
           min: widget.min,
           max: widget.max,
