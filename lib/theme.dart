@@ -30,6 +30,7 @@ export 'package:sakuramedia/theme/app_sidebar_tokens.dart';
 export 'package:sakuramedia/theme/app_spacing.dart';
 export 'package:sakuramedia/theme/app_theme_color.dart';
 export 'package:sakuramedia/theme/app_toast_tokens.dart';
+export 'package:sakuramedia/theme/app_tv_tokens.dart';
 export 'package:sakuramedia/theme/app_typography.dart';
 
 final sakuraThemeData = sakuraDesktopThemeData;
@@ -69,6 +70,22 @@ ThemeData buildSakuraMobileThemeData({
     textScale: const AppTextScale.mobile(),
     textWeights: const AppTextWeights.mobile(),
     baseTextPalette: const AppTextPalette.mobile(),
+  );
+}
+
+ThemeData buildSakuraTvThemeData({
+  Brightness brightness = Brightness.dark,
+  AppThemeColor themeColor = AppThemeColor.burgundy,
+}) {
+  return _buildSakuraThemeData(
+    brightness: brightness,
+    themeColor: themeColor,
+    componentTokens: const AppComponentTokens.defaults(),
+    formTokens: const AppFormTokens.defaults(),
+    navigationTokens: const AppNavigationTokens.defaults(),
+    textScale: const AppTextScale.tv(),
+    textWeights: const AppTextWeights.defaults(),
+    baseTextPalette: const AppTextPalette.defaults(),
   );
 }
 

@@ -28,6 +28,7 @@ import 'package:sakuramedia/routes/app_route_paths.dart';
 import 'package:sakuramedia/routes/app_router.dart';
 import 'package:sakuramedia/routes/routes_desktop.dart';
 import 'package:sakuramedia/routes/routes_mobile.dart';
+import 'package:sakuramedia/routes/routes_tv.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart';
 import 'package:sakuramedia/widgets/base/layout/surface/app_surface.dart';
@@ -225,10 +226,11 @@ class _SakuraAppState extends ConsumerState<_SakuraApp>
   Brightness get _platformBrightness =>
       WidgetsBinding.instance.platformDispatcher.platformBrightness;
 
-  GlobalKey<NavigatorState> get _rootNavigatorKey =>
-      widget.platform == AppPlatform.mobile
-      ? mobileRootNavigatorKey
-      : desktopRootNavigatorKey;
+  GlobalKey<NavigatorState> get _rootNavigatorKey => switch (widget.platform) {
+    AppPlatform.desktop => desktopRootNavigatorKey,
+    AppPlatform.mobile => mobileRootNavigatorKey,
+    AppPlatform.tv => tvRootNavigatorKey,
+  };
 
   @override
   void didChangePlatformBrightness() {
@@ -278,18 +280,27 @@ class _SakuraAppState extends ConsumerState<_SakuraApp>
     });
 
     final themeColor = appearance.themeColor;
-    final lightTheme = widget.platform == AppPlatform.mobile
-        ? buildSakuraMobileThemeData(themeColor: themeColor)
-        : buildSakuraDesktopThemeData(themeColor: themeColor);
-    final darkTheme = widget.platform == AppPlatform.mobile
-        ? buildSakuraMobileThemeData(
-            themeColor: themeColor,
-            brightness: Brightness.dark,
-          )
-        : buildSakuraDesktopThemeData(
-            themeColor: themeColor,
-            brightness: Brightness.dark,
-          );
+    final lightTheme = switch (widget.platform) {
+      AppPlatform.mobile => buildSakuraMobileThemeData(themeColor: themeColor),
+      AppPlatform.tv => buildSakuraTvThemeData(themeColor: themeColor),
+      AppPlatform.desktop => buildSakuraDesktopThemeData(
+        themeColor: themeColor,
+      ),
+    };
+    final darkTheme = switch (widget.platform) {
+      AppPlatform.mobile => buildSakuraMobileThemeData(
+        themeColor: themeColor,
+        brightness: Brightness.dark,
+      ),
+      AppPlatform.tv => buildSakuraTvThemeData(
+        themeColor: themeColor,
+        brightness: Brightness.dark,
+      ),
+      AppPlatform.desktop => buildSakuraDesktopThemeData(
+        themeColor: themeColor,
+        brightness: Brightness.dark,
+      ),
+    };
 
     return NetworkPermissionHintHost(
       platform: widget.platform,
@@ -323,7 +334,9 @@ class _SakuraAppState extends ConsumerState<_SakuraApp>
             supportedLocales: AppLocalizations.supportedLocales,
             theme: lightTheme,
             darkTheme: darkTheme,
-            themeMode: appearance.themeMode,
+            themeMode: widget.platform == AppPlatform.tv
+                ? ThemeMode.dark
+                : appearance.themeMode,
             routerConfig: widget.router,
             builder: (context, child) {
               final content = AppImageFullscreenHost(

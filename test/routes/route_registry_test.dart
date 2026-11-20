@@ -17,9 +17,10 @@ void main() {
   });
 
   test('registry contains exactly the current route surface', () {
-    expect(appRoutes.definitions.length, 105);
+    expect(appRoutes.definitions.length, 114);
     expect(appRoutes.forPlatform(AppPlatform.desktop).length, 49);
     expect(appRoutes.forPlatform(AppPlatform.mobile).length, 56);
+    expect(appRoutes.forPlatform(AppPlatform.tv).length, 9);
 
     expect(
       appRoutes.scoped(AppPlatform.desktop, AppRouteScope.outsideShell).length,
@@ -45,6 +46,18 @@ void main() {
       appRoutes.scoped(AppPlatform.mobile, AppRouteScope.branchChild).length,
       8,
     );
+    expect(
+      appRoutes.scoped(AppPlatform.tv, AppRouteScope.outsideShell).length,
+      2,
+    );
+    expect(
+      appRoutes.scoped(AppPlatform.tv, AppRouteScope.branchRoot).length,
+      4,
+    );
+    expect(
+      appRoutes.scoped(AppPlatform.tv, AppRouteScope.shellLevel).length,
+      3,
+    );
 
     final ids = appRoutes.definitions
         .map((definition) => definition.id)
@@ -52,6 +65,7 @@ void main() {
     expect(ids.length, appRoutes.definitions.length);
     expect(desktopPrimaryBranchOrder.length, 18);
     expect(mobilePrimaryBranchOrder.length, 5);
+    expect(tvPrimaryBranchOrder.length, 4);
     expect(mobileOverviewBranchIndex, 0);
   });
 
@@ -107,6 +121,14 @@ void main() {
       AppRouteId.mobileActors,
       AppRouteId.mobileRankings,
       AppRouteId.mobilePornbox,
+    ]);
+
+    final tvItems = tvNavItems(l10n);
+    expect(tvItems.map((item) => item.routeId).toList(), <AppRouteId>[
+      AppRouteId.tvHome,
+      AppRouteId.tvMovies,
+      AppRouteId.tvSearch,
+      AppRouteId.tvSettings,
     ]);
 
     var clientProxyTaps = 0;

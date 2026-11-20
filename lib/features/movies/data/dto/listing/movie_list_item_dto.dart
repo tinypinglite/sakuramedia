@@ -104,7 +104,9 @@ mixin MovieCoverSelection {
   }
 }
 
-class MovieListItemDto implements SubscriptionMovieListItem<MovieListItemDto> {
+class MovieListItemDto
+    with MovieCoverSelection
+    implements SubscriptionMovieListItem<MovieListItemDto> {
   const MovieListItemDto({
     this.id = 0,
     required this.movieNumber,

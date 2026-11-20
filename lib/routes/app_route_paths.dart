@@ -91,6 +91,13 @@ const String mobileSettingsAppearancePath = '/mobile/settings/appearance';
 const String mobileSettingsAccountSecurityPath =
     '/mobile/settings/account-security';
 
+const String tvHomePath = '/tv/home';
+const String tvMoviesPath = '/tv/movies';
+const String tvSearchPath = '/tv/search';
+const String tvSettingsPath = '/tv/settings';
+const String tvPlaylistsPath = '/tv/playlists';
+const String tvActorsPath = '/tv/actors';
+
 const String loginPath = '/login';
 
 String overviewPathForPlatform(AppPlatform platform) {
@@ -99,5 +106,7 @@ String overviewPathForPlatform(AppPlatform platform) {
       return desktopOverviewPath;
     case AppPlatform.mobile:
       return mobileOverviewPath;
+    case AppPlatform.tv:
+      return tvHomePath;
   }
 }

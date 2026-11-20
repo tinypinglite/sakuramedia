@@ -70,6 +70,17 @@ class AppTextScale extends ThemeExtension<AppTextScale> {
       s12 = 12,
       s10 = 10;
 
+  const AppTextScale.tv()
+    : s48 = 52,
+      s32 = 36,
+      s24 = 28,
+      s20 = 24,
+      s18 = 21,
+      s16 = 19,
+      s14 = 17,
+      s12 = 15,
+      s10 = 13;
+
   final double s48;
   final double s32;
   final double s24;

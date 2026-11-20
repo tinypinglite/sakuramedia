@@ -1,5 +1,6 @@
 package com.example.sakuramedia;
 
+import android.app.UiModeManager;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -36,6 +37,7 @@ public class MainActivity extends FlutterActivity {
     private static final String MULTICAST_LOCK_CHANNEL = "sakuramedia/multicast_lock";
     private static final String IMMERSIVE_SYSTEM_UI_CHANNEL =
             "sakuramedia/immersive_system_ui";
+    private static final String TV_DEVICE_CHANNEL = "sakuramedia/tv_device";
     private static final String IMMERSIVE_LOG_TAG = "SakuraImmersive";
     private static final String VIDEO_MIME = "video/*";
     private static final String FALLBACK_SAMPLE_URL = "http://127.0.0.1/video.mp4";
@@ -69,6 +71,28 @@ public class MainActivity extends FlutterActivity {
                 flutterEngine.getDartExecutor().getBinaryMessenger(),
                 IMMERSIVE_SYSTEM_UI_CHANNEL)
                 .setMethodCallHandler(this::handleImmersiveSystemUiCall);
+        new MethodChannel(
+                flutterEngine.getDartExecutor().getBinaryMessenger(),
+                TV_DEVICE_CHANNEL)
+                .setMethodCallHandler((call, result) -> {
+                    if ("isTelevision".equals(call.method)) {
+                        result.success(isTelevision());
+                    } else {
+                        result.notImplemented();
+                    }
+                });
+    }
+
+    private boolean isTelevision() {
+        final PackageManager packageManager = getPackageManager();
+        if (packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)) {
+            return true;
+        }
+        final UiModeManager uiModeManager =
+                (UiModeManager) getSystemService(Context.UI_MODE_SERVICE);
+        return uiModeManager != null
+                && uiModeManager.getCurrentModeType()
+                == Configuration.UI_MODE_TYPE_TELEVISION;
     }
 
     private void handleMethodCall(@NonNull MethodCall call, @NonNull MethodChannel.Result result) {
