@@ -10,4 +10,7 @@ class AppPageInsets {
   static const EdgeInsets zero = EdgeInsets.zero;
   static const EdgeInsets desktopStandard = EdgeInsets.all(desktop);
   static const EdgeInsets compactStandard = EdgeInsets.all(compact);
+  static const EdgeInsets compactHorizontal = EdgeInsets.symmetric(
+    horizontal: compact,
+  );
 }

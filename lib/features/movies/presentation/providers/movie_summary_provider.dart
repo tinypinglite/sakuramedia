@@ -348,17 +348,20 @@ class MovieSummary extends _$MovieSummary
     PlaylistFilterState filter, {
     required List<int> tagIds,
     required TagMatchMode tagMatch,
+    bool refreshIfUnchanged = false,
   }) {
     final effective = ref.read(statsFeaturesEnabledProvider)
         ? filter
         : filter.withoutStatsFeatures();
-    return applyFilterState(
-      activeFilter.copyWith(
-        playlist: effective,
-        tagIds: List<int>.unmodifiable(tagIds),
-        tagMatch: tagMatch,
-      ),
+    final next = activeFilter.copyWith(
+      playlist: effective,
+      tagIds: List<int>.unmodifiable(tagIds),
+      tagMatch: tagMatch,
     );
+    if (refreshIfUnchanged && activeFilter == next) {
+      return refresh().then<void>((_) {});
+    }
+    return applyFilterState(next);
   }
 
   Future<void> applyTagFilter({

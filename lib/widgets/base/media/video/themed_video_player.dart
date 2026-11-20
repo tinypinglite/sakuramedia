@@ -325,21 +325,6 @@ class _ThemedVideoPlayerState extends ConsumerState<ThemedVideoPlayer> {
     final videoStateKey = externalVideoKey is GlobalKey<VideoState>
         ? externalVideoKey
         : _fallbackVideoStateKey;
-    ref.listen(playerSubtitlePreferenceControllerProvider, (previous, next) {
-      final preference = next.value;
-      if (preference == null || !mounted) {
-        return;
-      }
-      final configuration = buildPlayerSubtitleViewConfiguration(
-        context: context,
-        preference: preference,
-      );
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        videoStateKey.currentState?.setSubtitleViewPadding(
-          configuration.padding,
-        );
-      });
-    });
     final fullscreenBottom =
         widget.fullscreenBottomControls ?? widget.bottomControls;
     // 首帧前由本组件的加载浮层统一反馈，避免和 media_kit 的 buffering 指示器重叠。

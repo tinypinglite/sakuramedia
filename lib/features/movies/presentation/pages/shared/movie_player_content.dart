@@ -738,8 +738,6 @@ class MoviePlayerSurface extends ConsumerStatefulWidget {
 class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
   static final Random _playbackAttemptRandom = Random.secure();
 
-  /// 字幕位置变更时需要通过 VideoState 立即重设 padding（SubtitleView 会缓存
-  /// 自己的 padding，只换配置不会移动）。
   final GlobalKey<VideoState> _videoStateKey = GlobalKey<VideoState>();
 
   late final ThrottlingPlayer _player;
@@ -1415,21 +1413,6 @@ class _MoviePlayerSurfaceState extends ConsumerState<MoviePlayerSurface> {
       context: context,
       preference: subtitlePreference,
     );
-    ref.listen(playerSubtitlePreferenceControllerProvider, (previous, next) {
-      final preference = next.value;
-      if (preference == null || !mounted) {
-        return;
-      }
-      final configuration = buildPlayerSubtitleViewConfiguration(
-        context: context,
-        preference: preference,
-      );
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _videoStateKey.currentState?.setSubtitleViewPadding(
-          configuration.padding,
-        );
-      });
-    });
     final isPortrait =
         widget.isPortraitOverride ??
         (MediaQuery.orientationOf(context) == Orientation.portrait);

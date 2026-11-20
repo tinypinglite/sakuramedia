@@ -4,29 +4,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 part 'player_subtitle_preference_provider.g.dart';
 
-/// 字幕显示偏好：字号倍率 + 底部偏移（逻辑像素）。
+/// 字幕显示偏好：字号倍率。
 @immutable
 class PlayerSubtitlePreference {
-  const PlayerSubtitlePreference({
-    this.scale = 1.0,
-    this.bottomOffset = 0.0,
-  });
+  const PlayerSubtitlePreference({this.scale = 1.0});
 
   static const double minScale = 0.75;
   static const double maxScale = 2.0;
-  static const double minBottomOffset = 0.0;
-  static const double maxBottomOffset = 240.0;
 
   final double scale;
-  final double bottomOffset;
 
-  bool get isDefault => scale == 1.0 && bottomOffset == 0.0;
+  bool get isDefault => scale == 1.0;
 
-  PlayerSubtitlePreference copyWith({double? scale, double? bottomOffset}) {
-    return PlayerSubtitlePreference(
-      scale: scale ?? this.scale,
-      bottomOffset: bottomOffset ?? this.bottomOffset,
-    );
+  PlayerSubtitlePreference copyWith({double? scale}) {
+    return PlayerSubtitlePreference(scale: scale ?? this.scale);
   }
 }
 
@@ -37,7 +28,6 @@ Duration? _noRetry(int retryCount, Object error) => null;
 class PlayerSubtitlePreferenceController
     extends _$PlayerSubtitlePreferenceController {
   static const String _scaleKey = 'player.subtitle.scale';
-  static const String _bottomOffsetKey = 'player.subtitle.bottom_offset';
 
   @override
   Future<PlayerSubtitlePreference> build() async {
@@ -48,12 +38,6 @@ class PlayerSubtitlePreferenceController
             .clamp(
               PlayerSubtitlePreference.minScale,
               PlayerSubtitlePreference.maxScale,
-            )
-            .toDouble(),
-        bottomOffset: (preferences.getDouble(_bottomOffsetKey) ?? 0.0)
-            .clamp(
-              PlayerSubtitlePreference.minBottomOffset,
-              PlayerSubtitlePreference.maxBottomOffset,
             )
             .toDouble(),
       );
@@ -75,25 +59,11 @@ class PlayerSubtitlePreferenceController
     await _persistDouble(_scaleKey, scale);
   }
 
-  Future<void> setBottomOffset(double value) async {
-    final current = state.value ?? const PlayerSubtitlePreference();
-    final offset = value
-        .clamp(
-          PlayerSubtitlePreference.minBottomOffset,
-          PlayerSubtitlePreference.maxBottomOffset,
-        )
-        .toDouble();
-    if (current.bottomOffset == offset) return;
-    state = AsyncData(current.copyWith(bottomOffset: offset));
-    await _persistDouble(_bottomOffsetKey, offset);
-  }
-
   Future<void> reset() async {
     state = const AsyncData(PlayerSubtitlePreference());
     try {
       final preferences = await SharedPreferences.getInstance();
       await preferences.remove(_scaleKey);
-      await preferences.remove(_bottomOffsetKey);
     } catch (_) {
       // 持久化失败保持内存态可用，下次启动回退到上次保存值。
     }

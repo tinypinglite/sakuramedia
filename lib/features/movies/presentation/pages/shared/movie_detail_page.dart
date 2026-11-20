@@ -12,7 +12,10 @@ import 'package:sakuramedia/features/actors/presentation/providers/actors_api_pr
 import 'package:sakuramedia/features/cast/data/cast_director.dart';
 import 'package:sakuramedia/features/cast/presentation/actions/cast_movie_playback.dart';
 import 'package:sakuramedia/features/cast/presentation/providers/cast_session_provider.dart';
+import 'package:sakuramedia/features/external_player/data/external_player_app.dart';
+import 'package:sakuramedia/features/external_player/data/external_player_channel.dart';
 import 'package:sakuramedia/features/external_player/presentation/providers/external_player_preference_provider.dart';
+import 'package:sakuramedia/features/external_player/presentation/widgets/external_player_picker.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/data/dto/player/movie_subtitle_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_detail_action_menu.dart';
@@ -339,7 +342,10 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       isCollection: derived.isCollection,
       isBlacklisted: derived.isBlacklisted,
       isWatched: derived.isWatched,
-      defaultUsesExternalPlayer: _defaultUsesExternalPlayer(),
+      canUseExternalPlayer:
+          const ExternalPlayerChannel().isSupported &&
+          selectedMedia != null &&
+          selectedMedia.hasPlayableUrl,
       selectedMedia: selectedMedia,
       castSessionLabel: _activeCastSessionLabel(movie),
       canCast:
@@ -357,10 +363,14 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     MovieDetailDerived derived,
   ) async {
     switch (action) {
-      case MovieDetailActionType.playInApp:
+      case MovieDetailActionType.openExternalPlayer:
+        final player = await showExternalPlayerPicker(context);
+        if (!mounted || player == null) return;
         _openMoviePlayer(
+          movie: movie,
           mediaId: derived.selectedMedia?.mediaId,
-          target: MoviePlaybackTarget.inApp,
+          target: MoviePlaybackTarget.external,
+          externalPlayer: player,
         );
       case MovieDetailActionType.castToDevice:
         final castSession = ref.read(castSessionControllerProvider);
@@ -667,6 +677,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     int? mediaId,
     int? positionSeconds,
     MoviePlaybackTarget target = MoviePlaybackTarget.auto,
+    ExternalPlayerApp? externalPlayer,
   }) {
     final interaction = ref.read(movieDetailInteractionProvider(movieNumber));
     if (interaction.isLaunchingPlayback) return;
@@ -681,13 +692,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
             ? null
             : movie ?? ref.read(movieDetailProvider(movieNumber)).movie,
         target: target,
+        externalPlayer: externalPlayer,
       ).whenComplete(() => _interaction.setPlaybackLaunching(false)),
     );
-  }
-
-  bool _defaultUsesExternalPlayer() {
-    final selection = ref.read(externalPlayerPreferenceProvider).value;
-    return selection != null && isExternalPlayerAvailable(selection);
   }
 
   Future<void> _openMergedPlayback(

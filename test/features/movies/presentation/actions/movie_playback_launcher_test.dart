@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
+import 'package:sakuramedia/features/external_player/data/external_player_app.dart';
 import 'package:sakuramedia/features/external_player/presentation/providers/external_player_preference_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -98,6 +99,70 @@ void main() {
       }
     });
   }
+
+  testWidgets('影片入口可用显式选择的外部播放器覆盖默认应用内播放', (tester) async {
+    final previous = debugDefaultTargetPlatformOverride;
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    final session = SessionStore.inMemory();
+    const channel = MethodChannel('sakuramedia/external_player');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    try {
+      await session.saveBaseUrl('http://nas:8000');
+      SharedPreferences.setMockInitialValues(<String, Object>{});
+      Map? args;
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        args = call.arguments as Map;
+        return true;
+      });
+      late BuildContext context;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [sessionStoreProvider.overrideWithValue(session)],
+          child: MaterialApp(
+            home: Builder(
+              builder: (innerContext) {
+                context = innerContext;
+                return const SizedBox();
+              },
+            ),
+          ),
+        ),
+      );
+      await launchMoviePlayback(
+        context,
+        movieNumber: 'TEST-001',
+        target: MoviePlaybackTarget.external,
+        externalPlayer: const ExternalPlayerApp(
+          id: 'org.videolan.vlc',
+          label: 'VLC',
+        ),
+        movie: MovieDetailDto.fromJson({
+          'movie_number': 'TEST-001',
+          'media_items': [
+            {
+              'media_id': 1,
+              'library_id': 2,
+              'provider_key': 'filesystem',
+              'play_url': '/media/1/play/file.mp4?expires=1&signature=sig',
+            },
+          ],
+        }),
+      );
+
+      expect(args, isNotNull);
+      expect(args!['playerId'], 'org.videolan.vlc');
+      expect(
+        Uri.parse(args!['url'] as String).queryParameters['delivery'],
+        isNull,
+      );
+    } finally {
+      await tester.pumpWidget(const SizedBox());
+      messenger.setMockMethodCallHandler(channel, null);
+      session.dispose();
+      debugDefaultTargetPlatformOverride = previous;
+    }
+  });
 
   test('parses the provider play URL without a delivery choice', () {
     final dto = MovieMediaItemDto.fromJson(<String, dynamic>{

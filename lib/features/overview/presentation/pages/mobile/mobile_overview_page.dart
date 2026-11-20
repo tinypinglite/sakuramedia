@@ -57,15 +57,39 @@ class _MobileOverviewPageState extends ConsumerState<MobileOverviewPage>
       children: [
         _MobileOverviewHeader(controller: _tabController),
         Expanded(
-          child: TabBarView(
-            key: const Key('mobile-overview-tab-view'),
-            controller: _tabController,
-            children: const [
-              AppKeepAlive(child: MobileOverviewMyTab()),
-              AppKeepAlive(child: MobileOverviewClipsTab()),
-              AppKeepAlive(child: MobileOverviewDiscoverTab()),
-              AppKeepAlive(child: MobileOverviewMomentsTab()),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // 横向页签铺到整屏宽，8px 留白放进每个页面内部。这样左右滑动时
+              // 页面连同留白边界一起移动，不会像在静态 padding 里替换内容。
+              final viewportWidth =
+                  constraints.maxWidth +
+                  AppPageInsets.compactHorizontal.horizontal;
+              return OverflowBox(
+                key: const Key('mobile-overview-tab-viewport'),
+                minWidth: viewportWidth,
+                maxWidth: viewportWidth,
+                child: TabBarView(
+                  key: const Key('mobile-overview-tab-view'),
+                  controller: _tabController,
+                  children:
+                      const <Widget>[
+                            MobileOverviewMyTab(),
+                            MobileOverviewClipsTab(),
+                            MobileOverviewDiscoverTab(),
+                            MobileOverviewMomentsTab(),
+                          ]
+                          .map(
+                            (child) => AppKeepAlive(
+                              child: Padding(
+                                padding: AppPageInsets.compactHorizontal,
+                                child: child,
+                              ),
+                            ),
+                          )
+                          .toList(growable: false),
+                ),
+              );
+            },
           ),
         ),
       ],
@@ -85,7 +109,7 @@ class _MobileOverviewHeader extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
 
     return Padding(
-      padding: EdgeInsets.only(top: spacing.xs),
+      padding: EdgeInsets.only(top: spacing.xs, bottom: spacing.sm),
       child: SizedBox(
         height: componentTokens.mobileTopTabHeight,
         child: Row(

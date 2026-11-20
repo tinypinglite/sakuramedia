@@ -126,6 +126,10 @@ void main() {
       find.byKey(const Key('movie-player-subtitle-settings-modal')),
       findsNothing,
     );
+    expect(
+      find.byKey(const Key('movie-player-subtitle-settings-offset')),
+      findsNothing,
+    );
 
     final container = ProviderScope.containerOf(
       tester.element(find.byKey(const Key('movie-player-subtitle-settings'))),
@@ -276,9 +280,7 @@ void main() {
     expect(
       AppSurfaceStyleScope.of(
         tester.element(
-          find.byKey(
-            const Key('movie-player-mobile-subtitle-drawer-settings'),
-          ),
+          find.byKey(const Key('movie-player-mobile-subtitle-drawer-settings')),
         ),
       ),
       AppSurfaceStyle.flat,

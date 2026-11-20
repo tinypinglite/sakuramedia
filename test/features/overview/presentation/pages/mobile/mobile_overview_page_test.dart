@@ -137,6 +137,41 @@ void main() {
     expect(scaffoldKey.currentState?.isDrawerOpen, isTrue);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('swipes overview tabs edge-to-edge without changing page inset', (
+    tester,
+  ) async {
+    _enqueueMyTabResponses(bundle);
+    await pumpPreviewApp(
+      tester,
+      home: const Padding(
+        padding: AppPageInsets.compactStandard,
+        child: MobileOverviewPage(),
+      ),
+      size: const Size(390, 844),
+      theme: buildSakuraMobileThemeData(),
+      platform: TargetPlatform.android,
+      appPlatform: AppPlatform.mobile,
+      bundle: bundle,
+      extraOverrides: [
+        playlistOrderStoreProvider.overrideWithValue(orderStore),
+      ],
+      settle: false,
+    );
+    await _pumpFrames(tester);
+
+    final tabViewRect = tester.getRect(
+      find.byKey(const Key('mobile-overview-tab-view')),
+    );
+    expect(tabViewRect.left, 0);
+    expect(tabViewRect.width, 390);
+
+    final searchFieldRect = tester.getRect(
+      find.byKey(const Key('mobile-overview-my-search-field')),
+    );
+    expect(searchFieldRect.left, AppPageInsets.compact);
+    expect(searchFieldRect.width, 390 - AppPageInsets.compact * 2);
+  });
 }
 
 Future<void> _pumpMyTab(

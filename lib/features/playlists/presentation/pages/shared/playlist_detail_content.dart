@@ -150,7 +150,7 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
     _savedTagMatch = TagMatchModeX.fromApiValue(smartFilter?.tagMatch ?? 'or');
     _scopeState = MovieSummaryScope.playlist(
       playlistId: widget.playlistId,
-      initialPlaylistFilter: _savedFilterState,
+      initialPlaylistFilter: smartFilter == null ? null : _savedFilterState,
       initialTagIds: _savedTagIds,
       initialTagMatch: _savedTagMatch,
     );
@@ -470,6 +470,7 @@ class _PlaylistDetailContentState extends ConsumerState<PlaylistDetailContent>
             _savedFilterState,
             tagIds: _savedTagIds,
             tagMatch: _savedTagMatch,
+            refreshIfUnchanged: true,
           );
       ref
           .read(tagSelectionProvider(_tagSelectionScope).notifier)

@@ -5,6 +5,8 @@ import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/media/playback_resume_policy.dart';
 import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
+import 'package:sakuramedia/features/external_player/data/external_playback_mode.dart';
+import 'package:sakuramedia/features/external_player/data/external_player_app.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_channel.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_selection.dart';
 import 'package:sakuramedia/features/external_player/presentation/providers/external_player_preference_provider.dart';
@@ -23,7 +25,7 @@ bool isExternalPlayerAvailable(ExternalPlayerSelection selection) {
 }
 
 /// 统一的影片播放入口：根据用户是否设置了默认外部播放器，决定跳应用内播放页
-/// 还是直接拉起外部播放器。
+/// 还是直接拉起外部播放器；[externalPlayer] 可让详情页一次性指定其他播放器。
 ///
 /// 详情接口返回的 [MovieMediaItemDto.playUrl] 已经是后端签名播放地址。前端只
 /// 负责补全 URL，外部播放器通道按用户偏好选择传输方式。
@@ -35,11 +37,14 @@ Future<void> launchMoviePlayback(
   MovieDetailDto? movie,
   String? inAppFallbackPath,
   MoviePlaybackTarget target = MoviePlaybackTarget.auto,
+  ExternalPlayerApp? externalPlayer,
 }) async {
   final selection = _readExternalPlayerSelection(context);
   const channel = ExternalPlayerChannel();
   final externalAvailable =
-      selection != null && isExternalPlayerAvailable(selection);
+      channel.isSupported &&
+      (externalPlayer != null ||
+          (selection != null && selection.hasExternalPlayer));
   final canUseExternal =
       target != MoviePlaybackTarget.inApp && externalAvailable;
 
@@ -114,9 +119,9 @@ Future<void> launchMoviePlayback(
       : movieNumber;
 
   final launched = await channel.launch(
-    playerId: selection.playerId!,
+    playerId: externalPlayer?.id ?? selection!.playerId!,
     url: resolvedUrl,
-    playbackMode: selection.playbackMode,
+    playbackMode: selection?.playbackMode ?? ExternalPlaybackMode.followBackend,
     title: title,
     positionMs: resumeSeconds != null && resumeSeconds > 0
         ? resumeSeconds * 1000

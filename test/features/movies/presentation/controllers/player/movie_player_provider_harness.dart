@@ -82,8 +82,7 @@ class MoviePlayerHarness {
 
   Future<void> load({Duration? startupPosition}) =>
       _notifier.load(startupPosition: startupPosition);
-  Future<void> loadSubtitles({bool selectFirstIfUnset = false}) =>
-      _notifier.loadSubtitles(selectFirstIfUnset: selectFirstIfUnset);
+  Future<void> loadSubtitles() => _notifier.loadSubtitles();
   void applyAutoThumbnailColumns(int count) =>
       _notifier.applyAutoThumbnailColumns(count);
   void setThumbnailColumns(int count) => _notifier.setThumbnailColumns(count);

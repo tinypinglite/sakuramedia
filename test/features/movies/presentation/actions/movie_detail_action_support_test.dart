@@ -152,6 +152,32 @@ void main() {
     },
   );
 
+  test(
+    'buildMovieDetailActionDescriptors offers external playback when supported',
+    () {
+      final actions = buildMovieDetailActionDescriptors(
+        l10n: AppLocalizationsZh(),
+        isSubscribed: false,
+        isCollection: false,
+        isBlacklisted: false,
+        canCast: true,
+        canUseExternalPlayer: true,
+      );
+
+      expect(
+        actions.take(2).map((action) => action.type),
+        <MovieDetailActionType>[
+          MovieDetailActionType.castToDevice,
+          MovieDetailActionType.openExternalPlayer,
+        ],
+      );
+      expect(
+        _labelOf(actions, MovieDetailActionType.openExternalPlayer),
+        isNotEmpty,
+      );
+    },
+  );
+
   test('buildMovieDetailActionDescriptors shows casting label when active', () {
     final actions = buildMovieDetailActionDescriptors(
       l10n: AppLocalizationsZh(),

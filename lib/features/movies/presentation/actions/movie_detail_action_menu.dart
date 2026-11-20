@@ -5,7 +5,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 
 enum MovieDetailActionType {
   castToDevice,
-  playInApp,
+  openExternalPlayer,
   toggleSubscription,
   toggleFavorite,
   openMagnetSearch,
@@ -39,7 +39,7 @@ List<MovieDetailActionDescriptor> buildMovieDetailActionDescriptors({
   required bool isBlacklisted,
   bool isWatched = false,
   bool canCast = false,
-  bool defaultUsesExternalPlayer = false,
+  bool canUseExternalPlayer = false,
   String? castSessionLabel,
 }) {
   return <MovieDetailActionDescriptor>[
@@ -49,11 +49,11 @@ List<MovieDetailActionDescriptor> buildMovieDetailActionDescriptors({
         label: castSessionLabel ?? l10n.castPickerTitle,
         icon: Icons.cast_rounded,
       ),
-    if (defaultUsesExternalPlayer)
+    if (canUseExternalPlayer)
       MovieDetailActionDescriptor(
-        type: MovieDetailActionType.playInApp,
-        label: l10n.movieActionPlayInApp,
-        icon: Icons.play_circle_outline_rounded,
+        type: MovieDetailActionType.openExternalPlayer,
+        label: l10n.movieActionPlayExternal,
+        icon: Icons.open_in_new_rounded,
       ),
     if (!isBlacklisted)
       MovieDetailActionDescriptor(

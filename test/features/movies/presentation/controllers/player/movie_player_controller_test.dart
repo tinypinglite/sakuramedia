@@ -261,7 +261,7 @@ void main() {
   });
 
   test(
-    'load resolves subtitle options and selects the first by default',
+    'load resolves subtitle options and keeps subtitle disabled by default',
     () async {
       final controller = MoviePlayerHarness(
         movieNumber: 'ABC-001',
@@ -283,7 +283,7 @@ void main() {
       await controller.load();
 
       expect(controller.subtitleFetchStatus, 'succeeded');
-      expect(controller.selectedSubtitleId, 501);
+      expect(controller.selectedSubtitleId, isNull);
       expect(controller.subtitleOptions, hasLength(1));
       expect(controller.subtitleOptions.single.subtitleId, 501);
       expect(
@@ -353,7 +353,7 @@ void main() {
     expect(controller.selectedSubtitleId, 501);
   });
 
-  test('subtitle reload preserves an explicit disabled selection', () async {
+  test('subtitle reload preserves an explicit selection', () async {
     final controller = MoviePlayerHarness(
       movieNumber: 'ABC-001',
       baseUrl: 'https://api.example.com',
@@ -372,12 +372,10 @@ void main() {
     addTearDown(controller.dispose);
 
     await controller.load();
-    expect(controller.selectedSubtitleId, 501);
-
-    controller.setSelectedSubtitleId(null);
+    controller.setSelectedSubtitleId(501);
     await controller.loadSubtitles();
 
-    expect(controller.selectedSubtitleId, isNull);
+    expect(controller.selectedSubtitleId, 501);
   });
 
   test(

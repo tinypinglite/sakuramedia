@@ -733,6 +733,46 @@ void main() {
     expect(query['media_tag_ids'], '');
   });
 
+  test('播放列表保存条件变化但可见筛选未变时强制刷新', () async {
+    const scope = MovieSummaryScope.playlist(playlistId: 7);
+    await prime(scope, <Map<String, dynamic>>[_movie('PLAY-001')]);
+
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/playlists/7/movies',
+      body: _page(
+        items: <Map<String, dynamic>>[_movie('PLAY-002')],
+        total: 1,
+        pageSize: scope.pageSize,
+      ),
+    );
+    await container
+        .read(movieSummaryProvider(scope).notifier)
+        .applyPlaylistViewFilter(
+          PlaylistFilterState.initial,
+          tagIds: const <int>[],
+          tagMatch: TagMatchMode.or,
+          refreshIfUnchanged: true,
+        );
+
+    expect(
+      adapter.requests
+          .where((request) => request.path == '/playlists/7/movies')
+          .length,
+      2,
+    );
+    expect(
+      container
+          .read(movieSummaryProvider(scope))
+          .requireValue
+          .paged
+          .items
+          .single
+          .movieNumber,
+      'PLAY-002',
+    );
+  });
+
   test('订阅广播就地修正条目，合集广播按来源移除单体列表中的条目', () async {
     const scope = MovieSummaryScope.subscribedActorsLatest();
     await prime(scope, <Map<String, dynamic>>[

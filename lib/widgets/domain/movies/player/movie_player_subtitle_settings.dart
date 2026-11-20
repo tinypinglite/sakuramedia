@@ -65,19 +65,6 @@ class MoviePlayerSubtitleSettingsView extends ConsumerWidget {
           onChanged: controller.setScale,
         ),
         SizedBox(height: spacing.md),
-        _SubtitleSettingSlider(
-          key: const Key('movie-player-subtitle-settings-offset'),
-          sliderKey: const Key('movie-player-subtitle-settings-offset-slider'),
-          label:
-              '${l10n.moviePlayerSubtitlePositionLabel}  '
-              '${preference.bottomOffset.round()}',
-          value: preference.bottomOffset,
-          min: PlayerSubtitlePreference.minBottomOffset,
-          max: PlayerSubtitlePreference.maxBottomOffset,
-          divisions: 24,
-          onChanged: controller.setBottomOffset,
-        ),
-        SizedBox(height: spacing.md),
         Align(
           alignment: Alignment.centerLeft,
           child: AppTextButton(

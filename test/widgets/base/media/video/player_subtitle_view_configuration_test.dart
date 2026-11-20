@@ -20,10 +20,7 @@ void main() {
               builder: (context) {
                 configuration = buildPlayerSubtitleViewConfiguration(
                   context: context,
-                  preference: const PlayerSubtitlePreference(
-                    scale: 1.25,
-                    bottomOffset: 36,
-                  ),
+                  preference: const PlayerSubtitlePreference(scale: 1.25),
                 );
                 return const SizedBox.shrink();
               },
@@ -37,7 +34,7 @@ void main() {
       expect(configuration.padding.left, 0);
       expect(configuration.padding.top, 0);
       expect(configuration.padding.right, 0);
-      expect(configuration.padding.bottom, greaterThan(12 + 36));
+      expect(configuration.padding.bottom, greaterThan(12));
     },
   );
 }
