@@ -99,7 +99,7 @@ import_metadata_max_workers = 3
 | `gfriends_filetree_cache_ttl_hours` | File-tree cache lifetime (hours). |
 | `import_metadata_max_workers` | Number of concurrent threads used to fetch metadata during movie import. |
 
-Requests to external sites uniformly use the container environment variables `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY`. Connections to indexers, download providers and media providers are managed by each plugin's own configuration.
+Requests to external sites uniformly use the container environment variables `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY`. Connections to indexers, download providers and media providers are managed by each plugin's own configuration. The backend connects to Qdrant and SigLIP2 directly and does not inherit these proxy variables for those connections.
 
 ### Metadata plugins
 
@@ -239,6 +239,6 @@ url = "http://qdrant:6333"
 api_key = ""
 ```
 
-`url` is the Qdrant HTTP API address; with the compose deployment, use the in-container service name `qdrant`. Fill in `api_key` when Qdrant authentication is enabled.
+`url` is the Qdrant HTTP API address; with the compose deployment, use the in-container service name `qdrant`. Fill in `api_key` when Qdrant authentication is enabled. The backend connects to Qdrant directly without using the container's HTTP proxy; a remote URL must be reachable from the `sakuramedia` container without a proxy.
 
 `enabled` controls similar movies and the vector service. When it is off, Qdrant is not contacted and recommendations skip the movie similarity signal; disabling image search does not affect similar movies, which depend on Qdrant alone. When disabling Qdrant you should disable image search as well; desktop prompts you and saves both together. The switch does not stop or remove Docker containers — to free resources, stop the containers on the deployment side.

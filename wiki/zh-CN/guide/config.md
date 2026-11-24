@@ -99,7 +99,7 @@ import_metadata_max_workers = 3
 | `gfriends_filetree_cache_ttl_hours` | 文件树缓存有效期（小时）。 |
 | `import_metadata_max_workers` | 导入影片时抓取元数据的并发线程数。 |
 
-外部站点请求统一使用容器环境变量 `HTTP_PROXY`、`HTTPS_PROXY` 和 `NO_PROXY`。索引器、下载 provider 和媒体 provider 的连接由各自插件配置管理。
+外部站点请求统一使用容器环境变量 `HTTP_PROXY`、`HTTPS_PROXY` 和 `NO_PROXY`。索引器、下载 provider 和媒体 provider 的连接由各自插件配置管理。后端连接 Qdrant 和 SigLIP2 时不继承这些代理变量，始终直接连接。
 
 ### 元数据插件
 
@@ -239,6 +239,6 @@ url = "http://qdrant:6333"
 api_key = ""
 ```
 
-`url` 是 Qdrant HTTP API 地址；compose 部署时使用容器内服务名 `qdrant`。启用 Qdrant 鉴权时填写 `api_key`。
+`url` 是 Qdrant HTTP API 地址；compose 部署时使用容器内服务名 `qdrant`。启用 Qdrant 鉴权时填写 `api_key`。后端直接连接 Qdrant，不使用容器的 HTTP 代理；远程地址必须能从 `sakuramedia` 容器直接访问。
 
 `enabled` 控制相似影片与向量服务。关闭时不连接 Qdrant，推荐跳过影片相似度信号；关闭图搜不影响仅依赖 Qdrant 的相似影片。关闭 Qdrant 时应同时关闭图搜，桌面端会提示并一起保存。开关不会停止或删除 Docker 容器，释放资源需在部署端停容器。

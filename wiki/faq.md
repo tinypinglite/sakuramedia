@@ -47,10 +47,10 @@ Troubleshooting order:
    ```yaml
    HTTP_PROXY: "http://192.168.1.1:7890"
    HTTPS_PROXY: "http://192.168.1.1:7890"
-   NO_PROXY: "localhost,127.0.0.1,postgres,qbittorrent"
+   NO_PROXY: "localhost,127.0.0.1,postgres,qdrant,siglip2-embed"
    ```
 
-   The proxy address must be reachable from the container; inside a container, `127.0.0.1` usually points to the container itself rather than the host. Keep LAN indexers, qBittorrent, PostgreSQL, and similar services in `NO_PROXY` so internal requests do not go through the proxy. Restart the `sakuramedia` container after changing these values.
+   The proxy address must be reachable from the container; inside a container, `127.0.0.1` usually points to the container itself rather than the host. Keep PostgreSQL, Qdrant, SigLIP2, LAN indexers and media provider hosts in `NO_PROXY` so internal requests do not go through the proxy. Use hostnames or IPs rather than URLs, and add the actual Compose service name when you customize it. Restart the `sakuramedia` container after changing these values.
 
 Connection settings for indexers, download providers and media providers are still entered in their own configuration.
 
@@ -97,6 +97,8 @@ Movie interaction stats, heat, and reviews are all provided by plugins. The offi
 The image library comes from thumbnails generated for playable media, feature extraction is done by the SigLIP2 embedding service, and vectors are stored in Qdrant. Once all three are ready, background tasks generate and index images gradually.
 
 If results are empty, check the embedding service on the "Overview" page first, then run "Media thumbnail generation", "Search-by-image thumbnail vector index" and "Search-by-image plot image vector index" in the task center.
+
+If "Overview → Component Diagnostics" reports Qdrant as unhealthy, or the task center reports `502`, first confirm the Qdrant and SigLIP2 containers are running. The backend connects to both directly and does not send these requests through `HTTP_PROXY` or `HTTPS_PROXY`, so a remote Qdrant or SigLIP2 address must be directly reachable from the `sakuramedia` container. If Qdrant is behind a reverse proxy, also check that proxy's upstream and address.
 
 ## Media library and import
 

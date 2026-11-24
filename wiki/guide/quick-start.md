@@ -98,7 +98,7 @@ services:
       # If the host cannot reach GFriends or the metadata sites directly, uncomment the next three lines and fill in your proxy address.
       # HTTP_PROXY: "http://192.168.1.1:7890"
       # HTTPS_PROXY: "http://192.168.1.1:7890"
-      # NO_PROXY: "localhost,127.0.0.1,postgres,qbittorrent"
+      # NO_PROXY: "localhost,127.0.0.1,postgres,qdrant,siglip2-embed"
       MALLOC_TRIM_THRESHOLD_: "131072"
     volumes:
       - ./sakuramedia-data:/data # This line usually does not need to change.
@@ -241,6 +241,8 @@ See [Get your first movie](/manual/first-movie) for the full flow. Importing exi
 Image search and similar movies rely on Qdrant and the SigLIP2 embedding service. The CPU image in the examples on this page works on AMD, Intel and ARM64 hosts. The SigLIP2 image already bundles the model and runtime — you do **not** need to download models, mount a model directory, or pre-scale images. On startup the service automatically picks an inference backend based on the runtimes installed in the image; no configuration is required.
 
 When the backend and the embedding service are in the same Compose project, no port mapping is needed; the backend reaches the service at `http://siglip2-embed:8080` by default.
+
+If you configure a container proxy for external metadata requests, keep `qdrant` and `siglip2-embed` in `NO_PROXY`; see [Metadata plugin networking and proxy](/faq#metadata-plugin-networking-and-proxy). The backend connects to Qdrant and SigLIP2 directly, so a remote Qdrant or SigLIP2 address must be reachable from the `sakuramedia` container without an HTTP proxy.
 
 ### Enabling on demand
 

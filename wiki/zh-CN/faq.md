@@ -47,10 +47,10 @@ JavLibrary 的镜像站域名可配置，默认为 `www.f101w.com`。
    ```yaml
    HTTP_PROXY: "http://192.168.1.1:7890"
    HTTPS_PROXY: "http://192.168.1.1:7890"
-   NO_PROXY: "localhost,127.0.0.1,postgres,qbittorrent"
+   NO_PROXY: "localhost,127.0.0.1,postgres,qdrant,siglip2-embed"
    ```
 
-   代理地址必须是容器能访问的地址；容器内的 `127.0.0.1` 通常指向容器自身，而不是宿主机。`NO_PROXY` 中要保留内网索引器、qBittorrent、PostgreSQL 等地址，避免内网请求被送进代理。修改后重启 `sakuramedia` 容器。
+   代理地址必须是容器能访问的地址；容器内的 `127.0.0.1` 通常指向容器自身，而不是宿主机。`NO_PROXY` 中要保留 PostgreSQL、Qdrant、SigLIP2、内网索引器和媒体 provider 的实际主机名或 IP，避免内网请求被送进代理；这里填写主机名或 IP，不要写 URL，自定义 Compose 服务名时使用实际名称。修改后重启 `sakuramedia` 容器。
 
 索引器、下载 provider 和媒体 provider 的连接参数仍在各自配置中填写。
 
@@ -97,6 +97,8 @@ docker exec -it --user app -w /app sakuramedia python /app/cli.py reset-account
 图库来自可播放媒体生成的缩略图，特征提取由 SigLIP2 嵌入服务完成，向量存放在 Qdrant。三者都准备好后，后台任务会逐步生成和索引图片。
 
 如果结果为空，先在「概览」页检查嵌入服务，再在任务中心运行「媒体缩略图生成」「以图搜图缩略图向量索引」和「以图搜图剧情图向量索引」。
+
+如果「概览 → 组件诊断」显示 Qdrant 异常，或任务中心报 `502`，先确认 Qdrant 和 SigLIP2 容器正在运行。后端会直接连接这两个服务，不会让它们经过 `HTTP_PROXY` 或 `HTTPS_PROXY`；远程 Qdrant 或 SigLIP2 地址必须能从 `sakuramedia` 容器直接访问。如果 Qdrant 前面还有反向代理，也要检查该代理的上游和地址。
 
 ## 媒体库与导入
 
