@@ -11,6 +11,7 @@
 ## 移动抽屉和表单
 
 - `showAppBottomDrawer<T>` / `AppBottomDrawerSurface`：`app_bottom_drawer.dart`，移动筛选、动作和详情抽屉。抽屉贴底、贴左右边缘，只保留顶部圆角，正文直接铺在玻璃上；输入框、按钮等控件不要透明化。
+- 移动端底部抽屉里的垂直滚动区统一用 `AppBottomDrawerScrollRegion` 包裹并接管 `ScrollController`。仅有剩余内容时在滚动区底部中央显示下滑箭头；点击按约 80% 视口继续滚动，到底隐藏。固定 footer 继续留在滚动区外，提示不能覆盖 footer 按钮；桌面弹窗不显示该提示。
 - `showVideoActions(..., variant: AppAdaptiveModalVariant.drawer)`：PornBox 视频动作抽屉。封面、标题与元信息之后是整行主色「播放」按钮；缩略图、加入/移出合集和删除走三列动作格，所属合集 chips 保持可跳转。桌面 / 移动只通过 `variant` 选择壳体，不再维护独立包装函数。
 - `AppBottomFormSheet`：`app_bottom_form_sheet.dart`，带表单布局和通栏主操作按钮的底部 sheet。表单不再重复提供「取消」；关闭由下拉、遮罩或系统返回承担。桌面表单同理只保留右对齐主按钮，关闭由右上角 X 承担。
 - `AppMobileConfirmActions`：`app_mobile_confirm_actions.dart`，移动确认操作区。
@@ -24,7 +25,7 @@
 
 ## 菜单和筛选
 
-- `showAppActionMenu<T>` / `AppMenuItem<T>`：`app_action_menu.dart`，全应用唯一的右键 / 长按菜单壳；负责定位、统一表面样式与项渲染、底部操作表（可选标题 + 动作项）、全屏图片下的抽屉宿主。移动底部操作表不再渲染独立「取消」行，靠下拉、遮罩或系统返回关闭。调用方只组装 items 并派发返回值，不要另写菜单壳。
+- `showAppActionMenu<T>` / `AppMenuItem<T>`：`app_action_menu.dart`，全应用唯一的右键 / 长按菜单壳；负责定位、统一表面样式与项渲染、底部操作表（可选标题 + 动作项）、全屏图片下的抽屉宿主。移动底部操作表不再渲染独立「取消」行，靠下拉、遮罩或系统返回关闭；动作项溢出时沿用抽屉滚动区的底部下滑箭头。调用方只组装 items 并派发返回值，不要另写菜单壳。
   - `AppMenuPresentation` 由**触发方式**决定，不按平台：长按 / 右键用 `popup`（默认，锚定按压点），「更多」按钮的动作列表用 `bottomDrawer`。桌面 `popup` 的入场同样走 `AppGlassEntrance`（150ms 入场、100ms 出场，带 0.96→1.0 缩放），不要在玻璃面板外再套 `Opacity`。
   - 锚定弹层使用 `AppSurface` 的自绘 platter，液态玻璃和扁平外观由 `AppSurfaceStyle` 自动分派，不改玻璃配方；宽度按文字内容测量：桌面 176–260、移动 180–260。桌面行高 34（副标题 50）、外层留白 6、行内左右 10、行圆角 6、菜单圆角 16；移动行高 38（副标题 50）、外层留白 6、行内左右 12。标题 `s14`，副标题 `s12`。操作表仍为行高 52、图标 18、正文 `s12`。
   - 锚定 popup 只显示文字动作，不渲染 `AppMenuItem.icon`；图标仍供底部操作表使用。打开时不预选首项，鼠标 hover 和键盘焦点共用一个 active 行，使用 `surfaceMuted` 圆角底；`showDividerBefore` 只标记语义分组起点，组间画 1px 浅线，不逐项分割。透明 barrier、无背景压暗和源内容预览，点击外部或返回键得到 `null`。不要退回 `showMenu` 或 `PopupMenuItem`。

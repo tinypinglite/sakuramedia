@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
@@ -40,22 +39,18 @@ List<int> movieMergePlaybackLibraryIds(
   ];
 }
 
-String? resolveMovieMergePlaybackLabel(
-  MovieDetailDto movie,
-  AppLocalizations l10n, {
+bool hasMovieMergePlaybackCandidate(
+  MovieDetailDto movie, {
   Set<int>? supportedExternalLibraryIds,
 }) {
   return movieMergePlaybackLibraryIds(
-        movie,
-        supportedLibraryIds: supportedExternalLibraryIds,
-      ).isEmpty
-      ? null
-      : l10n.moviePageMergedPlayback;
+    movie,
+    supportedLibraryIds: supportedExternalLibraryIds,
+  ).isNotEmpty;
 }
 
 Future<void> openMovieMergedPlayback({
   required BuildContext context,
-  required WidgetRef ref,
   required String movieNumber,
   required MovieDetailDto movie,
   required bool mobile,

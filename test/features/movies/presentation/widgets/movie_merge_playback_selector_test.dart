@@ -7,6 +7,7 @@ import 'package:sakuramedia/features/movies/presentation/actions/movie_merge_pla
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_merge_playback_selector.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 
 void main() {
   const movie = MovieDetailDto(
@@ -107,21 +108,26 @@ void main() {
       MovieMergePlaybackSelection selection,
     )
     onSubmit,
+    bool? isDrawer,
+    double height = 800,
   }) {
+    final selector = SizedBox(
+      width: 640,
+      height: height,
+      child: MovieMergePlaybackSelector(
+        movie: movie,
+        modeDescription: '将在应用内连续播放',
+        onSubmit: onSubmit,
+      ),
+    );
     return MaterialApp(
       theme: buildSakuraDesktopThemeData(),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       home: Scaffold(
-        body: SizedBox(
-          width: 640,
-          height: 800,
-          child: MovieMergePlaybackSelector(
-            movie: movie,
-            modeDescription: '将在应用内连续播放',
-            onSubmit: onSubmit,
-          ),
-        ),
+        body: isDrawer == null
+            ? selector
+            : AppAdaptiveModalShellScope(isDrawer: isDrawer, child: selector),
       ),
     );
   }
@@ -132,6 +138,77 @@ void main() {
       movieMergePlaybackLibraryIds(movie, supportedLibraryIds: const <int>{2}),
       <int>[2],
     );
+  });
+
+  testWidgets('drawer shell shows the selector scroll cue', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(720, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      buildSelector(
+        height: 320,
+        isDrawer: true,
+        onSubmit: (selection) async =>
+            MovieMergePlaybackSubmission.inApp(selection: selection),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('app-bottom-drawer-scroll-cue')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('unscoped selector keeps the drawer scroll cue', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(720, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      buildSelector(
+        height: 320,
+        onSubmit: (selection) async =>
+            MovieMergePlaybackSubmission.inApp(selection: selection),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('app-bottom-drawer-scroll-cue')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('dialog shell does not show the selector scroll cue', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(720, 900);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+
+    await tester.pumpWidget(
+      buildSelector(
+        height: 320,
+        isDrawer: false,
+        onSubmit: (selection) async =>
+            MovieMergePlaybackSubmission.inApp(selection: selection),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final scrollable = tester.state<ScrollableState>(
+      find.descendant(
+        of: find.byKey(const Key('movie-merge-playback-list')),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    expect(scrollable.position.maxScrollExtent, greaterThan(0));
+    expect(find.byKey(const Key('app-bottom-drawer-scroll-cue')), findsNothing);
   });
 
   testWidgets('按点击顺序编号并阻止跨媒体库选择', (tester) async {

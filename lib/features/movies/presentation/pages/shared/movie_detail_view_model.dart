@@ -85,8 +85,6 @@ class MovieDetailViewState {
     this.isDeletingSelectedMedia = false,
     this.isPlayLoading = false,
     this.playLabel,
-    this.mergePlaybackLabel,
-    this.isMergePlaybackLoading = false,
     this.isSimilarMoviesLoading = false,
     this.similarMoviesErrorMessage,
     this.isClipsLoading = false,
@@ -104,8 +102,6 @@ class MovieDetailViewState {
 
   /// 播放键文案；选中媒体存在可续播进度时为「继续播放」，null 走默认「播放」。
   final String? playLabel;
-  final String? mergePlaybackLabel;
-  final bool isMergePlaybackLoading;
   final bool isSimilarMoviesLoading;
   final String? similarMoviesErrorMessage;
   final bool isClipsLoading;
@@ -141,7 +137,6 @@ class MovieDetailViewActions {
     this.onOpenMediaPointPreview,
     this.onRequestMediaPointMenu,
     this.onPlayTap,
-    this.onMergePlaybackTap,
     this.onSubscriptionTap,
     this.onMoreActionsTap,
     this.onActorTap,
@@ -186,7 +181,6 @@ class MovieDetailViewActions {
   )?
   onRequestMediaPointMenu;
   final VoidCallback? onPlayTap;
-  final VoidCallback? onMergePlaybackTap;
   final VoidCallback? onSubscriptionTap;
   final Future<void> Function(Offset globalPosition)? onMoreActionsTap;
   final ValueChanged<MovieActorDto>? onActorTap;

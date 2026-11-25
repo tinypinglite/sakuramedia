@@ -16,6 +16,7 @@ import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_mobile_list_header.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer_scroll_region.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_glass_filter_popover.dart';
 
 /// 通知列表卡片。已读为「无感」自动处理，卡片本身不区分已读/未读视觉，
@@ -233,24 +234,29 @@ class NotificationFilterBar extends StatelessWidget {
       context: context,
       drawerKey: const Key('notification-category-filter-drawer'),
       maxHeightFactor: 0.42,
-      builder: (drawerContext) => SingleChildScrollView(
-        padding: EdgeInsets.all(context.appSpacing.lg),
-        child: AppFilterChoiceSection<String?>(
-          title: l10n.baseFilterTooltip,
-          controlKey: const Key('mobile-notification-category-filter-options'),
-          items: <AppSegmentedItem<String?>>[
-            AppSegmentedItem<String?>(value: null, label: l10n.activityAll),
-            for (final value in _categories)
-              AppSegmentedItem<String?>(
-                value: value,
-                label: labelForNotificationCategory(value, l10n),
-              ),
-          ],
-          selected: filter.category,
-          onChanged: (value) {
-            onFilterChanged(filter.copyWith(category: value));
-            Navigator.of(drawerContext).pop();
-          },
+      builder: (drawerContext) => AppBottomDrawerScrollRegion(
+        builder: (context, controller) => SingleChildScrollView(
+          controller: controller,
+          padding: EdgeInsets.all(context.appSpacing.lg),
+          child: AppFilterChoiceSection<String?>(
+            title: l10n.baseFilterTooltip,
+            controlKey: const Key(
+              'mobile-notification-category-filter-options',
+            ),
+            items: <AppSegmentedItem<String?>>[
+              AppSegmentedItem<String?>(value: null, label: l10n.activityAll),
+              for (final value in _categories)
+                AppSegmentedItem<String?>(
+                  value: value,
+                  label: labelForNotificationCategory(value, l10n),
+                ),
+            ],
+            selected: filter.category,
+            onChanged: (value) {
+              onFilterChanged(filter.copyWith(category: value));
+              Navigator.of(drawerContext).pop();
+            },
+          ),
         ),
       ),
     );

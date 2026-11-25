@@ -6,6 +6,7 @@ import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/forms/app_picker_header.dart';
 import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer_scroll_region.dart';
 
 /// 合集选择器的 key 前缀和空态文案。
 typedef CollectionPickerChrome = ({String keyPrefix, String emptyMessage});
@@ -131,14 +132,24 @@ class _CollectionPickerResultsState<T extends Object>
       return state ?? const SizedBox.shrink();
     }
     final section = AppPickerIosSection(children: rows);
-    return SingleChildScrollView(
-      key: Key('${widget.chrome.keyPrefix}-list'),
-      child: state == null
-          ? section
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [state, section],
-            ),
+    Widget buildList(ScrollController? scrollController) {
+      return SingleChildScrollView(
+        key: Key('${widget.chrome.keyPrefix}-list'),
+        controller: scrollController,
+        child: state == null
+            ? section
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [state, section],
+              ),
+      );
+    }
+
+    if (!AppAdaptiveModalShellScope.maybeIsDrawer(context)) {
+      return buildList(null);
+    }
+    return AppBottomDrawerScrollRegion(
+      builder: (context, controller) => buildList(controller),
     );
   }
 }

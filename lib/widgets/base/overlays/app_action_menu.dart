@@ -13,6 +13,7 @@ import 'package:sakuramedia/widgets/base/layout/glass/app_glass_types.dart';
 import 'package:sakuramedia/widgets/base/layout/surface/app_surface_style.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_fullscreen.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer_scroll_region.dart';
 
 /// 弹出菜单的一项。
 ///
@@ -801,8 +802,10 @@ Future<T?> _showDrawerMenu<T>({
   final headerHeight = hasHeader
       ? _drawerTitleHeight + (titleSubtitle == null ? 0 : 18)
       : 0;
-  final estimatedHeight = _drawerTopSpacing + headerHeight + itemsHeight;
-  final heightFactor = (estimatedHeight / screenHeight).clamp(0.24, 0.92);
+  final drawerChrome =
+      _drawerTopSpacing + 22 + MediaQuery.paddingOf(context).bottom;
+  final estimatedHeight = drawerChrome + headerHeight + itemsHeight;
+  final heightFactor = (estimatedHeight / screenHeight).clamp(0.24, 0.96);
 
   final inlineFullscreenDrawer = AppImageFullscreenHost.showBottomDrawer<T>(
     context: context,
@@ -857,57 +860,60 @@ class _AppActionMenuDrawer<T> extends StatelessWidget {
     final titleSubtitle = this.titleSubtitle;
 
     // 高度估算偏低或系统放大字体时，靠滚动兜底而不是溢出。
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              spacing.lg,
-              spacing.lg,
-              spacing.lg,
-              (title == null && titleSubtitle == null)
-                  ? spacing.xs
-                  : spacing.sm,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (title != null)
-                  Text(
-                    title,
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s16,
-                      weight: AppTextWeight.semibold,
-                      tone: AppTextTone.primary,
+    return AppBottomDrawerScrollRegion(
+      builder: (context, controller) => SingleChildScrollView(
+        controller: controller,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                spacing.lg,
+                spacing.lg,
+                spacing.lg,
+                (title == null && titleSubtitle == null)
+                    ? spacing.xs
+                    : spacing.sm,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (title != null)
+                    Text(
+                      title,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s16,
+                        weight: AppTextWeight.semibold,
+                        tone: AppTextTone.primary,
+                      ),
                     ),
-                  ),
-                if (titleSubtitle != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    titleSubtitle,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: resolveAppTextStyle(
-                      context,
-                      size: AppTextSize.s12,
-                      tone: AppTextTone.muted,
+                  if (titleSubtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      titleSubtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: resolveAppTextStyle(
+                        context,
+                        size: AppTextSize.s12,
+                        tone: AppTextTone.muted,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
-          for (final item in items)
-            _AppDrawerRow<T>(
-              item: item,
-              iconSize: componentTokens.iconSizeSm,
-              onSelected: onSelected,
-            ),
-        ],
+            for (final item in items)
+              _AppDrawerRow<T>(
+                item: item,
+                iconSize: componentTokens.iconSizeSm,
+                onSelected: onSelected,
+              ),
+          ],
+        ),
       ),
     );
   }

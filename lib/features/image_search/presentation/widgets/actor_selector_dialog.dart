@@ -4,6 +4,7 @@ import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_back_button.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer_scroll_region.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/domain/actors/actor_avatar.dart';
@@ -74,7 +75,7 @@ class _ImageSearchActorSelectorBodyState
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
     final spacing = context.appSpacing;
-    final body = widget.actors.isEmpty
+    final list = widget.actors.isEmpty
         ? AppPickerIosState(message: l10n.imageSearchNoSubscribedActors)
         : SingleChildScrollView(
             key: const Key('image-search-actor-list'),
@@ -122,6 +123,12 @@ class _ImageSearchActorSelectorBodyState
               ],
             ),
           );
+    final body = widget.isBottomDrawer && widget.actors.isNotEmpty
+        ? AppBottomDrawerScrollRegion(
+            controller: _scrollController,
+            builder: (context, controller) => list,
+          )
+        : list;
 
     return Column(
       mainAxisSize: widget.isBottomDrawer ? MainAxisSize.max : MainAxisSize.min,

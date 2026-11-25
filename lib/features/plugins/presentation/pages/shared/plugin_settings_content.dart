@@ -19,6 +19,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer_scroll_region.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
 
 const _jsonEncoder = JsonEncoder.withIndent('  ');
@@ -233,31 +234,34 @@ class _PluginSettingsContentState extends ConsumerState<PluginSettingsContent> {
 
   Widget _buildMobileStatusSheet(BuildContext context) {
     final spacing = context.appSpacing;
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            AppLocalizations.of(context).pluginSettingsTitle,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s16,
-              weight: AppTextWeight.semibold,
-              tone: AppTextTone.primary,
+    return AppBottomDrawerScrollRegion(
+      builder: (context, controller) => SingleChildScrollView(
+        controller: controller,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              AppLocalizations.of(context).pluginSettingsTitle,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s16,
+                weight: AppTextWeight.semibold,
+                tone: AppTextTone.primary,
+              ),
             ),
-          ),
-          SizedBox(height: spacing.xs),
-          Text(
-            '${widget.plugin.displayName} · ${widget.plugin.pluginId}',
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              tone: AppTextTone.secondary,
+            SizedBox(height: spacing.xs),
+            Text(
+              '${widget.plugin.displayName} · ${widget.plugin.pluginId}',
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                tone: AppTextTone.secondary,
+              ),
             ),
-          ),
-          SizedBox(height: spacing.lg),
-          _buildMobileBody(context),
-        ],
+            SizedBox(height: spacing.lg),
+            _buildMobileBody(context),
+          ],
+        ),
       ),
     );
   }

@@ -39,6 +39,7 @@ import 'package:sakuramedia/widgets/base/layout/scrolling/app_selectable_text_sc
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_paged_load_more_scope.dart';
 import 'package:sakuramedia/widgets/base/media/images/app_image_action_menu.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer_scroll_region.dart';
 import 'package:sakuramedia/widgets/domain/media/media_thumbnail_action_support.dart';
 import 'package:sakuramedia/widgets/domain/media/media_thumbnail_tab.dart';
 import 'package:sakuramedia/widgets/domain/downloads/download_candidate_selection_summary.dart';
@@ -441,7 +442,7 @@ class _MovieDetailReviewTabState extends ConsumerState<_MovieDetailReviewTab> {
       );
     }
 
-    return AppSelectableTextScrollConfiguration(
+    final list = AppSelectableTextScrollConfiguration(
       child: AppPagedLoadMoreScope(
         canLoadMore: () => _state.canAutoLoadMore,
         onLoadMore: _controller.loadMore,
@@ -466,6 +467,13 @@ class _MovieDetailReviewTabState extends ConsumerState<_MovieDetailReviewTab> {
           },
         ),
       ),
+    );
+    if (!AppAdaptiveModalShellScope.maybeIsDrawer(context)) {
+      return list;
+    }
+    return AppBottomDrawerScrollRegion(
+      controller: _scrollController,
+      builder: (context, controller) => list,
     );
   }
 }
@@ -926,64 +934,74 @@ class _MovieMagnetSearchContent extends ConsumerWidget {
       return Center(child: AppEmptyState(message: l10n.widgetMovieMagnetEmpty));
     }
 
-    return AppSelectableTextScrollConfiguration(
-      child: ListView.separated(
-        itemCount: items.length,
-        separatorBuilder: (context, index) =>
-            SizedBox(height: context.appSpacing.md),
-        itemBuilder: (context, index) {
-          final item = items[index];
-          return _MovieMagnetCandidateCard(
-            key: Key('movie-detail-magnet-candidate-$index'),
-            candidate: item,
-            isSubmitting: state.submittingCandidateKey == item.submitKey,
-            copyButtonKey: Key('movie-detail-magnet-copy-$index'),
-            submitButtonKey: Key('movie-detail-magnet-submit-$index'),
-            onSubmit: item.hasDownloadSource
-                ? (clientId) async {
-                    try {
-                      final response = await controller.submitCandidate(
-                        item,
-                        clientId: clientId,
-                      );
-                      if (!context.mounted) {
-                        return;
-                      }
-                      var selectedClientName = item.resolvedClientName;
-                      for (final client in item.selectableDownloadClients) {
-                        if (client.id == clientId) {
-                          selectedClientName = client.name;
-                          break;
+    Widget buildCandidateList(ScrollController? scrollController) {
+      return AppSelectableTextScrollConfiguration(
+        child: ListView.separated(
+          controller: scrollController,
+          itemCount: items.length,
+          separatorBuilder: (context, index) =>
+              SizedBox(height: context.appSpacing.md),
+          itemBuilder: (context, index) {
+            final item = items[index];
+            return _MovieMagnetCandidateCard(
+              key: Key('movie-detail-magnet-candidate-$index'),
+              candidate: item,
+              isSubmitting: state.submittingCandidateKey == item.submitKey,
+              copyButtonKey: Key('movie-detail-magnet-copy-$index'),
+              submitButtonKey: Key('movie-detail-magnet-submit-$index'),
+              onSubmit: item.hasDownloadSource
+                  ? (clientId) async {
+                      try {
+                        final response = await controller.submitCandidate(
+                          item,
+                          clientId: clientId,
+                        );
+                        if (!context.mounted) {
+                          return;
                         }
+                        var selectedClientName = item.resolvedClientName;
+                        for (final client in item.selectableDownloadClients) {
+                          if (client.id == clientId) {
+                            selectedClientName = client.name;
+                            break;
+                          }
+                        }
+                        showToast(
+                          response.created
+                              ? l10n.widgetMovieMagnetSubmittedTo(
+                                  selectedClientName,
+                                )
+                              : l10n.widgetMovieMagnetDownloadExists,
+                          tone: response.created
+                              ? AppToastTone.success
+                              : AppToastTone.info,
+                        );
+                      } catch (error) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        showToast(
+                          apiErrorMessage(
+                            error,
+                            fallback: l10n.widgetMovieMagnetSubmitFailed,
+                            l10n: l10n,
+                          ),
+                          tone: AppToastTone.error,
+                        );
                       }
-                      showToast(
-                        response.created
-                            ? l10n.widgetMovieMagnetSubmittedTo(
-                                selectedClientName,
-                              )
-                            : l10n.widgetMovieMagnetDownloadExists,
-                        tone: response.created
-                            ? AppToastTone.success
-                            : AppToastTone.info,
-                      );
-                    } catch (error) {
-                      if (!context.mounted) {
-                        return;
-                      }
-                      showToast(
-                        apiErrorMessage(
-                          error,
-                          fallback: l10n.widgetMovieMagnetSubmitFailed,
-                          l10n: l10n,
-                        ),
-                        tone: AppToastTone.error,
-                      );
                     }
-                  }
-                : null,
-          );
-        },
-      ),
+                  : null,
+            );
+          },
+        ),
+      );
+    }
+
+    if (!AppAdaptiveModalShellScope.maybeIsDrawer(context)) {
+      return buildCandidateList(null);
+    }
+    return AppBottomDrawerScrollRegion(
+      builder: (context, controller) => buildCandidateList(controller),
     );
   }
 }

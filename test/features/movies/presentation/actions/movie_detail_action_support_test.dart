@@ -117,6 +117,7 @@ void main() {
       isCollection: false,
       isBlacklisted: false,
       canCast: true,
+      canMergePlayback: true,
     );
     final zh = buildMovieDetailActionDescriptors(
       l10n: AppLocalizationsZh(),
@@ -124,6 +125,7 @@ void main() {
       isCollection: false,
       isBlacklisted: false,
       canCast: true,
+      canMergePlayback: true,
     );
 
     // 英文界面不得出现中文：操作菜单曾经整段硬编码中文。
@@ -175,6 +177,31 @@ void main() {
         _labelOf(actions, MovieDetailActionType.openExternalPlayer),
         isNotEmpty,
       );
+    },
+  );
+
+  test(
+    'buildMovieDetailActionDescriptors groups merged playback with players',
+    () {
+      final actions = buildMovieDetailActionDescriptors(
+        l10n: AppLocalizationsZh(),
+        isSubscribed: false,
+        isCollection: false,
+        isBlacklisted: false,
+        canCast: true,
+        canUseExternalPlayer: true,
+        canMergePlayback: true,
+      );
+
+      expect(
+        actions.take(3).map((action) => action.type),
+        <MovieDetailActionType>[
+          MovieDetailActionType.castToDevice,
+          MovieDetailActionType.openExternalPlayer,
+          MovieDetailActionType.mergePlayback,
+        ],
+      );
+      expect(_labelOf(actions, MovieDetailActionType.mergePlayback), '合并播放');
     },
   );
 

@@ -421,6 +421,42 @@ void main() {
     expect(find.byKey(_editKey), findsOneWidget);
     expect(find.byIcon(Icons.edit_outlined), findsOneWidget);
   });
+
+  testWidgets('底部操作表溢出时显示下滑提示', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(320, 420));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await _pumpHost(
+      tester,
+      onPressed: (context) {
+        showAppActionMenu<int>(
+          context: context,
+          presentation: AppMenuPresentation.bottomDrawer,
+          title: '影片操作',
+          items: <AppMenuItem<int>>[
+            for (var index = 0; index < 12; index++)
+              AppMenuItem(
+                key: Key('action-drawer-item-$index'),
+                value: index,
+                label: '动作 $index',
+              ),
+          ],
+        );
+      },
+    );
+
+    await tester.tap(find.byKey(_triggerKey));
+    await tester.pumpAndSettle();
+
+    final cue = find.byKey(const Key('app-bottom-drawer-scroll-cue'));
+    expect(cue, findsOneWidget);
+    for (var index = 0; index < 10 && cue.evaluate().isNotEmpty; index++) {
+      await tester.tap(cue);
+      await tester.pumpAndSettle();
+    }
+    expect(cue, findsNothing);
+    await tester.tap(find.byKey(const Key('action-drawer-item-11')));
+    await tester.pumpAndSettle();
+  });
 }
 
 Future<void> _pumpHost(

@@ -9,6 +9,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/forms/app_glass_search_field.dart';
 import 'package:sakuramedia/widgets/base/forms/app_picker_layout.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer_scroll_region.dart';
 
 /// 单条内容“加入合集”的状态与展示适配。
 ///
@@ -310,12 +311,22 @@ class _CollectionMembershipDialogState<T>
                 ),
             ];
     }
-    return CustomScrollView(
-      key: _config.listKey,
-      shrinkWrap: true,
-      slivers: [
-        SliverToBoxAdapter(child: AppPickerIosSection(children: children)),
-      ],
+    Widget buildList(ScrollController? scrollController) {
+      return CustomScrollView(
+        key: _config.listKey,
+        controller: scrollController,
+        shrinkWrap: true,
+        slivers: [
+          SliverToBoxAdapter(child: AppPickerIosSection(children: children)),
+        ],
+      );
+    }
+
+    if (!_isDrawer) {
+      return buildList(null);
+    }
+    return AppBottomDrawerScrollRegion(
+      builder: (context, controller) => buildList(controller),
     );
   }
 

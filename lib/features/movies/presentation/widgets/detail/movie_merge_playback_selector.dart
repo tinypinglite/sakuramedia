@@ -14,6 +14,7 @@ import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dar
 import 'package:sakuramedia/widgets/base/layout/cards/app_badge.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_content_card.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer_scroll_region.dart';
 
 Future<MovieMergePlaybackSubmission?> showMovieMergePlaybackSelector({
   required BuildContext context,
@@ -112,24 +113,30 @@ class _MovieMergePlaybackSelectorState
         ),
         SizedBox(height: context.appSpacing.lg),
         Expanded(
-          child: ListView.separated(
-            key: const Key('movie-merge-playback-list'),
-            padding: EdgeInsets.zero,
-            itemCount: groups.length,
-            separatorBuilder: (_, _) => SizedBox(height: context.appSpacing.md),
-            itemBuilder: (context, index) {
-              final group = groups[index];
-              return _LibraryGroupCard(
-                group: group,
-                libraryName: _libraryName(l10n, group.libraryId, groups),
-                selectedLibraryId: _selectedLibraryId,
-                externalMergeSupportedLibraryIds:
-                    widget.externalMergeSupportedLibraryIds,
-                selectedItems: _selected,
-                enabled: !_isSubmitting,
-                onToggle: _toggle,
-              );
-            },
+          child: AppBottomDrawerScrollRegion(
+            enabled:
+                AppAdaptiveModalShellScope.maybeOf(context)?.isDrawer != false,
+            builder: (context, controller) => ListView.separated(
+              key: const Key('movie-merge-playback-list'),
+              controller: controller,
+              padding: EdgeInsets.zero,
+              itemCount: groups.length,
+              separatorBuilder: (_, _) =>
+                  SizedBox(height: context.appSpacing.md),
+              itemBuilder: (context, index) {
+                final group = groups[index];
+                return _LibraryGroupCard(
+                  group: group,
+                  libraryName: _libraryName(l10n, group.libraryId, groups),
+                  selectedLibraryId: _selectedLibraryId,
+                  externalMergeSupportedLibraryIds:
+                      widget.externalMergeSupportedLibraryIds,
+                  selectedItems: _selected,
+                  enabled: !_isSubmitting,
+                  onToggle: _toggle,
+                );
+              },
+            ),
           ),
         ),
         SizedBox(height: context.appSpacing.md),

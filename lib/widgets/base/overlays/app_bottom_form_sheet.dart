@@ -1,6 +1,8 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/l10n/app_l10n.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer_scroll_region.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_binding.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_modal_action_row.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
@@ -81,35 +83,41 @@ class _AppBottomFormSheetState extends State<AppBottomFormSheet>
           children: [
             Flexible(
               fit: FlexFit.loose,
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      widget.title,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s16,
-                        weight: AppTextWeight.semibold,
-                        tone: AppTextTone.primary,
-                      ),
-                    ),
-                    if (resolvedSubtitle != null) ...[
-                      SizedBox(height: spacing.xs),
+              child: AppBottomDrawerScrollRegion(
+                enabled:
+                    AppAdaptiveModalShellScope.maybeOf(context)?.isDrawer !=
+                    false,
+                builder: (context, controller) => SingleChildScrollView(
+                  controller: controller,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
                       Text(
-                        resolvedSubtitle,
+                        widget.title,
                         style: resolveAppTextStyle(
                           context,
-                          size: AppTextSize.s12,
-                          weight: AppTextWeight.regular,
-                          tone: AppTextTone.secondary,
+                          size: AppTextSize.s16,
+                          weight: AppTextWeight.semibold,
+                          tone: AppTextTone.primary,
                         ),
                       ),
+                      if (resolvedSubtitle != null) ...[
+                        SizedBox(height: spacing.xs),
+                        Text(
+                          resolvedSubtitle,
+                          style: resolveAppTextStyle(
+                            context,
+                            size: AppTextSize.s12,
+                            weight: AppTextWeight.regular,
+                            tone: AppTextTone.secondary,
+                          ),
+                        ),
+                      ],
+                      SizedBox(height: spacing.lg),
+                      widget.body,
+                      SizedBox(height: spacing.lg),
                     ],
-                    SizedBox(height: spacing.lg),
-                    widget.body,
-                    SizedBox(height: spacing.lg),
-                  ],
+                  ),
                 ),
               ),
             ),

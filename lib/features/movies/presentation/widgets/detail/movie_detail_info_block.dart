@@ -31,9 +31,6 @@ class MovieDetailInfoBlock extends StatelessWidget {
     this.playlistTooltip,
     this.onMoreActionsTap,
     this.isMoreActionsUpdating = false,
-    this.mergePlaybackLabel,
-    this.onMergePlaybackTap,
-    this.isMergePlaybackLoading = false,
     this.onInspectorPaneTap,
     this.showReviewAction = true,
     this.ratingPanel,
@@ -77,11 +74,6 @@ class MovieDetailInfoBlock extends StatelessWidget {
   final Future<void> Function(Offset globalPosition)? onMoreActionsTap;
   final bool isMoreActionsUpdating;
 
-  /// 合并播放次入口（多段媒体才有），为 null/空时不显示。
-  final String? mergePlaybackLabel;
-  final VoidCallback? onMergePlaybackTap;
-  final bool isMergePlaybackLoading;
-
   /// 评论 / 缩略图入口：打开对应功能弹窗；null 时两个键不渲染。
   final ValueChanged<MovieDetailInspectorPane>? onInspectorPaneTap;
 
@@ -97,7 +89,7 @@ class MovieDetailInfoBlock extends StatelessWidget {
   /// 左操作列固定宽：六个键一行，每键 6×46 + 5×4 = 296（原三键时为 200/键 64）。
   static const double actionsColumnWidth = 296;
 
-  /// 操作列是否值得出现：播放/合并之外的六键（订阅/列表/评论/收藏/缩略图/更多）
+  /// 操作列是否值得出现：播放之外的六键（订阅/列表/评论/收藏/缩略图/更多）
   /// 只要回调在就保留，不可播时也不整体消失。判定放在 [_InfoActionsColumn.isVisible]，
   /// 父级与自身共用。
 
@@ -130,9 +122,6 @@ class MovieDetailInfoBlock extends StatelessWidget {
           playlistTooltip: playlistTooltip,
           onMoreActionsTap: onMoreActionsTap,
           isMoreActionsUpdating: isMoreActionsUpdating,
-          mergePlaybackLabel: mergePlaybackLabel,
-          onMergePlaybackTap: onMergePlaybackTap,
-          isMergePlaybackLoading: isMergePlaybackLoading,
           onInspectorPaneTap: onInspectorPaneTap,
           showReviewAction: showReviewAction,
         );
@@ -411,7 +400,7 @@ class _InfoColumn extends StatelessWidget {
   }
 }
 
-/// 左操作列：白色分体播放键（左播放 / 右合并，五五开）+ 订阅/播放列表/评论/收藏/缩略图/更多六键。
+/// 左操作列：整行播放键 + 订阅/播放列表/评论/收藏/缩略图/更多六键。
 class _InfoActionsColumn extends StatelessWidget {
   const _InfoActionsColumn({
     required this.onPlayTap,
@@ -427,9 +416,6 @@ class _InfoActionsColumn extends StatelessWidget {
     required this.playlistTooltip,
     required this.onMoreActionsTap,
     required this.isMoreActionsUpdating,
-    required this.mergePlaybackLabel,
-    required this.onMergePlaybackTap,
-    required this.isMergePlaybackLoading,
     required this.onInspectorPaneTap,
     required this.showReviewAction,
   });
@@ -447,19 +433,13 @@ class _InfoActionsColumn extends StatelessWidget {
   final String playlistTooltip;
   final Future<void> Function(Offset globalPosition)? onMoreActionsTap;
   final bool isMoreActionsUpdating;
-  final String? mergePlaybackLabel;
-  final VoidCallback? onMergePlaybackTap;
-  final bool isMergePlaybackLoading;
   final ValueChanged<MovieDetailInspectorPane>? onInspectorPaneTap;
   final bool showReviewAction;
-
-  bool get _hasMerge => mergePlaybackLabel?.trim().isNotEmpty == true;
 
   /// 是否有任何可渲染的操作键；父级用它决定是否给操作列留位。
   bool get isVisible =>
       onPlayTap != null ||
       isPlayLoading ||
-      _hasMerge ||
       onSubscriptionTap != null ||
       isSubscriptionUpdating ||
       onFavoriteTap != null ||
@@ -573,15 +553,11 @@ class _InfoActionsColumn extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (onPlayTap != null || isPlayLoading || _hasMerge)
-          _InfoSplitPlayButton(
+        if (onPlayTap != null || isPlayLoading)
+          _InfoPlayButton(
             onPlayTap: isPlayLoading ? null : onPlayTap,
             isPlayLoading: isPlayLoading,
             playLabel: playLabel,
-            hasMerge: _hasMerge,
-            mergeTooltip: _hasMerge ? mergePlaybackLabel!.trim() : '',
-            onMergeTap: isMergePlaybackLoading ? null : onMergePlaybackTap,
-            isMergeLoading: isMergePlaybackLoading,
           ),
         SizedBox(height: spacing.xs),
         AppSurface(
@@ -606,37 +582,28 @@ class _InfoActionsColumn extends StatelessWidget {
   }
 }
 
-/// 播放键：品牌色填充的播放主键 + 次级描边合并键（有合并时约 2:1）。
-class _InfoSplitPlayButton extends StatelessWidget {
-  const _InfoSplitPlayButton({
+/// 播放键：品牌色填充的整行主操作。
+class _InfoPlayButton extends StatelessWidget {
+  const _InfoPlayButton({
     required this.onPlayTap,
     required this.isPlayLoading,
     required this.playLabel,
-    required this.hasMerge,
-    required this.mergeTooltip,
-    required this.onMergeTap,
-    required this.isMergeLoading,
   });
 
   final VoidCallback? onPlayTap;
   final bool isPlayLoading;
   final String? playLabel;
-  final bool hasMerge;
-  final String mergeTooltip;
-  final VoidCallback? onMergeTap;
-  final bool isMergeLoading;
 
   @override
   Widget build(BuildContext context) {
     final tokens = context.appComponentTokens;
-    final primary = Theme.of(context).colorScheme.primary;
     final onPrimary = Theme.of(context).colorScheme.onPrimary;
     final playEnabled = onPlayTap != null || isPlayLoading;
     final playForeground = playEnabled
         ? onPrimary
         : context.appTextPalette.secondary;
     final playBackground = playEnabled
-        ? primary
+        ? Theme.of(context).colorScheme.primary
         : context.appColors.surfaceMuted;
     final playLabelText =
         playLabel ?? AppLocalizations.of(context).movieWidgetPlay;
@@ -644,116 +611,53 @@ class _InfoSplitPlayButton extends StatelessWidget {
         ? Duration.zero
         : context.appMotion.fast;
 
-    return Row(
-      children: [
-        Expanded(
-          flex: hasMerge ? 2 : 1,
-          child: Container(
-            height: tokens.buttonHeightMd,
-            decoration: BoxDecoration(
-              color: playBackground,
-              borderRadius: context.appRadius.pillBorder,
-            ),
-            child: AppInteractiveSurface(
-              enabled: onPlayTap != null,
-              key: const Key('movie-detail-hero-play-button'),
-              onTap: onPlayTap,
-              child: Center(
-                child: _InfoActionStateSwitcher(
-                  duration: iconDuration,
-                  child: isPlayLoading
-                      ? AppInlineSpinner(
-                          key: const ValueKey<String>(
-                            'movie-detail-hero-play-loading',
-                          ),
-                          color: playForeground,
-                        )
-                      : Row(
-                          key: ValueKey<String>(
-                            'movie-detail-hero-play-idle-$playLabelText',
-                          ),
-                          mainAxisSize: MainAxisSize.min,
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.play_arrow_rounded,
-                              size: tokens.iconSizeSm,
-                              color: playForeground,
-                            ),
-                            SizedBox(width: tokens.buttonGapMd),
-                            Text(
-                              playLabelText,
-                              style: resolveAppTextStyle(
-                                context,
-                                size: AppTextSize.s14,
-                                weight: AppTextWeight.medium,
-                                tone: AppTextTone.primary,
-                              ).copyWith(color: playForeground),
-                            ),
-                          ],
-                        ),
-                ),
-              ),
-            ),
+    return Container(
+      height: tokens.buttonHeightMd,
+      decoration: BoxDecoration(
+        color: playBackground,
+        borderRadius: context.appRadius.pillBorder,
+      ),
+      child: AppInteractiveSurface(
+        enabled: onPlayTap != null,
+        key: const Key('movie-detail-hero-play-button'),
+        onTap: onPlayTap,
+        child: Center(
+          child: _InfoActionStateSwitcher(
+            duration: iconDuration,
+            child: isPlayLoading
+                ? AppInlineSpinner(
+                    key: const ValueKey<String>(
+                      'movie-detail-hero-play-loading',
+                    ),
+                    color: playForeground,
+                  )
+                : Row(
+                    key: ValueKey<String>(
+                      'movie-detail-hero-play-idle-$playLabelText',
+                    ),
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.play_arrow_rounded,
+                        size: tokens.iconSizeSm,
+                        color: playForeground,
+                      ),
+                      SizedBox(width: tokens.buttonGapMd),
+                      Text(
+                        playLabelText,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s14,
+                          weight: AppTextWeight.medium,
+                          tone: AppTextTone.primary,
+                        ).copyWith(color: playForeground),
+                      ),
+                    ],
+                  ),
           ),
         ),
-        if (hasMerge) ...[
-          SizedBox(width: tokens.buttonGapXs),
-          Expanded(
-            child: Container(
-              height: tokens.buttonHeightMd,
-              decoration: BoxDecoration(
-                color: Colors.transparent,
-                borderRadius: context.appRadius.pillBorder,
-                border: Border.all(color: primary.withValues(alpha: 0.45)),
-              ),
-              child: Tooltip(
-                message: mergeTooltip,
-                child: AppInteractiveSurface(
-                  enabled: onMergeTap != null,
-                  key: const Key('movie-detail-merge-playback-button'),
-                  onTap: onMergeTap,
-                  child: Center(
-                    child: _InfoActionStateSwitcher(
-                      duration: iconDuration,
-                      child: isMergeLoading
-                          ? AppInlineSpinner(
-                              key: const ValueKey<String>(
-                                'movie-detail-merge-playback-loading',
-                              ),
-                              color: primary,
-                            )
-                          : Row(
-                              key: const ValueKey<String>(
-                                'movie-detail-merge-playback-idle',
-                              ),
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  Icons.merge_rounded,
-                                  size: tokens.iconSizeSm,
-                                  color: primary,
-                                ),
-                                SizedBox(width: tokens.buttonGapMd),
-                                Text(
-                                  AppLocalizations.of(context).movieWidgetMerge,
-                                  style: resolveAppTextStyle(
-                                    context,
-                                    size: AppTextSize.s14,
-                                    weight: AppTextWeight.medium,
-                                    tone: AppTextTone.primary,
-                                  ).copyWith(color: primary),
-                                ),
-                              ],
-                            ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ],
+      ),
     );
   }
 }

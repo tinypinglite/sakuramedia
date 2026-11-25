@@ -7,11 +7,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/app/app_platform.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
+import 'package:sakuramedia/features/external_player/data/external_player_selection.dart';
+import 'package:sakuramedia/features/external_player/presentation/providers/external_player_preference_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_page.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_page_content.dart';
 import 'package:sakuramedia/features/plugins/presentation/providers/plugin_capabilities_provider.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/feedback/app_skeletonizer.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../support/logged_in_session_store.dart';
 import '../../../../support/preview_helpers.dart';
@@ -67,6 +70,115 @@ void main() {
     expect(find.byKey(const Key('movie-detail-page')), findsOneWidget);
     expect(find.byType(MovieDetailErrorState), findsNothing);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('merged playback lives in the more menu', (tester) async {
+    SharedPreferences.setMockInitialValues(<String, Object>{});
+    _primeSupportingRequests(bundle);
+    final movie = _movieJson()
+      ..['media_items'] = <Map<String, dynamic>>[
+        _mediaJson(mediaId: 10, fileName: 'movie-10.mp4'),
+        _mediaJson(mediaId: 11, fileName: 'movie-11.mp4'),
+      ];
+    _enqueue(bundle, method: 'GET', path: '/movies/ABC-001', body: movie);
+    await _pumpPage(tester, bundle, mobile: true, settle: false);
+    await _pumpFrames(tester);
+
+    expect(
+      find.byKey(const Key('movie-detail-merge-playback-button')),
+      findsNothing,
+    );
+    await tester.tap(
+      find.byKey(const Key('movie-detail-hero-more-actions-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('movie-detail-hero-action-mergePlayback')),
+      findsOneWidget,
+    );
+
+    await tester.tap(
+      find.byKey(const Key('movie-detail-hero-action-mergePlayback')),
+    );
+    await tester.pump();
+    await _pumpFrames(tester);
+    expect(
+      find.byKey(const Key('movie-merge-playback-drawer')),
+      findsOneWidget,
+    );
+
+    Navigator.of(
+      tester.element(find.byKey(const Key('movie-merge-playback-drawer'))),
+    ).pop();
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('single-media movie has no merged playback menu item', (
+    tester,
+  ) async {
+    _primeContentRequests(bundle);
+    await _pumpPage(tester, bundle, mobile: true, settle: false);
+    await _pumpFrames(tester);
+
+    await tester.tap(
+      find.byKey(const Key('movie-detail-hero-more-actions-button')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('movie-detail-hero-action-mergePlayback')),
+      findsNothing,
+    );
+  });
+
+  testWidgets('merged playback waits for external player preference', (
+    tester,
+  ) async {
+    final preferenceGate = Completer<ExternalPlayerSelection>();
+    _primeSupportingRequests(bundle);
+    final movie = _movieJson()
+      ..['media_items'] = <Map<String, dynamic>>[
+        _mediaJson(mediaId: 10, fileName: 'movie-10.mp4'),
+        _mediaJson(mediaId: 11, fileName: 'movie-11.mp4'),
+      ];
+    _enqueue(bundle, method: 'GET', path: '/movies/ABC-001', body: movie);
+    await _pumpPage(
+      tester,
+      bundle,
+      mobile: true,
+      settle: false,
+      extraOverrides: <Override>[
+        externalPlayerPreferenceProvider.overrideWith(
+          () => _GatedExternalPlayerPreference(preferenceGate),
+        ),
+      ],
+    );
+    await _pumpFrames(tester);
+
+    await tester.tap(
+      find.byKey(const Key('movie-detail-hero-more-actions-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('movie-detail-hero-action-mergePlayback')),
+      findsNothing,
+    );
+
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
+    preferenceGate.complete(const ExternalPlayerSelection());
+    await tester.pumpAndSettle();
+
+    await tester.tap(
+      find.byKey(const Key('movie-detail-hero-more-actions-button')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key('movie-detail-hero-action-mergePlayback')),
+      findsOneWidget,
+    );
+    await tester.tapAt(const Offset(10, 10));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('loading renders the placeholder through the shared view model', (
@@ -370,4 +482,30 @@ Map<String, dynamic> _movieJson({String title = 'Movie 1'}) {
     ],
     'playlists': const <Map<String, dynamic>>[],
   };
+}
+
+Map<String, dynamic> _mediaJson({
+  required int mediaId,
+  required String fileName,
+}) {
+  return <String, dynamic>{
+    'media_id': mediaId,
+    'file_name': fileName,
+    'file_size_bytes': 1024,
+    'duration_seconds': 60,
+    'play_url': 'https://cdn.example.com/$fileName',
+    'valid': true,
+    'library_id': 7,
+    'library_name': '主媒体库',
+    'points': const <Map<String, dynamic>>[],
+  };
+}
+
+class _GatedExternalPlayerPreference extends ExternalPlayerPreference {
+  _GatedExternalPlayerPreference(this.gate);
+
+  final Completer<ExternalPlayerSelection> gate;
+
+  @override
+  Future<ExternalPlayerSelection> build() => gate.future;
 }

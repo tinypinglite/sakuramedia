@@ -6,6 +6,7 @@ import 'package:sakuramedia/widgets/base/overlays/app_action_menu.dart';
 enum MovieDetailActionType {
   castToDevice,
   openExternalPlayer,
+  mergePlayback,
   toggleSubscription,
   toggleFavorite,
   openMagnetSearch,
@@ -40,6 +41,7 @@ List<MovieDetailActionDescriptor> buildMovieDetailActionDescriptors({
   bool isWatched = false,
   bool canCast = false,
   bool canUseExternalPlayer = false,
+  bool canMergePlayback = false,
   String? castSessionLabel,
 }) {
   return <MovieDetailActionDescriptor>[
@@ -54,6 +56,12 @@ List<MovieDetailActionDescriptor> buildMovieDetailActionDescriptors({
         type: MovieDetailActionType.openExternalPlayer,
         label: l10n.movieActionPlayExternal,
         icon: Icons.open_in_new_rounded,
+      ),
+    if (canMergePlayback)
+      MovieDetailActionDescriptor(
+        type: MovieDetailActionType.mergePlayback,
+        label: l10n.moviePageMergedPlayback,
+        icon: Icons.merge_rounded,
       ),
     if (!isBlacklisted)
       MovieDetailActionDescriptor(

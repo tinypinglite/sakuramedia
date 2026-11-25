@@ -37,6 +37,7 @@ import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_settings_group.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer_scroll_region.dart';
 
 /// 索引器设置页：桌面分类页与移动子页共用 provider、动作和编辑表单。
 class IndexersPage extends ConsumerStatefulWidget {
@@ -916,104 +917,107 @@ class _MobileIndexerDetailDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      entry.name,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s16,
-                        weight: AppTextWeight.semibold,
-                        tone: AppTextTone.primary,
+    return AppBottomDrawerScrollRegion(
+      builder: (context, controller) => SingleChildScrollView(
+        controller: controller,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        entry.name,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s16,
+                          weight: AppTextWeight.semibold,
+                          tone: AppTextTone.primary,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: spacing.xs),
-                    Text(
-                      entry.url,
-                      style: resolveAppTextStyle(
-                        context,
-                        size: AppTextSize.s12,
-                        tone: AppTextTone.secondary,
+                      SizedBox(height: spacing.xs),
+                      Text(
+                        entry.url,
+                        style: resolveAppTextStyle(
+                          context,
+                          size: AppTextSize.s12,
+                          tone: AppTextTone.secondary,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              IndexerKindBadge(kind: entry.kind),
-            ],
-          ),
-          SizedBox(height: spacing.lg),
-          AppInfoBlock(
-            label: l10n.indexerKindLabel,
-            value: entry.kind.toUpperCase(),
-          ),
-          SizedBox(height: spacing.sm),
-          AppInfoBlock(
-            label: l10n.commonApiKey,
-            value: entry.hasApiKey
-                ? l10n.indexerConfigured
-                : l10n.indexerNotConfigured,
-          ),
-          SizedBox(height: spacing.sm),
-          AppInfoBlock(
-            label: l10n.indexerBoundDownloadClientLabel,
-            value: entry.downloadClientNames.isEmpty
-                ? l10n.indexerNotMatched
-                : entry.downloadClientNames,
-          ),
-          if (hasInvalidBinding) ...[
+                IndexerKindBadge(kind: entry.kind),
+              ],
+            ),
+            SizedBox(height: spacing.lg),
+            AppInfoBlock(
+              label: l10n.indexerKindLabel,
+              value: entry.kind.toUpperCase(),
+            ),
             SizedBox(height: spacing.sm),
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(spacing.sm),
-              decoration: BoxDecoration(
-                color: context.appColors.warningSurface,
-                borderRadius: context.appRadius.mdBorder,
-              ),
-              child: Text(
-                l10n.indexerBoundDownloaderInvalid,
-                style: resolveAppTextStyle(
-                  context,
-                  size: AppTextSize.s12,
-                  tone: AppTextTone.primary,
+            AppInfoBlock(
+              label: l10n.commonApiKey,
+              value: entry.hasApiKey
+                  ? l10n.indexerConfigured
+                  : l10n.indexerNotConfigured,
+            ),
+            SizedBox(height: spacing.sm),
+            AppInfoBlock(
+              label: l10n.indexerBoundDownloadClientLabel,
+              value: entry.downloadClientNames.isEmpty
+                  ? l10n.indexerNotMatched
+                  : entry.downloadClientNames,
+            ),
+            if (hasInvalidBinding) ...[
+              SizedBox(height: spacing.sm),
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.all(spacing.sm),
+                decoration: BoxDecoration(
+                  color: context.appColors.warningSurface,
+                  borderRadius: context.appRadius.mdBorder,
+                ),
+                child: Text(
+                  l10n.indexerBoundDownloaderInvalid,
+                  style: resolveAppTextStyle(
+                    context,
+                    size: AppTextSize.s12,
+                    tone: AppTextTone.primary,
+                  ),
                 ),
               ),
+            ],
+            SizedBox(height: spacing.xl),
+            Row(
+              children: [
+                Expanded(
+                  child: AppButton(
+                    key: const Key('mobile-indexer-detail-edit-button'),
+                    label: l10n.commonEdit,
+                    variant: AppButtonVariant.primary,
+                    onPressed: () =>
+                        Navigator.of(context).pop(_IndexerDetailAction.edit),
+                  ),
+                ),
+                SizedBox(width: spacing.md),
+                Expanded(
+                  child: AppButton(
+                    key: const Key('mobile-indexer-detail-delete-button'),
+                    label: l10n.commonDelete,
+                    variant: AppButtonVariant.danger,
+                    onPressed: () =>
+                        Navigator.of(context).pop(_IndexerDetailAction.delete),
+                  ),
+                ),
+              ],
             ),
           ],
-          SizedBox(height: spacing.xl),
-          Row(
-            children: [
-              Expanded(
-                child: AppButton(
-                  key: const Key('mobile-indexer-detail-edit-button'),
-                  label: l10n.commonEdit,
-                  variant: AppButtonVariant.primary,
-                  onPressed: () =>
-                      Navigator.of(context).pop(_IndexerDetailAction.edit),
-                ),
-              ),
-              SizedBox(width: spacing.md),
-              Expanded(
-                child: AppButton(
-                  key: const Key('mobile-indexer-detail-delete-button'),
-                  label: l10n.commonDelete,
-                  variant: AppButtonVariant.danger,
-                  onPressed: () =>
-                      Navigator.of(context).pop(_IndexerDetailAction.delete),
-                ),
-              ),
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

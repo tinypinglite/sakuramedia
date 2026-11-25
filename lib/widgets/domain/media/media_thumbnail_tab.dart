@@ -12,6 +12,7 @@ import 'package:sakuramedia/widgets/base/actions/app_text_button.dart';
 import 'package:sakuramedia/widgets/base/interaction/app_interactive_surface.dart';
 import 'package:sakuramedia/widgets/base/navigation/app_glass_list_header.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer_scroll_region.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/domain/media/thumbnail_clip_selection_section.dart';
 
@@ -422,36 +423,39 @@ class _MediaThumbnailOptionDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: EdgeInsets.fromLTRB(
-              spacing.lg,
-              _topSpacing,
-              spacing.lg,
-              spacing.sm,
-            ),
-            child: Text(
-              title,
-              style: resolveAppTextStyle(
-                context,
-                size: AppTextSize.s16,
-                weight: AppTextWeight.semibold,
-                tone: AppTextTone.primary,
+    return AppBottomDrawerScrollRegion(
+      builder: (context, controller) => SingleChildScrollView(
+        controller: controller,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: EdgeInsets.fromLTRB(
+                spacing.lg,
+                _topSpacing,
+                spacing.lg,
+                spacing.sm,
+              ),
+              child: Text(
+                title,
+                style: resolveAppTextStyle(
+                  context,
+                  size: AppTextSize.s16,
+                  weight: AppTextWeight.semibold,
+                  tone: AppTextTone.primary,
+                ),
               ),
             ),
-          ),
-          for (final option in options)
-            _MediaThumbnailOptionRow(
-              key: optionKeyBuilder(option),
-              label: optionLabelBuilder(option),
-              isSelected: option == selectedValue,
-              onTap: () => Navigator.of(context).pop(option),
-            ),
-        ],
+            for (final option in options)
+              _MediaThumbnailOptionRow(
+                key: optionKeyBuilder(option),
+                label: optionLabelBuilder(option),
+                isSelected: option == selectedValue,
+                onTap: () => Navigator.of(context).pop(option),
+              ),
+          ],
+        ),
       ),
     );
   }

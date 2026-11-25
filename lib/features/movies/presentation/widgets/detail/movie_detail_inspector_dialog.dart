@@ -115,17 +115,20 @@ Future<void> showMobileMovieDetailInspectorBottomSheet({
     maxHeightFactor: 0.7,
     ignoreTopSafeArea: true,
     builder: (_) {
-      return MovieDetailInspectorPanel(
-        movieNumber: movieNumber,
-        movieTitle: movieTitle,
-        movieCoverUrl: movieCoverUrl,
-        selectedMedia: selectedMedia,
-        pane: pane,
-        thumbnailPreviewPresentation: AppAdaptiveModalVariant.drawer,
-        onSearchSimilar: onSearchSimilar,
-        onPlay: onPlay,
-        onSearchSelection: (query) =>
-            MobileRoutes.search(query: query).push(context),
+      return AppAdaptiveModalShellScope(
+        isDrawer: true,
+        child: MovieDetailInspectorPanel(
+          movieNumber: movieNumber,
+          movieTitle: movieTitle,
+          movieCoverUrl: movieCoverUrl,
+          selectedMedia: selectedMedia,
+          pane: pane,
+          thumbnailPreviewPresentation: AppAdaptiveModalVariant.drawer,
+          onSearchSimilar: onSearchSimilar,
+          onPlay: onPlay,
+          onSearchSelection: (query) =>
+              MobileRoutes.search(query: query).push(context),
+        ),
       );
     },
   );

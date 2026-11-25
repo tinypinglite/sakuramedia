@@ -7,6 +7,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 import 'package:sakuramedia/widgets/base/forms/app_text_field.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_adaptive_modal.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer_scroll_region.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_form_sheet.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_desktop_dialog.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_dialog.dart';
@@ -91,8 +92,11 @@ Future<T?> showCollectionEditor<T>(
         context: context,
         drawerKey: config.drawerKey,
         maxHeightFactor: config.drawerMaxHeightFactor,
-        builder: (_) => SingleChildScrollView(
-          child: CollectionEditorDialog<T>(config: config),
+        builder: (_) => AppBottomDrawerScrollRegion(
+          builder: (context, controller) => SingleChildScrollView(
+            controller: controller,
+            child: CollectionEditorDialog<T>(config: config),
+          ),
         ),
       );
     case CollectionEditorPresentation.bottomFormSheet:
@@ -108,9 +112,16 @@ Future<T?> showCollectionEditor<T>(
         drawerKey: config.drawerKey,
         desktopWidth: config.dialogWidth,
         mobileMaxHeightFactor: config.drawerMaxHeightFactor,
-        builder: (_) => SingleChildScrollView(
-          child: CollectionEditorDialog<T>(config: config),
-        ),
+        builder: (modalContext) {
+          final child = CollectionEditorDialog<T>(config: config);
+          if (!AppAdaptiveModalShellScope.maybeIsDrawer(modalContext)) {
+            return SingleChildScrollView(child: child);
+          }
+          return AppBottomDrawerScrollRegion(
+            builder: (context, controller) =>
+                SingleChildScrollView(controller: controller, child: child),
+          );
+        },
       );
   }
 }

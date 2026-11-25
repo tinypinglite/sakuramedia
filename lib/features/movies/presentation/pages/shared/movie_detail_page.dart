@@ -172,22 +172,23 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     final movie = detailState.movie!;
     final derived = interaction.derive(movie);
     final selectedMedia = derived.selectedMedia;
-    final externalPlayerSelection = ref
-        .watch(externalPlayerPreferenceProvider)
-        .value;
+    final externalPreference = ref.watch(externalPlayerPreferenceProvider);
+    final externalPlayerSelection = externalPreference.value;
     final externalAvailable =
+        externalPreference.hasValue &&
         externalPlayerSelection != null &&
         isExternalPlayerAvailable(externalPlayerSelection);
     final l10n = AppLocalizations.of(context);
-    final mergePlaybackLabel = resolveMovieMergePlaybackLabel(
-      movie,
-      l10n,
-      supportedExternalLibraryIds: externalAvailable
-          ? movie.mergePlaybackCandidates
-                .map((candidate) => candidate.libraryId)
-                .toSet()
-          : null,
-    );
+    final canMergePlayback =
+        externalPreference.hasValue &&
+        hasMovieMergePlaybackCandidate(
+          movie,
+          supportedExternalLibraryIds: externalAvailable
+              ? movie.mergePlaybackCandidates
+                    .map((candidate) => candidate.libraryId)
+                    .toSet()
+              : null,
+        );
 
     final data = MovieDetailViewData(
       movie: movie,
@@ -220,9 +221,6 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           interaction.deletingMediaId == selectedMedia.mediaId,
       isPlayLoading: interaction.isLaunchingPlayback,
       playLabel: resumePosition == null ? null : l10n.baseResumeContinue,
-      mergePlaybackLabel: mergePlaybackLabel,
-      isMergePlaybackLoading:
-          _isOpeningMergePlayback || interaction.isLaunchingPlayback,
       isSimilarMoviesLoading: detailState.isSimilarMoviesLoading,
       similarMoviesErrorMessage: detailState.similarMoviesErrorMessage,
       isClipsLoading: clipsState.isLoading,
@@ -242,18 +240,17 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           : () => _toggleFavorite(movie),
       onMoreActionsTap: derived.isActionControlsLocked
           ? null
-          : (position) => _showActionMenu(position, movie, derived),
+          : (position) => _showActionMenu(
+              position,
+              movie,
+              derived,
+              canMergePlayback: canMergePlayback,
+            ),
       onPlayTap: selectedMedia != null && selectedMedia.hasPlayableUrl
           ? () => _openMoviePlayer(movie: movie, mediaId: selectedMedia.mediaId)
           : null,
       onPlaylistTap: () => unawaited(_openPlaylistPicker(movie)),
       onMediaSelect: _interaction.selectMedia,
-      onMergePlaybackTap:
-          mergePlaybackLabel == null ||
-              interaction.isLaunchingPlayback ||
-              _isOpeningMergePlayback
-          ? null
-          : () => unawaited(_openMergePlayback(movie)),
       onDeleteSelectedMedia: selectedMedia == null
           ? null
           : (media) => unawaited(_deleteMedia(media)),
@@ -321,19 +318,16 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
 
   Future<void> _openMergePlayback(MovieDetailDto movie) async {
     if (_isOpeningMergePlayback) return;
-    setState(() => _isOpeningMergePlayback = true);
+    _isOpeningMergePlayback = true;
     try {
       await openMovieMergedPlayback(
         context: context,
-        ref: ref,
         movieNumber: movie.movieNumber,
         movie: movie,
         mobile: widget.mobile,
       );
     } finally {
-      if (mounted) {
-        setState(() => _isOpeningMergePlayback = false);
-      }
+      _isOpeningMergePlayback = false;
     }
   }
 
@@ -350,8 +344,9 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
   Future<void> _showActionMenu(
     Offset globalPosition,
     MovieDetailDto movie,
-    MovieDetailDerived derived,
-  ) async {
+    MovieDetailDerived derived, {
+    required bool canMergePlayback,
+  }) async {
     final selectedMedia = derived.selectedMedia;
     final action = await _overlays.showActionMenu(
       context: context,
@@ -365,6 +360,7 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           const ExternalPlayerChannel().isSupported &&
           selectedMedia != null &&
           selectedMedia.hasPlayableUrl,
+      canMergePlayback: canMergePlayback,
       selectedMedia: selectedMedia,
       castSessionLabel: _activeCastSessionLabel(movie),
       canCast:
@@ -391,6 +387,8 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
           target: MoviePlaybackTarget.external,
           externalPlayer: player,
         );
+      case MovieDetailActionType.mergePlayback:
+        await _openMergePlayback(movie);
       case MovieDetailActionType.castToDevice:
         final castSession = ref.read(castSessionControllerProvider);
         if (castSession != null &&

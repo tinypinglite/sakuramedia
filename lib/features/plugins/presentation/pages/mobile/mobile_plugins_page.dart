@@ -25,6 +25,7 @@ import 'package:sakuramedia/widgets/base/feedback/app_status_chip.dart';
 import 'package:sakuramedia/widgets/base/layout/cards/app_notice_card.dart';
 import 'package:sakuramedia/widgets/base/layout/scrolling/app_adaptive_refresh_scroll_view.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer_scroll_region.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_modal_dismiss_controller.dart';
 
 /// 移动端插件管理页：卡片列表、操作抽屉、zip 安装和配置编辑。
@@ -523,66 +524,69 @@ class _MobilePluginActionsSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final spacing = context.appSpacing;
     final l10n = AppLocalizations.of(context);
-    return SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Text(
-            plugin.displayName,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s16,
-              weight: AppTextWeight.semibold,
-              tone: AppTextTone.primary,
+    return AppBottomDrawerScrollRegion(
+      builder: (context, controller) => SingleChildScrollView(
+        controller: controller,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              plugin.displayName,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s16,
+                weight: AppTextWeight.semibold,
+                tone: AppTextTone.primary,
+              ),
             ),
-          ),
-          SizedBox(height: spacing.xs),
-          Text(
-            l10n.pluginsActionsTitle,
-            style: resolveAppTextStyle(
-              context,
-              size: AppTextSize.s12,
-              tone: AppTextTone.secondary,
+            SizedBox(height: spacing.xs),
+            Text(
+              l10n.pluginsActionsTitle,
+              style: resolveAppTextStyle(
+                context,
+                size: AppTextSize.s12,
+                tone: AppTextTone.secondary,
+              ),
             ),
-          ),
-          SizedBox(height: spacing.md),
-          _MobilePluginActionRow(
-            key: Key('mobile-plugin-toggle-${plugin.pluginId}'),
-            icon: plugin.enabled
-                ? Icons.pause_circle_outline_rounded
-                : Icons.play_circle_outline_rounded,
-            label: plugin.enabled ? l10n.pluginsDisable : l10n.pluginsEnable,
-            disabled: disabled,
-            onTap: () => _select(context, _MobilePluginAction.toggle),
-          ),
-          if (update != null)
+            SizedBox(height: spacing.md),
             _MobilePluginActionRow(
-              key: Key('mobile-plugin-update-${plugin.pluginId}'),
-              icon: Icons.system_update_outlined,
-              label: l10n.pluginsUpdateTo(update!.version),
+              key: Key('mobile-plugin-toggle-${plugin.pluginId}'),
+              icon: plugin.enabled
+                  ? Icons.pause_circle_outline_rounded
+                  : Icons.play_circle_outline_rounded,
+              label: plugin.enabled ? l10n.pluginsDisable : l10n.pluginsEnable,
               disabled: disabled,
-              onTap: () => _select(context, _MobilePluginAction.update),
+              onTap: () => _select(context, _MobilePluginAction.toggle),
             ),
-          if (plugin.enabled &&
-              plugin.loadStatus == 'ok' &&
-              plugin.testCapabilities.isNotEmpty)
+            if (update != null)
+              _MobilePluginActionRow(
+                key: Key('mobile-plugin-update-${plugin.pluginId}'),
+                icon: Icons.system_update_outlined,
+                label: l10n.pluginsUpdateTo(update!.version),
+                disabled: disabled,
+                onTap: () => _select(context, _MobilePluginAction.update),
+              ),
+            if (plugin.enabled &&
+                plugin.loadStatus == 'ok' &&
+                plugin.testCapabilities.isNotEmpty)
+              _MobilePluginActionRow(
+                key: Key('mobile-plugin-test-${plugin.pluginId}'),
+                icon: Icons.science_outlined,
+                label: l10n.pluginsTestCapabilities,
+                disabled: disabled,
+                onTap: () => _select(context, _MobilePluginAction.test),
+              ),
             _MobilePluginActionRow(
-              key: Key('mobile-plugin-test-${plugin.pluginId}'),
-              icon: Icons.science_outlined,
-              label: l10n.pluginsTestCapabilities,
+              key: Key('mobile-plugin-delete-${plugin.pluginId}'),
+              icon: Icons.delete_outline_rounded,
+              label: l10n.pluginDeleteTitle,
+              danger: true,
               disabled: disabled,
-              onTap: () => _select(context, _MobilePluginAction.test),
+              onTap: () => _select(context, _MobilePluginAction.delete),
             ),
-          _MobilePluginActionRow(
-            key: Key('mobile-plugin-delete-${plugin.pluginId}'),
-            icon: Icons.delete_outline_rounded,
-            label: l10n.pluginDeleteTitle,
-            danger: true,
-            disabled: disabled,
-            onTap: () => _select(context, _MobilePluginAction.delete),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

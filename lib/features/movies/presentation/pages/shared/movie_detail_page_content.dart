@@ -201,7 +201,6 @@ class MovieDetailPageContent extends ConsumerWidget {
           );
     final watchedAt = progress?.lastWatchedAt?.toLocal();
     final mediaItems = data.mediaItems;
-    final normalizedMergePlaybackLabel = state.mergePlaybackLabel?.trim() ?? '';
     final orderedActors = <MovieActorDto>[
       ...data.movie.actors.where((actor) => actor.isFemale),
       ...data.movie.actors.where((actor) => !actor.isFemale),
@@ -280,11 +279,6 @@ class MovieDetailPageContent extends ConsumerWidget {
                   isPlayLoading: state.isPlayLoading,
                   onPlayTap: actions.onPlayTap,
                   playLabel: state.playLabel,
-                  mergePlaybackLabel: normalizedMergePlaybackLabel.isEmpty
-                      ? null
-                      : normalizedMergePlaybackLabel,
-                  onMergePlaybackTap: actions.onMergePlaybackTap,
-                  isMergePlaybackLoading: state.isMergePlaybackLoading,
                   onInspectorPaneTap: actions.onInspectorPaneTap,
                   showReviewAction: reviewEnabled,
                   ratingPanel: config.ratingPanel,

@@ -104,6 +104,41 @@ void main() {
     await inspectorFuture;
   });
 
+  testWidgets('action menu returns merged playback when available', (
+    tester,
+  ) async {
+    await _pumpHost(
+      tester,
+      bundle,
+      size: const Size(390, 844),
+      theme: buildSakuraMobileThemeData(),
+      platform: TargetPlatform.android,
+      appPlatform: AppPlatform.mobile,
+    );
+    final context = tester.element(find.byType(Scaffold));
+    const presenter = MovieDetailOverlayPresenter(mobile: true);
+
+    final actionFuture = presenter.showActionMenu(
+      context: context,
+      globalPosition: Offset.zero,
+      movie: movie,
+      isSubscribed: true,
+      isCollection: false,
+      isBlacklisted: false,
+      canMergePlayback: true,
+      selectedMedia: media,
+      castSessionLabel: null,
+      canCast: false,
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('movie-detail-hero-action-mergePlayback')),
+    );
+    await tester.pumpAndSettle();
+
+    expect(await actionFuture, MovieDetailActionType.mergePlayback);
+  });
+
   testWidgets('desktop presenter uses dialogs and returns user choices', (
     tester,
   ) async {
@@ -216,6 +251,41 @@ void main() {
     await inspectorFuture;
   });
 
+  testWidgets('desktop review inspector does not show the drawer scroll cue', (
+    tester,
+  ) async {
+    _enqueueReviews(bundle);
+    await _pumpHost(
+      tester,
+      bundle,
+      size: const Size(1100, 760),
+      theme: buildSakuraDesktopThemeData(),
+      platform: TargetPlatform.macOS,
+      appPlatform: AppPlatform.desktop,
+    );
+    final context = tester.element(find.byType(Scaffold));
+    const presenter = MovieDetailOverlayPresenter(mobile: false);
+
+    final inspectorFuture = presenter.openInspector(
+      context: context,
+      movie: movie,
+      selectedMedia: media,
+      pane: MovieDetailInspectorPane.review,
+      onSearchSimilar: (_, _, _) async {},
+      onPlay: (_) {},
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('movie-detail-review-list')), findsOneWidget);
+    expect(find.byKey(const Key('app-bottom-drawer-scroll-cue')), findsNothing);
+
+    final inspector = find.byKey(const Key('movie-detail-inspector-dialog'));
+    Navigator.of(tester.element(inspector)).pop();
+    await tester.pumpAndSettle();
+    await inspectorFuture;
+  });
+
   testWidgets('mobile review inspector paints skeletons on the first frame', (
     tester,
   ) async {
@@ -257,6 +327,65 @@ void main() {
     await tester.pumpAndSettle();
     await inspectorFuture;
   });
+
+  testWidgets('mobile review inspector shows the drawer scroll cue', (
+    tester,
+  ) async {
+    _enqueueReviews(bundle);
+    await _pumpHost(
+      tester,
+      bundle,
+      size: const Size(390, 844),
+      theme: buildSakuraMobileThemeData(),
+      platform: TargetPlatform.android,
+      appPlatform: AppPlatform.mobile,
+    );
+    final context = tester.element(find.byType(Scaffold));
+    const presenter = MovieDetailOverlayPresenter(mobile: true);
+
+    final inspectorFuture = presenter.openInspector(
+      context: context,
+      movie: movie,
+      selectedMedia: media,
+      pane: MovieDetailInspectorPane.review,
+      onSearchSimilar: (_, _, _) async {},
+      onPlay: (_) {},
+    );
+    await tester.pump();
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('movie-detail-review-list')), findsOneWidget);
+    expect(
+      find.byKey(const Key('app-bottom-drawer-scroll-cue')),
+      findsOneWidget,
+    );
+
+    final inspector = find.byKey(
+      const Key('movie-detail-inspector-bottom-sheet'),
+    );
+    Navigator.of(tester.element(inspector)).pop();
+    await tester.pumpAndSettle();
+    await inspectorFuture;
+  });
+}
+
+void _enqueueReviews(TestApiBundle bundle) {
+  bundle.adapter.enqueueJson(
+    method: 'GET',
+    path: '/movies/ABC-001/reviews',
+    body: <Map<String, dynamic>>[
+      for (var index = 0; index < 20; index++)
+        <String, dynamic>{
+          'id': index,
+          'score': 4,
+          'content': '这是一条足够长的评论内容，用于验证滚动区域出现下滑提示。第 $index 条。',
+          'created_at': '2026-01-01T00:00:00Z',
+          'username': 'user-$index',
+          'like_count': index,
+          'watch_count': index,
+        },
+    ],
+  );
 }
 
 Future<void> _pumpHost(

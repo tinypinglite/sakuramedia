@@ -33,11 +33,14 @@ class AppAdaptiveModalShellScope extends InheritedWidget {
 
   final bool isDrawer;
 
-  static bool maybeIsDrawer(BuildContext context) {
+  /// 返回当前自适应弹层壳；直接使用普通抽屉或对话框时返回 null。
+  static AppAdaptiveModalShellScope? maybeOf(BuildContext context) {
     return context
-            .dependOnInheritedWidgetOfExactType<AppAdaptiveModalShellScope>()
-            ?.isDrawer ??
-        false;
+        .dependOnInheritedWidgetOfExactType<AppAdaptiveModalShellScope>();
+  }
+
+  static bool maybeIsDrawer(BuildContext context) {
+    return maybeOf(context)?.isDrawer ?? false;
   }
 
   @override

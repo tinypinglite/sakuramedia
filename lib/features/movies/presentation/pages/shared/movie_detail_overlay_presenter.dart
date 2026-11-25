@@ -46,6 +46,7 @@ class MovieDetailOverlayPresenter {
     required bool isBlacklisted,
     bool isWatched = false,
     bool canUseExternalPlayer = false,
+    bool canMergePlayback = false,
     required MovieMediaItemDto? selectedMedia,
     required String? castSessionLabel,
     required bool canCast,
@@ -58,6 +59,7 @@ class MovieDetailOverlayPresenter {
       isWatched: isWatched,
       canCast: canCast,
       canUseExternalPlayer: canUseExternalPlayer,
+      canMergePlayback: canMergePlayback,
       castSessionLabel: castSessionLabel,
     );
     return mobile

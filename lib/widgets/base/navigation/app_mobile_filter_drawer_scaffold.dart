@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/theme.dart';
 import 'package:sakuramedia/widgets/base/overlays/app_glass_popover.dart';
+import 'package:sakuramedia/widgets/base/overlays/app_bottom_drawer_scroll_region.dart';
 
 /// 移动端筛选底部抽屉的通用壳层：可滚动内容区 + 可选 footer。
 ///
@@ -36,10 +37,13 @@ class AppMobileFilterDrawerScaffold extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Flexible(
-          child: SingleChildScrollView(
-            key: scrollViewKey,
-            padding: EdgeInsets.symmetric(vertical: spacing.md),
-            child: child,
+          child: AppBottomDrawerScrollRegion(
+            builder: (context, controller) => SingleChildScrollView(
+              key: scrollViewKey,
+              controller: controller,
+              padding: EdgeInsets.symmetric(vertical: spacing.md),
+              child: child,
+            ),
           ),
         ),
         if (footerWidget != null)
