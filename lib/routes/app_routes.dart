@@ -61,6 +61,9 @@ abstract final class DesktopRoutes {
   static AppRouteTarget notifications() =>
       const AppRouteTarget(id: AppRouteId.desktopNotifications);
 
+  static AppRouteTarget agentConnect() =>
+      const AppRouteTarget(id: AppRouteId.desktopAgentConnect);
+
   static AppRouteTarget configuration() =>
       const AppRouteTarget(id: AppRouteId.desktopConfiguration);
 
@@ -389,6 +392,9 @@ abstract final class MobileRoutes {
 
   static AppRouteTarget settingsDownloadSelection() =>
       const AppRouteTarget(id: AppRouteId.mobileSettingsDownloadSelection);
+
+  static AppRouteTarget agentConnect() =>
+      const AppRouteTarget(id: AppRouteId.mobileAgentConnect);
 
   static AppRouteTarget settingsSystemMaintenance() =>
       const AppRouteTarget(id: AppRouteId.mobileSettingsSystemMaintenance);

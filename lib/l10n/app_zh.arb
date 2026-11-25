@@ -938,8 +938,8 @@
   "systemLogsRawConfirmMessage": "日志可能包含凭据与隐私信息，请仅在可信环境中使用。",
   "systemLogsRawConfirmAction": "继续导出",
   "agentConnectTitle": "连接 Agent",
-  "agentConnectDescription": "选择要安装或更新的技能，复制连接信息发给支持技能安装的 Agent。",
-  "agentConnectInstallHint": "技能包来自公开的 SakuraMedia wiki。已安装的同名技能会被要求覆盖更新，而不是跳过。",
+  "routeNavAgentConnectDescription": "把查片、下载、导入交给支持技能安装的 Agent。",
+  "agentConnectDescription": "选择技能和已有 API 密钥，复制连接信息发给支持技能安装的 Agent。",
   "agentConnectLoading": "正在加载技能列表…",
   "agentConnectLoadFailed": "技能列表加载失败",
   "agentConnectEmpty": "暂时没有可安装的技能",
@@ -957,8 +957,12 @@
   "agentConnectCopying": "正在生成连接信息…",
   "agentConnectCopied": "连接信息已复制",
   "agentConnectCopyFailed": "复制失败，请重试",
-  "agentConnectCreateKeyFailed": "生成连接密钥失败",
-  "agentConnectNoSelection": "请至少选择一个技能",
+  "agentConnectSelectKeyTitle": "选择 API 密钥",
+  "agentConnectKeyUnavailable": "旧版本创建的密钥无法读取，请重新创建",
+  "agentConnectNoRecoverableKey": "没有可读取的 API 密钥，请先创建一把新密钥。",
+  "agentConnectRevealUnsupported": "当前后端不支持读取已有 API 密钥，请升级后端。",
+  "agentConnectGoCreateKey": "去创建 API 密钥",
+  "agentConnectRevealKeyFailed": "读取 API 密钥失败",
   "agentConnectVersion": "v{version}",
   "@agentConnectVersion": {
     "placeholders": {
@@ -967,10 +971,6 @@
       }
     }
   },
-  "agentConnectRiskReadOnly": "只读",
-  "agentConnectRiskWrite": "会写入数据",
-  "agentConnectKeyHint": "每次复制都会创建一把新的 API key；旧 key 可在账号安全中删除。",
-  "agentConnectEndpointHint": "如果 Agent 在云端，请确保它能访问当前服务器地址；局域网地址通常只适合本机 Agent。",
   "configTabAccountSecurity": "账号安全",
   "configTabAppearance": "外观",
   "configTabMediaLibraries": "媒体库",

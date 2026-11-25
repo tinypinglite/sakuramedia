@@ -39,6 +39,8 @@ class ApiKeyDto {
     required this.keyHint,
     this.createdAt,
     this.lastUsedAt,
+    this.recoverable = false,
+    this.hasRecoverableFlag = false,
   });
 
   final int id;
@@ -46,6 +48,8 @@ class ApiKeyDto {
   final String keyHint;
   final DateTime? createdAt;
   final DateTime? lastUsedAt;
+  final bool recoverable;
+  final bool hasRecoverableFlag;
 
   factory ApiKeyDto.fromJson(Map<String, dynamic> json) {
     return ApiKeyDto(
@@ -54,6 +58,8 @@ class ApiKeyDto {
       keyHint: json['key_hint'] as String? ?? '',
       createdAt: DateTime.tryParse(json['created_at'] as String? ?? ''),
       lastUsedAt: DateTime.tryParse(json['last_used_at'] as String? ?? ''),
+      recoverable: json['recoverable'] as bool? ?? false,
+      hasRecoverableFlag: json.containsKey('recoverable'),
     );
   }
 }
@@ -66,6 +72,8 @@ class ApiKeyCreatedDto extends ApiKeyDto {
     required super.keyHint,
     super.createdAt,
     super.lastUsedAt,
+    super.recoverable,
+    super.hasRecoverableFlag,
     required this.key,
   });
 
@@ -79,6 +87,8 @@ class ApiKeyCreatedDto extends ApiKeyDto {
       keyHint: base.keyHint,
       createdAt: base.createdAt,
       lastUsedAt: base.lastUsedAt,
+      recoverable: base.recoverable,
+      hasRecoverableFlag: base.hasRecoverableFlag,
       key: json['key'] as String? ?? '',
     );
   }

@@ -5,6 +5,7 @@ import 'package:sakuramedia/features/activity/presentation/pages/desktop/activit
 import 'package:sakuramedia/features/activity/presentation/pages/desktop/notifications_page.dart';
 import 'package:sakuramedia/features/activity/presentation/pages/mobile/activity_page.dart';
 import 'package:sakuramedia/features/activity/presentation/pages/mobile/notifications_page.dart';
+import 'package:sakuramedia/features/agent_connect/presentation/pages/shared/agent_connect_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/desktop/configuration_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/appearance_settings_page.dart';
 import 'package:sakuramedia/features/configuration/presentation/pages/mobile/mobile_download_selection_policy_page.dart';
@@ -114,9 +115,26 @@ final AppRouteDefinition desktopConfigurationRoute = AppRouteDefinition(
   title: (l10n, [_]) => l10n.routeConfigurationTitle,
   nav: AppNavDestination(
     groupId: 'configuration',
-    order: 20,
+    order: 21,
     icon: Icons.settings_suggest_outlined,
     description: (l10n) => l10n.routeNavConfigurationDescription,
+    sectionId: 'manage',
+  ),
+);
+
+final AppRouteDefinition desktopAgentConnectRoute = AppRouteDefinition(
+  id: AppRouteId.desktopAgentConnect,
+  name: 'desktop-agent-connect',
+  platform: AppPlatform.desktop,
+  path: desktopAgentConnectPath,
+  scope: AppRouteScope.branchRoot,
+  pageBuilder: (context, state) => const AgentConnectPage(isMobile: false),
+  title: (l10n, [_]) => l10n.agentConnectTitle,
+  nav: AppNavDestination(
+    groupId: 'agent-connect',
+    order: 20,
+    icon: Icons.smart_toy_outlined,
+    description: (l10n) => l10n.routeNavAgentConnectDescription,
     sectionId: 'manage',
   ),
 );
@@ -370,6 +388,19 @@ final AppRouteDefinition mobileSettingsDownloadSelectionRoute =
       title: (l10n, [_]) => l10n.configTabDownloadSelection,
       backTarget: (state) => mobileOverviewPath,
     );
+
+final AppRouteDefinition mobileAgentConnectRoute = AppRouteDefinition(
+  id: AppRouteId.mobileAgentConnect,
+  name: 'mobile-agent-connect',
+  platform: AppPlatform.mobile,
+  path: mobileAgentConnectPath,
+  scope: AppRouteScope.outsideShell,
+  transition: AppRouteTransition.cupertino,
+  subpageChrome: const AppSubpageChrome(),
+  pageBuilder: (context, state) => const AgentConnectPage(isMobile: true),
+  title: (l10n, [_]) => l10n.agentConnectTitle,
+  backTarget: (state) => mobileOverviewPath,
+);
 
 final AppRouteDefinition mobileSettingsSystemMaintenanceRoute =
     AppRouteDefinition(

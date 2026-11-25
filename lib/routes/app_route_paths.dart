@@ -33,12 +33,12 @@ const String desktopActivityPath = '/desktop/system/activity';
 const String desktopDownloadTasksPath = '/desktop/system/download-tasks';
 const String desktopMediaPath = '/desktop/system/media';
 const String desktopNotificationsPath = '/desktop/system/notifications';
+const String desktopAgentConnectPath = '/desktop/system/agent-connect';
 const String desktopConfigurationPath = '/desktop/system/configuration';
 const String desktopMediaImportPath = '/desktop/system/media-import';
 const String desktopMovieSubscriptionsPath =
     '/desktop/system/movie-subscriptions';
 const String desktopSystemDiagnosticsPath = '/desktop/system/diagnostics';
-
 const String mobileOverviewPath = '/mobile/overview';
 const String mobileFollowPath = '$mobileOverviewPath/discover/follow';
 const String mobileDiscoverMoviesPath = '$mobileOverviewPath/discover/movies';
@@ -83,6 +83,7 @@ const String mobileSettingsDownloadersPath = '/mobile/settings/downloaders';
 const String mobileSettingsIndexersPath = '/mobile/settings/indexers';
 const String mobileSettingsDownloadSelectionPath =
     '/mobile/settings/download-selection';
+const String mobileAgentConnectPath = '/mobile/settings/agent-connect';
 const String mobileSettingsSystemMaintenancePath =
     '/mobile/settings/system-maintenance';
 const String mobileSettingsExternalPlayerPath =

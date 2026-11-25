@@ -53,6 +53,11 @@ class AccountApi {
     return ApiKeyCreatedDto.fromJson(response);
   }
 
+  Future<String> revealApiKey(int keyId) async {
+    final response = await _apiClient.get('/account/api-keys/$keyId/secret');
+    return response['key'] as String? ?? '';
+  }
+
   Future<void> deleteApiKey(int keyId) async {
     await _apiClient.deleteNoContent('/account/api-keys/$keyId');
   }

@@ -148,6 +148,7 @@ void main() {
           'key_hint': 'sk-AbCd1234',
           'created_at': '2026-10-07T10:00:00',
           'last_used_at': null,
+          'recoverable': true,
         },
         <String, dynamic>{
           'id': 2,
@@ -155,6 +156,7 @@ void main() {
           'key_hint': 'sk-ZzZz9999',
           'created_at': '2026-10-06T10:00:00',
           'last_used_at': '2026-10-07T11:00:00',
+          'recoverable': false,
         },
       ],
     );
@@ -166,6 +168,8 @@ void main() {
     expect(keys[0].name, 'MCP server');
     expect(keys[0].keyHint, 'sk-AbCd1234');
     expect(keys[0].lastUsedAt, isNull);
+    expect(keys[0].recoverable, isTrue);
+    expect(keys[1].recoverable, isFalse);
     expect(keys[1].lastUsedAt, DateTime.parse('2026-10-07T11:00:00'));
   });
 
@@ -180,6 +184,7 @@ void main() {
         'key_hint': 'sk-AbCd1234',
         'created_at': '2026-10-07T10:00:00',
         'last_used_at': null,
+        'recoverable': true,
         'key': 'sk-AbCd1234EfGh5678',
       },
     );
@@ -187,6 +192,7 @@ void main() {
     final created = await accountApi.createApiKey(name: 'MCP');
 
     expect(created.id, 9);
+    expect(created.recoverable, isTrue);
     expect(created.key, 'sk-AbCd1234EfGh5678');
     expect(adapter.requests.single.body, <String, dynamic>{'name': 'MCP'});
   });
@@ -202,5 +208,19 @@ void main() {
 
     expect(adapter.requests.single.method, 'DELETE');
     expect(adapter.requests.single.path, '/account/api-keys/9');
+  });
+
+  test('revealApiKey fetches the selected key secret', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/account/api-keys/9/secret',
+      body: <String, dynamic>{'key': 'sk-AbCd1234EfGh5678'},
+    );
+
+    final key = await accountApi.revealApiKey(9);
+
+    expect(key, 'sk-AbCd1234EfGh5678');
+    expect(adapter.requests.single.method, 'GET');
+    expect(adapter.requests.single.path, '/account/api-keys/9/secret');
   });
 }

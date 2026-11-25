@@ -938,8 +938,8 @@
   "systemLogsRawConfirmMessage": "The logs may contain credentials and private information. Use them only in a trusted environment.",
   "systemLogsRawConfirmAction": "Export anyway",
   "agentConnectTitle": "Connect an agent",
-  "agentConnectDescription": "Select the skills to install or update, then copy the connection details for an agent that supports skill installation.",
-  "agentConnectInstallHint": "Skills are served from the public SakuraMedia wiki. Existing skills are instructed to update in place instead of being skipped.",
+  "routeNavAgentConnectDescription": "Hand searching, downloading and importing movies to an agent that supports skill installs.",
+  "agentConnectDescription": "Select skills and an existing API key, then copy the connection details for an agent that supports skill installation.",
   "agentConnectLoading": "Loading skills…",
   "agentConnectLoadFailed": "Failed to load skills",
   "agentConnectEmpty": "No installable skills are available",
@@ -957,8 +957,12 @@
   "agentConnectCopying": "Generating connection details…",
   "agentConnectCopied": "Connection details copied",
   "agentConnectCopyFailed": "Failed to copy. Try again.",
-  "agentConnectCreateKeyFailed": "Failed to create a connection key",
-  "agentConnectNoSelection": "Select at least one skill",
+  "agentConnectSelectKeyTitle": "Select an API key",
+  "agentConnectKeyUnavailable": "Keys created before secret storage cannot be read. Create a new one.",
+  "agentConnectNoRecoverableKey": "There is no readable API key. Create a new key first.",
+  "agentConnectRevealUnsupported": "This backend does not support reading existing API keys. Upgrade the backend.",
+  "agentConnectGoCreateKey": "Create an API key",
+  "agentConnectRevealKeyFailed": "Failed to read the API key",
   "agentConnectVersion": "v{version}",
   "@agentConnectVersion": {
     "placeholders": {
@@ -967,10 +971,6 @@
       }
     }
   },
-  "agentConnectRiskReadOnly": "Read-only",
-  "agentConnectRiskWrite": "Writes data",
-  "agentConnectKeyHint": "Copying creates a new API key every time. Delete old keys in Account security.",
-  "agentConnectEndpointHint": "If the agent runs in the cloud, make sure it can reach this server address; LAN addresses usually work only for local agents.",
   "configTabAccountSecurity": "Account security",
   "configTabAppearance": "Appearance",
   "configTabMediaLibraries": "Media libraries",

@@ -17,9 +17,9 @@ void main() {
   });
 
   test('registry contains exactly the current route surface', () {
-    expect(appRoutes.definitions.length, 105);
-    expect(appRoutes.forPlatform(AppPlatform.desktop).length, 49);
-    expect(appRoutes.forPlatform(AppPlatform.mobile).length, 56);
+    expect(appRoutes.definitions.length, 107);
+    expect(appRoutes.forPlatform(AppPlatform.desktop).length, 50);
+    expect(appRoutes.forPlatform(AppPlatform.mobile).length, 57);
 
     expect(
       appRoutes.scoped(AppPlatform.desktop, AppRouteScope.outsideShell).length,
@@ -27,7 +27,7 @@ void main() {
     );
     expect(
       appRoutes.scoped(AppPlatform.desktop, AppRouteScope.branchRoot).length,
-      18,
+      19,
     );
     expect(
       appRoutes.scoped(AppPlatform.desktop, AppRouteScope.shellLevel).length,
@@ -35,7 +35,7 @@ void main() {
     );
     expect(
       appRoutes.scoped(AppPlatform.mobile, AppRouteScope.outsideShell).length,
-      43,
+      44,
     );
     expect(
       appRoutes.scoped(AppPlatform.mobile, AppRouteScope.branchRoot).length,
@@ -49,7 +49,7 @@ void main() {
         .map((definition) => definition.id)
         .toSet();
     expect(ids.length, appRoutes.definitions.length);
-    expect(desktopPrimaryBranchOrder.length, 18);
+    expect(desktopPrimaryBranchOrder.length, 19);
     expect(mobilePrimaryBranchOrder.length, 5);
     expect(mobileOverviewBranchIndex, 0);
   });
@@ -64,7 +64,7 @@ void main() {
     }
 
     final desktopItems = desktopNavItems(l10n);
-    expect(desktopItems.length, 21);
+    expect(desktopItems.length, 22);
     expect(
       desktopItems.map((item) => item.name).toSet().length,
       desktopItems.length,
@@ -95,6 +95,7 @@ void main() {
       AppRouteId.desktopActivity,
       AppRouteId.desktopMovieSubscriptions,
       AppRouteId.desktopNotifications,
+      AppRouteId.desktopAgentConnect,
       AppRouteId.desktopConfiguration,
     ]);
 
@@ -117,7 +118,7 @@ void main() {
     final drawerEntries = drawerSections
         .expand((section) => section.entries)
         .toList(growable: false);
-    expect(drawerEntries.length, 24);
+    expect(drawerEntries.length, 25);
     expect(
       drawerEntries.map((entry) => entry.key).toSet().length,
       drawerEntries.length,
@@ -137,7 +138,7 @@ void main() {
     final subpages = appRoutes.definitions
         .where((definition) => definition.subpageChrome != null)
         .toList(growable: false);
-    expect(subpages.length, 45);
+    expect(subpages.length, 46);
     expect(
       subpages
           .where((definition) => definition.subpageChrome!.glassChrome)

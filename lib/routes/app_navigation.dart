@@ -253,6 +253,12 @@ List<AppDrawerSection> mobileDrawerSections(
           icon: Icons.extension_outlined,
         ),
         AppDrawerEntry(
+          key: 'agent-connect',
+          routeId: AppRouteId.mobileAgentConnect,
+          label: l10n.agentConnectTitle,
+          icon: Icons.smart_toy_outlined,
+        ),
+        AppDrawerEntry(
           key: 'system-maintenance',
           routeId: AppRouteId.mobileSettingsSystemMaintenance,
           label: l10n.shellNavSystemMaintenance,
