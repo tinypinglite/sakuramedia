@@ -106,6 +106,8 @@ services:
       - /mnt:/mnt
 ```
 
+The `HTTP_PROXY` / `HTTPS_PROXY` values configured here apply to all outbound network requests from the `sakuramedia` container, including connections to qBittorrent, 115, Guangyapan and other services. Use `NO_PROXY` or proxy-side rules to route requests as needed and keep LAN services or requests that do not need the proxy from being sent through it. Prefer a router-level transparent proxy; if your router cannot provide one, configure the proxy for the `sakuramedia` container instead and make sure requests are routed correctly. See [Metadata plugin networking and proxy](/faq#metadata-plugin-networking-and-proxy).
+
 ::: danger Must be changed before saving
 - Change `/mnt` to the host parent directory that contains both the "existing movies directory" and the "media library directory". It must be an absolute path.
 - Change `TZ` if you are not in the China time zone.
