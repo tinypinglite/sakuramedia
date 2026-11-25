@@ -937,6 +937,40 @@
   "systemLogsRawConfirmTitle": "导出未脱敏日志？",
   "systemLogsRawConfirmMessage": "日志可能包含凭据与隐私信息，请仅在可信环境中使用。",
   "systemLogsRawConfirmAction": "继续导出",
+  "agentConnectTitle": "连接 Agent",
+  "agentConnectDescription": "选择要安装或更新的技能，复制连接信息发给支持技能安装的 Agent。",
+  "agentConnectInstallHint": "技能包来自公开的 SakuraMedia wiki。已安装的同名技能会被要求覆盖更新，而不是跳过。",
+  "agentConnectLoading": "正在加载技能列表…",
+  "agentConnectLoadFailed": "技能列表加载失败",
+  "agentConnectEmpty": "暂时没有可安装的技能",
+  "agentConnectSelectAll": "全选",
+  "agentConnectClearSelection": "清空",
+  "agentConnectSelectedCount": "已选择 {count} 个技能",
+  "@agentConnectSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "agentConnectCopy": "复制连接信息",
+  "agentConnectCopying": "正在生成连接信息…",
+  "agentConnectCopied": "连接信息已复制",
+  "agentConnectCopyFailed": "复制失败，请重试",
+  "agentConnectCreateKeyFailed": "生成连接密钥失败",
+  "agentConnectNoSelection": "请至少选择一个技能",
+  "agentConnectVersion": "v{version}",
+  "@agentConnectVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "agentConnectRiskReadOnly": "只读",
+  "agentConnectRiskWrite": "会写入数据",
+  "agentConnectKeyHint": "每次复制都会创建一把新的 API key；旧 key 可在账号安全中删除。",
+  "agentConnectEndpointHint": "如果 Agent 在云端，请确保它能访问当前服务器地址；局域网地址通常只适合本机 Agent。",
   "configTabAccountSecurity": "账号安全",
   "configTabAppearance": "外观",
   "configTabMediaLibraries": "媒体库",

@@ -5,6 +5,8 @@ on:
     branches: [main]
     paths:
       - 'wiki/**'
+      - 'skills/**'
+      - 'scripts/package_skills.py'
       - 'scripts/generate-star-history.mjs'
       - '.github/workflows/docs.yml'
   schedule:
@@ -47,6 +49,14 @@ jobs:
       - name: Build
         working-directory: wiki
         run: npm run docs:build
+
+      - name: Package agent skills
+        run: |
+          python3 scripts/package_skills.py \
+            --skills-dir skills \
+            --output wiki/.vitepress/dist/downloads/skills \
+            --public-base-url https://tinypinglite.github.io/sakuramedia/downloads/skills \
+            --clean
 
       - name: Package wiki archive
         working-directory: wiki

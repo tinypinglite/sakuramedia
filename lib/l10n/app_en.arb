@@ -937,6 +937,40 @@
   "systemLogsRawConfirmTitle": "Export unredacted logs?",
   "systemLogsRawConfirmMessage": "The logs may contain credentials and private information. Use them only in a trusted environment.",
   "systemLogsRawConfirmAction": "Export anyway",
+  "agentConnectTitle": "Connect an agent",
+  "agentConnectDescription": "Select the skills to install or update, then copy the connection details for an agent that supports skill installation.",
+  "agentConnectInstallHint": "Skills are served from the public SakuraMedia wiki. Existing skills are instructed to update in place instead of being skipped.",
+  "agentConnectLoading": "Loading skills…",
+  "agentConnectLoadFailed": "Failed to load skills",
+  "agentConnectEmpty": "No installable skills are available",
+  "agentConnectSelectAll": "Select all",
+  "agentConnectClearSelection": "Clear",
+  "agentConnectSelectedCount": "{count} skills selected",
+  "@agentConnectSelectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "agentConnectCopy": "Copy connection details",
+  "agentConnectCopying": "Generating connection details…",
+  "agentConnectCopied": "Connection details copied",
+  "agentConnectCopyFailed": "Failed to copy. Try again.",
+  "agentConnectCreateKeyFailed": "Failed to create a connection key",
+  "agentConnectNoSelection": "Select at least one skill",
+  "agentConnectVersion": "v{version}",
+  "@agentConnectVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "agentConnectRiskReadOnly": "Read-only",
+  "agentConnectRiskWrite": "Writes data",
+  "agentConnectKeyHint": "Copying creates a new API key every time. Delete old keys in Account security.",
+  "agentConnectEndpointHint": "If the agent runs in the cloud, make sure it can reach this server address; LAN addresses usually work only for local agents.",
   "configTabAccountSecurity": "Account security",
   "configTabAppearance": "Appearance",
   "configTabMediaLibraries": "Media libraries",
