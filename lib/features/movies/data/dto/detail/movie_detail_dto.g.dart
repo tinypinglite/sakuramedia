@@ -11,6 +11,8 @@ abstract class _$MovieMediaItemDtoCWProxy {
 
   MovieMediaItemDto libraryId(int? libraryId);
 
+  MovieMediaItemDto libraryName(String? libraryName);
+
   MovieMediaItemDto providerKey(String? providerKey);
 
   MovieMediaItemDto playUrl(String playUrl);
@@ -46,6 +48,7 @@ abstract class _$MovieMediaItemDtoCWProxy {
   MovieMediaItemDto call({
     int mediaId,
     int? libraryId,
+    String? libraryName,
     String? providerKey,
     String playUrl,
     String? resolution,
@@ -73,6 +76,10 @@ class _$MovieMediaItemDtoCWProxyImpl implements _$MovieMediaItemDtoCWProxy {
 
   @override
   MovieMediaItemDto libraryId(int? libraryId) => call(libraryId: libraryId);
+
+  @override
+  MovieMediaItemDto libraryName(String? libraryName) =>
+      call(libraryName: libraryName);
 
   @override
   MovieMediaItemDto providerKey(String? providerKey) =>
@@ -131,6 +138,7 @@ class _$MovieMediaItemDtoCWProxyImpl implements _$MovieMediaItemDtoCWProxy {
   MovieMediaItemDto call({
     Object? mediaId = const $CopyWithPlaceholder(),
     Object? libraryId = const $CopyWithPlaceholder(),
+    Object? libraryName = const $CopyWithPlaceholder(),
     Object? providerKey = const $CopyWithPlaceholder(),
     Object? playUrl = const $CopyWithPlaceholder(),
     Object? resolution = const $CopyWithPlaceholder(),
@@ -153,6 +161,10 @@ class _$MovieMediaItemDtoCWProxyImpl implements _$MovieMediaItemDtoCWProxy {
           ? _value.libraryId
           // ignore: cast_nullable_to_non_nullable
           : libraryId as int?,
+      libraryName: libraryName == const $CopyWithPlaceholder()
+          ? _value.libraryName
+          // ignore: cast_nullable_to_non_nullable
+          : libraryName as String?,
       providerKey: providerKey == const $CopyWithPlaceholder()
           ? _value.providerKey
           // ignore: cast_nullable_to_non_nullable

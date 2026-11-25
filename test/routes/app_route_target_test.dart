@@ -6,6 +6,7 @@ import 'package:sakuramedia/features/downloads/presentation/pages/mobile/downloa
 import 'package:sakuramedia/routes/app_route.dart';
 import 'package:sakuramedia/routes/app_route_registry.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
+import 'package:sakuramedia/routes/definitions/query_params.dart';
 
 void main() {
   test('desktop fallback metadata only accepts desktop paths', () {
@@ -44,6 +45,25 @@ void main() {
       DesktopRoutes.movieDetail(movieNumber: 'ABC 001').path,
       '/desktop/library/movies/ABC%20001',
     );
+  });
+
+  test('merged playback media ids keep click order in route query', () {
+    final target = DesktopRoutes.moviePlayer(
+      movieNumber: 'ABC-001',
+      mergedLibraryId: 3,
+      mergedMediaIds: const <int>[12, 10],
+    );
+
+    expect(
+      Uri.parse(target.location).queryParameters['mergedMediaIds'],
+      '12,10',
+    );
+    expect(parseMergedMediaIds('12,10'), <int>[12, 10]);
+    expect(parseMergedMediaIds('12,12'), isEmpty);
+    expect(parseMergedMediaIds('12'), isEmpty);
+    expect(parseMergedMediaIds('12,0'), isEmpty);
+    expect(parseMergedMediaIds('12,x'), isEmpty);
+    expect(parseMergedMediaIds(null), isNull);
   });
 
   testWidgets('desktop detail targets keep fallback metadata in route extra', (

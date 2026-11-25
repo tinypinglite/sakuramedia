@@ -17,7 +17,6 @@ import 'package:sakuramedia/features/movies/presentation/actions/movie_plot_imag
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_action_result.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_inspector_dialog.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_detail_inspector_panel.dart';
-import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_merge_playback_candidate_list.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_plot_preview_overlay.dart';
 import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_subtitle_viewer.dart';
 import 'package:sakuramedia/features/playlists/presentation/widgets/movie_playlist_picker_dialog.dart';
@@ -315,29 +314,6 @@ class MovieDetailOverlayPresenter {
     required MovieSubtitleItemDto item,
   }) {
     return showMovieSubtitleViewer(context, item: item);
-  }
-
-  Future<MovieMergePlaybackCandidateDto?> pickMergeCandidate({
-    required BuildContext context,
-    required List<MovieMergePlaybackCandidateDto> candidates,
-  }) {
-    if (candidates.length == 1) {
-      return Future<MovieMergePlaybackCandidateDto?>.value(candidates.single);
-    }
-    return showAppAdaptiveModal<MovieMergePlaybackCandidateDto>(
-      context: context,
-      variant: mobile
-          ? AppAdaptiveModalVariant.drawer
-          : AppAdaptiveModalVariant.dialog,
-      dialogKey: const Key('movie-merge-playback-library-dialog'),
-      drawerKey: const Key('movie-merge-playback-library-drawer'),
-      desktopWidth: context.appLayoutTokens.dialogWidthSm,
-      mobileMaxHeightFactor: 0.5,
-      builder: (modalContext) => MovieMergePlaybackCandidateList(
-        candidates: candidates,
-        onSelected: (candidate) => Navigator.of(modalContext).pop(candidate),
-      ),
-    );
   }
 
   Future<MovieDetailActionResult> searchSimilarFromPoint({

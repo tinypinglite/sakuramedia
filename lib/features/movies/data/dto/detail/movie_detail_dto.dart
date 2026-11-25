@@ -250,6 +250,7 @@ class MovieMediaItemDto {
   const MovieMediaItemDto({
     required this.mediaId,
     required this.libraryId,
+    this.libraryName,
     required this.providerKey,
     required this.playUrl,
     required this.resolution,
@@ -266,6 +267,7 @@ class MovieMediaItemDto {
 
   final int mediaId;
   final int? libraryId;
+  final String? libraryName;
   final String? providerKey;
   final String playUrl;
   final String fileName;
@@ -285,6 +287,7 @@ class MovieMediaItemDto {
     return MovieMediaItemDto(
       mediaId: asInt(json['media_id'] ?? json['id']),
       libraryId: asIntOrNull(json['library_id']),
+      libraryName: asStringOrNull(json['library_name'], trim: true),
       providerKey: json['provider_key'] as String?,
       playUrl: json['play_url'] as String? ?? '',
       fileName: json['file_name'] as String? ?? '',

@@ -6,7 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sakuramedia/core/session/session_store.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_app.dart';
-import 'package:sakuramedia/features/external_player/presentation/providers/external_player_preference_provider.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
@@ -64,9 +63,8 @@ void main() {
             ),
           ),
         );
-        await ProviderScope.containerOf(
-          context,
-        ).read(externalPlayerPreferenceProvider.future);
+        // Do not preload the provider: playback must still wait for the stored
+        // external-player preference on a cold start.
         await launchMoviePlayback(
           context,
           movieNumber: 'TEST-001',
@@ -185,6 +183,30 @@ void main() {
     expect(dto.playUrl, contains('/media/12/play/'));
     expect(dto.resolution, isNull);
     expect(dto.hasPlayableUrl, isTrue);
+  });
+
+  test('parses ordered media ids from merged playback URL', () {
+    expect(
+      mergedPlaybackMediaIdsFromUrl(
+        'https://api.example.com/media/merged-play/stream.mp4'
+        '?media_ids=12,11&expires=1&signature=sig',
+      ),
+      <int>[12, 11],
+    );
+    expect(
+      mergedPlaybackMediaIdsFromUrl(
+        'https://api.example.com/media/merged-play/stream.mp4'
+        '?media_ids=12&expires=1&signature=sig',
+      ),
+      isNull,
+    );
+    expect(
+      mergedPlaybackMediaIdsFromUrl(
+        'https://api.example.com/media/merged-play/stream.mp4'
+        '?expires=1&signature=sig',
+      ),
+      isNull,
+    );
   });
 
   test('copyWith preserves signed play URL and provider metadata', () {

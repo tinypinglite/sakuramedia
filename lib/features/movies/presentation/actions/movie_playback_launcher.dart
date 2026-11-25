@@ -3,7 +3,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart' show ProviderScope;
 import 'package:sakuramedia/core/media/media_url_resolver.dart';
 import 'package:sakuramedia/core/media/playback_resume_policy.dart';
-import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/external_player/data/external_playback_mode.dart';
 import 'package:sakuramedia/features/external_player/data/external_player_app.dart';
@@ -11,6 +10,7 @@ import 'package:sakuramedia/features/external_player/data/external_player_channe
 import 'package:sakuramedia/features/external_player/data/external_player_selection.dart';
 import 'package:sakuramedia/features/external_player/presentation/providers/external_player_preference_provider.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
+import 'package:sakuramedia/features/movies/presentation/actions/movie_merge_playback_models.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
 import 'package:sakuramedia/routes/app_routes.dart';
@@ -39,7 +39,13 @@ Future<void> launchMoviePlayback(
   MoviePlaybackTarget target = MoviePlaybackTarget.auto,
   ExternalPlayerApp? externalPlayer,
 }) async {
-  final selection = _readExternalPlayerSelection(context);
+  final selection =
+      target != MoviePlaybackTarget.inApp && externalPlayer == null
+      ? await readExternalPlayerSelection(context)
+      : null;
+  if (!context.mounted) {
+    return;
+  }
   const channel = ExternalPlayerChannel();
   final externalAvailable =
       channel.isSupported &&
@@ -146,81 +152,125 @@ Future<void> launchMoviePlayback(
   }
 }
 
-/// 外部播放器使用后端合并地址；内置播放器按同库媒体顺序连播。
-Future<void> launchMovieMergedPlayback(
+/// 外部播放器先向后端申请用户选定分段的虚拟 MP4；应用内则直接交接有序媒体。
+Future<MovieMergePlaybackSubmission> prepareMovieMergedPlayback(
   BuildContext context, {
   required String movieNumber,
-  required int libraryId,
-  MovieDetailDto? movie,
+  required MovieDetailDto movie,
+  required MovieMergePlaybackSelection selection,
+  required ExternalPlayerSelection? externalSelection,
 }) async {
-  final selection = _readExternalPlayerSelection(context);
-  const channel = ExternalPlayerChannel();
-  if (selection == null || !isExternalPlayerAvailable(selection)) {
-    _pushInAppPlayer(
+  if (externalSelection == null ||
+      !isExternalPlayerAvailable(externalSelection)) {
+    return MovieMergePlaybackSubmission.inApp(selection: selection);
+  }
+
+  final container = ProviderScope.containerOf(context, listen: false);
+  final l10n = AppLocalizations.of(context);
+  final mergedPlayback = await container
+      .read(moviesApiProvider)
+      .getMergedPlayback(
+        movieNumber: movieNumber,
+        libraryId: selection.libraryId,
+        mediaIds: selection.mediaIds,
+      );
+  final resolvedUrl = resolveMediaUrl(
+    rawUrl: mergedPlayback.playUrl,
+    baseUrl: container.read(sessionStoreProvider).baseUrl,
+  );
+  if (resolvedUrl == null || resolvedUrl.isEmpty) {
+    throw MovieMergePlaybackSubmitException(
+      l10n.movieActionMergedPlaybackUrlUnavailable,
+    );
+  }
+  if (!listEquals(
+    mergedPlaybackMediaIdsFromUrl(resolvedUrl),
+    selection.mediaIds,
+  )) {
+    throw MovieMergePlaybackSubmitException(
+      l10n.movieActionMergedPlaybackSelectionMismatch,
+    );
+  }
+  final title = movie.preferredTitle.trim();
+  return MovieMergePlaybackSubmission.external(
+    selection: selection,
+    externalUrl: resolvedUrl,
+    playerId: externalSelection.playerId!,
+    title: title.isEmpty ? movieNumber : title,
+  );
+}
+
+Future<void> launchPreparedMovieMergedPlayback(
+  BuildContext context,
+  MovieMergePlaybackSubmission submission, {
+  required String movieNumber,
+}) async {
+  if (!submission.usesExternalPlayer) {
+    pushMovieMergedPlaybackInApp(
       context,
       movieNumber: movieNumber,
-      mergedLibraryId: libraryId,
+      selection: submission.selection,
     );
     return;
   }
-
-  try {
-    final container = ProviderScope.containerOf(context, listen: false);
-    final mergedPlayback = await container
-        .read(moviesApiProvider)
-        .getMergedPlayback(movieNumber: movieNumber, libraryId: libraryId);
-    if (!context.mounted) {
-      return;
-    }
-    final resolvedUrl = resolveMediaUrl(
-      rawUrl: mergedPlayback.playUrl,
-      baseUrl: container.read(sessionStoreProvider).baseUrl,
+  const channel = ExternalPlayerChannel();
+  final launched = await channel.launch(
+    playerId: submission.playerId!,
+    url: submission.externalUrl!,
+    title: submission.title,
+  );
+  if (context.mounted && !launched) {
+    showToast(
+      AppLocalizations.of(context).movieActionExternalPlayerUnavailable,
+      tone: AppToastTone.error,
     );
-    if (resolvedUrl == null || resolvedUrl.isEmpty) {
-      showToast(
-        AppLocalizations.of(context).movieActionMergedPlaybackUrlUnavailable,
-        tone: AppToastTone.error,
-      );
-      return;
-    }
-    final title = movie?.preferredTitle.trim() ?? '';
-    final launched = await channel.launch(
-      playerId: selection.playerId!,
-      url: resolvedUrl,
-      title: title.isEmpty ? movieNumber : title,
-    );
-    if (context.mounted && !launched) {
-      showToast(
-        AppLocalizations.of(context).movieActionExternalPlayerUnavailable,
-        tone: AppToastTone.error,
-      );
-    }
-  } catch (error) {
-    if (context.mounted) {
-      final l10n = AppLocalizations.of(context);
-      showToast(
-        apiErrorMessage(
-          error,
-          fallback: l10n.movieActionMergedPlaybackStartFailed,
-          l10n: l10n,
-        ),
-        tone: AppToastTone.error,
-      );
-    }
   }
 }
 
-/// 安全读取偏好；树上没有 [ProviderScope] 的局部上下文（部分 widget 测试）
-/// 或偏好尚未读完返回 null（降级为应用内播放）。
-ExternalPlayerSelection? _readExternalPlayerSelection(BuildContext context) {
+void pushMovieMergedPlaybackInApp(
+  BuildContext context, {
+  required String movieNumber,
+  required MovieMergePlaybackSelection selection,
+}) {
+  _pushInAppPlayer(
+    context,
+    movieNumber: movieNumber,
+    mergedLibraryId: selection.libraryId,
+    mergedMediaIds: selection.mediaIds,
+  );
+}
+
+/// 等待偏好加载完成；树上没有 [ProviderScope] 的局部上下文（部分 widget 测试）
+/// 或读盘失败时返回 null（降级为应用内播放）。
+Future<ExternalPlayerSelection?> readExternalPlayerSelection(
+  BuildContext context,
+) async {
   try {
-    return ProviderScope.containerOf(
+    return await ProviderScope.containerOf(
       context,
       listen: false,
-    ).read(externalPlayerPreferenceProvider).value;
+    ).read(externalPlayerPreferenceProvider.future);
   } on Object {
     return null;
   }
+}
+
+@visibleForTesting
+List<int>? mergedPlaybackMediaIdsFromUrl(String url) {
+  final values = Uri.tryParse(url)?.queryParametersAll['media_ids'];
+  final raw = values == null || values.isEmpty ? null : values.first;
+  if (raw == null || raw.trim().isEmpty) {
+    return null;
+  }
+  final ids = <int>[];
+  for (final part in raw.split(',')) {
+    final value = int.tryParse(part.trim());
+    if (value == null || value <= 0) {
+      return null;
+    }
+    ids.add(value);
+  }
+  return ids.length < 2 ? null : ids;
 }
 
 void _pushInAppPlayer(
@@ -228,6 +278,7 @@ void _pushInAppPlayer(
   required String movieNumber,
   int? mediaId,
   int? mergedLibraryId,
+  List<int>? mergedMediaIds,
   int? positionSeconds,
   String? fallbackPath,
 }) {
@@ -242,6 +293,7 @@ void _pushInAppPlayer(
             DesktopRoutes.movieDetail(movieNumber: movieNumber).location,
         mediaId: mediaId,
         mergedLibraryId: mergedLibraryId,
+        mergedMediaIds: mergedMediaIds,
         positionSeconds: positionSeconds,
       ).push(context);
     case TargetPlatform.android:
@@ -251,6 +303,7 @@ void _pushInAppPlayer(
         movieNumber: movieNumber,
         mediaId: mediaId,
         mergedLibraryId: mergedLibraryId,
+        mergedMediaIds: mergedMediaIds,
         positionSeconds: positionSeconds,
       ).push(context);
   }

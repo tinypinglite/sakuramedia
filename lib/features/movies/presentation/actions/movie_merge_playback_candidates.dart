@@ -2,9 +2,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
 import 'package:sakuramedia/features/movies/presentation/actions/movie_playback_launcher.dart';
-import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_detail_overlay_presenter.dart';
-import 'package:sakuramedia/features/movies/presentation/providers/movie_detail_interaction_provider.dart';
+import 'package:sakuramedia/features/movies/presentation/widgets/detail/movie_merge_playback_selector.dart';
 import 'package:sakuramedia/l10n/app_localizations.dart';
+import 'package:sakuramedia/widgets/base/feedback/app_toast.dart';
 
 List<MovieMediaItemDto> movieMergedPlaybackMedia(
   MovieDetailDto movie,
@@ -20,12 +20,10 @@ List<MovieMediaItemDto> movieMergedPlaybackMedia(
         .toList()
       ..sort((a, b) => a.mediaId.compareTo(b.mediaId));
 
-List<MovieMergePlaybackCandidateDto> resolveMovieMergePlaybackCandidates(
+List<int> movieMergePlaybackLibraryIds(
   MovieDetailDto movie, {
-  required bool useExternalPlayer,
-  required AppLocalizations l10n,
+  Set<int>? supportedLibraryIds,
 }) {
-  if (useExternalPlayer) return movie.mergePlaybackCandidates;
   final libraryIds =
       movie.mediaItems
           .map((media) => media.libraryId)
@@ -35,33 +33,24 @@ List<MovieMergePlaybackCandidateDto> resolveMovieMergePlaybackCandidates(
         ..sort();
   return [
     for (final libraryId in libraryIds)
-      if (movieMergedPlaybackMedia(movie, libraryId) case final medias
-          when medias.length >= 2)
-        MovieMergePlaybackCandidateDto(
-          libraryId: libraryId,
-          libraryName:
-              movie.mergePlaybackCandidates
-                  .where((candidate) => candidate.libraryId == libraryId)
-                  .firstOrNull
-                  ?.libraryName ??
-              l10n.movieWidgetMediaLibraryFallback(libraryId),
-          providerKey: medias.first.providerKey ?? '',
-          segmentCount: medias.length,
-        ),
+      if ((supportedLibraryIds == null ||
+              supportedLibraryIds.contains(libraryId)) &&
+          movieMergedPlaybackMedia(movie, libraryId).length >= 2)
+        libraryId,
   ];
 }
 
 String? resolveMovieMergePlaybackLabel(
-  List<MovieMergePlaybackCandidateDto> candidates,
-  AppLocalizations l10n,
-) {
-  if (candidates.isEmpty) {
-    return null;
-  }
-  if (candidates.length == 1) {
-    return l10n.moviePageMergedPlaybackSegments(candidates.single.segmentCount);
-  }
-  return l10n.moviePageMergedPlayback;
+  MovieDetailDto movie,
+  AppLocalizations l10n, {
+  Set<int>? supportedExternalLibraryIds,
+}) {
+  return movieMergePlaybackLibraryIds(
+        movie,
+        supportedLibraryIds: supportedExternalLibraryIds,
+      ).isEmpty
+      ? null
+      : l10n.moviePageMergedPlayback;
 }
 
 Future<void> openMovieMergedPlayback({
@@ -69,29 +58,56 @@ Future<void> openMovieMergedPlayback({
   required WidgetRef ref,
   required String movieNumber,
   required MovieDetailDto movie,
-  required List<MovieMergePlaybackCandidateDto> candidates,
   required bool mobile,
 }) async {
-  final provider = movieDetailInteractionProvider(movieNumber);
-  if (ref.read(provider).isLaunchingPlayback) {
+  final l10n = AppLocalizations.of(context);
+  final externalSelection = await readExternalPlayerSelection(context);
+  if (!context.mounted) {
     return;
   }
-  final candidate = await MovieDetailOverlayPresenter(
-    mobile: mobile,
-  ).pickMergeCandidate(context: context, candidates: candidates);
-  if (candidate == null || !context.mounted) {
-    return;
-  }
-  final notifier = ref.read(provider.notifier);
-  notifier.setPlaybackLaunching(true);
-  try {
-    await launchMovieMergedPlayback(
-      context,
-      movieNumber: movie.movieNumber,
-      libraryId: candidate.libraryId,
-      movie: movie,
+  final externalAvailable =
+      externalSelection != null && isExternalPlayerAvailable(externalSelection);
+  final supportedExternalLibraryIds = externalAvailable
+      ? movie.mergePlaybackCandidates
+            .map((candidate) => candidate.libraryId)
+            .toSet()
+      : null;
+  if (supportedExternalLibraryIds != null &&
+      supportedExternalLibraryIds.isEmpty) {
+    showToast(
+      l10n.movieActionMergedPlaybackUnavailable,
+      tone: AppToastTone.error,
     );
-  } finally {
-    notifier.setPlaybackLaunching(false);
+    return;
   }
+  final playerLabel =
+      (externalSelection?.label ?? externalSelection?.playerId ?? '').trim();
+  final modeDescription = externalAvailable
+      ? l10n.movieMergePlaybackExternalMode(
+          playerLabel.isEmpty ? l10n.configTabExternalPlayer : playerLabel,
+        )
+      : l10n.movieMergePlaybackInAppMode;
+
+  final submission = await showMovieMergePlaybackSelector(
+    context: context,
+    movie: movie,
+    modeDescription: modeDescription,
+    mobile: mobile,
+    externalMergeSupportedLibraryIds: supportedExternalLibraryIds,
+    onSubmit: (selection) => prepareMovieMergedPlayback(
+      context,
+      movieNumber: movieNumber,
+      movie: movie,
+      selection: selection,
+      externalSelection: externalAvailable ? externalSelection : null,
+    ),
+  );
+  if (submission == null || !context.mounted) {
+    return;
+  }
+  await launchPreparedMovieMergedPlayback(
+    context,
+    submission,
+    movieNumber: movieNumber,
+  );
 }

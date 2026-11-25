@@ -16,12 +16,14 @@ class MobileMoviePlayerPage extends StatefulWidget {
     required this.movieNumber,
     this.initialMediaId,
     this.mergedLibraryId,
+    this.mergedMediaIds,
     this.initialPositionSeconds,
   });
 
   final String movieNumber;
   final int? initialMediaId;
   final int? mergedLibraryId;
+  final List<int>? mergedMediaIds;
   final int? initialPositionSeconds;
 
   @override
@@ -45,6 +47,7 @@ class _MobileMoviePlayerPageState extends State<MobileMoviePlayerPage>
         MovieMergedPlayContent(
           movieNumber: widget.movieNumber,
           libraryId: widget.mergedLibraryId!,
+          mediaIds: widget.mergedMediaIds,
           fallbackPath: MobileRoutes.movieDetail(
             movieNumber: widget.movieNumber,
           ).location,

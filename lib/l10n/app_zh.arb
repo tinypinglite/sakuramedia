@@ -3558,16 +3558,54 @@
   },
   "moviePageDetailLoadFailed": "影片详情暂时无法加载，请稍后重试",
   "moviePageMergedPlayback": "合并播放",
-  "moviePageMergedPlaybackSegments": "合并播放 · {count} 段",
-  "@moviePageMergedPlaybackSegments": {
+  "moviePageMergedNotEnoughSegments": "该媒体库没有足够的可播放分段",
+  "moviePageMergedSelectionUnavailable": "所选媒体分段不可用，请重新选择",
+  "moviePageMergedLoadFailed": "合并播放加载失败，请稍后重试",
+  "movieMergePlaybackSelectHint": "请选择同一媒体库中的至少 2 个文件",
+  "movieMergePlaybackSelectedSummary": "已选 {count} 段 · {library}",
+  "@movieMergePlaybackSelectedSummary": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "library": {
+        "type": "String"
+      }
+    }
+  },
+  "movieMergePlaybackOrderHint": "播放顺序按点击顺序",
+  "movieMergePlaybackSameLibraryHint": "合并只能选择同一媒体库",
+  "movieMergePlaybackLibraryDisabledHint": "与已选文件不在同一媒体库",
+  "movieMergePlaybackExternalUnsupportedHint": "该媒体库不支持外部合并播放",
+  "movieMergePlaybackNotEnoughHint": "可播放文件不足 2 个",
+  "movieMergePlaybackClearSelection": "清除选择",
+  "movieMergePlaybackUnavailable": "不可播放",
+  "movieMergePlaybackExternalMode": "将使用外部播放器 {player}",
+  "@movieMergePlaybackExternalMode": {
+    "placeholders": {
+      "player": {
+        "type": "String"
+      }
+    }
+  },
+  "movieMergePlaybackInAppMode": "将在应用内连续播放",
+  "movieMergePlaybackFilesCount": "{count} 个文件",
+  "@movieMergePlaybackFilesCount": {
     "placeholders": {
       "count": {
         "type": "int"
       }
     }
   },
-  "moviePageMergedNotEnoughSegments": "该媒体库没有足够的可播放分段",
-  "moviePageMergedLoadFailed": "合并播放加载失败，请稍后重试",
+  "movieMergePlaybackPlayableCount": "{count} 个可播放",
+  "@movieMergePlaybackPlayableCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "movieMergePlaybackSelectFile": "选择此文件",
   "moviePageEpisodePickerTitle": "选集 · {count}",
   "@moviePageEpisodePickerTitle": {
     "placeholders": {
@@ -3637,6 +3675,8 @@
   "movieActionExternalPlayerUnavailableInApp": "外部播放器不可用，已使用应用内播放",
   "movieActionExternalPlayerUnavailable": "外部播放器不可用",
   "movieActionMergedPlaybackUrlUnavailable": "无法获取合并播放地址",
+  "movieActionMergedPlaybackUnavailable": "当前没有可用的合并播放分段",
+  "movieActionMergedPlaybackSelectionMismatch": "合并播放返回的分段与所选不一致，请检查后端版本",
   "movieActionMergedPlaybackStartFailed": "合并播放启动失败，请稍后重试",
   "movieActionSearchSimilarImages": "相似图片",
   "movieActionSaveToLocal": "保存到本地",
@@ -4653,26 +4693,6 @@
   "movieWidgetDeleteMedia": "删除媒体",
   "movieWidgetMomentsTitle": "时刻",
   "movieWidgetNoMediaPoints": "暂无标记点",
-  "movieWidgetSelectMergeLibraryTitle": "选择合并播放媒体库",
-  "movieWidgetMediaLibraryFallback": "媒体库 {id}",
-  "@movieWidgetMediaLibraryFallback": {
-    "placeholders": {
-      "id": {
-        "type": "int"
-      }
-    }
-  },
-  "movieWidgetMediaLibrarySegments": "{providerKey} · {count} 段",
-  "@movieWidgetMediaLibrarySegments": {
-    "placeholders": {
-      "providerKey": {
-        "type": "String"
-      },
-      "count": {
-        "type": "int"
-      }
-    }
-  },
   "movieWidgetNoPlotImages": "暂无剧情图",
   "movieWidgetNoSimilarMovies": "暂无相似影片",
   "movieWidgetSubtitleListLoadFailed": "字幕列表加载失败",

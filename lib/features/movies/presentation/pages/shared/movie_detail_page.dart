@@ -64,6 +64,7 @@ class MovieDetailPage extends ConsumerStatefulWidget {
 class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     with MovieClipSectionMixin {
   RiverpodPageHandle? _pageCacheHandle;
+  bool _isOpeningMergePlayback = false;
 
   @override
   String get movieNumber => widget.movieNumber;
@@ -174,18 +175,18 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     final externalPlayerSelection = ref
         .watch(externalPlayerPreferenceProvider)
         .value;
-    final canLaunchMergedPlayback =
+    final externalAvailable =
         externalPlayerSelection != null &&
         isExternalPlayerAvailable(externalPlayerSelection);
     final l10n = AppLocalizations.of(context);
-    final mergePlaybackCandidates = resolveMovieMergePlaybackCandidates(
-      movie,
-      useExternalPlayer: canLaunchMergedPlayback,
-      l10n: l10n,
-    );
     final mergePlaybackLabel = resolveMovieMergePlaybackLabel(
-      mergePlaybackCandidates,
+      movie,
       l10n,
+      supportedExternalLibraryIds: externalAvailable
+          ? movie.mergePlaybackCandidates
+                .map((candidate) => candidate.libraryId)
+                .toSet()
+          : null,
     );
 
     final data = MovieDetailViewData(
@@ -220,7 +221,8 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       isPlayLoading: interaction.isLaunchingPlayback,
       playLabel: resumePosition == null ? null : l10n.baseResumeContinue,
       mergePlaybackLabel: mergePlaybackLabel,
-      isMergePlaybackLoading: interaction.isLaunchingPlayback,
+      isMergePlaybackLoading:
+          _isOpeningMergePlayback || interaction.isLaunchingPlayback,
       isSimilarMoviesLoading: detailState.isSimilarMoviesLoading,
       similarMoviesErrorMessage: detailState.similarMoviesErrorMessage,
       isClipsLoading: clipsState.isLoading,
@@ -247,18 +249,11 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
       onPlaylistTap: () => unawaited(_openPlaylistPicker(movie)),
       onMediaSelect: _interaction.selectMedia,
       onMergePlaybackTap:
-          mergePlaybackLabel == null || interaction.isLaunchingPlayback
+          mergePlaybackLabel == null ||
+              interaction.isLaunchingPlayback ||
+              _isOpeningMergePlayback
           ? null
-          : () => unawaited(
-              openMovieMergedPlayback(
-                context: context,
-                ref: ref,
-                movieNumber: movieNumber,
-                movie: movie,
-                candidates: mergePlaybackCandidates,
-                mobile: widget.mobile,
-              ),
-            ),
+          : () => unawaited(_openMergePlayback(movie)),
       onDeleteSelectedMedia: selectedMedia == null
           ? null
           : (media) => unawaited(_deleteMedia(media)),
@@ -322,6 +317,24 @@ class _MovieDetailPageState extends ConsumerState<MovieDetailPage>
     );
     if (!mounted) return;
     showMovieSubscriptionFeedback(result, l10n: AppLocalizations.of(context));
+  }
+
+  Future<void> _openMergePlayback(MovieDetailDto movie) async {
+    if (_isOpeningMergePlayback) return;
+    setState(() => _isOpeningMergePlayback = true);
+    try {
+      await openMovieMergedPlayback(
+        context: context,
+        ref: ref,
+        movieNumber: movie.movieNumber,
+        movie: movie,
+        mobile: widget.mobile,
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isOpeningMergePlayback = false);
+      }
+    }
   }
 
   Future<void> _toggleFavorite(MovieDetailDto movie) async {

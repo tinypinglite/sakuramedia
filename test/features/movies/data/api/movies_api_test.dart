@@ -962,6 +962,7 @@ void main() {
           <String, dynamic>{
             'media_id': 100,
             'library_id': 1,
+            'library_name': 'VR 媒体库',
             'play_url':
                 '/files/media/movies/ABC-001/video.mp4?expires=1700000900&signature=abc',
             'provider_key': 'filesystem',
@@ -1056,6 +1057,7 @@ void main() {
       detail.mediaItems.single.playUrl,
       '/files/media/movies/ABC-001/video.mp4?expires=1700000900&signature=abc',
     );
+    expect(detail.mediaItems.single.libraryName, 'VR 媒体库');
     expect(detail.mediaItems.single.hasPlayableUrl, isTrue);
     expect(detail.mediaItems.single.progress?.lastPositionSeconds, 600);
     expect(detail.mediaItems.single.videoInfo?.video?.codecName, 'h264');
@@ -1106,6 +1108,28 @@ void main() {
     expect(request.path, '/movies/ABC-001/merged-playback');
     expect(request.uri.queryParameters['library_id'], '9');
     expect(playback.playUrl, contains('/media/merged-play/index.m3u8'));
+  });
+
+  test('getMergedPlayback sends ordered media ids when selected', () async {
+    adapter.enqueueJson(
+      method: 'GET',
+      path: '/movies/ABC-001/merged-playback',
+      statusCode: 200,
+      body: <String, dynamic>{
+        'play_url':
+            '/media/merged-play/stream.mp4?media_ids=12,10&expires=1&signature=sig',
+      },
+    );
+
+    await moviesApi.getMergedPlayback(
+      movieNumber: 'ABC-001',
+      libraryId: 9,
+      mediaIds: const <int>[12, 10],
+    );
+
+    final request = adapter.requests.single;
+    expect(request.uri.queryParameters['library_id'], '9');
+    expect(request.uri.queryParameters['media_ids'], '12,10');
   });
 
   test(

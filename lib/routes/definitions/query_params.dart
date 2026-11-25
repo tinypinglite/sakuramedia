@@ -8,11 +8,34 @@ const List<AppQueryParam> moviePlaybackQueryParameters = <AppQueryParam>[
     type: AppQueryType.integer,
   ),
   AppQueryParam(
+    name: 'mergedMediaIds',
+    alias: 'merged-media-ids',
+    type: AppQueryType.string,
+  ),
+  AppQueryParam(
     name: 'positionSeconds',
     alias: 'position-seconds',
     type: AppQueryType.integer,
   ),
 ];
+
+List<int>? parseMergedMediaIds(String? raw) {
+  if (raw == null || raw.trim().isEmpty) {
+    return null;
+  }
+  final values = <int>[];
+  for (final part in raw.split(',')) {
+    final value = int.tryParse(part.trim());
+    if (value == null || value <= 0) {
+      return const <int>[];
+    }
+    values.add(value);
+  }
+  if (values.length < 2 || values.toSet().length != values.length) {
+    return const <int>[];
+  }
+  return values;
+}
 
 const List<AppQueryParam> videoPlaybackQueryParameters = <AppQueryParam>[
   AppQueryParam(

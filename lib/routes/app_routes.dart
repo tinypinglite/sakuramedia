@@ -163,6 +163,7 @@ abstract final class DesktopRoutes {
     required String movieNumber,
     int? mediaId,
     int? mergedLibraryId,
+    List<int>? mergedMediaIds,
     int? positionSeconds,
     String? fallbackPath,
   }) => AppRouteTarget(
@@ -171,6 +172,7 @@ abstract final class DesktopRoutes {
     queryParameters: {
       'mediaId': mediaId?.toString(),
       'mergedLibraryId': mergedLibraryId?.toString(),
+      'mergedMediaIds': mergedMediaIds?.join(','),
       'positionSeconds': positionSeconds?.toString(),
     },
     fallbackPath: fallbackPath,
@@ -404,6 +406,7 @@ abstract final class MobileRoutes {
     required String movieNumber,
     int? mediaId,
     int? mergedLibraryId,
+    List<int>? mergedMediaIds,
     int? positionSeconds,
   }) => AppRouteTarget(
     id: AppRouteId.mobileMoviePlayer,
@@ -411,6 +414,7 @@ abstract final class MobileRoutes {
     queryParameters: {
       'mediaId': mediaId?.toString(),
       'mergedLibraryId': mergedLibraryId?.toString(),
+      'mergedMediaIds': mergedMediaIds?.join(','),
       'positionSeconds': positionSeconds?.toString(),
     },
   );

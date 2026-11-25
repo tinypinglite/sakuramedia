@@ -12,6 +12,7 @@ class DesktopMoviePlayerPage extends StatelessWidget {
     required this.movieNumber,
     this.initialMediaId,
     this.mergedLibraryId,
+    this.mergedMediaIds,
     this.initialPositionSeconds,
     this.fallbackPath,
     this.imageSearchRoutePath = desktopImageSearchPath,
@@ -22,6 +23,7 @@ class DesktopMoviePlayerPage extends StatelessWidget {
   final String movieNumber;
   final int? initialMediaId;
   final int? mergedLibraryId;
+  final List<int>? mergedMediaIds;
   final int? initialPositionSeconds;
   final String? fallbackPath;
   final String imageSearchRoutePath;
@@ -34,6 +36,7 @@ class DesktopMoviePlayerPage extends StatelessWidget {
       return MovieMergedPlayContent(
         movieNumber: movieNumber,
         libraryId: mergedLibraryId!,
+        mediaIds: mergedMediaIds,
         fallbackPath:
             fallbackPath ??
             DesktopRoutes.movieDetail(movieNumber: movieNumber).location,

@@ -95,6 +95,7 @@ final AppRouteDefinition desktopMoviePlayerRoute = AppRouteDefinition(
     return DesktopMoviePlayerPage(
       movieNumber: movieNumber,
       mergedLibraryId: query.integer('mergedLibraryId'),
+      mergedMediaIds: parseMergedMediaIds(query.string('mergedMediaIds')),
       fallbackPath:
           AppRouteExtra.fallbackPathOf(
             state.extra,
@@ -194,6 +195,7 @@ final AppRouteDefinition mobileMoviePlayerRoute = AppRouteDefinition(
     return MobileMoviePlayerPage(
       movieNumber: state.pathParameters['movieNumber']!,
       mergedLibraryId: query.integer('mergedLibraryId'),
+      mergedMediaIds: parseMergedMediaIds(query.string('mergedMediaIds')),
       initialMediaId: query.integer('mediaId'),
       initialPositionSeconds: query.integer('positionSeconds'),
     );

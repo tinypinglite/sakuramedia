@@ -13,7 +13,6 @@ import 'package:sakuramedia/core/network/api_error_message.dart';
 import 'package:sakuramedia/core/session/providers/session_store_provider.dart';
 import 'package:sakuramedia/features/media/presentation/providers/media_api_provider.dart';
 import 'package:sakuramedia/features/movies/data/dto/detail/movie_detail_dto.dart';
-import 'package:sakuramedia/features/movies/presentation/actions/movie_merge_playback_candidates.dart';
 import 'package:sakuramedia/features/movies/presentation/pages/shared/movie_player_layout.dart';
 import 'package:sakuramedia/features/movies/presentation/providers/movies_api_provider.dart';
 import 'package:sakuramedia/features/shared/presentation/providers/merged_playback_factory_provider.dart';
@@ -40,6 +39,7 @@ class MovieMergedPlayContent extends ConsumerStatefulWidget {
     super.key,
     required this.movieNumber,
     required this.libraryId,
+    this.mediaIds,
     required this.fallbackPath,
     this.useTouchOptimizedControls = false,
     this.imageSearchRoutePath = desktopImageSearchPath,
@@ -48,6 +48,7 @@ class MovieMergedPlayContent extends ConsumerStatefulWidget {
 
   final String movieNumber;
   final int libraryId;
+  final List<int>? mediaIds;
   final String fallbackPath;
   final bool useTouchOptimizedControls;
   final String imageSearchRoutePath;
@@ -98,7 +99,19 @@ class _MovieMergedPlayContentState extends ConsumerState<MovieMergedPlayContent>
           .read(moviesApiProvider)
           .getMovieDetail(movieNumber: widget.movieNumber);
       if (!mounted) return;
-      final medias = movieMergedPlaybackMedia(movie, widget.libraryId);
+      final selectedMediaIds = widget.mediaIds;
+      final medias = selectedMediaIds == null
+          ? null
+          : _selectedMedia(movie, selectedMediaIds);
+      if (medias == null) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = AppLocalizations.of(
+            context,
+          ).moviePageMergedSelectionUnavailable;
+        });
+        return;
+      }
       if (medias.length < 2) {
         setState(() {
           _isLoading = false;
@@ -167,6 +180,30 @@ class _MovieMergedPlayContentState extends ConsumerState<MovieMergedPlayContent>
         );
       });
     }
+  }
+
+  List<MovieMediaItemDto>? _selectedMedia(
+    MovieDetailDto movie,
+    List<int> mediaIds,
+  ) {
+    if (mediaIds.length < 2 || mediaIds.toSet().length != mediaIds.length) {
+      return null;
+    }
+    final byId = <int, MovieMediaItemDto>{
+      for (final media in movie.mediaItems) media.mediaId: media,
+    };
+    final selected = <MovieMediaItemDto>[];
+    for (final mediaId in mediaIds) {
+      final media = byId[mediaId];
+      if (media == null ||
+          media.libraryId != widget.libraryId ||
+          !media.valid ||
+          !media.hasPlayableUrl) {
+        return null;
+      }
+      selected.add(media);
+    }
+    return selected;
   }
 
   Future<void> _showThumbnailActions(int index, Offset globalPosition) async {

@@ -19,20 +19,6 @@ void main() {
   late TestApiBundle bundle;
   final movie = _movie();
   final media = movie.mediaItems.first;
-  const candidates = <MovieMergePlaybackCandidateDto>[
-    MovieMergePlaybackCandidateDto(
-      libraryId: 1,
-      libraryName: 'Library A',
-      providerKey: 'library-a',
-      segmentCount: 2,
-    ),
-    MovieMergePlaybackCandidateDto(
-      libraryId: 2,
-      libraryName: 'Library B',
-      providerKey: 'library-b',
-      segmentCount: 3,
-    ),
-  ];
 
   setUp(() async {
     sessionStore = await buildLoggedInSessionStore();
@@ -99,19 +85,6 @@ void main() {
     await tester.tap(find.byKey(const Key('movie-media-delete-cancel')));
     await tester.pumpAndSettle();
     expect(await deleteFuture, isFalse);
-
-    final mergeFuture = presenter.pickMergeCandidate(
-      context: context,
-      candidates: candidates,
-    );
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const Key('movie-merge-playback-library-drawer')),
-      findsOneWidget,
-    );
-    await tester.tap(find.byKey(const Key('movie-merge-playback-library-2')));
-    await tester.pumpAndSettle();
-    expect(await mergeFuture, candidates[1]);
 
     final inspectorFuture = presenter.openInspector(
       context: context,
@@ -186,19 +159,6 @@ void main() {
     await tester.tap(find.byKey(const Key('movie-media-delete-cancel')));
     await tester.pumpAndSettle();
     expect(await deleteFuture, isFalse);
-
-    final mergeFuture = presenter.pickMergeCandidate(
-      context: context,
-      candidates: candidates,
-    );
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const Key('movie-merge-playback-library-dialog')),
-      findsOneWidget,
-    );
-    await tester.tap(find.byKey(const Key('movie-merge-playback-library-1')));
-    await tester.pumpAndSettle();
-    expect(await mergeFuture, candidates.first);
 
     final inspectorFuture = presenter.openInspector(
       context: context,

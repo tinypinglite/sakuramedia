@@ -206,10 +206,14 @@ class MoviesApi {
   Future<MovieMergedPlaybackDto> getMergedPlayback({
     required String movieNumber,
     required int libraryId,
+    List<int>? mediaIds,
   }) async {
     final response = await _apiClient.get(
       '/movies/$movieNumber/merged-playback',
-      queryParameters: <String, dynamic>{'library_id': libraryId},
+      queryParameters: <String, dynamic>{
+        'library_id': libraryId,
+        if (mediaIds != null) 'media_ids': mediaIds.join(','),
+      },
     );
     return MovieMergedPlaybackDto.fromJson(response);
   }
